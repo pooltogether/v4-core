@@ -5,11 +5,11 @@
 - A user can prove they held a balance at a certain time
 - A user can prove they held a balance over a duration of time
 
-We can accomplish this using a time-weighted average balance.
+We can accomplish this using a time-weighted average balance.  See [TWAP](https://uniswap.org/docs/v2/core-concepts/oracles/) for theory.
 
 Each time a token is transferred, we add to their previous TWAB.
 
-New twab = last twab (or zero) + (previous balance * elapsed seconds)
+**New twab = last twab (or zero) + (previous balance * elapsed seconds)**
 
 By default a transfer will change a users twab.  However, as in the COMP token, users may delegate their balance to other users.
 
