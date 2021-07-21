@@ -9,6 +9,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
+import "hardhat/console.sol";
+
 import "./interfaces/ITicket.sol";
 
 contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
@@ -31,8 +33,10 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
     uint32 timestamp;
   }
 
+  uint32 public constant CARDINALITY = 32;
+
   /// @notice Record of token balances for each account
-  mapping (address => Balance[32]) internal balances;
+  mapping (address => Balance[CARDINALITY]) internal balances;
 
   /// @notice
   mapping (address => uint256) internal balanceIndices;
@@ -115,18 +119,28 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
         address user
     ) internal view returns (Balance memory beforeOrAt, Balance memory atOrAfter) {
         uint32 time = uint32(block.timestamp);
-        uint256 index = balanceIndices[user] > 0 ? balanceIndices[user] - 1 : 31;
-        uint32 cardinality = 32;
+        // console.log("time: ", time);
+        // index is the most recent observation
+        uint256 index = _indexOfUser(user);
+        // index = 1
+        // console.log("index: ", index);
+
+        uint32 cardinality = CARDINALITY;
 
         uint256 l = (index + 1) % cardinality; // oldest observation
         uint256 r = l + cardinality - 1; // newest observation
         uint256 i;
 
         while (true) {
+            // console.log("l: ", l);
+            // console.log("r: ", r);
             i = (l + r) / 2;
-
+            // i = (32 + 33) / 2 = 32
+            
             beforeOrAt = balances[user][i % cardinality];
-
+            // beforeOrAt = balances[user][32 % 32]
+            // beforeOrAt = index 0
+            
             // we've landed on an uninitialized tick, keep searching higher (more recently)
             if (beforeOrAt.timestamp == 0) {
                 l = i + 1;
@@ -134,6 +148,8 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
             }
 
             atOrAfter = balances[user][(i + 1) % cardinality];
+            // atOrAfter = balances[user][33 % 32]
+            // atOrAfter = index 1
 
             bool targetAtOrAfter = lte(time, beforeOrAt.timestamp, target);
 
@@ -145,6 +161,10 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
         }
     }
 
+    function _indexOfUser(address user) internal view returns (uint256) {
+      return (balanceIndices[user] + CARDINALITY - 1) % CARDINALITY;
+    }
+
   function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
     if (from != address(0)) {
       uint256 _balanceIndicesFrom = balanceIndices[from];
@@ -154,7 +174,7 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
         timestamp: uint32(block.timestamp)
       });
 
-      balanceIndices[from] = _balanceIndicesFrom + 1;
+      balanceIndices[from] = (_balanceIndicesFrom + 1) % CARDINALITY;
     }
 
     if (to != address(0)) {
@@ -165,12 +185,40 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
         timestamp: uint32(block.timestamp)
       });
 
-      balanceIndices[to] = _balanceIndicesTo + 1;
+      balanceIndices[to] = (_balanceIndicesTo + 1) % CARDINALITY;
     }
   }
 
-  function getBalance(address user, uint32 timestamp) external view returns (uint256) {
-    (Balance memory beforeOrAt, Balance memory atOrAfter) = _binarySearch(timestamp, user);
+  function getBalance(address user, uint32 target) external view returns (uint256) {
+    uint256 index = _indexOfUser(user);
+    // console.log("getBalance index: ", index);
+    Balance memory beforeOrAt = balances[user][index];
+    // beforeOrAt = index 1
+    uint32 time = uint32(block.timestamp);
+    uint32 targetTimestamp = target > time ? time : target;
+
+    // if the target is chronologically at or after the newest observation, we can early return
+    if (lte(time, beforeOrAt.timestamp, targetTimestamp)) {
+      return beforeOrAt.balance;
+    }
+
+    // now, set before to the oldest observation
+    beforeOrAt = balances[user][(index + 1) % CARDINALITY];
+    if (beforeOrAt.timestamp == 0) beforeOrAt = balances[user][0];
+
+    // ensure that the target is chronologically at or after the oldest observation
+    if (targetTimestamp == beforeOrAt.timestamp) {
+      return beforeOrAt.balance;
+    }
+
+    // NOTE: could use a 'less than' here
+    if (lte(time, targetTimestamp, beforeOrAt.timestamp)) {
+      return 0;
+    }
+
+    console.log("got here");
+
+    (beforeOrAt,) = _binarySearch(target, user);
 
     return beforeOrAt.balance;
   }
