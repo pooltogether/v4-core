@@ -191,7 +191,7 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
     }
   }
 
-  function getBalance(address user, uint32 target) external view returns (uint256) {
+  function getBalance(address user, uint32 target) override external view returns (uint256) {
     return _getBalance(user, target);
   }
 
