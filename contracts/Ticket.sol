@@ -11,9 +11,11 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "hardhat/console.sol";
 
+import "./interfaces/IClaimer.sol";
 import "./interfaces/ITicket.sol";
 
-contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
+
+contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeCastUpgradeable for uint256;
   using SafeMathUpgradeable for uint256;
@@ -77,12 +79,13 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
 
   /* ============ External Functions ============ */
 
-  function updateBalance(address user, uint256 balance, uint256 currentDrawNumber) external {
-
-  }
-
-  function setRandomNumber(bytes32 randomNumber, uint256 currentDrawNumber) external {
-
+  function claim(address user, IClaimable claimable, uint256[] calldata timestamps, bytes calldata data) external override returns (bool) {
+    uint256 timestampsLength = timestamps.length;
+    uint256[] memory timestampBalances = new uint256[](timestampsLength);
+    for (uint256 i = 0; i < timestampsLength; i++) {
+      timestampBalances[i] = _getBalance(user, uint32(timestamps[i]));
+    }
+    claimable.claim(user, timestamps, timestampBalances, data);
   }
 
     /// @notice comparator for 32-bit timestamps
@@ -189,6 +192,10 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
   }
 
   function getBalance(address user, uint32 target) external view returns (uint256) {
+    return _getBalance(user, target);
+  }
+
+  function _getBalance(address user, uint32 target) internal view returns (uint256) {
     uint256 index = _indexOfUser(user);
     // console.log("getBalance index: ", index);
     Balance memory beforeOrAt = balances[user][index];

@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, ContractFactory, Signer, Wallet } from 'ethers';
-import { ethers } from 'hardhat';
+import { ethers, artifacts } from 'hardhat';
 import { Interface } from 'ethers/lib/utils';
 
 const { getSigners, provider } = ethers;
@@ -62,7 +62,7 @@ describe('Ticket', () => {
             expect(await ticket.getBalance(wallet1.address, latestBlockAfter.timestamp + 1)).to.equal(transferBalance);
         })
 
-        it.only('should correctly handle a full buffer', async () => {
+        it('should correctly handle a full buffer', async () => {
             const cardinality = await ticket.CARDINALITY();
             const balanceBefore = toWei('1000');
             await ticket.mint(wallet1.address, balanceBefore);
@@ -90,24 +90,33 @@ describe('Ticket', () => {
                 expect(actualBalance).to.equal(expectedBalance)
             }
         })
-
-        // it.only('should correctly handle a full buffer', async () => {
-        //     const cardinality = await ticket.CARDINALITY();
-        //     const balanceBefore = toWei('1000');
-        //     await ticket.mint(wallet1.address, balanceBefore);
-        //     const blocks = []
-        //     for (let i = 0; i < cardinality; i++) {
-        //         await ticket.transfer(wallet2.address, toWei('1'))
-        //         blocks.push(await provider.getBlock('latest'))
-        //     }
-            
-        //     // should have nothing at beginning of time
-        //     expect(await ticket.getBalance(wallet1.address, 0)).to.equal('0');
-
-        //     // should have 1000 - cardinality at end of time
-        //     let lastTime = blocks[blocks.length - 1].timestamp
-        //     console.log("lastTime: ", lastTime)
-        //     expect(await ticket.getBalance(wallet1.address, lastTime)).to.equal(toWei('1000').sub(toWei('1').mul(cardinality)))
-        // })
     });
+
+    describe('claim', async () => {
+        let claimable: any
+
+        beforeEach(async () => {
+            let IClaimable = await artifacts.readArtifact('IClaimable')
+            claimable = await deployMockContract(wallet1, IClaimable.abi)
+        })
+
+        it('should pass a zero balance', async () => {
+            await claimable.mock.claim.withArgs(wallet1.address, [0], [0], '0x').returns(true)
+            await ticket.claim(wallet1.address, claimable.address, [0], '0x')
+        })
+
+        it('should pass the actual balance', async () => {
+            const mintAmount = toWei('1000');
+            
+            await ticket.mint(wallet1.address, mintAmount);
+
+            await increaseTime(60);
+            const block = await provider.getBlock('latest');
+
+            await ticket.mint(wallet1.address, mintAmount);
+
+            await claimable.mock.claim.withArgs(wallet1.address, [block.timestamp], [mintAmount], '0x').returns(true)
+            await ticket.claim(wallet1.address, claimable.address, [block.timestamp], '0x')
+        })
+    })
 })
