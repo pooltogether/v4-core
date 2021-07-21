@@ -51,10 +51,10 @@ contract TsunamiPrizeStrategy {
   function _claim(address user, uint256[] memory timestamps, uint256[] memory balances, bytes memory data) internal {
     uint256[][] memory pickIndices = abi.decode(data, (uint256 [][]));
 
-    bytes32 userClaimedDraws = claimedDraws[user];
+    bytes32 userClaimedDraws = claimedDraws[user]; //sload
     uint256 prize;
 
-    uint256 _currentDrawId = currentDrawId;
+    uint256 _currentDrawId = currentDrawId; // sload
     bytes32 userRandomNumber = keccak256(abi.encodePacked(user));
 
     for (uint256 index = 0; index < timestamps.length; index++) {
@@ -66,7 +66,7 @@ contract TsunamiPrizeStrategy {
       userClaimedDraws = _claimDraw(userClaimedDraws, drawId, _currentDrawId);
     }
 
-    claimedDraws[user] = userClaimedDraws;
+    claimedDraws[user] = userClaimedDraws; //sstore
     emit Claimed(user, userClaimedDraws, prize);
   }
 

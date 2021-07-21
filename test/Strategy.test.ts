@@ -38,7 +38,7 @@ describe('Strategy', () => {
         const strategyFactory: ContractFactory = await ethers.getContractFactory("StrategyHarness");
         strategy = await strategyFactory.deploy();
         await strategy.setWaveModel(waveModel.address);
-        await strategy.setDrawId(waveModel.address);
+        await strategy.setDrawId(0);
 
         draw = {
           randomNumber: 1,
@@ -51,7 +51,7 @@ describe('Strategy', () => {
     })
 
     describe('claim()', () => {
-      it.only('should claim', async () => {
+      it('should claim', async () => {
         const user = wallet1.address;
         const timestamps = [0];
         const balances = [toWei("2")]
