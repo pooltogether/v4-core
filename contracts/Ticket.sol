@@ -105,7 +105,6 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
         return aAdjusted <= bAdjusted;
     }
 
-
     /// @notice Fetches the observations beforeOrAt and atOrAfter a target, i.e. where [beforeOrAt, atOrAfter] is satisfied.
     /// The result may be the same observation, or adjacent observations.
     /// @dev The answer must be contained in the array, used when the target is located within the stored observation
@@ -161,9 +160,9 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function _indexOfUser(address user) internal view returns (uint256) {
-      return (balanceIndices[user] + CARDINALITY - 1) % CARDINALITY;
-    }
+  function _indexOfUser(address user) internal view returns (uint256) {
+    return (balanceIndices[user] + CARDINALITY - 1) % CARDINALITY;
+  }
 
   function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
     if (from != address(0)) {
@@ -216,18 +215,13 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
       return 0;
     }
 
-    console.log("got here");
+    Balance memory afterOrAt;
+    (beforeOrAt, afterOrAt) = _binarySearch(target, user);
 
-    (beforeOrAt,) = _binarySearch(target, user);
+    if (afterOrAt.timestamp == target) {
+      return afterOrAt.balance;
+    }
 
     return beforeOrAt.balance;
   }
-
-  function getRandonNumber(address user, uint256 drawNumber) external view returns (bytes32) {
-
-  }
-
-  /* ============ Internal Functions ============ */
-
-
 }

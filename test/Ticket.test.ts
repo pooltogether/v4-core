@@ -72,21 +72,21 @@ describe('Ticket', () => {
                 blocks.push(await provider.getBlock('latest'))
             }
 
-            printBalances(await ticket.getBalances(wallet1.address))
+            // printBalances(await ticket.getBalances(wallet1.address))
             
             // should have nothing at beginning of time
             expect(await ticket.getBalance(wallet1.address, 0)).to.equal('0');
 
             // should have 1000 - cardinality at end of time
             let lastTime = blocks[blocks.length - 1].timestamp
-            console.log("lastTime: ", lastTime)
+            // console.log("lastTime: ", lastTime)
             expect(await ticket.getBalance(wallet1.address, lastTime)).to.equal(toWei('1000').sub(toWei('1').mul(cardinality)))
 
             // should match each and every change
             for (let i = 0; i < cardinality; i++) {
                 let expectedBalance = toWei('1000').sub(toWei('1').mul(i+1))
                 let actualBalance = await ticket.getBalance(wallet1.address, blocks[i].timestamp)
-                console.log(`Asserting transfer ${i+1} at time ${blocks[i].timestamp} with ${ethers.utils.formatEther(actualBalance)} equals ${ethers.utils.formatEther(expectedBalance)}...`)
+                // console.log(`Asserting transfer ${i+1} at time ${blocks[i].timestamp} with ${ethers.utils.formatEther(actualBalance)} equals ${ethers.utils.formatEther(expectedBalance)}...`)
                 expect(actualBalance).to.equal(expectedBalance)
             }
         })
