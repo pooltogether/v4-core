@@ -50,7 +50,9 @@ describe('Ticket', () => {
 
             const latestBlockAfter = await provider.getBlock('latest');
 
-            expect(await ticket.getBalance(wallet1.address, latestBlockAfter.timestamp)).to.equal(transferBalance);
+            console.log('latestBlockAfter', latestBlockAfter.timestamp);
+
+            expect(await ticket.getBalance(wallet1.address, latestBlockAfter.timestamp + 1)).to.equal(transferBalance);
         })
     });
 })
