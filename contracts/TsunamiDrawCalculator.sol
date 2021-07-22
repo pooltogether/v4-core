@@ -5,7 +5,9 @@ import "hardhat/console.sol";
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 
-contract TsunamiDrawCalculator is IDrawCalculator {
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ITicket ticket;
 
   uint256 constant PICK_COST = 1 ether;
@@ -13,6 +15,15 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   uint256 public matchCardinality;
 
   uint256[] public distributions; // [grandprize, 2nd prize, ..]
+
+  function initialize(ITicket _ticket, uint256 _matchCardinality, uint256[] memory _distributions) public initializer {
+    __Ownable_init();
+    ticket = _ticket;
+    matchCardinality = _matchCardinality;
+    distributions = _distributions;
+
+    // todo event
+  }
 
   function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
     require(randomNumbers.length == timestamps.length && timestamps.length == prizes.length, "invalid-calculate-input-lengths");
@@ -46,7 +57,7 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   }
 
   function _calculate(uint256 randomNumber, uint256 prize, uint256 totalSupply, uint256 balance, bytes32 userRandomNumber, uint256[] calldata picks)
-    internal override view returns (uint256)
+    internal view returns (uint256)
   {
     uint256 totalUserPicks = totalSupply / PICK_COST;
 
