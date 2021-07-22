@@ -211,7 +211,7 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   function getBalances(address user, uint32[] calldata targets) external view override returns (uint256[] memory){
     uint256 length = targets.length;
     uint256[] memory balances = new uint256[](length);
-    
+
     for(uint256 i =0; i < length; i++){
       balances[i] = _getBalance(user, targets[i]);
     }
