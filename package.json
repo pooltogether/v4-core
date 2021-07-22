@@ -24,7 +24,7 @@
   "dependencies": {
     "@openzeppelin/contracts-upgradeable": "4.2.0",
     "@pooltogether/fixed-point": "^1.0.0",
-    "@pooltogether/pooltogether-contracts": "^3.3.10"
+    "@pooltogether/pooltogether-contracts": "^3.4.4"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "2.0.2",
