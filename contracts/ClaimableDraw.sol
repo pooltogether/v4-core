@@ -63,7 +63,7 @@ abstract contract ClaimableDraw {
 
   function _calculateAllDraws(address user, uint256[] calldata drawIds, IDrawCalculator drawCalculator, bytes calldata data, uint256 _currentDrawId, bytes32 _claimedDraws) internal returns (uint256 totalPayout, bytes32 userClaimedDraws) {
     uint256[] memory prizes = new uint256[](drawIds.length);
-    uint256[] memory timestamps = new uint256[](drawIds.length);
+    uint32[] memory timestamps = new uint32[](drawIds.length);
     uint256[] memory randomNumbers = new uint256[](drawIds.length);
 
     for (uint256 drawIndex = 0; drawIndex < drawIds.length; drawIndex++) {
@@ -71,7 +71,7 @@ abstract contract ClaimableDraw {
       require(_draw.calculator == drawCalculator, "calculator-address-invalid");
 
       prizes[drawIndex] = _draw.prize;
-      timestamps[drawIndex] = _draw.timestamp;
+      timestamps[drawIndex] = uint32(_draw.timestamp);
       randomNumbers[drawIndex] = _draw.randomNumber;
       
       userClaimedDraws = _claimDraw(_claimedDraws, drawIds[drawIndex], _currentDrawId);

@@ -39,7 +39,7 @@ describe('TsunamiDrawCalculator', () => {
 
         const matchCardinality = 3
         
-        await drawCalculator.intialize(ticket.address, matchCardinality, [ethers.utils.parseEther("0.2"), ethers.utils.parseEther("0.8")])
+        await drawCalculator.initialize(ticket.address, matchCardinality, [ethers.utils.parseEther("0.2"), ethers.utils.parseEther("0.8")])
 
     })
 
@@ -48,12 +48,18 @@ describe('TsunamiDrawCalculator', () => {
         //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
 
         const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])//"0x1111111111111111111111111111111111111111111111111111111111111111"
+        console.log("winningNumber in test", winningNumber)
+        const userRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
+        console.log("userRandomNumber in test", userRandomNumber)
+
+        
         const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
 
+        await ticket.mock.getBalances.withArgs(wallet1.address, [42]).returns([10])
 
         expect(await drawCalculator.calculate(
             wallet1.address,
-            [winningNumber],
+            [userRandomNumber],
             [42],
             [utils.parseEther("100")],
             pickIndices

@@ -25,7 +25,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     // todo event
   }
 
-  function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
+  function calculate(address user, uint256[] calldata randomNumbers, uint32[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
     require(randomNumbers.length == timestamps.length && timestamps.length == prizes.length, "invalid-calculate-input-lengths");
 
     uint256[][] memory pickIndices = abi.decode(data, (uint256 [][]));
@@ -34,8 +34,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256[] memory balances = ticket.getBalances(user, timestamps);
 
     bytes32 userRandomNumber = keccak256(abi.encodePacked(user));
+
     for (uint256 index = 0; index < timestamps.length; index++) {
       prize += _calculate(randomNumbers[index], prizes[index], balances[index], userRandomNumber, pickIndices[index]);
+      console.log("prize is ", prize);
     }
 
     return prize;
@@ -56,10 +58,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     distributions = _distributions; //sstore
   }
 
-  function _calculate(uint256 randomNumber, uint256 prize, uint256 totalSupply, uint256 balance, bytes32 userRandomNumber, uint256[] calldata picks)
+  function _calculate(uint256 winningRandomNumber, uint256 prize, uint256 balance, bytes32 userRandomNumber, uint256[] memory picks)
     internal view returns (uint256)
   {
-    uint256 totalUserPicks = totalSupply / PICK_COST;
+    uint256 totalUserPicks = balance / PICK_COST;
 
     uint256 payout = 0;
 
@@ -67,8 +69,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256 distributionLength = distributions.length;
 
     for(uint256 index  = 0; index < picks.length; index++){
-      uint256 randomNumberThisPick = uint256(keccak256(abi.encode(randomNumber, picks[index])));
-      payout += calculatePickPercentage(randomNumberThisPick, randomNumber, _matchCardinality, distributionLength);
+      uint256 randomNumberThisPick = uint256(keccak256(abi.encode(userRandomNumber, picks[index])));
+      payout += calculatePickPercentage(randomNumberThisPick, winningRandomNumber, _matchCardinality, distributionLength);
     }
     return (payout * prize)/ 1 ether;
 
