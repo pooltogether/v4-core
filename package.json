@@ -19,10 +19,10 @@
     "distribute-ether": "hardhat --network localhost fork:distribute-ether-from-binance",
     "create-prize-pool": "hardhat --network localhost fork:create-aave-prize-pool",
     "run-fork": "yarn impersonate-accounts && yarn distribute-ether && yarn create-prize-pool",
-    "test": "yarn clean && HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat test"
+    "test": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat test"
   },
   "dependencies": {
-    "@openzeppelin/contracts-upgradeable": "3.4.0",
+    "@openzeppelin/contracts-upgradeable": "4.2.0",
     "@pooltogether/fixed-point": "^1.0.0",
     "@pooltogether/pooltogether-contracts": "^3.3.10"
   },
@@ -56,7 +56,6 @@
   "files": [
     "LICENSE",
     "abis/**",
-    "build/**",
     "artifacts/**",
     "contracts/**",
     "deployments/**",
