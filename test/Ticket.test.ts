@@ -46,34 +46,35 @@ describe('Ticket', () => {
             await increaseTime(60);
             const latestBlockBefore = await provider.getBlock('latest');
 
-            console.log('latestBlockBefore', latestBlockBefore.timestamp);
-
             const transferBalance = toWei('50');
             await ticket.transfer(wallet2.address, transferBalance);
-
-            console.log('balances', await ticket.getBalances(wallet1.address));
 
             expect(await ticket.getBalance(wallet1.address, latestBlockBefore.timestamp)).to.equal(balanceBefore);
 
             const latestBlockAfter = await provider.getBlock('latest');
 
-            console.log('latestBlockAfter', latestBlockAfter.timestamp);
-
             expect(await ticket.getBalance(wallet1.address, latestBlockAfter.timestamp + 1)).to.equal(transferBalance);
         })
 
-        it('should correctly handle a full buffer', async () => {
+        it.only('should correctly handle a full buffer', async () => {
             const cardinality = await ticket.CARDINALITY();
             const balanceBefore = toWei('1000');
             await ticket.mint(wallet1.address, balanceBefore);
-            const blocks = []
+            const blocks = [];
+
+            let tx;
+
             for (let i = 0; i < cardinality; i++) {
-                await ticket.transfer(wallet2.address, toWei('1'))
+                tx = await ticket.transfer(wallet2.address, toWei('1'))
                 blocks.push(await provider.getBlock('latest'))
             }
 
-            // printBalances(await ticket.getBalances(wallet1.address))
-            
+            const txReceipt = await provider.getTransactionReceipt(tx.hash);
+
+            console.log('gas consumption', txReceipt.gasUsed.toString());
+
+            printBalances(await ticket.getBalances(wallet1.address))
+
             // should have nothing at beginning of time
             expect(await ticket.getBalance(wallet1.address, 0)).to.equal('0');
 
@@ -86,7 +87,7 @@ describe('Ticket', () => {
             for (let i = 0; i < cardinality; i++) {
                 let expectedBalance = toWei('1000').sub(toWei('1').mul(i+1))
                 let actualBalance = await ticket.getBalance(wallet1.address, blocks[i].timestamp)
-                // console.log(`Asserting transfer ${i+1} at time ${blocks[i].timestamp} with ${ethers.utils.formatEther(actualBalance)} equals ${ethers.utils.formatEther(expectedBalance)}...`)
+                console.log(`Asserting transfer ${i+1} at time ${blocks[i].timestamp} with ${ethers.utils.formatEther(actualBalance)} equals ${ethers.utils.formatEther(expectedBalance)}...`)
                 expect(actualBalance).to.equal(expectedBalance)
             }
         })
@@ -107,7 +108,7 @@ describe('Ticket', () => {
 
         it('should pass the actual balance', async () => {
             const mintAmount = toWei('1000');
-            
+
             await ticket.mint(wallet1.address, mintAmount);
 
             await increaseTime(60);

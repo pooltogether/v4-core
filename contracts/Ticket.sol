@@ -20,6 +20,11 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   using SafeCastUpgradeable for uint256;
   using SafeMathUpgradeable for uint256;
 
+  struct Twab {
+    uint224 balance;
+    uint32 timestamp;
+  }
+
   /// @notice Emitted when ticket is initialized.
   /// @param name Ticket name (eg: PoolTogether Dai Ticket (Compound)).
   /// @param symbol Ticket symbol (eg: PcDAI).
@@ -30,24 +35,18 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
     uint8 decimals
   );
 
-  struct Balance {
-    uint224 balance;
-    uint32 timestamp;
-  }
+  event NewTwab(
+    address indexed user,
+    Twab newTwab
+  );
 
   uint32 public constant CARDINALITY = 32;
 
-  /// @notice Record of token balances for each account
-  mapping (address => Balance[CARDINALITY]) internal balances;
+  /// @notice Record of token twabs for each account
+  mapping (address => Twab[CARDINALITY]) internal twabs;
 
   /// @notice
-  mapping (address => uint256) internal balanceIndices;
-
-  // struct RingBuffer {
-  //   Twab[65535] balances;
-  // }
-
-  // mapping(address => RingBuffer) internal twabs;
+  mapping (address => uint256) internal mostRecentTwabIndex;
 
   /// @notice Initializes Ticket with passed parameters.
   /// @param _name Ticket's EIP-20 token name.
@@ -74,7 +73,7 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   // @param account Address of the account to get the balance of
   // @return Number of tokens held
   // function balanceOf(address account) external view override returns (uint256) {
-  //     return balances[account];
+  //     return twabs[account];
   // }
 
   /* ============ External Functions ============ */
@@ -119,7 +118,7 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
     function _binarySearch(
         uint32 target,
         address user
-    ) internal view returns (Balance memory beforeOrAt, Balance memory atOrAfter) {
+    ) internal view returns (Twab memory beforeOrAt, Twab memory atOrAfter) {
         uint32 time = uint32(block.timestamp);
         // console.log("time: ", time);
         // index is the most recent observation
@@ -138,25 +137,26 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
             // console.log("r: ", r);
             i = (l + r) / 2;
             // i = (32 + 33) / 2 = 32
-            
-            beforeOrAt = balances[user][i % cardinality];
-            // beforeOrAt = balances[user][32 % 32]
+
+            beforeOrAt = twabs[user][i % cardinality];
+            // beforeOrAt = twabs[user][32 % 32]
             // beforeOrAt = index 0
-            
+
             // we've landed on an uninitialized tick, keep searching higher (more recently)
             if (beforeOrAt.timestamp == 0) {
                 l = i + 1;
                 continue;
             }
 
-            atOrAfter = balances[user][(i + 1) % cardinality];
-            // atOrAfter = balances[user][33 % 32]
+            atOrAfter = twabs[user][(i + 1) % cardinality];
+            // atOrAfter = twabs[user][33 % 32]
             // atOrAfter = index 1
 
             bool targetAtOrAfter = lte(time, beforeOrAt.timestamp, target);
 
+            // TODO: add less than function to check for overflow and underflow
             // check if we've found the answer!
-            if (targetAtOrAfter && lte(time, target, atOrAfter.timestamp)) break;
+            if (targetAtOrAfter && (target < atOrAfter.timestamp)) break;
 
             if (!targetAtOrAfter) r = i - 1;
             else l = i + 1;
@@ -164,30 +164,43 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
     }
 
   function _indexOfUser(address user) internal view returns (uint256) {
-    return (balanceIndices[user] + CARDINALITY - 1) % CARDINALITY;
+    return (mostRecentTwabIndex[user] + CARDINALITY - 1) % CARDINALITY;
   }
 
-  function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+  function _newTwab(address user) internal {
+    // **New twab = last twab (or zero) + (balance * elapsed seconds)**
+
+    uint32 currentTimestamp = uint32(block.timestamp);
+    uint256 currentIndex = _indexOfUser(user);
+    Twab memory lastTwab = twabs[user][currentIndex];
+
+    if (lastTwab.timestamp == currentTimestamp) {
+      return;
+    }
+
+    uint32 elapsedSeconds = currentTimestamp - lastTwab.timestamp;
+    uint224 newTwabBalance = (lastTwab.balance + (balanceOf(user) * elapsedSeconds)).toUint224();
+
+    // Turn (currentIndex + 1) % CARDINALITY into a util function
+    Twab memory newTwab = Twab ({
+      balance: newTwabBalance,
+      timestamp: currentTimestamp
+    });
+
+    twabs[user][(currentIndex + 1) % CARDINALITY] = newTwab;
+
+    mostRecentTwabIndex[user] = (currentIndex + 2) % CARDINALITY;
+
+    emit NewTwab(user, newTwab);
+  }
+
+  function _beforeTokenTransfer(address from, address to, uint256) internal override {
     if (from != address(0)) {
-      uint256 _balanceIndicesFrom = balanceIndices[from];
-
-      balances[from][_balanceIndicesFrom] = Balance ({
-        balance: uint224(balanceOf(from) - amount),
-        timestamp: uint32(block.timestamp)
-      });
-
-      balanceIndices[from] = (_balanceIndicesFrom + 1) % CARDINALITY;
+      _newTwab(from);
     }
 
     if (to != address(0)) {
-      uint256 _balanceIndicesTo = balanceIndices[to];
-
-      balances[to][_balanceIndicesTo] = Balance ({
-        balance: uint224(balanceOf(to) + amount),
-        timestamp: uint32(block.timestamp)
-      });
-
-      balanceIndices[to] = (_balanceIndicesTo + 1) % CARDINALITY;
+      _newTwab(to);
     }
   }
 
@@ -197,38 +210,38 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
 
   function _getBalance(address user, uint32 target) internal view returns (uint256) {
     uint256 index = _indexOfUser(user);
-    // console.log("getBalance index: ", index);
-    Balance memory beforeOrAt = balances[user][index];
+
+    Twab memory beforeOrAt = twabs[user][index];
     // beforeOrAt = index 1
     uint32 time = uint32(block.timestamp);
     uint32 targetTimestamp = target > time ? time : target;
 
     // if the target is chronologically at or after the newest observation, we can early return
     if (lte(time, beforeOrAt.timestamp, targetTimestamp)) {
-      return beforeOrAt.balance;
+      return balanceOf(user);
     }
 
     // now, set before to the oldest observation
-    beforeOrAt = balances[user][(index + 1) % CARDINALITY];
-    if (beforeOrAt.timestamp == 0) beforeOrAt = balances[user][0];
-
-    // ensure that the target is chronologically at or after the oldest observation
-    if (targetTimestamp == beforeOrAt.timestamp) {
-      return beforeOrAt.balance;
-    }
+    beforeOrAt = twabs[user][(index + 1) % CARDINALITY];
+    if (beforeOrAt.timestamp == 0) beforeOrAt = twabs[user][0];
 
     // NOTE: could use a 'less than' here
-    if (lte(time, targetTimestamp, beforeOrAt.timestamp)) {
+    if (targetTimestamp < beforeOrAt.timestamp) {
       return 0;
     }
 
-    Balance memory afterOrAt;
+    // ensure that the target is chronologically at or after the oldest observation
+    // if (targetTimestamp == beforeOrAt.timestamp) {
+    //   return beforeOrAt.balance;
+    // }
+
+    Twab memory afterOrAt;
     (beforeOrAt, afterOrAt) = _binarySearch(target, user);
 
-    if (afterOrAt.timestamp == target) {
-      return afterOrAt.balance;
-    }
+    // difference in balance / time
+    uint224 differenceInBalance = afterOrAt.balance - beforeOrAt.balance;
+    uint32 differenceInTime = afterOrAt.timestamp - beforeOrAt.timestamp;
 
-    return beforeOrAt.balance;
+    return differenceInBalance / differenceInTime;
   }
 }
