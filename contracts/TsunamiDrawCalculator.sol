@@ -90,9 +90,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256 numberOfMatches = 0;
     
     for(uint256 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++){       
-      console.log("attempting to match ", getValueAtIndex(randomNumberThisPick, matchIndex));
-      console.log("with: ", getValueAtIndex(winningRandomNumber, matchIndex));
-      if(getValueAtIndex(randomNumberThisPick, matchIndex) == getValueAtIndex(winningRandomNumber, matchIndex)){
+      console.log("attempting to match ", _getValueAtIndex(randomNumberThisPick, matchIndex));
+      console.log("with: ", _getValueAtIndex(winningRandomNumber, matchIndex));
+      
+      if(_getValueAtIndex(randomNumberThisPick, matchIndex) == _getValueAtIndex(winningRandomNumber, matchIndex)){
           numberOfMatches++;
       }          
     }
@@ -109,7 +110,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice helper function to return the 4-bit value within a word at a specified index
   ///@param word word to index
   ///@param index index to index
-  function getValueAtIndex(uint256 word, uint256 index) internal pure returns(uint256) {
+  function _getValueAtIndex(uint256 word, uint256 index) internal pure returns(uint256) {
     uint256 mask =  (type(uint32).max | uint256(0)) << (index * 4);
     return uint256((uint256(word) & mask) >> (index * 4));
   }

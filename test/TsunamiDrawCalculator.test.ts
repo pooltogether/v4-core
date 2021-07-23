@@ -31,20 +31,20 @@ describe('TsunamiDrawCalculator', () => {
 
     beforeEach(async () =>{
         [ wallet1, wallet2, wallet3 ] = await getSigners();
-        const drawCalculatorFactory = await ethers.getContractFactory("TsunamiDrawCalculator")
+        const drawCalculatorFactory = await ethers.getContractFactory("TsunamiDrawCalculatorHarness")
         drawCalculator = await drawCalculatorFactory.deploy()
 
         let ticketArtifact = await artifacts.readArtifact('ITicket')
         ticket = await deployMockContract(wallet1, ticketArtifact.abi)
 
-        const matchCardinality = 3
+        const matchCardinality = 8
         
         await drawCalculator.initialize(ticket.address, matchCardinality, [ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")])
 
     })
 
     describe.only('calculate()', () => {
-      it.only('should calculate and win grand prize', async () => {
+      it('should calculate and win grand prize', async () => {
         //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
 
         const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])//"0x1111111111111111111111111111111111111111111111111111111111111111"
@@ -97,27 +97,48 @@ describe('TsunamiDrawCalculator', () => {
         )).to.equal(utils.parseEther("0"))
       })
 
-      it('should calculate runner up prize', async () => {
+      it.only('should calculate runner up prize', async () => {
         //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
-
-        const winningNumber = utils.solidityKeccak256(["address"], [wallet2.address])
-        // console.log("winningNumber in test", winningNumber)
-        const userRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
-        console.log("userRandomNumber in test", userRandomNumber)
-
         const timestamp = 42
         const prizes = [utils.parseEther("100")]
         const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
 
         await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([10]) // (user, timestamp): balance
+        
+        // increasing the distribution array length should make it easier to get a match
+        await drawCalculator.setPrizeDistribution([
+            ethers.utils.parseEther("0.2"),
+            ethers.utils.parseEther("0.1"),
+            ethers.utils.parseEther("0.1"),
+            ethers.utils.parseEther("0.1"),
+            ethers.utils.parseEther("0.1"),
+            ethers.utils.parseEther("0.1")
+         ])
+        
+         // increasing the matchCardinality should make it easier to get a match
 
-        expect(await drawCalculator.calculate(
-            wallet1.address,
-            [userRandomNumber],
-            [timestamp],
-            prizes,
-            pickIndices
-        )).to.equal(utils.parseEther("20"))
+        let index = 0
+        while(true){
+            const randomWallet = await ethers.Wallet.createRandom()
+            const winningNumber = utils.solidityKeccak256(["address"], [randomWallet.address])
+            // console.log("winningNumber in test", winningNumber)
+            const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
+            console.log(`attempt ${index} trying winningRandomNumber: ", ${winningRandomNumber}`)
+            const resultingPrize = await drawCalculator.calculate(
+                wallet1.address,
+                [winningRandomNumber],
+                [timestamp],
+                prizes,
+                pickIndices
+            )
+            console.log("resultingPrize ", resultingPrize.toString())
+            if( resultingPrize.toNumber() > 0){
+                console.log("found winning random number!")
+                break;
+            }
+            index++
+        }
+
       })
     });
 })
