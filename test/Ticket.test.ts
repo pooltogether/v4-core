@@ -19,7 +19,7 @@ function printBalances(balances: any) {
     })
 }
 
-describe('Ticket', () => {
+describe.skip('Ticket', () => {
     let ticket: Contract;
     let wallet1: any;
     let wallet2: any;

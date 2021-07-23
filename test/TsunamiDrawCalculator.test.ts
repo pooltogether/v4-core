@@ -39,29 +39,83 @@ describe('TsunamiDrawCalculator', () => {
 
         const matchCardinality = 3
         
-        await drawCalculator.initialize(ticket.address, matchCardinality, [ethers.utils.parseEther("0.2"), ethers.utils.parseEther("0.8")])
+        await drawCalculator.initialize(ticket.address, matchCardinality, [ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")])
 
     })
 
-    describe('calculate()', () => {
-      it.only('should calculate', async () => {
+    describe.only('calculate()', () => {
+      it.only('should calculate and win grand prize', async () => {
         //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
 
         const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])//"0x1111111111111111111111111111111111111111111111111111111111111111"
-        console.log("winningNumber in test", winningNumber)
+        // console.log("winningNumber in test", winningNumber)
+        const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
+        // console.log("winningRandomNumber in test", winningRandomNumber)
+
+        const timestamp = 42
+        const prizes = [utils.parseEther("100")]
+        const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
+
+        await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([10]) // (user, timestamp): balance
+
+        expect(await drawCalculator.calculate(
+            wallet1.address,
+            [winningRandomNumber],
+            [timestamp],
+            prizes,
+            pickIndices
+        )).to.equal(utils.parseEther("80"))
+        
+        console.log("GasUsed for calculate(): ", (await drawCalculator.estimateGas.calculate(
+            wallet1.address,
+            [winningRandomNumber],
+            [timestamp],
+            prizes,
+            pickIndices)).toString())
+      })
+
+      it('should calculate and win nothing', async () => {
+        //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
+
+        const winningNumber = utils.solidityKeccak256(["address"], [wallet2.address])
+        // console.log("winningNumber in test", winningNumber)
         const userRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
         console.log("userRandomNumber in test", userRandomNumber)
 
-        
+        const timestamp = 42
+        const prizes = [utils.parseEther("100")]
         const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
 
-        await ticket.mock.getBalances.withArgs(wallet1.address, [42]).returns([10])
+        await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([10]) // (user, timestamp): balance
 
         expect(await drawCalculator.calculate(
             wallet1.address,
             [userRandomNumber],
-            [42],
-            [utils.parseEther("100")],
+            [timestamp],
+            prizes,
+            pickIndices
+        )).to.equal(utils.parseEther("0"))
+      })
+
+      it('should calculate runner up prize', async () => {
+        //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
+
+        const winningNumber = utils.solidityKeccak256(["address"], [wallet2.address])
+        // console.log("winningNumber in test", winningNumber)
+        const userRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
+        console.log("userRandomNumber in test", userRandomNumber)
+
+        const timestamp = 42
+        const prizes = [utils.parseEther("100")]
+        const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
+
+        await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([10]) // (user, timestamp): balance
+
+        expect(await drawCalculator.calculate(
+            wallet1.address,
+            [userRandomNumber],
+            [timestamp],
+            prizes,
             pickIndices
         )).to.equal(utils.parseEther("20"))
       })
