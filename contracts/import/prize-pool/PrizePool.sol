@@ -205,8 +205,8 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     __ReentrancyGuard_init();
 
     // NOTE: Updated from _setLiquidityCap(uint256(-1));
-    uint256 MASK = type(uint256).max;
-    _setLiquidityCap(MASK);
+    uint256 liquidityCapMask = type(uint256).max;
+    _setLiquidityCap(liquidityCapMask);
 
     reserveRegistry = _reserveRegistry;
     maxExitFeeMantissa = _maxExitFeeMantissa;
