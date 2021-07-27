@@ -54,7 +54,7 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   uint32 public constant CARDINALITY = 32;
 
   /// @notice Record of token holders TWABs for each account.
-  mapping (address => Twab[CARDINALITY]) internal twabs;
+  mapping (address => Twab[CARDINALITY]) public twabs;
 
   /// @notice Most recent TWAB index of a ticket holder.
   mapping (address => uint256) internal mostRecentTwabIndex;
@@ -116,8 +116,8 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   /// @return beforeOrAt TWAB recorded before, or at, the target.
   /// @return atOrAfter TWAB recorded at, or after, the target.
   function _binarySearch(
-      uint32 _target,
-      address _user
+      address _user,
+      uint32 _target
   ) internal view returns (Twab memory beforeOrAt, Twab memory atOrAfter) {
       uint32 time = uint32(block.timestamp);
       uint256 twabIndex = _mostRecentTwabIndexOfUser(_user);
@@ -224,7 +224,7 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
     }
 
     // Otherwise, we perform the `_binarySearch`
-    (beforeOrAt, afterOrAt) = _binarySearch(_target, _user);
+    (beforeOrAt, afterOrAt) = _binarySearch(_user, _target);
 
     // Difference in balance / time
     uint224 differenceInBalance = afterOrAt.balance - beforeOrAt.balance;
@@ -261,8 +261,8 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   /// @param _claimable Claimable interface to call `claim` method on.
   /// @param _timestamps TWAB `_timestamps` array to get user balances by passing it to `_getBalance` function.
   /// @param _picks Encoded array of user picks.
-  /// @return bool if operation succeeded.
-  function claim(address _user, IClaimable _claimable, uint256[] calldata _timestamps, bytes calldata _picks) external override returns (bool) {
+  /// @return uint256 total amount of tokens claimed.
+  function claim(address _user, IClaimable _claimable, uint256[] calldata _timestamps, bytes calldata _picks) external override returns (uint256) {
     uint256 timestampsLength = _timestamps.length;
     uint256[] memory timestampBalances = new uint256[](timestampsLength);
 
