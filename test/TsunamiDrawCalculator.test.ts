@@ -152,7 +152,7 @@ describe('TsunamiDrawCalculator', () => {
             )).to.equal(utils.parseEther("0"))
         })
 
-        it.only('increasing the matchCardinality results in lower probability of a match', async () => {
+        it('increasing the matchCardinality for same user and winning numbers results in less of a prize', async () => {
             //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
             const timestamp = 42
             const prizes = [utils.parseEther("100")]
@@ -161,7 +161,6 @@ describe('TsunamiDrawCalculator', () => {
 
             await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
             
-            // increasing the distribution array length should make it easier to get a match
             await drawCalculator.setPrizeDistribution([
                 ethers.utils.parseEther("0.2"),
                 ethers.utils.parseEther("0.1"),
@@ -172,83 +171,28 @@ describe('TsunamiDrawCalculator', () => {
             await drawCalculator.setMatchCardinality(6)
             await drawCalculator.setNumberRange(4)
 
-            // let attemptsIndex = 0
-            let resultingPrize :BigNumber = BigNumber.from("0")
             const winningRandomNumber = "0x3fa0adea2a0c897d68abddf4f91167acda84750ee4a68bf438860114c8592b35"
-            resultingPrize = await drawCalculator.calculate(
+            const resultingPrize = await drawCalculator.calculate(
                 wallet1.address,
                 [winningRandomNumber],
                 [timestamp],
                 prizes,
                 pickIndices
             )
-            expect(resultingPrize.gt("0"))
-
-            // while(true){
-            //     const randomWallet = ethers.Wallet.createRandom()
-            //     const winningNumber = utils.solidityKeccak256(["address"], [randomWallet.address])
-            //     const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
-            //     // console.log(`attempt ${attemptsIndex} trying winningRandomNumber: ", ${winningRandomNumber}`)
-            //     resultingPrize = await drawCalculator.calculate(
-            //         wallet1.address,
-            //         [winningRandomNumber],
-            //         [timestamp],
-            //         prizes,
-            //         pickIndices
-            //     )
-                
-            //     if(resultingPrize.gt("0")){
-            //         console.log("found winning random number!", winningRandomNumber)
-            //         console.log("resultingPrize ", resultingPrize.toString())
-            //         break;
-            //     }
-            //     attemptsIndex++
-            // }
-            // expect(resultingPrize.gt("0"))
-            
+            expect(resultingPrize).to.equal(ethers.BigNumber.from(utils.parseEther("0.625")))
             // now increase cardinality 
             await drawCalculator.setMatchCardinality(7)
-            const winningRandomNumber2 = "0x2bc1ef3324c77402eb23da42db0555cee36014b14e59c2b0713ee2aa03c1dafc"
-            // let reattemptsIndex = 0
-            let resultingPrize2 :BigNumber = BigNumber.from("0")
-            resultingPrize2 = await drawCalculator.calculate(
+            const resultingPrize2 = await drawCalculator.calculate(
                 wallet1.address,
                 [winningRandomNumber],
                 [timestamp],
                 prizes,
                 pickIndices
             )
-            expect(resultingPrize2.gt("0"))
-
-            // while(true){
-            //     const randomWallet = ethers.Wallet.createRandom()
-            //     const winningNumber = utils.solidityKeccak256(["address"], [randomWallet.address])
-            //     const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
-            //     // console.log(`test2: attempt ${reattemptsIndex} trying winningRandomNumber: ", ${winningRandomNumber}`)
-            //     resultingPrize2 = await drawCalculator.calculate(
-            //         wallet1.address,
-            //         [winningRandomNumber],
-            //         [timestamp],
-            //         prizes,
-            //         pickIndices
-            //     )
-                
-            //     if(resultingPrize2.gt("0")){
-            //         console.log("found winning random number!", winningRandomNumber)
-            //         console.log("resultingPrize ", resultingPrize.toString())
-            //         break;
-            //     }
-            //     reattemptsIndex++
-            // }
-            // console.log("attemptsIndex: ", attemptsIndex)
-            // console.log("reattemptsIndex: ", reattemptsIndex)
-            
-
-            // expect(reattemptsIndex).to.be.greaterThan(attemptsIndex)
+            expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther("0.15625")))
         })
 
-        // probabalisitc test -- wrap in re-try block
-        it('increasing the prize range results in lower probability of matches', async () => {
+        it.only('increasing the number range results in lower probability of matches', async () => {
             //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
             const timestamp = 42
             const prizes = [utils.parseEther("100")]
@@ -266,62 +210,29 @@ describe('TsunamiDrawCalculator', () => {
             ])
             
             await drawCalculator.setMatchCardinality(5)
-            await drawCalculator.setNumberRange(4)
+            await drawCalculator.setNumberRange(4) // this means from 0 to 4 is available for matching
 
-            let attemptsIndex = 0
-            let resultingPrize :BigNumber = BigNumber.from("0")
-            while(true){
-                const randomWallet = ethers.Wallet.createRandom()
-                const winningNumber = utils.solidityKeccak256(["address"], [randomWallet.address])
-                const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
-                console.log(`attempt ${attemptsIndex} trying winningRandomNumber: ", ${winningRandomNumber}`)
-                resultingPrize = await drawCalculator.calculate(
-                    wallet1.address,
-                    [winningRandomNumber],
-                    [timestamp],
-                    prizes,
-                    pickIndices
-                )
-                
-                if(resultingPrize.gt("0")){
-                    console.log("found winning random number!")
-                    console.log("resultingPrize ", resultingPrize.toString())
-                    break;
-                }
-                attemptsIndex++
-            }
-            expect(resultingPrize.gt("0"))
+            const winningRandomNumber = "0x4e0664ee1b7cb711b9b899f90869149727cdfde6d7c96b0916254cdae743abac" // number of matches = 3
+            const resultingPrize = await drawCalculator.calculate(
+                wallet1.address,
+                [winningRandomNumber],
+                [timestamp],
+                prizes,
+                pickIndices
+            )
+            expect(resultingPrize).to.equal(ethers.BigNumber.from(utils.parseEther("0.625")))
 
-            // now increase prize range 
-            await drawCalculator.setNumberRange(6) // this means 6 bits of the number are available for matching
-
-            let reattemptsIndex = 0
-            let resultingPrize2 :BigNumber = BigNumber.from("0")
-            while(true){
-                const randomWallet = ethers.Wallet.createRandom()
-                const winningNumber = utils.solidityKeccak256(["address"], [randomWallet.address])
-                const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
-                console.log(`test2: attempt ${reattemptsIndex} trying winningRandomNumber: ", ${winningRandomNumber}`)
-                resultingPrize2 = await drawCalculator.calculate(
-                    wallet1.address,
-                    [winningRandomNumber],
-                    [timestamp],
-                    prizes,
-                    pickIndices
-                )
-                
-                if(resultingPrize2.gt("0")){
-                    console.log("found winning random number!")
-                    console.log("resultingPrize ", resultingPrize.toString())
-                    break;
-                }
-                reattemptsIndex++
-            }
-            console.log("attemptsIndex: ", attemptsIndex)
-            console.log("reattemptsIndex: ", reattemptsIndex)
-            
-
-            expect(reattemptsIndex).to.be.greaterThan(attemptsIndex)
+            // now increase number range 
+            await drawCalculator.setNumberRange(6) // this means from 0 to 6 is available for matching
+            const winningRandomNumber2 = "0x7693f99d82f3d80754b9afafca8af693fb1487fbc7b126f15b97ba76ee848557" // number of matches = 2 
+            const resultingPrize2 = await drawCalculator.calculate(
+                wallet1.address,
+                [winningRandomNumber2],
+                [timestamp],
+                prizes,
+                pickIndices
+            )
+            expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther("0.0462962962962962")))
         })
     });
 })
