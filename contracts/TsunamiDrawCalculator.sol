@@ -7,6 +7,9 @@ import "./interfaces/ITicket.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@pooltogether/uniform-random-number/contracts/UniformRandomNumber.sol";
+// import "./test/UniformRandomNumber.sol";
+
+import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 /// match 256 bits -> range: 1, cardinality:64
 contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
@@ -24,7 +27,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   /// Max 15 which is max value represented by 4 bits
   uint256 public range;
 
-  ///@notice Prize distribution breakdown
+  ///@notice Prize distribution breakdown expressed as a fraction of 1 ether (18 decimals). 0.2 = 20% of the prize etc
   uint256[] public distributions; // [grand prize, 2nd prize, ..]
 
   ///@notice Emitted when the contract is initialized
@@ -37,7 +40,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   event PrizeDistributionsSet(uint256[] _distributions);
 
   ///@notice Emitted when the Prize Range is set
-  event PrizeRangeSet(uint256 range);
+  event NumberRangeSet(uint256 range);
 
   ///@notice Initializer sets the initial parameters
   function initialize(ITicket _ticket, uint256 _matchCardinality, uint256[] memory _distributions, uint8 _range) public initializer {
@@ -50,7 +53,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     emit Initialized(_ticket, _matchCardinality, _distributions);
     emit MatchCardinalitySet(_matchCardinality);
     emit PrizeDistributionsSet(_distributions);
-    emit PrizeRangeSet(_range);
+    emit NumberRangeSet(_range);
   }
 
   ///@notice Calulates the prize amount for a user at particular draws. Called by a Claimable Strategy.
@@ -153,17 +156,17 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice helper function to return the 4-bit value within a word at a specified index
   ///@param word word to index
   ///@param index index to index (max 15)
-  function _getValueAtIndex(uint256 word, uint256 index, uint256 _range) internal pure returns(uint256) {
+  function _getValueAtIndex(uint256 word, uint256 index, uint256 _range) internal view returns(uint256) {
     uint256 mask =  (uint256(15)) << (index * 4);
     return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (index * 4)), _range);
   }
 
   ///@notice Set the Prize Range for the Draw
   ///@param _range The range to set. Max 15.
-  function setPrizeRange(uint256 _range) external onlyOwner {
+  function setNumberRange(uint256 _range) external onlyOwner {
     require(_range < 16, "prize range too large");
     range = _range;
-    emit PrizeRangeSet(_range);
+    emit NumberRangeSet(_range);
   }
 
   ///@notice set the match cardinality. only callable by contract owner
@@ -181,7 +184,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     for(uint256 i = 0; i < _distributions.length; i++){
       sum += _distributions[i];
     }
-    require(sum <= 1 ether, "sum of distributions too large");
+    require(sum <= 1 ether, "sum of distributions too large"); //NOTE: should we also enforce that == 1 ether? Does not doing this mess up the distribution?
 
     require(_distributions.length <= matchCardinality, "distributions gt cardinality");
     distributions = _distributions; //sstore

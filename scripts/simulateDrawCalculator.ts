@@ -18,8 +18,15 @@ async function runSimulation(matchCardinality: number, distributions:Distributio
 }
 
 function getValueAtIndex(word: string, index: number, _range: number){
-    // how to elinimate modulo boas here
+    // how to elinimate modulo bias here
 }
+
+
+// 
+// function getMatchProbability(bitSizeOf){
+
+// }
+
 
 
 
@@ -30,7 +37,7 @@ function getValueAtIndex(word: string, index: number, _range: number){
 
     // runSimulation() and record number of runs for it to return 
 
-    // matchCardinality++
+    // matchCardinality++ 
 
 
 /*
