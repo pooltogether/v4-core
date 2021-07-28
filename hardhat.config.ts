@@ -1,5 +1,6 @@
 import '@nomiclabs/hardhat-etherscan';
 import '@nomiclabs/hardhat-waffle';
+import 'hardhat-dependency-compiler'
 import 'hardhat-abi-exporter';
 import 'hardhat-deploy';
 import 'hardhat-deploy-ethers';
@@ -18,6 +19,11 @@ const config: HardhatUserConfig = {
     clear: true,
     flat: true,
   },
+  // dependencyCompiler: {
+  //   paths: [
+  //     '@pooltogether/pooltogether-contracts/contracts/builders/PoolWithMultipleWinnersBuilder.sol',
+  //   ],
+  // },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },

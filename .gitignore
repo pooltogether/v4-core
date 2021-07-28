@@ -16,7 +16,23 @@ cache
 node_modules
 types
 
+# Build/Deploy Process
+build
+.build-openzeppelin
+deployments/local*
+deployments/fork*
+
+# Tests
+test-results.xml
+
 # Solidity Coverage
 coverage
 coverage.json
 .history
+
+# OSX
+.DS_Store
+
+# Development Notes
+Networks.md
+*.dev.md

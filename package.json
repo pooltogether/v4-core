@@ -25,7 +25,8 @@
     "@openzeppelin/contracts-upgradeable": "4.2.0",
     "@pooltogether/fixed-point": "^1.0.0",
     "@pooltogether/pooltogether-contracts": "^3.4.4",
-    "@pooltogether/pooltogether-rng-contracts": "^1.2.0"
+    "@pooltogether/pooltogether-rng-contracts": "^1.2.0",
+    "deploy-eip-1820": "^1.0.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "2.0.2",
@@ -44,9 +45,11 @@
     "ethers": "5.0.32",
     "hardhat": "2.1.1",
     "hardhat-abi-exporter": "2.1.2",
+    "hardhat-dependency-compiler": "^1.1.1",
     "hardhat-deploy": "0.7.0-beta.47",
     "hardhat-deploy-ethers": "0.3.0-beta.7",
     "hardhat-gas-reporter": "1.0.4",
+    "mocha-junit-reporter": "^2.0.0",
     "prettier": "2.2.1",
     "solhint": "3.3.3",
     "solidity-coverage": "0.7.16",

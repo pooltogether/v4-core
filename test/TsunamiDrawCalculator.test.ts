@@ -44,7 +44,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     describe('calculate()', () => {
-      it.only('should calculate', async () => {
+      it('should calculate', async () => {
         //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
 
         const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])//"0x1111111111111111111111111111111111111111111111111111111111111111"
