@@ -28,8 +28,8 @@ contract TicketHarness is Ticket {
     (beforeOrAt, atOrAfter) = _binarySearch(_user, _target);
   }
 
-  function newTwab(address _user) external {
-    _newTwab(_user);
+  function newTwab(address _user, uint16 _twabIndex) external {
+    _newTwab(_user, _twabIndex);
   }
 
   function beforeTokenTransfer(address _from, address _to, uint256) external {

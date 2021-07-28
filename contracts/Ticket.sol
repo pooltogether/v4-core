@@ -9,8 +9,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 import "./interfaces/IClaimable.sol";
 import "./interfaces/IClaimer.sol";
 import "./interfaces/ITicket.sol";
@@ -23,6 +21,9 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   using Math for uint32;
   using SafeCastUpgradeable for uint256;
   using SafeMathUpgradeable for uint256;
+
+  /// @notice Tracks total supply of tickets.
+  uint256 private _totalSupply;
 
   /// @notice Emitted when ticket is initialized.
   /// @param name Ticket name (eg: PoolTogether Dai Ticket (Compound)).
@@ -56,8 +57,16 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   /// @notice Record of token holders TWABs for each account.
   mapping (address => Twab[CARDINALITY]) public twabs;
 
-  /// @notice Most recent TWAB index of a ticket holder.
-  mapping (address => uint256) internal mostRecentTwabIndex;
+  /// @notice Balance of a ticket holder packed with most recent TWAB index.
+  /// @param balance Current user balance.
+  /// @param twabIndex Most recent TWAB index of user.
+  struct BalanceWithTwabIndex {
+    uint240 balance;
+    uint16 twabIndex;
+  }
+
+  /// @notice Record of token holders balance and most recent TWAB index.
+  mapping(address => BalanceWithTwabIndex) private _balancesWithTwabIndex;
 
   /// @notice ERC20 ticket token decimals.
   uint8 private _decimals;
@@ -89,22 +98,32 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
     return _decimals;
   }
 
+  /// @notice Returns the ERC20 ticket token total supply.
+  /// @return uint256 Total supply of the ERC20 ticket token.
+  function totalSupply() public view virtual override returns (uint256) {
+    return _totalSupply;
+  }
+
+  /// @notice Returns the ERC20 ticket token balance of a ticket holder.
+  /// @return uint240 `_user` ticket token balance.
+  function balanceOf(address _user) public view virtual override returns (uint256) {
+    return _balancesWithTwabIndex[_user].balance;
+  }
+
   /// @notice Returns TWAB index.
   /// @dev `twabs` is a circular buffer of `CARDINALITY` size equal to 32. So the array goes from 0 to 31.
   /// @dev In order to navigate the circular buffer, we need to use the modulo operator.
   /// @dev For example, if `_index` is equal to 32, `_index % CARDINALITY` will return 0 and will point to the first element of the array.
   /// @param _index Index used to navigate through `twabs` circular buffer.
-  function _getTwabIndex(uint256 _index) internal pure returns (uint256) {
-    return _index % CARDINALITY;
+  function _getTwabIndex(uint256 _index) internal pure returns (uint16) {
+    return uint16(_index % CARDINALITY);
   }
-
 
   /// @notice Returns the `mostRecentTwabIndex` of a `_user`.
   /// @param _user Address of the user whose most recent TWAB index is being fetched.
   /// @return uint256 `mostRecentTwabIndex` of `_user`.
-  function _mostRecentTwabIndexOfUser(address _user) internal view returns (uint256) {
-    uint32 cardinality = CARDINALITY;
-    return _getTwabIndex(mostRecentTwabIndex[_user] + cardinality - 1);
+  function _mostRecentTwabIndexOfUser(address _user) internal view returns (uint16) {
+    return _getTwabIndex(_balancesWithTwabIndex[_user].twabIndex + CARDINALITY - 1);
   }
 
   /// @notice Fetches the TWABs `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
@@ -120,12 +139,10 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
       uint32 _target
   ) internal view returns (Twab memory beforeOrAt, Twab memory atOrAfter) {
       uint32 time = uint32(block.timestamp);
-      uint256 twabIndex = _mostRecentTwabIndexOfUser(_user);
-
-      uint32 cardinality = CARDINALITY;
+      uint16 twabIndex = _mostRecentTwabIndexOfUser(_user);
 
       uint256 leftSide = _getTwabIndex(twabIndex + 1); // Oldest TWAB
-      uint256 rightSide = leftSide + cardinality - 1; // Newest TWAB
+      uint256 rightSide = leftSide + CARDINALITY - 1; // Newest TWAB
       uint256 currentIndex;
 
       while (true) {
@@ -156,15 +173,16 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
 
   /// @notice Records a new TWAB for `_user`.
   /// @param _user Address of the user whose TWAB is being recorded.
-  function _newTwab(address _user) internal {
+  /// @param _twabIndex Index of the TWAB being recorded.
+  /// @return most recent TWAB index of `_user`.
+  function _newTwab(address _user, uint16 _twabIndex) internal returns (uint16) {
     uint32 currentTimestamp = uint32(block.timestamp);
-    uint256 twabIndex = _mostRecentTwabIndexOfUser(_user);
-    Twab memory lastTwab = twabs[_user][twabIndex];
+    Twab memory lastTwab = twabs[_user][_twabIndex];
 
     // If a TWAB already exists at this timestamp, then we don't need to update values
     // This is to avoid recording a new TWAB if several transactions happen in the same block
     if (lastTwab.timestamp == currentTimestamp) {
-      return;
+      return _twabIndex;
     }
 
     // New twab = last twab balance (or zero) + (previous user balance * elapsed seconds)
@@ -177,25 +195,97 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
       timestamp: currentTimestamp
     });
 
-    twabs[_user][_getTwabIndex(twabIndex + 1)] = newTwab;
-    mostRecentTwabIndex[_user] = _getTwabIndex(twabIndex + 2);
+    twabs[_user][_getTwabIndex(_twabIndex + 1)] = newTwab;
 
     emit NewTwab(_user, newTwab);
+
+    return _getTwabIndex(_twabIndex + 2);
   }
 
-  /// @notice Overridding of the `_beforeTokenTransfer` function of the base ERC20Upgradeable contract.
-  /// @dev Hook that is called before any transfer of tokens. This includes minting and burning.
-  /// @param _from Sender address.
-  /// @param _to Receiver address.
-  function _beforeTokenTransfer(address _from, address _to, uint256) internal override {
-    if (_from != address(0)) {
-      _newTwab(_from);
+  /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
+  /// @dev `_sender` cannot be the zero address.
+  /// @dev `_recipient` cannot be the zero address.
+  /// @dev `_sender` must have a balance of at least `_amount`.
+  /// @param _sender Address of the `_sender`that will send `_amount` of tokens.
+  /// @param _recipient Address of the `_recipient`that will receive `_amount` of tokens.
+  /// @param _amount Amount of tokens to be transferred from `_sender` to `_recipient`.
+  function _transfer(
+    address _sender,
+    address _recipient,
+    uint256 _amount
+  ) internal override virtual {
+    require(_sender != address(0), "ERC20: transfer from the zero address");
+    require(_recipient != address(0), "ERC20: transfer to the zero address");
+
+    _beforeTokenTransfer(_sender, _recipient, _amount);
+
+    BalanceWithTwabIndex memory sender = _balancesWithTwabIndex[_sender];
+    require(sender.balance >= _amount, "ERC20: transfer amount exceeds balance");
+    unchecked {
+        _balancesWithTwabIndex[_sender] = BalanceWithTwabIndex({
+          balance: sender.balance - uint240(_amount),
+          twabIndex: _newTwab(_sender, sender.twabIndex)
+        });
     }
 
-    if (_to != address(0)) {
-      _newTwab(_to);
-    }
+    BalanceWithTwabIndex memory recipient = _balancesWithTwabIndex[_recipient];
+    _balancesWithTwabIndex[_recipient] = BalanceWithTwabIndex({
+      balance: recipient.balance + uint240(_amount),
+      twabIndex: _newTwab(_recipient, recipient.twabIndex)
+    });
+
+    emit Transfer(_sender, _recipient, _amount);
+
+    _afterTokenTransfer(_sender, _recipient, _amount);
   }
+
+  /// @notice Overridding of the `_mint` function of the base ERC20Upgradeable contract.
+  /// @dev `_to` cannot be the zero address.
+  /// @param _to Address that will be minted `_amount` of tokens.
+  /// @param _amount Amount of tokens to be minted to `_to`.
+  function _mint(address _to, uint256 _amount) internal virtual override {
+      require(_to != address(0), "ERC20: mint to the zero address");
+
+      _beforeTokenTransfer(address(0), _to, _amount);
+
+      _totalSupply += _amount;
+
+      BalanceWithTwabIndex memory user = _balancesWithTwabIndex[_to];
+      _balancesWithTwabIndex[_to] = BalanceWithTwabIndex({
+        balance: user.balance + uint240(_amount),
+        twabIndex: _newTwab(_to, user.twabIndex)
+      });
+
+      emit Transfer(address(0), _to, _amount);
+
+      _afterTokenTransfer(address(0), _to, _amount);
+  }
+
+  /// @notice Overridding of the `_burn` function of the base ERC20Upgradeable contract.
+  /// @dev `_from` cannot be the zero address.
+  /// @dev `_from` must have at least `_amount` of tokens.
+  /// @param _from Address that will be burned `_amount` of tokens.
+  /// @param _amount Amount of tokens to be burnt from `_from`.
+  function _burn(address _from, uint256 _amount) internal virtual override {
+    require(_from != address(0), "ERC20: burn from the zero address");
+
+    _beforeTokenTransfer(_from, address(0), _amount);
+
+    BalanceWithTwabIndex memory user = _balancesWithTwabIndex[_from];
+    require(user.balance >= _amount, "ERC20: burn amount exceeds balance");
+    unchecked {
+      _balancesWithTwabIndex[_from] = BalanceWithTwabIndex({
+        balance: user.balance - uint240(_amount),
+        twabIndex: _newTwab(_from, user.twabIndex)
+      });
+    }
+
+    _totalSupply -= _amount;
+
+    emit Transfer(_from, address(0), _amount);
+
+    _afterTokenTransfer(_from, address(0), _amount);
+}
 
   /// @notice Retrieves `_user` TWAB balance at `_target`.
   /// @param _user Address of the user whose TWAB is being fetched.
