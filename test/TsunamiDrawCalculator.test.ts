@@ -1,11 +1,22 @@
 import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
-import { utils, Contract, ContractFactory, Signer, Wallet, BigNumber } from 'ethers';
+import { utils, Contract, ContractFactory, Signer, Wallet, BigNumber} from 'ethers';
 import { ethers, artifacts } from 'hardhat';
 import { Interface } from 'ethers/lib/utils';
 
 const { getSigners, provider } = ethers;
 const { parseEther: toWei } = utils;
+
+
+type PrizeDistribution = {
+    values: BigNumber[]
+}
+type DrawParams = {
+    matchCardinality: number
+    numberRange: number
+    distribution: PrizeDistribution
+}
+
 
 const increaseTime = async (time: number) => {
     await provider.send('evm_increaseTime', [ time ]);
@@ -29,6 +40,71 @@ describe('TsunamiDrawCalculator', () => {
     let draw: any
     const encoder = ethers.utils.defaultAbiCoder
 
+
+
+    async function findWinningNumberForUser(userAddress: string, matchesRequired: number, drawParams: DrawParams) {
+        console.log(`searching for ${matchesRequired} winning numbers for ${userAddress}..`)
+        const drawCalculator: Contract = await deployDrawCalculator(wallet1)
+        
+        let ticketArtifact = await artifacts.readArtifact('ITicket')
+        ticket = await deployMockContract(wallet1, ticketArtifact.abi)
+
+        await drawCalculator.initialize(ticket.address, drawParams.matchCardinality, drawParams.distribution.values, drawParams.numberRange)
+
+        const timestamp = 42
+        const prizes = [utils.parseEther("1")]
+        const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
+        const ticketBalance = utils.parseEther("10")
+
+        await ticket.mock.getBalances.withArgs(userAddress, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
+
+        const distributionIndex = drawParams.matchCardinality - matchesRequired
+        if(distributionIndex > drawParams.distribution.values.length){
+            console.log(`There are ${drawParams.distribution.values.length} tiers of prizes`)
+            return
+        }
+
+        console.log("distributionIndex ", distributionIndex)
+        const numberOfPrizes = Math.pow(drawParams.numberRange,distributionIndex)
+        console.log("number of prizes with these params ", numberOfPrizes)
+        const valueAtDistributionIndex : BigNumber = drawParams.distribution.values[distributionIndex]
+        console.log("valueAtDistributionIndex", valueAtDistributionIndex)
+        
+        const percentageOfPrize: BigNumber= valueAtDistributionIndex.div(numberOfPrizes)
+        console.log("percentage of prize ", percentageOfPrize.toString())
+
+        const expectedPrizeAmount : BigNumber = (prizes[0]).mul(percentageOfPrize as any).div(ethers.constants.WeiPerEther) // totalPrize *  (distributions[index]/(range ^ index)) where index = matchCardinality - numberOfMatches
+
+        console.log("expectedPrizeAmount ", expectedPrizeAmount.toString())
+
+        let winningRandomNumber
+
+        while(true){
+            winningRandomNumber = utils.solidityKeccak256(["address"], [ethers.Wallet.createRandom().address])
+
+            const result = await drawCalculator.calculate(
+                userAddress,
+                [winningRandomNumber],
+                [timestamp],
+                prizes,
+                pickIndices
+            )
+
+            if(result.eq(expectedPrizeAmount)){
+                console.log("found a winning number!", winningRandomNumber)
+                break
+            }
+        }
+    
+        return winningRandomNumber
+    }
+
+    async function deployDrawCalculator(signer: any): Promise<Contract>{
+        const drawCalculatorFactory = await ethers.getContractFactory("TsunamiDrawCalculatorHarness", signer)
+        const drawCalculator:Contract = await drawCalculatorFactory.deploy()
+        return drawCalculator
+    }
+
     beforeEach(async () =>{
         [ wallet1, wallet2, wallet3 ] = await getSigners();
         const drawCalculatorFactory = await ethers.getContractFactory("TsunamiDrawCalculatorHarness")
@@ -41,6 +117,24 @@ describe('TsunamiDrawCalculator', () => {
         const prizeRange = 10
         await drawCalculator.initialize(ticket.address, matchCardinality, [ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")], prizeRange)
 
+    })
+
+    describe.only('finding winning random numbers ', ()=>{
+        it.only('find 3 winning numbers', async ()=>{
+            const params: DrawParams = {
+                matchCardinality: 5,
+                distribution: {
+                    values:[ethers.utils.parseEther("0.6"),
+                            ethers.utils.parseEther("0.1"),
+                            ethers.utils.parseEther("0.1"),
+                            ethers.utils.parseEther("0.1")
+                        ]
+                },
+                numberRange: 5
+            }
+            const result = await findWinningNumberForUser(wallet1.address, 3, params)
+            console.log(result)
+        })
     })
 
     describe('admin functions', ()=>{
@@ -192,7 +286,7 @@ describe('TsunamiDrawCalculator', () => {
             expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther("0.15625")))
         })
 
-        it.only('increasing the number range results in lower probability of matches', async () => {
+        it('increasing the number range results in lower probability of matches', async () => {
             //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
             const timestamp = 42
             const prizes = [utils.parseEther("100")]
