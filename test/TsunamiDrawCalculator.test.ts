@@ -8,16 +8,6 @@ import { Interface } from 'ethers/lib/utils';
 const { getSigners, provider } = ethers;
 const { parseEther: toWei } = utils;
 
-
-// type PrizeDistribution = {
-//     values: BigNumber[]
-// }
-// type DrawParams = {
-//     matchCardinality: number
-//     numberRange: number
-//     distribution: PrizeDistribution
-// }
-
 type DrawSettings  = {
     range : BigNumber
     matchCardinality: BigNumber
@@ -30,11 +20,7 @@ describe.only('TsunamiDrawCalculator', () => {
     let wallet2: any;
     let wallet3: any;
 
-    
-    let draw: any
     const encoder = ethers.utils.defaultAbiCoder
-
-
 
     async function findWinningNumberForUser(userAddress: string, matchesRequired: number, drawSettings: DrawSettings) {
         console.log(`searching for ${matchesRequired} winning numbers for ${userAddress}..`)
@@ -55,22 +41,16 @@ describe.only('TsunamiDrawCalculator', () => {
 
         const distributionIndex = drawSettings.matchCardinality.toNumber() - matchesRequired
         if(distributionIndex > drawSettings.distributions.length){
-            console.log(`There are ${drawSettings.distributions.length} tiers of prizes`)
-            return
+           throw new Error(`There are only ${drawSettings.distributions.length} tiers of prizes`) // there is no "winning number" in this case
         }
 
-        console.log("distributionIndex ", distributionIndex)
+        // now calculate the expected prize amount for these settings
+        // totalPrize *  (distributions[index]/(range ^ index)) where index = matchCardinality - numberOfMatches
         const numberOfPrizes = Math.pow(drawSettings.range.toNumber(), distributionIndex)
-        console.log("number of prizes with these params ", numberOfPrizes)
         const valueAtDistributionIndex : BigNumber = drawSettings.distributions[distributionIndex]
-        console.log("valueAtDistributionIndex", valueAtDistributionIndex)
         
         const percentageOfPrize: BigNumber= valueAtDistributionIndex.div(numberOfPrizes)
-        console.log("percentage of prize ", percentageOfPrize.toString())
-
-        const expectedPrizeAmount : BigNumber = (prizes[0]).mul(percentageOfPrize as any).div(ethers.constants.WeiPerEther) // totalPrize *  (distributions[index]/(range ^ index)) where index = matchCardinality - numberOfMatches
-
-        console.log("expectedPrizeAmount ", expectedPrizeAmount.toString())
+        const expectedPrizeAmount : BigNumber = (prizes[0]).mul(percentageOfPrize as any).div(ethers.constants.WeiPerEther) 
 
         let winningRandomNumber
 
@@ -163,6 +143,12 @@ describe.only('TsunamiDrawCalculator', () => {
             }
             await expect(drawCalculator.setDrawSettings(params)).
                 to.be.revertedWith("distributions-gt-100%")
+        })
+
+        it('onlyOwner can set pickCost', async ()=>{
+            expect(await drawCalculator.setPickCost(utils.parseEther("2")))
+            await expect(drawCalculator.connect(wallet2).setPickCost(utils.parseEther("2"))).
+            to.be.reverted
         })
     })
 

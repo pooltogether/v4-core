@@ -26,7 +26,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256 matchCardinality; //uint16
     uint256[] distributions; // in order: index0: grandPrize, index1: runnerUp, etc. 
   }
-  ///@notice storage of the DrawSettings associated with this Draw Calculator
+  ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? 
   DrawSettings public drawSettings;
 
   ///@notice Emmitted when the pickCost is set/updated
@@ -69,9 +69,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     
     uint256[] memory userBalances = ticket.getBalances(user, timestamps);
     bytes32 userRandomNumber = keccak256(abi.encodePacked(user)); // hash the users address
-    console.log("calculate()::userRandomNumber is :");
-    console.logBytes32( userRandomNumber);
-
+    
     DrawSettings memory settings = drawSettings; //sload
 
     uint256 prize = 0;
@@ -79,7 +77,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     for (uint256 index = 0; index < timestamps.length; index++) {
       prize += _calculate(winningRandomNumbers[index], prizes[index], userBalances[index], userRandomNumber, pickIndices[index], settings);
     }
-    console.log(prize);
     return prize;
   }
 
@@ -95,14 +92,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     internal view returns (uint256)
   {
     uint256 totalUserPicks = balance / pickCost;
-    // console.log("Calculator::_calculate totalUserPicks", totalUserPicks);
     uint256 pickPayoutPercentage = 0;
 
     for(uint256 index  = 0; index < picks.length; index++){ //NOTE: should this loop terminator be totalUserPicks
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(userRandomNumber, picks[index])));
       require(picks[index] <= totalUserPicks, "user does not have this many picks");
-      
-      console.log("calculate()::userRandomNumber is :", randomNumberThisPick);
       pickPayoutPercentage += calculatePickPercentage(randomNumberThisPick, winningRandomNumber, _drawSettings);
     }
     return (pickPayoutPercentage * prize) / 1 ether;
@@ -115,33 +109,23 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param _drawSettings The parameters associated with the draw
   ///@return percentage of the Draw's Prize awardable to that user
   function calculatePickPercentage(uint256 randomNumberThisPick, uint256 winningRandomNumber, DrawSettings memory _drawSettings)
-    internal view returns(uint256) {
+    internal pure returns(uint256) {
     
     uint256 percentage = 0;
     uint256 numberOfMatches = 0;
     
     for(uint256 matchIndex = 0; matchIndex < _drawSettings.matchCardinality; matchIndex++){      
-      uint256 userNumberAtIndex = _getValueAtIndex(randomNumberThisPick, matchIndex, _drawSettings.range); // for testing only -delete
-      uint256 winningNumberAtIndex = _getValueAtIndex(winningRandomNumber, matchIndex, _drawSettings.range); // for testing only -delete
-
-      console.log("attempting to match ", userNumberAtIndex, "and" ,winningNumberAtIndex);
-      
       if(_getValueAtIndex(randomNumberThisPick, matchIndex, _drawSettings.range) == _getValueAtIndex(winningRandomNumber, matchIndex, _drawSettings.range)){
-          console.log("There was a match!",userNumberAtIndex,winningNumberAtIndex);
           numberOfMatches++;
       }          
     }
-    console.log("calculatePickPercentage::numberOfMatches ",numberOfMatches);
-    uint256 prizeDistributionIndex = _drawSettings.matchCardinality - numberOfMatches; // prizeDistributionIndex == 0 : top prize, ==1 : runner-up prize etc
     
-    console.log("calculatePickPercentage::prizeDistributionIndex ",prizeDistributionIndex);
+    uint256 prizeDistributionIndex = _drawSettings.matchCardinality - numberOfMatches; // prizeDistributionIndex == 0 : top prize, ==1 : runner-up prize etc
     
     // if prizeDistibution > distribution lenght -> there is no prize at that index
     if(prizeDistributionIndex < _drawSettings.distributions.length){ // they are going to receive prize funds
       uint256 numberOfPrizesForIndex = _drawSettings.range ** prizeDistributionIndex;   /// number of prizes for Draw = range ** prizeDistrbutionIndex
-      console.log("calculatePickPercentage::numberOfPrizesForIndex ",numberOfPrizesForIndex);
       percentage = _drawSettings.distributions[prizeDistributionIndex] / numberOfPrizesForIndex; // TODO: use FixedPoint   -- direct assign vs. += ??
-      console.log("percentage of prize for pick ",percentage);
     }
     return percentage;
   }
@@ -149,11 +133,14 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice helper function to return the 4-bit value within a word at a specified index
   ///@param word word to index
   ///@param index index to index (max 15)
-  function _getValueAtIndex(uint256 word, uint256 index, uint256 _range) internal view returns(uint256) {
+  function _getValueAtIndex(uint256 word, uint256 index, uint256 _range) internal pure returns(uint256) {
     uint256 mask =  (uint256(15)) << (index * 4);
     return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (index * 4)), _range);
   }
 
+  ///@notice Set the DrawCalculators DrawSettings
+  ///@dev Distributions must be expressed with Ether decimals (1e18)
+  ///@param _drawSettings DrawSettings struct to set
   function setDrawSettings(DrawSettings calldata _drawSettings) external onlyOwner{
     uint256 sumTotalDistributions = 0;
     uint256 distributionsLength = _drawSettings.distributions.length;
@@ -170,7 +157,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
   ///@notice Set the Pick Cost for the Draw
   ///@param _pickCost The range to set. Max 15.
-  function setNumberRange(uint256 _pickCost) external onlyOwner {
+  function setPickCost(uint256 _pickCost) external onlyOwner {
     pickCost = _pickCost; // require > 0 ?
     emit PickCostSet(_pickCost);
   }
