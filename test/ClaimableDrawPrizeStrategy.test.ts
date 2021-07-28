@@ -746,7 +746,6 @@ describe('PeriodicPrizeStrategy', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet.address, [MOCK_DRAW.randomNumber], [MOCK_DRAW.timestamp], [MOCK_DRAW.prize], '0x')
         .returns(MOCK_DRAW.payout)
-        console.log("TEST", wallet.address, MOCK_DRAW.payout, ticket.address)
       await prizePool.mock.award
         .withArgs(wallet.address, MOCK_DRAW.payout, ticket.address)
       await claimableDraw.mock.claim
