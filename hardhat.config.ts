@@ -48,23 +48,8 @@ const config: HardhatUserConfig = {
           },
           evmVersion: 'berlin',
         }
-      },
-      {
-        version: '0.7.6',
-        settings: {
-          optimizer: {
-            enabled: optimizerEnabled,
-            runs: 200,
-          },
-          evmVersion: 'berlin',
-        }
       }
-    ],
-    overrides: {
-      "@pooltogether/uniform-random-number/contracts/UniformRandomNumber.sol": {
-        version: "0.6.12"
-      } 
-    }
+    ]
   }
 };
 
