@@ -19,7 +19,7 @@ function printBalances(drawCalculators: any) {
     })
 }
 
-describe.skip('Strategy', () => {
+describe('Strategy', () => {
     let claimableDraw: Contract;
     let wallet1: any;
     let wallet2: any;

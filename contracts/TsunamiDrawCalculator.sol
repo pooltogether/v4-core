@@ -126,13 +126,14 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     
     // if prizeDistibution > distribution lenght -> there is no prize at that index
     if(prizeDistributionIndex < _drawSettings.distributions.length){ // they are going to receive prize funds
-      uint256 numberOfPrizesForIndex = uint256(_drawSettings.range) ** prizeDistributionIndex;   /// number of prizes for Draw = range ** prizeDistrbutionIndex
-      percentage = _drawSettings.distributions[prizeDistributionIndex] / numberOfPrizesForIndex; // TODO: use FixedPoint   -- direct assign vs. += ??
+      uint256 numberOfPrizesForIndex = uint256(_drawSettings.range) ** prizeDistributionIndex;
+      uint256 prizePercentageAtIndex = _drawSettings.distributions[prizeDistributionIndex];
+      percentage = prizePercentageAtIndex / numberOfPrizesForIndex;
     }
     return percentage;
   }
 
-  ///@notice helper function to return the 4-bit value within a word at a specified index
+  ///@notice helper function to return the unbiased 4-bit value within a word at a specified index
   ///@param word word to index
   ///@param index index to index (max 15)
   function _getValueAtIndex(uint256 word, uint256 index, uint8 _range) internal pure returns(uint256) {
