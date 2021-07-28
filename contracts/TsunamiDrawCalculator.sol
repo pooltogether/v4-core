@@ -17,7 +17,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice Ticket associated with this calculator
   ITicket ticket;
 
-  ///@notice Cost per pick
+  ///@notice Ticket cost per pick
   uint256 public pickCost;
 
   ///@notice Draw settings struct
@@ -25,8 +25,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param matchCardinality The number of 4-bit matches within the 256 word. Max value 64 (4*64=256).
   ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether.
   struct DrawSettings {
-    uint256 range; //uint8
-    uint256 matchCardinality; //uint16
+    uint8 range; 
+    uint16 matchCardinality;
     uint256[] distributions; // in order: index0: grandPrize, index1: runnerUp, etc. 
   }
   ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? 
@@ -126,7 +126,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     
     // if prizeDistibution > distribution lenght -> there is no prize at that index
     if(prizeDistributionIndex < _drawSettings.distributions.length){ // they are going to receive prize funds
-      uint256 numberOfPrizesForIndex = _drawSettings.range ** prizeDistributionIndex;   /// number of prizes for Draw = range ** prizeDistrbutionIndex
+      uint256 numberOfPrizesForIndex = uint256(_drawSettings.range) ** prizeDistributionIndex;   /// number of prizes for Draw = range ** prizeDistrbutionIndex
       percentage = _drawSettings.distributions[prizeDistributionIndex] / numberOfPrizesForIndex; // TODO: use FixedPoint   -- direct assign vs. += ??
     }
     return percentage;
@@ -135,7 +135,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice helper function to return the 4-bit value within a word at a specified index
   ///@param word word to index
   ///@param index index to index (max 15)
-  function _getValueAtIndex(uint256 word, uint256 index, uint256 _range) internal pure returns(uint256) {
+  function _getValueAtIndex(uint256 word, uint256 index, uint8 _range) internal pure returns(uint256) {
     uint256 mask =  (uint256(15)) << (index * 4);
     return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (index * 4)), _range);
   }
@@ -159,7 +159,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   }
 
   ///@notice Set the Pick Cost for the Draw
-  ///@param _pickCost The range to set. Max 15.
+  ///@param _pickCost Price per pick
   function setPickCost(uint256 _pickCost) external onlyOwner {
     pickCost = _pickCost; // require > 0 ?
     emit PickCostSet(_pickCost);
