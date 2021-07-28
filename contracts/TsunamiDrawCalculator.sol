@@ -17,23 +17,19 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice Ticket associated with this calculator
   ITicket ticket;
 
-  ///@notice Ticket cost per pick
-  uint256 public pickCost;
-
   ///@notice Draw settings struct
   ///@param range Decimal representation of the range of number of bits consider within a 4-bit number. Max value 15.
   ///@param matchCardinality The number of 4-bit matches within the 256 word. Max value 64 (4*64=256).
+  ///@param pickCost Amount of ticket required per pick
   ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether.
   struct DrawSettings {
     uint8 range; 
     uint16 matchCardinality;
+    uint224 pickCost;
     uint256[] distributions; // in order: index0: grandPrize, index1: runnerUp, etc. 
   }
   ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? 
   DrawSettings public drawSettings;
-
-  ///@notice Emmitted when the pickCost is set/updated
-  event PickCostSet(uint256 _pickCost);
 
   ///@notice Emitted when the DrawParams are set/updated
   event DrawSettingsSet(DrawSettings _drawSettings);
@@ -43,16 +39,12 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
   ///@notice Initializer sets the initial parameters
   ///@param _ticket Ticket associated with this DrawCalculator
-  ///@param _pickCost Initial cost per Pick (e.g 10 DAI per pick)
   ///@param _drawSettings Initial DrawSettings
-  function initialize(ITicket _ticket, uint256 _pickCost, DrawSettings calldata _drawSettings) public initializer {
+  function initialize(ITicket _ticket, DrawSettings calldata _drawSettings) public initializer {
     __Ownable_init();
     ticket = _ticket;
-    drawSettings = _drawSettings;
-    pickCost = _pickCost;
+    _setDrawSettings(_drawSettings);
     emit Initialized(_ticket, _drawSettings);
-    emit PickCostSet(_pickCost);
-    emit DrawSettingsSet(_drawSettings);
   }
 
   ///@notice Calulates the prize amount for a user at particular draws. Called by a Claimable Strategy.
@@ -65,10 +57,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   function calculate(address user, uint256[] calldata winningRandomNumbers, uint32[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) 
     external override view returns (uint256){
     
-    require(winningRandomNumbers.length == timestamps.length && timestamps.length == prizes.length, "invalid-calculate-input-lengths");
+    require(winningRandomNumbers.length == timestamps.length && timestamps.length == prizes.length, "DrawCalc/invalid-calculate-input-lengths");
 
     uint256[][] memory pickIndices = abi.decode(data, (uint256 [][]));
-    require(pickIndices.length == timestamps.length, "invalid-pick-indices-length");
+    require(pickIndices.length == timestamps.length, "DrawCalc/invalid-pick-indices-length");
     
     uint256[] memory userBalances = ticket.getBalances(user, timestamps); // CALL
     bytes32 userRandomNumber = keccak256(abi.encodePacked(user)); // hash the users address
@@ -94,26 +86,26 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   function _calculate(uint256 winningRandomNumber, uint256 prize, uint256 balance, bytes32 userRandomNumber, uint256[] memory picks, DrawSettings memory _drawSettings)
     internal view returns (uint256)
   {
-    uint256 totalUserPicks = balance / pickCost;
+    uint256 totalUserPicks = balance / _drawSettings.pickCost;
     uint256 pickPayoutPercentage = 0;
 
     for(uint256 index  = 0; index < picks.length; index++){
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(userRandomNumber, picks[index])));
-      require(picks[index] <= totalUserPicks, "insufficient-user-picks");
-      pickPayoutPercentage += calculatePickPercentage(randomNumberThisPick, winningRandomNumber, _drawSettings);
+      require(picks[index] <= totalUserPicks, "DrawCalc/insufficient-user-picks");
+      pickPayoutPercentage += calculatePickFraction(randomNumberThisPick, winningRandomNumber, _drawSettings);
     }
     return (pickPayoutPercentage * prize) / 1 ether;
   }
 
-  ///@notice Calculates the percentage of the Draw's Prize awardable to that user 
+  ///@notice Calculates the fraction of the Draw's Prize awardable to that user 
   ///@param randomNumberThisPick users random number for this Pick
   ///@param winningRandomNumber The winning number for this draw
   ///@param _drawSettings The parameters associated with the draw
   ///@return percentage of the Draw's Prize awardable to that user
-  function calculatePickPercentage(uint256 randomNumberThisPick, uint256 winningRandomNumber, DrawSettings memory _drawSettings)
+  function calculatePickFraction(uint256 randomNumberThisPick, uint256 winningRandomNumber, DrawSettings memory _drawSettings)
     internal pure returns(uint256) {
     
-    uint256 percentage = 0;
+    uint256 prizeFraction = 0;
     uint256 numberOfMatches = 0;
     
     for(uint256 matchIndex = 0; matchIndex < _drawSettings.matchCardinality; matchIndex++){      
@@ -128,9 +120,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     if(prizeDistributionIndex < _drawSettings.distributions.length){ // they are going to receive prize funds
       uint256 numberOfPrizesForIndex = uint256(_drawSettings.range) ** prizeDistributionIndex;
       uint256 prizePercentageAtIndex = _drawSettings.distributions[prizeDistributionIndex];
-      percentage = prizePercentageAtIndex / numberOfPrizesForIndex;
+      prizeFraction = prizePercentageAtIndex / numberOfPrizesForIndex;
     }
-    return percentage;
+    return prizeFraction;
   }
 
   ///@notice helper function to return the unbiased 4-bit value within a word at a specified index
@@ -144,26 +136,28 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice Set the DrawCalculators DrawSettings
   ///@dev Distributions must be expressed with Ether decimals (1e18)
   ///@param _drawSettings DrawSettings struct to set
-  function setDrawSettings(DrawSettings calldata _drawSettings) external onlyOwner{
+  function setDrawSettings(DrawSettings calldata _drawSettings) external onlyOwner {
+    _setDrawSettings(_drawSettings);
+  }
+
+  ///@notice Set the DrawCalculators DrawSettings
+  ///@dev Distributions must be expressed with Ether decimals (1e18)
+  ///@param _drawSettings DrawSettings struct to set
+  function _setDrawSettings(DrawSettings calldata _drawSettings) internal {
     uint256 sumTotalDistributions = 0;
     uint256 distributionsLength = _drawSettings.distributions.length;
-    require(_drawSettings.matchCardinality >= distributionsLength, "matchCardinality-gt-distributions");
-    require(_drawSettings.range <= 15, "range-gt-15");
+    
+    require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gt-distributions");
+    require(_drawSettings.range <= 15, "DrawCalc/range-gt-15");
+    require(_drawSettings.pickCost > 0, "DrawCalc/pick-gt-0");
 
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
     } 
-    require(sumTotalDistributions < 1 ether, "distributions-gt-100%");
+    require(sumTotalDistributions <= 1 ether, "DrawCalc/distributions-gt-100%");
     
     drawSettings = _drawSettings; //sstore
     emit DrawSettingsSet(_drawSettings);
-  }
-
-  ///@notice Set the Pick Cost for the Draw
-  ///@param _pickCost Price per pick
-  function setPickCost(uint256 _pickCost) external onlyOwner {
-    pickCost = _pickCost; // require > 0 ?
-    emit PickCostSet(_pickCost);
   }
 
 }

@@ -11,10 +11,11 @@ const { parseEther: toWei } = utils;
 type DrawSettings  = {
     range : BigNumber
     matchCardinality: BigNumber
+    pickCost: BigNumber
     distributions: BigNumber[]
 }
 
-describe.only('TsunamiDrawCalculator', () => {
+describe('TsunamiDrawCalculator', () => {
     let drawCalculator: Contract; let ticket: MockContract;
     let wallet1: any;
     let wallet2: any;
@@ -28,9 +29,7 @@ describe.only('TsunamiDrawCalculator', () => {
         
         let ticketArtifact = await artifacts.readArtifact('ITicket')
         ticket = await deployMockContract(wallet1, ticketArtifact.abi)
-
-        const pickCost : BigNumber = utils.parseEther("1")
-        await drawCalculator.initialize(ticket.address, pickCost, drawSettings)
+        await drawCalculator.initialize(ticket.address, drawSettings)
 
         const timestamp = 42
         const prizes = [utils.parseEther("1")]
@@ -87,14 +86,13 @@ describe.only('TsunamiDrawCalculator', () => {
         let ticketArtifact = await artifacts.readArtifact('ITicket')
         ticket = await deployMockContract(wallet1, ticketArtifact.abi)
 
-        const pickCost : BigNumber = utils.parseEther("1")
-
         const drawSettings = {
             distributions: [ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")],
-            range: 10,
-            matchCardinality: 8
+            range: BigNumber.from(10),
+            pickCost: BigNumber.from(utils.parseEther("1")),
+            matchCardinality: BigNumber.from(8)
         }
-        await drawCalculator.initialize(ticket.address, pickCost, drawSettings)
+        await drawCalculator.initialize(ticket.address, drawSettings)
 
     })
 
@@ -108,6 +106,7 @@ describe.only('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1")
                         ],
                 range: BigNumber.from(5),
+                pickCost: BigNumber.from(utils.parseEther("1")),
             }
             const result = await findWinningNumberForUser(wallet1.address, 3, params)
         })
@@ -123,6 +122,7 @@ describe.only('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1")
                         ],
                 range: BigNumber.from(5),
+                pickCost: BigNumber.from(utils.parseEther("1")),
             }
 
             expect(await drawCalculator.setDrawSettings(params)).
@@ -140,9 +140,10 @@ describe.only('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1")
                         ],
                 range: BigNumber.from(5),
+                pickCost: BigNumber.from(utils.parseEther("1")),
             }
             await expect(drawCalculator.setDrawSettings(params)).
-                to.be.revertedWith("distributions-gt-100%")
+                to.be.revertedWith("DrawCalc/distributions-gt-100%")
         })
         
         it('cannot set range over 15', async ()=>{
@@ -154,15 +155,10 @@ describe.only('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1")
                         ],
                 range: BigNumber.from(16),
+                pickCost: BigNumber.from(utils.parseEther("1")),
             }
             await expect(drawCalculator.setDrawSettings(params)).
-                to.be.revertedWith("range-gt-15")
-        })
-
-        it('onlyOwner can set pickCost', async ()=>{
-            expect(await drawCalculator.setPickCost(utils.parseEther("2")))
-            await expect(drawCalculator.connect(wallet2).setPickCost(utils.parseEther("2"))).
-            to.be.reverted
+                to.be.revertedWith("DrawCalc/range-gt-15")
         })
     })
 
@@ -265,7 +261,7 @@ describe.only('TsunamiDrawCalculator', () => {
                 [timestamp1, timestamp2],
                 prizes,
                 pickIndices
-            )).to.revertedWith("insufficient-user-picks")
+            )).to.revertedWith("DrawCalc/insufficient-user-picks")
         
         })
 
@@ -306,6 +302,7 @@ describe.only('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1")
                         ],
                 range: BigNumber.from(4),
+                pickCost: BigNumber.from(utils.parseEther("1")),
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -327,6 +324,7 @@ describe.only('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1")
                         ],
                 range: BigNumber.from(4),
+                pickCost: BigNumber.from(utils.parseEther("1")),
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -358,6 +356,7 @@ describe.only('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1")
                         ],
                 range: BigNumber.from(4),
+                pickCost: BigNumber.from(utils.parseEther("1")),
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -381,6 +380,7 @@ describe.only('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1")
                         ],
                 range: BigNumber.from(6),
+                pickCost: BigNumber.from(utils.parseEther("1")),
             }
             await drawCalculator.setDrawSettings(params)
 
