@@ -83,7 +83,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     console.log("calculate()::userRandomNumber is :");
     console.logBytes32( userRandomNumber);
 
-    DrawParams memory params = DrawParams({
+    DrawParams memory params = DrawParams({ // SLOADS
       range : range,
       matchCardinality : matchCardinality,
       distributionsLength:  distributions.length

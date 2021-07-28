@@ -3,6 +3,7 @@ import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, ContractFactory, Signer, Wallet, BigNumber} from 'ethers';
 import { ethers, artifacts } from 'hardhat';
 import { Interface } from 'ethers/lib/utils';
+import { timeStamp } from 'console';
 
 const { getSigners, provider } = ethers;
 const { parseEther: toWei } = utils;
@@ -221,6 +222,33 @@ describe('TsunamiDrawCalculator', () => {
                 pickIndices)).toString())
         })
 
+        it.only('should calculate for multiple picks', async () => {
+            //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
+
+            const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])//"0x1111111111111111111111111111111111111111111111111111111111111111"
+            // console.log("winningNumber in test", winningNumber)
+            const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
+            // console.log("winningRandomNumber in test", winningRandomNumber)
+
+            const timestamp1 = 42
+            const timestamp2 = 51
+            const prizes = [utils.parseEther("100"), utils.parseEther("20")]
+            const pickIndices = encoder.encode(["uint256[][]"], [[["1","2"]]])
+            const ticketBalance = utils.parseEther("10")
+            const ticketBalance2 = utils.parseEther("10")
+
+            await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp1,timestamp2]).returns([ticketBalance, ticketBalance2]) // (user, timestamp): balance
+
+            expect(await drawCalculator.calculate(
+                wallet1.address,
+                [winningRandomNumber],
+                [timestamp1, timestamp2],
+                prizes,
+                pickIndices
+            ))//.to.equal(utils.parseEther("80"))
+        
+        })
+
         it('should calculate and win nothing', async () => {
             //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
 
@@ -285,7 +313,7 @@ describe('TsunamiDrawCalculator', () => {
             expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther("0.15625")))
         })
 
-        it.only('increasing the number range results in lower probability of matches', async () => {
+        it('increasing the number range results in lower probability of matches', async () => {
             
             //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
             const timestamp = 42
