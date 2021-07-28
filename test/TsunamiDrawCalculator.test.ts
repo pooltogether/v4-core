@@ -23,7 +23,7 @@ describe.only('TsunamiDrawCalculator', () => {
     const encoder = ethers.utils.defaultAbiCoder
 
     async function findWinningNumberForUser(userAddress: string, matchesRequired: number, drawSettings: DrawSettings) {
-        console.log(`searching for ${matchesRequired} winning numbers for ${userAddress}..`)
+        console.log(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
         const drawCalculator: Contract = await deployDrawCalculator(wallet1)
         
         let ticketArtifact = await artifacts.readArtifact('ITicket')
@@ -144,6 +144,20 @@ describe.only('TsunamiDrawCalculator', () => {
             await expect(drawCalculator.setDrawSettings(params)).
                 to.be.revertedWith("distributions-gt-100%")
         })
+        
+        it('cannot set range over 15', async ()=>{
+            const params: DrawSettings = {
+                matchCardinality: BigNumber.from(5),
+                distributions: [ethers.utils.parseEther("0.9"),
+                            ethers.utils.parseEther("0.1"),
+                            ethers.utils.parseEther("0.1"),
+                            ethers.utils.parseEther("0.1")
+                        ],
+                range: BigNumber.from(16),
+            }
+            await expect(drawCalculator.setDrawSettings(params)).
+                to.be.revertedWith("range-gt-15")
+        })
 
         it('onlyOwner can set pickCost', async ()=>{
             expect(await drawCalculator.setPickCost(utils.parseEther("2")))
@@ -181,13 +195,9 @@ describe.only('TsunamiDrawCalculator', () => {
 
     describe('calculate()', () => {
         it('should calculate and win grand prize', async () => {
-            //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
-
-            const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])//"0x1111111111111111111111111111111111111111111111111111111111111111"
-            // console.log("winningNumber in test", winningNumber)
+            const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])
             const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
-            // console.log("winningRandomNumber in test", winningRandomNumber)
-
+        
             const timestamp = 42
             const prizes = [utils.parseEther("100")]
             const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
@@ -236,14 +246,33 @@ describe.only('TsunamiDrawCalculator', () => {
         
         })
 
+        it('should not have enough funds for a second pick and revert', async () => {
+            const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])
+            const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
+            
+            const timestamp1 = 42
+            const timestamp2 = 51
+            const prizes = [utils.parseEther("100"), utils.parseEther("20")]
+            const pickIndices = encoder.encode(["uint256[][]"], [[["1"],["2"]]])
+            const ticketBalance = utils.parseEther("10")
+            const ticketBalance2 = utils.parseEther("0.4")
+
+            await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp1,timestamp2]).returns([ticketBalance, ticketBalance2]) // (user, timestamp): balance
+
+            await expect(drawCalculator.calculate(
+                wallet1.address,
+                [winningRandomNumber, winningRandomNumber],
+                [timestamp1, timestamp2],
+                prizes,
+                pickIndices
+            )).to.revertedWith("insufficient-user-picks")
+        
+        })
+
         it('should calculate and win nothing', async () => {
-            //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
-
+            
             const winningNumber = utils.solidityKeccak256(["address"], [wallet2.address])
-            // console.log("winningNumber in test", winningNumber)
             const userRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
-            console.log("userRandomNumber in test", userRandomNumber)
-
             const timestamp = 42
             const prizes = [utils.parseEther("100")]
             const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
@@ -261,7 +290,7 @@ describe.only('TsunamiDrawCalculator', () => {
         })
 
         it('increasing the matchCardinality for same user and winning numbers results in less of a prize', async () => {
-            //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
+            
             const timestamp = 42
             const prizes = [utils.parseEther("100")]
             const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
@@ -269,7 +298,6 @@ describe.only('TsunamiDrawCalculator', () => {
 
             await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
             
-
             let params: DrawSettings = {
                 matchCardinality: BigNumber.from(6),
                 distributions: [ethers.utils.parseEther("0.2"),

@@ -21,6 +21,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   uint256 public pickCost;
 
   ///@notice Draw settings struct
+  ///@param range Decimal representation of the range of number of bits consider within a 4-bit number. Max value 15.
+  ///@param matchCardinality The number of 4-bit matches within the 256 word. Max value 64 (4*64=256).
+  ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether.
   struct DrawSettings {
     uint256 range; //uint8
     uint256 matchCardinality; //uint16
@@ -67,7 +70,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256[][] memory pickIndices = abi.decode(data, (uint256 [][]));
     require(pickIndices.length == timestamps.length, "invalid-pick-indices-length");
     
-    uint256[] memory userBalances = ticket.getBalances(user, timestamps);
+    uint256[] memory userBalances = ticket.getBalances(user, timestamps); // CALL
     bytes32 userRandomNumber = keccak256(abi.encodePacked(user)); // hash the users address
     
     DrawSettings memory settings = drawSettings; //sload
@@ -94,13 +97,12 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256 totalUserPicks = balance / pickCost;
     uint256 pickPayoutPercentage = 0;
 
-    for(uint256 index  = 0; index < picks.length; index++){ //NOTE: should this loop terminator be totalUserPicks
+    for(uint256 index  = 0; index < picks.length; index++){
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(userRandomNumber, picks[index])));
-      require(picks[index] <= totalUserPicks, "user does not have this many picks");
+      require(picks[index] <= totalUserPicks, "insufficient-user-picks");
       pickPayoutPercentage += calculatePickPercentage(randomNumberThisPick, winningRandomNumber, _drawSettings);
     }
     return (pickPayoutPercentage * prize) / 1 ether;
-
   }
 
   ///@notice Calculates the percentage of the Draw's Prize awardable to that user 
@@ -145,7 +147,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256 sumTotalDistributions = 0;
     uint256 distributionsLength = _drawSettings.distributions.length;
     require(_drawSettings.matchCardinality >= distributionsLength, "matchCardinality-gt-distributions");
-    
+    require(_drawSettings.range <= 15, "range-gt-15");
+
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
     } 
