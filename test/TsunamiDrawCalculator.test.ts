@@ -31,7 +31,7 @@ function printBalances(balances: any) {
     })
 }
 
-describe('TsunamiDrawCalculator', () => {
+describe.only('TsunamiDrawCalculator', () => {
     let drawCalculator: Contract; let ticket: MockContract;
     let wallet1: any;
     let wallet2: any;
@@ -147,7 +147,7 @@ describe('TsunamiDrawCalculator', () => {
 
         it('onlyOwner should set range', async ()=>{
             expect(await drawCalculator.setNumberRange(5)).
-                to.emit(drawCalculator, "PrizeRangeSet").
+                to.emit(drawCalculator, "NumberRangeSet").
                 withArgs(5)
             await expect(drawCalculator.connect(wallet2).setNumberRange(5)).to.be.reverted
         })
@@ -155,11 +155,14 @@ describe('TsunamiDrawCalculator', () => {
         it('onlyOwner set prize distributions', async ()=>{
             expect(await drawCalculator.setPrizeDistribution([ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")])).
                 to.emit(drawCalculator, "PrizeDistributionsSet")
-            await expect(drawCalculator.connect(wallet2).setPrizeDistribution([ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")])).to.be.reverted
+            await expect(drawCalculator.connect(wallet2).setPrizeDistribution(
+                [ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")])).
+                to.be.reverted
         })
 
         it('cannot set over 100pc of prize for distribution', async ()=>{
-            await expect(drawCalculator.setPrizeDistribution([ethers.utils.parseEther("0.9"), ethers.utils.parseEther("0.2")])).to.be.revertedWith("sum of distributions too large")
+            await expect(drawCalculator.setPrizeDistribution([ethers.utils.parseEther("0.9"), ethers.utils.parseEther("0.2")])).
+                to.be.revertedWith("sum of distributions too large")
         })
     })
 
@@ -222,18 +225,16 @@ describe('TsunamiDrawCalculator', () => {
                 pickIndices)).toString())
         })
 
-        it.only('should calculate for multiple picks', async () => {
+        it('should calculate for multiple picks, first pick grand prize winner, second pick no winnings', async () => {
             //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
 
-            const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])//"0x1111111111111111111111111111111111111111111111111111111111111111"
-            // console.log("winningNumber in test", winningNumber)
+            const winningNumber = utils.solidityKeccak256(["address"], [wallet1.address])
             const winningRandomNumber = utils.solidityKeccak256(["bytes32", "uint256"],[winningNumber, 1])
-            // console.log("winningRandomNumber in test", winningRandomNumber)
-
+            
             const timestamp1 = 42
             const timestamp2 = 51
             const prizes = [utils.parseEther("100"), utils.parseEther("20")]
-            const pickIndices = encoder.encode(["uint256[][]"], [[["1","2"]]])
+            const pickIndices = encoder.encode(["uint256[][]"], [[["1"],["2"]]])
             const ticketBalance = utils.parseEther("10")
             const ticketBalance2 = utils.parseEther("10")
 
@@ -241,11 +242,11 @@ describe('TsunamiDrawCalculator', () => {
 
             expect(await drawCalculator.calculate(
                 wallet1.address,
-                [winningRandomNumber],
+                [winningRandomNumber, winningRandomNumber],
                 [timestamp1, timestamp2],
                 prizes,
                 pickIndices
-            ))//.to.equal(utils.parseEther("80"))
+            )).to.equal(utils.parseEther("80"))
         
         })
 
@@ -337,7 +338,8 @@ describe('TsunamiDrawCalculator', () => {
             const params: DrawParams = {
                 matchCardinality: 5,
                 distribution: {
-                    values:[ethers.utils.parseEther("0.2"),
+                    values:[
+                            ethers.utils.parseEther("0.2"),
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")

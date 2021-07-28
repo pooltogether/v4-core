@@ -30,7 +30,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice Prize distribution breakdown expressed as a fraction of 1 ether (18 decimals). 0.2 = 20% of the prize etc
   uint256[] public distributions; // [grand prize, 2nd prize, ..]
 
-
+  ///@notice Draw parameters struct
   struct DrawParams{
     uint256 range;
     uint256 matchCardinality;
@@ -94,7 +94,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     for (uint256 index = 0; index < timestamps.length; index++) {
       prize += _calculate(winningRandomNumbers[index], prizes[index], userBalances[index], userRandomNumber, pickIndices[index], params);
     }
-
+    console.log(prize);
     return prize;
   }
 
