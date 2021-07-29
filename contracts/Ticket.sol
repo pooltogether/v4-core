@@ -10,13 +10,12 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./interfaces/IClaimable.sol";
-import "./interfaces/IClaimer.sol";
 import "./interfaces/ITicket.sol";
 import "./libraries/Math.sol";
 
 /// @title Ticket contract inerhiting from ERC20 and updated to keep track of users balance.
 /// @author PoolTogether Inc.
-contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable {
+contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using Math for uint32;
   using SafeCastUpgradeable for uint256;
@@ -346,24 +345,6 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
     }
 
     return balances;
-  }
-
-  /// @notice Claim `_user` winning draws.
-  /// @dev This function can be called on behalf of a user.
-  /// @param _user User address to claim winning draws for.
-  /// @param _claimable Claimable interface to call `claim` method on.
-  /// @param _timestamps TWAB `_timestamps` array to get user balances by passing it to `_getBalance` function.
-  /// @param _picks Encoded array of user picks.
-  /// @return uint256 total amount of tokens claimed.
-  function claim(address _user, IClaimable _claimable, uint256[] calldata _timestamps, bytes calldata _picks) external override returns (uint256) {
-    uint256 timestampsLength = _timestamps.length;
-    uint256[] memory timestampBalances = new uint256[](timestampsLength);
-
-    for (uint256 i; i < timestampsLength; i++) {
-      timestampBalances[i] = _getBalance(_user, uint32(_timestamps[i]));
-    }
-
-    return _claimable.claim(_user, _timestamps, timestampBalances, _picks);
   }
 
 }

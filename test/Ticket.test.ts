@@ -347,43 +347,4 @@ describe('Ticket', () => {
       expect(balances[2]).to.equal(mintAmount.sub(transferAmount));
     });
   });
-
-  describe('claim()', async () => {
-    let claimable: any;
-
-    beforeEach(async () => {
-      let IClaimable = await artifacts.readArtifact('IClaimable');
-      claimable = await deployMockContract(wallet1 as Signer, IClaimable.abi);
-    });
-
-    it('should claim a zero balance', async () => {
-      const amountZero = toWei('0');
-
-      await claimable.mock.claim.withArgs(wallet1.address, [0], [0], '0x').returns(amountZero);
-
-      expect(await ticket.callStatic.claim(wallet1.address, claimable.address, [0], '0x')).to.equal(
-        amountZero,
-      );
-    });
-
-    it('should claim the actual balance', async () => {
-      const mintAmount = toWei('1000');
-      const claimedAmount = mintAmount.div(10);
-
-      await ticket.mint(wallet1.address, mintAmount);
-
-      await increaseTime(60);
-      const block = await provider.getBlock('latest');
-
-      await ticket.mint(wallet1.address, mintAmount);
-
-      await claimable.mock.claim
-        .withArgs(wallet1.address, [block.timestamp], [mintAmount], '0x')
-        .returns(claimedAmount);
-
-      expect(
-        await ticket.callStatic.claim(wallet1.address, claimable.address, [block.timestamp], '0x'),
-      ).to.equal(claimedAmount);
-    });
-  });
 });
