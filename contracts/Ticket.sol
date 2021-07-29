@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./interfaces/ITicket.sol";
@@ -18,7 +17,6 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using Math for uint32;
   using SafeCastUpgradeable for uint256;
-  using SafeMathUpgradeable for uint256;
 
   /// @notice Tracks total supply of tickets.
   uint256 private _totalSupply;
