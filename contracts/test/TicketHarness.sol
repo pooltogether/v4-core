@@ -17,6 +17,12 @@ contract TicketHarness is Ticket {
     _mint(_to, _amount);
   }
 
+  /// @dev we need to use a different function name than `transfer`
+  /// otherwise it collides with the `transfer` function of the `ERC20Upgradeable` contract
+  function transferTo(address _sender, address _recipient, uint256 _amount) external {
+    _transfer(_sender, _recipient, _amount);
+  }
+
   function mostRecentTwabIndexOfUser(address _user) external view returns (uint256) {
     return _mostRecentTwabIndexOfUser(_user);
   }
@@ -30,9 +36,5 @@ contract TicketHarness is Ticket {
 
   function newTwab(address _user, uint16 _twabIndex) external {
     _newTwab(_user, _twabIndex);
-  }
-
-  function beforeTokenTransfer(address _from, address _to, uint256) external {
-    _beforeTokenTransfer(_from, _to, 0);
   }
 }

@@ -156,53 +156,120 @@ describe('Ticket', () => {
 
   describe('_newTwab()', () => {
     it('should record a new twab', async () => {
-      expect(await ticket.newTwab(wallet1.address))
+      const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
+
+      expect(await ticket.newTwab(wallet1.address, mostRecentTwabIndex))
         .to.emit(ticket, 'NewTwab')
         .withArgs(wallet1.address, [toWei('0'), (await provider.getBlock('latest')).timestamp]);
     });
 
     it('should return early if a twab already exists for this timestamp', async () => {
-      await ticket.newTwab(wallet1.address);
+      const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
+
+      await ticket.newTwab(
+        wallet1.address,
+        mostRecentTwabIndex,
+      );
+
       await increaseTime(-1);
 
-      expect(await ticket.newTwab(wallet1.address)).to.not.emit(ticket, 'NewTwab');
+      const nextTwabIndex = (mostRecentTwabIndex.add(1)) % await ticket.CARDINALITY();
+
+      expect(await ticket.newTwab(wallet1.address, nextTwabIndex)).to.not.emit(ticket, 'NewTwab');
     });
   });
 
-  describe('_beforeTokenTransfer()', () => {
-    const addressZero = ethers.constants.AddressZero;
-    const mintAmount = toWei('1000');
-    const burnAmount = toWei('500');
+  describe('_transfer()', () => {
+    const mintAmount = toWei('2500');
+    const transferAmount = toWei('1000');
 
-    it('should record a new twab when minting _to', async () => {
+    beforeEach(async () => {
       await ticket.mint(wallet1.address, mintAmount);
+    });
 
-      expect(await ticket.beforeTokenTransfer(addressZero, wallet1.address, mintAmount))
-        .to.emit(ticket, 'NewTwab')
-        .withArgs(wallet1.address, [mintAmount, (await provider.getBlock('latest')).timestamp]);
+    it('should transfer tickets from sender to recipient', async () => {
+      expect(await ticket.transferTo(wallet1.address, wallet2.address, transferAmount))
+        .to.emit(ticket, 'Transfer')
+        .withArgs(wallet1.address, wallet2.address, transferAmount);
+
+      expect(
+        await ticket.getBalance(wallet2.address, (await provider.getBlock('latest')).timestamp),
+      ).to.equal(transferAmount);
+
+      expect(
+        await ticket.getBalance(wallet1.address, (await provider.getBlock('latest')).timestamp),
+      ).to.equal(mintAmount.sub(transferAmount));
+    });
+
+    it('should fail to transfer tickets if sender address is address zero', async () => {
+      await expect(ticket.transferTo(ethers.constants.AddressZero, wallet2.address, transferAmount))
+        .to.be.revertedWith('ERC20: transfer from the zero address');
+    });
+
+    it('should fail to transfer tickets if receiver address is address zero', async () => {
+      await expect(ticket.transferTo(wallet1.address, ethers.constants.AddressZero, transferAmount))
+        .to.be.revertedWith('ERC20: transfer to the zero address');
+    });
+
+    it('should fail to transfer tickets if transfer amount exceeds sender balance', async () => {
+      const insufficientMintAmount = toWei('5000');
+
+      await expect(ticket.transferTo(wallet1.address, wallet2.address, insufficientMintAmount))
+        .to.be.revertedWith('ERC20: transfer amount exceeds balance');
+    });
+  });
+
+  describe('_mint()', () => {
+    const mintAmount = toWei('1000');
+
+    it('should mint tickets to user', async () => {
+      expect(await ticket.mint(wallet1.address, mintAmount))
+        .to.emit(ticket, 'Transfer')
+        .withArgs(ethers.constants.AddressZero, wallet1.address, mintAmount);
 
       expect(
         await ticket.getBalance(wallet1.address, (await provider.getBlock('latest')).timestamp),
       ).to.equal(mintAmount);
 
-      // We burn tokens we've just minted for second test to pass
-      await ticket.burn(wallet1.address, mintAmount);
+      expect(await ticket.totalSupply()).to.equal(mintAmount);
     });
 
-    it('should record a new twab when burning _from', async () => {
-      await ticket.mint(wallet1.address, mintAmount);
-      await ticket.burn(wallet1.address, burnAmount);
+    it('should fail to mint tickets if user address is address zero', async () => {
+      await expect(ticket.mint(ethers.constants.AddressZero, mintAmount))
+        .to.be.revertedWith('ERC20: mint to the zero address');
+    });
+  });
 
-      expect(await ticket.beforeTokenTransfer(wallet1.address, addressZero, burnAmount))
-        .to.emit(ticket, 'NewTwab')
-        .withArgs(wallet1.address, [
-          mintAmount.add(burnAmount),
-          (await provider.getBlock('latest')).timestamp,
-        ]);
+  describe('_burn()', () => {
+    const burnAmount = toWei('500');
+    const mintAmount = toWei('1500');
+
+    it('should burn tickets from user balance', async () => {
+      await ticket.mint(wallet1.address, mintAmount)
+
+      expect(await ticket.burn(wallet1.address, burnAmount))
+        .to.emit(ticket, 'Transfer')
+        .withArgs(wallet1.address, ethers.constants.AddressZero, burnAmount);
 
       expect(
         await ticket.getBalance(wallet1.address, (await provider.getBlock('latest')).timestamp),
-      ).to.equal(burnAmount);
+      ).to.equal(mintAmount.sub(burnAmount));
+
+      expect(await ticket.totalSupply()).to.equal(mintAmount.sub(burnAmount));
+    });
+
+    it('should fail to burn tickets from user balance if user address is address zero', async () => {
+      await expect(ticket.burn(ethers.constants.AddressZero, mintAmount))
+        .to.be.revertedWith('ERC20: burn from the zero address');
+    });
+
+    it('should fail to burn tickets from user balance if burn amount exceeds user balance', async () => {
+      const insufficientMintAmount = toWei('250');
+
+      await ticket.mint(wallet1.address, insufficientMintAmount);
+
+      await expect(ticket.burn(wallet1.address, mintAmount))
+        .to.be.revertedWith('ERC20: burn amount exceeds balance');
     });
   });
 
@@ -213,7 +280,7 @@ describe('Ticket', () => {
       await ticket.mint(wallet1.address, balanceBefore);
     });
 
-    it('should get correct balance after a tickets transfer', async () => {
+    it('should get correct balance after a ticket transfer', async () => {
       const transferAmount = toWei('500');
 
       await increaseTime(60);
@@ -265,7 +332,7 @@ describe('Ticket', () => {
       const mintAmount = toWei('2000');
       const transferAmount = toWei('500');
       const timestampBefore = (await provider.getBlock('latest')).timestamp;
-
+      console.log('timestampBefore', timestampBefore);
       await ticket.mint(wallet1.address, mintAmount);
       await ticket.transfer(wallet2.address, transferAmount);
 

@@ -59,7 +59,7 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
 
   /// @notice Balance of a ticket holder packed with most recent TWAB index.
   /// @param balance Current user balance.
-  /// @param twabIndex Most recent TWAB index of user.
+  /// @param twabIndex Last TWAB index of user.
   struct BalanceWithTwabIndex {
     uint240 balance;
     uint16 twabIndex;
@@ -123,7 +123,9 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
   /// @param _user Address of the user whose most recent TWAB index is being fetched.
   /// @return uint256 `mostRecentTwabIndex` of `_user`.
   function _mostRecentTwabIndexOfUser(address _user) internal view returns (uint16) {
-    return _getTwabIndex(_balancesWithTwabIndex[_user].twabIndex + CARDINALITY - 1);
+    return _balancesWithTwabIndex[_user].twabIndex;
+    // TODO: fix mostRecentTwabIndex so that getBalances doesn't run out of gas
+    // return _getTwabIndex(_balancesWithTwabIndex[_user].twabIndex + CARDINALITY - 1);
   }
 
   /// @notice Fetches the TWABs `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
@@ -195,11 +197,12 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
       timestamp: currentTimestamp
     });
 
-    twabs[_user][_getTwabIndex(_twabIndex + 1)] = newTwab;
+    uint16 nextTwabIndex = _getTwabIndex(_twabIndex + 1);
+    twabs[_user][nextTwabIndex] = newTwab;
 
     emit NewTwab(_user, newTwab);
 
-    return _getTwabIndex(_twabIndex + 2);
+    return nextTwabIndex;
   }
 
   /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
@@ -338,7 +341,7 @@ contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable
     uint256 length = _targets.length;
     uint256[] memory balances = new uint256[](length);
 
-    for(uint256 i =0; i < length; i++){
+    for(uint256 i = 0; i < length; i++){
       balances[i] = _getBalance(_user, _targets[i]);
     }
 
