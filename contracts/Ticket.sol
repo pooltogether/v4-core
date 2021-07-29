@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
-import "./interfaces/IClaimable.sol";
 import "./interfaces/ITicket.sol";
 import "./libraries/Math.sol";
 
