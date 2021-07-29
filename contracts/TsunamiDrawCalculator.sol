@@ -69,7 +69,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
     uint256 prize = 0;
     
-    for (uint256 index = 0; index < timestamps.length; index++) {
+    for (uint256 index = 0; index < winningRandomNumbers.length; index++) {
       prize += _calculate(winningRandomNumbers[index], prizes[index], userBalances[index], userRandomNumber, pickIndices[index], settings);
     }
     return prize;
