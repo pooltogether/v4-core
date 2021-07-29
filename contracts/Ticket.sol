@@ -219,7 +219,7 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
     _beforeTokenTransfer(_sender, _recipient, _amount);
 
     BalanceWithTwabIndex memory sender = _balancesWithTwabIndex[_sender];
-    require(sender.balance >= _amount, "ERC20: transfer amount exceeds balance");
+    require(sender.balance >= uint240(_amount), "ERC20: transfer amount exceeds balance");
     unchecked {
         _balancesWithTwabIndex[_sender] = BalanceWithTwabIndex({
           balance: sender.balance - uint240(_amount),
@@ -271,7 +271,7 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
     _beforeTokenTransfer(_from, address(0), _amount);
 
     BalanceWithTwabIndex memory user = _balancesWithTwabIndex[_from];
-    require(user.balance >= _amount, "ERC20: burn amount exceeds balance");
+    require(user.balance >= uint240(_amount), "ERC20: burn amount exceeds balance");
     unchecked {
       _balancesWithTwabIndex[_from] = BalanceWithTwabIndex({
         balance: user.balance - uint240(_amount),
