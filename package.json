@@ -11,7 +11,7 @@
     "deploy": "hardhat deploy --write true --network",
     "verify": "hardhat etherscan-verify --license MIT --solc-input --network",
     "etherscan-verify": "hardhat etherscan:verify --network",
-    "format": "prettier --config .prettierrc --write **/*.ts",
+    "format": "prettier --config .prettierrc --write \"**/*.ts\"",
     "format:file": "prettier --config .prettierrc --write",
     "hint": "solhint \"contracts/**/*.sol\"",
     "start-fork": "FORK_ENABLED=true hardhat node --no-reset --no-deploy",

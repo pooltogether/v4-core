@@ -166,14 +166,11 @@ describe('Ticket', () => {
     it('should return early if a twab already exists for this timestamp', async () => {
       const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
 
-      await ticket.newTwab(
-        wallet1.address,
-        mostRecentTwabIndex,
-      );
+      await ticket.newTwab(wallet1.address, mostRecentTwabIndex);
 
       await increaseTime(-1);
 
-      const nextTwabIndex = (mostRecentTwabIndex.add(1)) % await ticket.CARDINALITY();
+      const nextTwabIndex = mostRecentTwabIndex.add(1) % (await ticket.CARDINALITY());
 
       expect(await ticket.newTwab(wallet1.address, nextTwabIndex)).to.not.emit(ticket, 'NewTwab');
     });
@@ -202,20 +199,23 @@ describe('Ticket', () => {
     });
 
     it('should fail to transfer tickets if sender address is address zero', async () => {
-      await expect(ticket.transferTo(ethers.constants.AddressZero, wallet2.address, transferAmount))
-        .to.be.revertedWith('ERC20: transfer from the zero address');
+      await expect(
+        ticket.transferTo(ethers.constants.AddressZero, wallet2.address, transferAmount),
+      ).to.be.revertedWith('ERC20: transfer from the zero address');
     });
 
     it('should fail to transfer tickets if receiver address is address zero', async () => {
-      await expect(ticket.transferTo(wallet1.address, ethers.constants.AddressZero, transferAmount))
-        .to.be.revertedWith('ERC20: transfer to the zero address');
+      await expect(
+        ticket.transferTo(wallet1.address, ethers.constants.AddressZero, transferAmount),
+      ).to.be.revertedWith('ERC20: transfer to the zero address');
     });
 
     it('should fail to transfer tickets if transfer amount exceeds sender balance', async () => {
       const insufficientMintAmount = toWei('5000');
 
-      await expect(ticket.transferTo(wallet1.address, wallet2.address, insufficientMintAmount))
-        .to.be.revertedWith('ERC20: transfer amount exceeds balance');
+      await expect(
+        ticket.transferTo(wallet1.address, wallet2.address, insufficientMintAmount),
+      ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
     });
   });
 
@@ -235,8 +235,9 @@ describe('Ticket', () => {
     });
 
     it('should fail to mint tickets if user address is address zero', async () => {
-      await expect(ticket.mint(ethers.constants.AddressZero, mintAmount))
-        .to.be.revertedWith('ERC20: mint to the zero address');
+      await expect(ticket.mint(ethers.constants.AddressZero, mintAmount)).to.be.revertedWith(
+        'ERC20: mint to the zero address',
+      );
     });
   });
 
@@ -245,7 +246,7 @@ describe('Ticket', () => {
     const mintAmount = toWei('1500');
 
     it('should burn tickets from user balance', async () => {
-      await ticket.mint(wallet1.address, mintAmount)
+      await ticket.mint(wallet1.address, mintAmount);
 
       expect(await ticket.burn(wallet1.address, burnAmount))
         .to.emit(ticket, 'Transfer')
@@ -259,8 +260,9 @@ describe('Ticket', () => {
     });
 
     it('should fail to burn tickets from user balance if user address is address zero', async () => {
-      await expect(ticket.burn(ethers.constants.AddressZero, mintAmount))
-        .to.be.revertedWith('ERC20: burn from the zero address');
+      await expect(ticket.burn(ethers.constants.AddressZero, mintAmount)).to.be.revertedWith(
+        'ERC20: burn from the zero address',
+      );
     });
 
     it('should fail to burn tickets from user balance if burn amount exceeds user balance', async () => {
@@ -268,8 +270,9 @@ describe('Ticket', () => {
 
       await ticket.mint(wallet1.address, insufficientMintAmount);
 
-      await expect(ticket.burn(wallet1.address, mintAmount))
-        .to.be.revertedWith('ERC20: burn amount exceeds balance');
+      await expect(ticket.burn(wallet1.address, mintAmount)).to.be.revertedWith(
+        'ERC20: burn amount exceeds balance',
+      );
     });
   });
 

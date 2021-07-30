@@ -46,9 +46,7 @@ const config: HardhatUserConfig = {
       },
       evmVersion: 'berlin',
     },
-  }
+  },
 };
-
-
 
 export default config;
