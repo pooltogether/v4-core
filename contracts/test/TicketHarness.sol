@@ -5,8 +5,8 @@ pragma solidity 0.8.6;
 import "../Ticket.sol";
 
 contract TicketHarness is Ticket {
-  function getTwabIndex(uint256 _index) external pure returns (uint256) {
-    return _getTwabIndex(_index);
+  function moduloCardinality(uint256 _index) external pure returns (uint256) {
+    return _moduloCardinality(_index);
   }
 
   function burn(address _from, uint256 _amount) external {

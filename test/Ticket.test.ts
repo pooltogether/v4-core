@@ -96,14 +96,14 @@ describe('Ticket', () => {
     });
   });
 
-  describe('_getTwabIndex()', () => {
+  describe('_moduloCardinality()', () => {
     it('should get correct twab index', async () => {
       for (let i = 0; i < cardinality * 2; i++) {
         if (i < cardinality) {
-          expect(await ticket.getTwabIndex(i)).to.equal(i);
+          expect(await ticket.moduloCardinality(i)).to.equal(i);
         } else {
           // We should go back to beginning of the circular buffer array
-          expect(await ticket.getTwabIndex(i)).to.equal(i % cardinality);
+          expect(await ticket.moduloCardinality(i)).to.equal(i % cardinality);
         }
       }
     });
@@ -277,6 +277,8 @@ describe('Ticket', () => {
     const balanceBefore = toWei('1000');
 
     beforeEach(async () => {
+      const timestampBeforeEach = (await provider.getBlock('latest')).timestamp;
+
       await ticket.mint(wallet1.address, balanceBefore);
     });
 
@@ -332,7 +334,7 @@ describe('Ticket', () => {
       const mintAmount = toWei('2000');
       const transferAmount = toWei('500');
       const timestampBefore = (await provider.getBlock('latest')).timestamp;
-      console.log('timestampBefore', timestampBefore);
+
       await ticket.mint(wallet1.address, mintAmount);
       await ticket.transfer(wallet2.address, transferAmount);
 

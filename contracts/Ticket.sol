@@ -9,13 +9,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./interfaces/ITicket.sol";
-import "./libraries/Math.sol";
+import "./libraries/OverflowSafeComparator.sol";
 
 /// @title Ticket contract inerhiting from ERC20 and updated to keep track of users balance.
 /// @author PoolTogether Inc.
 contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
-  using Math for uint32;
+  using OverflowSafeComparator for uint32;
   using SafeCastUpgradeable for uint256;
 
   /// @notice Tracks total supply of tickets.
@@ -55,10 +55,10 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
 
   /// @notice Balance of a ticket holder packed with most recent TWAB index.
   /// @param balance Current user balance.
-  /// @param twabIndex Last TWAB index of user.
+  /// @param nextTwabIndex Next TWAB index of user.
   struct BalanceWithTwabIndex {
     uint240 balance;
-    uint16 twabIndex;
+    uint16 nextTwabIndex;
   }
 
   /// @notice Record of token holders balance and most recent TWAB index.
@@ -111,7 +111,7 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
   /// @dev In order to navigate the circular buffer, we need to use the modulo operator.
   /// @dev For example, if `_index` is equal to 32, `_index % CARDINALITY` will return 0 and will point to the first element of the array.
   /// @param _index Index used to navigate through `twabs` circular buffer.
-  function _getTwabIndex(uint256 _index) internal pure returns (uint16) {
+  function _moduloCardinality(uint256 _index) internal pure returns (uint16) {
     return uint16(_index % CARDINALITY);
   }
 
@@ -119,9 +119,7 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
   /// @param _user Address of the user whose most recent TWAB index is being fetched.
   /// @return uint256 `mostRecentTwabIndex` of `_user`.
   function _mostRecentTwabIndexOfUser(address _user) internal view returns (uint16) {
-    return _balancesWithTwabIndex[_user].twabIndex;
-    // TODO: fix mostRecentTwabIndex so that getBalances doesn't run out of gas
-    // return _getTwabIndex(_balancesWithTwabIndex[_user].twabIndex + CARDINALITY - 1);
+    return _moduloCardinality(_balancesWithTwabIndex[_user].nextTwabIndex + CARDINALITY - 1);
   }
 
   /// @notice Fetches the TWABs `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
@@ -139,13 +137,13 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
       uint32 time = uint32(block.timestamp);
       uint16 twabIndex = _mostRecentTwabIndexOfUser(_user);
 
-      uint256 leftSide = _getTwabIndex(twabIndex + 1); // Oldest TWAB
+      uint256 leftSide = _moduloCardinality(twabIndex + 1); // Oldest TWAB
       uint256 rightSide = leftSide + CARDINALITY - 1; // Newest TWAB
       uint256 currentIndex;
 
       while (true) {
           currentIndex = (leftSide + rightSide) / 2;
-          beforeOrAt = twabs[_user][_getTwabIndex(currentIndex)];
+          beforeOrAt = twabs[_user][_moduloCardinality(currentIndex)];
           uint32 beforeOrAtTimestamp = beforeOrAt.timestamp;
 
           // We've landed on an uninitialized timestamp, keep searching higher (more recently)
@@ -154,7 +152,7 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
               continue;
           }
 
-          atOrAfter = twabs[_user][_getTwabIndex(currentIndex + 1)];
+          atOrAfter = twabs[_user][_moduloCardinality(currentIndex + 1)];
 
           bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, time);
 
@@ -171,16 +169,16 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
 
   /// @notice Records a new TWAB for `_user`.
   /// @param _user Address of the user whose TWAB is being recorded.
-  /// @param _twabIndex Index of the TWAB being recorded.
-  /// @return most recent TWAB index of `_user`.
-  function _newTwab(address _user, uint16 _twabIndex) internal returns (uint16) {
+  /// @param _nextTwabIndex next available TWAB index.
+  /// @return new next available TWAB index.
+  function _newTwab(address _user, uint16 _nextTwabIndex) internal returns (uint16) {
     uint32 currentTimestamp = uint32(block.timestamp);
-    Twab memory lastTwab = twabs[_user][_twabIndex];
+    Twab memory lastTwab = twabs[_user][_moduloCardinality(_nextTwabIndex + CARDINALITY - 1)];
 
     // If a TWAB already exists at this timestamp, then we don't need to update values
     // This is to avoid recording a new TWAB if several transactions happen in the same block
     if (lastTwab.timestamp == currentTimestamp) {
-      return _twabIndex;
+      return _nextTwabIndex;
     }
 
     // New twab = last twab balance (or zero) + (previous user balance * elapsed seconds)
@@ -193,12 +191,11 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
       timestamp: currentTimestamp
     });
 
-    uint16 nextTwabIndex = _getTwabIndex(_twabIndex + 1);
-    twabs[_user][nextTwabIndex] = newTwab;
+    twabs[_user][_nextTwabIndex] = newTwab;
 
     emit NewTwab(_user, newTwab);
 
-    return nextTwabIndex;
+    return _moduloCardinality(_nextTwabIndex + 1);
   }
 
   /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
@@ -223,14 +220,14 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
     unchecked {
         _balancesWithTwabIndex[_sender] = BalanceWithTwabIndex({
           balance: sender.balance - uint240(_amount),
-          twabIndex: _newTwab(_sender, sender.twabIndex)
+          nextTwabIndex: _newTwab(_sender, sender.nextTwabIndex)
         });
     }
 
     BalanceWithTwabIndex memory recipient = _balancesWithTwabIndex[_recipient];
     _balancesWithTwabIndex[_recipient] = BalanceWithTwabIndex({
       balance: recipient.balance + uint240(_amount),
-      twabIndex: _newTwab(_recipient, recipient.twabIndex)
+      nextTwabIndex: _newTwab(_recipient, recipient.nextTwabIndex)
     });
 
     emit Transfer(_sender, _recipient, _amount);
@@ -252,7 +249,7 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
       BalanceWithTwabIndex memory user = _balancesWithTwabIndex[_to];
       _balancesWithTwabIndex[_to] = BalanceWithTwabIndex({
         balance: user.balance + uint240(_amount),
-        twabIndex: _newTwab(_to, user.twabIndex)
+        nextTwabIndex: _newTwab(_to, user.nextTwabIndex)
       });
 
       emit Transfer(address(0), _to, _amount);
@@ -275,7 +272,7 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
     unchecked {
       _balancesWithTwabIndex[_from] = BalanceWithTwabIndex({
         balance: user.balance - uint240(_amount),
-        twabIndex: _newTwab(_from, user.twabIndex)
+        nextTwabIndex: _newTwab(_from, user.nextTwabIndex)
       });
     }
 
@@ -289,14 +286,14 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
   /// @notice Retrieves `_user` TWAB balance at `_target`.
   /// @param _user Address of the user whose TWAB is being fetched.
   /// @param _target Timestamp at which the reserved TWAB should be for.
+  /// @param _twabIndex The most recent TWAB index of `_user`.
   /// @return uint256 `_user` TWAB balance at `_target`.
-  function _getBalance(address _user, uint32 _target) internal view returns (uint256) {
-    uint256 index = _mostRecentTwabIndexOfUser(_user);
+  function _getBalance(address _user, uint32 _target, uint16 _twabIndex) internal view returns (uint256) {
     uint32 time = uint32(block.timestamp);
     uint32 targetTimestamp = _target > time ? time : _target;
 
     Twab memory afterOrAt;
-    Twab memory beforeOrAt = twabs[_user][index];
+    Twab memory beforeOrAt = twabs[_user][_twabIndex];
 
     // If `targetTimestamp` is chronologically at or after the newest TWAB, we can early return
     if (beforeOrAt.timestamp.lte(targetTimestamp, time)) {
@@ -304,7 +301,9 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
     }
 
     // Now, set before to the oldest TWAB
-    beforeOrAt = twabs[_user][_getTwabIndex(index + 1)];
+    beforeOrAt = twabs[_user][_moduloCardinality(_twabIndex + 1)];
+
+    // If the TWAB is not initialized we go to the beginning of the TWAB circular buffer at index 0
     if (beforeOrAt.timestamp == 0) beforeOrAt = twabs[_user][0];
 
     // If `targetTimestamp` is chronologically before the oldest TWAB, we can early return
@@ -326,7 +325,8 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
   /// @param _user Address of the user whose TWAB is being fetched.
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function getBalance(address _user, uint32 _target) override external view returns (uint256) {
-    return _getBalance(_user, _target);
+    uint16 index = _mostRecentTwabIndexOfUser(_user);
+    return _getBalance(_user, _target, index);
   }
 
   /// @notice Retrieves `_user` TWAB balances.
@@ -337,8 +337,10 @@ contract Ticket is ITicket, ERC20PermitUpgradeable, OwnableUpgradeable {
     uint256 length = _targets.length;
     uint256[] memory balances = new uint256[](length);
 
+    uint16 index = _mostRecentTwabIndexOfUser(_user);
+
     for(uint256 i = 0; i < length; i++){
-      balances[i] = _getBalance(_user, _targets[i]);
+      balances[i] = _getBalance(_user, _targets[i], index);
     }
 
     return balances;
