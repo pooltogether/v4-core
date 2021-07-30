@@ -169,7 +169,7 @@ describe('ClaimableDraw', () => {
       await claimableDraw.setDrawCalculator(drawCalculator.address)
     })
 
-    it('should create 37 draws and a user claims all draw ids in a single claim', async () => {
+    it.only('should create 37 draws and a user claims all draw ids in a single claim', async () => {
       let drawsIds = []
       let drawRandomNumbers = []
       let drawTimestamps = []
@@ -210,11 +210,11 @@ describe('ClaimableDraw', () => {
       await expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0x0000000000000000000000000000000000000000000000000000001000000000')
 
-      expect(await claimableDraw.hasClaimed(wallet1.address, 36))
+      expect(await claimableDraw.hasClaimed(wallet1.address, 34))
         .to.equal(true)
     })
 
-    it('should create a 37 draws and a user claims on 3,4,7,8 draw ids in a single claim', async () => {
+    it('should create 37 draws and a user claims on 3,4,7,8 draw ids in a single claim', async () => {
       let drawsIds = []
       let drawRandomNumbers = []
       let drawTimestamps = []
@@ -329,7 +329,7 @@ describe('ClaimableDraw', () => {
       let drawTimestamps: Array<Array<number>> = [[], []]
       let drawPrizes: Array<Array<number>> = [[], []]
       let MOCK_UNIQUE_DRAW;
-      const CLAIM_COUNT = 256
+      const CLAIM_COUNT = 257
 
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, [DRAW_FIRST_CONFIG.randomNumber], [DRAW_FIRST_CONFIG.timestamp], [DRAW_FIRST_CONFIG.prize], '0x')
@@ -369,7 +369,9 @@ describe('ClaimableDraw', () => {
 
       }
 
-      await claimableDraw.userClaimedDraws(wallet1.address)
+
+      await expect(claimableDraw.claim(wallet1.address, [drawsIdsSplit[0]], [drawCalculator.address], '0x'))
+        .to.be.revertedWith('ClaimableDraw/claim-expired')
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0x0000000000000000000000000000000000000000000000000000000000000000')
@@ -381,9 +383,9 @@ describe('ClaimableDraw', () => {
       await claimableDraw.claim(wallet1.address, [drawsIdsSplit[1]], [drawCalculator.address], '0x') 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
-        .to.equal('0x8000000000000000000000000000000000000000000000000000000000000000')
+        .to.equal('0x0000000000000000000000000000000000000000000000000000000000000001')
 
-      expect(await claimableDraw.hasClaimed(wallet1.address, 255))
+      expect(await claimableDraw.hasClaimed(wallet1.address, 256))
         .to.equal(true)
     })
 

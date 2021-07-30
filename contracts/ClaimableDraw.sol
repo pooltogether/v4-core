@@ -129,7 +129,7 @@ contract ClaimableDraw is OwnableUpgradeable {
   function hasClaimed(address user, uint256 drawId) external view returns (bool) {
     uint8 drawIndex = _drawIdToClaimIndex(drawId, currentDrawIndex);
     bytes32 userDrawClaimHistory = claimedDraws[user]; //sload
-    return _readLastClaimFromClaimedHistory(userDrawClaimHistory, drawIndex);
+    return _readClaimStatusFromClaimedHistory(userDrawClaimHistory, drawIndex);
   }
 
   /**
@@ -285,6 +285,16 @@ contract ClaimableDraw is OwnableUpgradeable {
 
     // Find absolute draw index by using currentDraw index and delta
     return uint8(currentDrawIndex - deltaIndex);
+  }
+
+  /**
+    * @dev Read a user's claimed status for a target draw index.
+    *
+    * @param _userClaimedDraws  User claim draw history (256 bit word)
+    * @param _drawIndex         The index within that word (0 to 7)
+  */
+  function _readClaimStatusFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) internal pure returns (bool) {
+    
   }
 
    /**
