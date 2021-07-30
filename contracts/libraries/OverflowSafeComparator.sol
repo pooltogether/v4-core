@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.6;
 
-/// @title Math library to share utils functions between contracts
+/// @title OverflowSafeComparator library to share comparator functions between contracts
 /// @author PoolTogether Inc.
-library Math {
+library OverflowSafeComparator {
   /// @notice 32-bit timestamps comparator.
   /// @dev safe for 0 or 1 overflows, `_a` and `_b` must be chronologically before or equal to time.
   /// @param _a A comparison timestamp from which to determine the relative position of `_timestamp`.
