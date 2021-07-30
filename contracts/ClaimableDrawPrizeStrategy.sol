@@ -10,7 +10,9 @@ contract ClaimableDrawPrizeStrategy is Initializable,
                                        OwnableUpgradeable, 
                                        PeriodicPrizeStrategy, 
                                        PrizeSplit {
-
+ /**
+    * @notice External claimable draw contract responsible for handling persistent data even when prize strategy may be updated.
+  */
   ClaimableDraw public claimableDraw;
 
   /**

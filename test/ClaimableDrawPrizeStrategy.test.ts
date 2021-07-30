@@ -783,6 +783,7 @@ describe('PeriodicPrizeStrategy', () => {
       
       let randomNumber = 10;
       await prizeStrategy.distributePrizeSplit(randomNumber);
+      
     });
   })
 
