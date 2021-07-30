@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.6;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -10,7 +9,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
   * @author Kames Geraghty (PoolTogether Inc)
 */
 abstract contract PrizeSplit is OwnableUpgradeable {
-  using SafeMathUpgradeable for uint256;
   
   PrizeSplitConfig[] internal _prizeSplits;
 
@@ -103,7 +101,7 @@ abstract contract PrizeSplit is OwnableUpgradeable {
 
     // Remove old prize splits configs. Match storage _prizesSplits.length with the passed newPrizeSplits.length
     while (_prizeSplits.length > newPrizeSplitsLength) {
-      uint256 _index = _prizeSplits.length.sub(1);
+      uint256 _index = _prizeSplits.length - 1;
       _prizeSplits.pop();
       emit PrizeSplitRemoved(_index);
     }
@@ -142,7 +140,7 @@ abstract contract PrizeSplit is OwnableUpgradeable {
   * @param percentage Percentage with single decimal precision using 0-1000 ranges
   */
   function _getPrizeSplitAmount(uint256 amount, uint16 percentage) internal pure returns (uint256) {
-    return (amount * percentage).div(1000);
+    return (amount * percentage) / 1000;
   }
 
   /**
@@ -155,7 +153,7 @@ abstract contract PrizeSplit is OwnableUpgradeable {
     uint256 prizeSplitsLength = _prizeSplits.length;
     for (uint8 index = 0; index < prizeSplitsLength; index++) {
       PrizeSplitConfig memory split = _prizeSplits[index];
-      _tempTotalPercentage = _tempTotalPercentage.add(split.percentage);
+      _tempTotalPercentage = _tempTotalPercentage +split.percentage;
     }
     return _tempTotalPercentage;
   }
@@ -178,7 +176,7 @@ abstract contract PrizeSplit is OwnableUpgradeable {
       _awardPrizeSplitAmount(split.target, _splitAmount, split.token);
 
       // Update the remaining prize amount after distributing the prize split percentage.
-      prize = prize.sub(_splitAmount);
+      prize = prize - _splitAmount;
     }
 
     return prize;
