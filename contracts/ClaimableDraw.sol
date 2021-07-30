@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
-import "hardhat/console.sol";
+
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./interfaces/IDrawCalculator.sol";
 
@@ -129,7 +129,7 @@ contract ClaimableDraw is OwnableUpgradeable {
   function hasClaimed(address user, uint256 drawId) external view returns (bool) {
     uint8 drawIndex = _drawIdToClaimIndex(drawId, currentDrawIndex);
     bytes32 userDrawClaimHistory = claimedDraws[user]; //sload
-    return _readClaimStatusFromClaimedHistory(userDrawClaimHistory, drawIndex);
+    return _readLastClaimFromClaimedHistory(userDrawClaimHistory, drawIndex);
   }
 
   /**
@@ -218,21 +218,21 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @param _currentDrawId  ID of draw being calculated
     * @param _claimedDraws  User's claimed draw history
   */
-  function _calculateAllDraws(address user, uint256[] calldata drawIds, IDrawCalculator drawCalculator, bytes calldata data, uint256 _currentDrawId, bytes32 _claimedDraws) internal returns (uint256 totalPayout, bytes32 userClaimedDraws) {
+  function _calculateAllDraws(address user, uint256[] calldata drawIds, IDrawCalculator drawCalculator, bytes calldata data, uint256 _currentDrawId, bytes32 _claimedDraws) internal returns (uint256 totalPayout, bytes32 userDrawClaimHistory) {
     uint256[] memory prizes = new uint256[](drawIds.length);
     uint32[] memory timestamps = new uint32[](drawIds.length);
     uint256[] memory randomNumbers = new uint256[](drawIds.length);
+    userDrawClaimHistory = _claimedDraws;
 
     for (uint256 drawIndex = 0; drawIndex < drawIds.length; drawIndex++) {
       Draw memory _draw = draws[drawIds[drawIndex]];
       require(_draw.calculator == drawCalculator, "ClaimableDraw/calculator-address-invalid");
-
       prizes[drawIndex] = _draw.prize;
       timestamps[drawIndex] = uint32(_draw.timestamp);
       randomNumbers[drawIndex] = _draw.randomNumber;
-      
-      userClaimedDraws = _claimDraw(_claimedDraws, drawIds[drawIndex], _currentDrawId);
+      userDrawClaimHistory = _claimDraw(userDrawClaimHistory, drawIds[drawIndex], _currentDrawId);
     }
+
     totalPayout += drawCalculator.calculate(user, randomNumbers, timestamps, prizes, data);
   }
 
@@ -257,17 +257,17 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @dev Update the draw claim history for target draw id.
     *
-    * @param userClaimedDraws  Current user claimed draws
+    * @param userDrawClaimHistory  Current user claimed draws
     * @param drawId            ID of draw to update 
     * @param _currentDrawId    Current draw id (i.e. last draw id)
   */
-  function _claimDraw(bytes32 userClaimedDraws, uint256 drawId, uint256 _currentDrawId) internal view returns (bytes32) {
+  function _claimDraw(bytes32 userDrawClaimHistory, uint256 drawId, uint256 _currentDrawId) internal view returns (bytes32) {
     uint8 drawIndex = _drawIdToClaimIndex(drawId, _currentDrawId);
-    bool isClaimed = _readLastClaimFromClaimedHistory(userClaimedDraws, drawIndex);
+    bool isClaimed = _readLastClaimFromClaimedHistory(userDrawClaimHistory, drawIndex);
 
     require(!isClaimed, "ClaimableDraw/user-previously-claimed");
 
-    return _writeLastClaimFromClaimedHistory(userClaimedDraws, drawIndex);
+    return _writeLastClaimFromClaimedHistory(userDrawClaimHistory, drawIndex);
   }
 
   /**
@@ -285,16 +285,6 @@ contract ClaimableDraw is OwnableUpgradeable {
 
     // Find absolute draw index by using currentDraw index and delta
     return uint8(currentDrawIndex - deltaIndex);
-  }
-
-  /**
-    * @dev Read a user's claimed status for a target draw index.
-    *
-    * @param _userClaimedDraws  User claim draw history (256 bit word)
-    * @param _drawIndex         The index within that word (0 to 7)
-  */
-  function _readClaimStatusFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) internal pure returns (bool) {
-    
   }
 
    /**

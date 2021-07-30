@@ -169,7 +169,66 @@ describe('ClaimableDraw', () => {
       await claimableDraw.setDrawCalculator(drawCalculator.address)
     })
 
-    it.only('should create 37 draws and a user claims all draw ids in a single claim', async () => {
+    it('should create 20 draws and fail when a user claims draw id 10 twice', async () => {
+      let drawsIds: Array<Array<number>> = [[], []]
+      let drawRandomNumbers: Array<Array<number>> = [[], []]
+      let drawTimestamps: Array<Array<number>> = [[], []]
+      let drawPrizes: Array<Array<number>> = [[], []]
+      let MOCK_UNIQUE_DRAW;
+      const CLAIM_COUNT = 36
+
+      await drawCalculator.mock.calculate
+        .withArgs(wallet1.address, [DRAW_FIRST_CONFIG.randomNumber], [DRAW_FIRST_CONFIG.timestamp], [DRAW_FIRST_CONFIG.prize], '0x')
+        .returns(toWei("100"))
+
+      let DRAW_BASELINE = {
+          randomNumber: 1,
+          timestamp: 11,
+          prize: 10,
+        }
+
+      for (let index = 0; index <= CLAIM_COUNT; index++) {
+        MOCK_UNIQUE_DRAW = {
+          randomNumber: DRAW_BASELINE.randomNumber * index,
+          timestamp: DRAW_BASELINE.timestamp * index,
+          prize: DRAW_BASELINE.prize * index,
+          payout: toWei("" + index)
+        }
+
+        if(index == 10 || index == 12) {
+          drawsIds[0].push(index)
+          drawRandomNumbers[0].push(MOCK_UNIQUE_DRAW.randomNumber)
+          drawTimestamps[0].push(MOCK_UNIQUE_DRAW.timestamp)
+          drawPrizes[0].push(MOCK_UNIQUE_DRAW.prize)
+        }
+        
+        if( index == 10) {
+          drawsIds[1].push(index)
+          drawRandomNumbers[1].push(MOCK_UNIQUE_DRAW.randomNumber)
+          drawTimestamps[1].push(MOCK_UNIQUE_DRAW.timestamp)
+          drawPrizes[1].push(MOCK_UNIQUE_DRAW.prize)
+        }
+
+        await claimableDraw.createNewDraw(MOCK_UNIQUE_DRAW.randomNumber, MOCK_UNIQUE_DRAW.timestamp, MOCK_UNIQUE_DRAW.prize) 
+      }
+      
+      // First User Claim
+      await drawCalculator.mock.calculate
+        .withArgs(wallet1.address, drawRandomNumbers[0], drawTimestamps[0], drawPrizes[0], '0x')
+        .returns(toWei("500"))
+      await claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], '0x') 
+      expect(await claimableDraw.userClaimedDraws(wallet1.address))
+        .to.equal('0x0000000000000000000000000000000000000000000000000000000000001400')
+      
+      // Second User Claim
+      await drawCalculator.mock.calculate
+        .withArgs(wallet1.address, drawRandomNumbers[1], drawTimestamps[1], drawPrizes[1], '0x')
+        .returns(toWei("500"))
+      await expect(claimableDraw.claim(wallet1.address, [drawsIds[1]], [drawCalculator.address], '0x'))
+        .to.be.revertedWith('ClaimableDraw/user-previously-claimed')
+    })
+
+    it('should create 37 draws and a user claims all draw ids in a single claim', async () => {
       let drawsIds = []
       let drawRandomNumbers = []
       let drawTimestamps = []
@@ -194,6 +253,7 @@ describe('ClaimableDraw', () => {
           prize: DRAW_BASELINE.prize * index,
           payout: toWei("" + index)
         }
+        
         await claimableDraw.createNewDraw(MOCK_UNIQUE_DRAW.randomNumber, MOCK_UNIQUE_DRAW.timestamp, MOCK_UNIQUE_DRAW.prize) 
         drawsIds.push(index)
         drawRandomNumbers.push(MOCK_UNIQUE_DRAW.randomNumber)
@@ -208,9 +268,9 @@ describe('ClaimableDraw', () => {
       await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], '0x') 
 
       await expect(await claimableDraw.userClaimedDraws(wallet1.address))
-        .to.equal('0x0000000000000000000000000000000000000000000000000000001000000000')
+        .to.equal('0x0000000000000000000000000000000000000000000000000000001fffffffff')
 
-      expect(await claimableDraw.hasClaimed(wallet1.address, 34))
+      expect(await claimableDraw.hasClaimed(wallet1.address, 36))
         .to.equal(true)
     })
 
@@ -255,7 +315,7 @@ describe('ClaimableDraw', () => {
       await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], '0x') 
 
       await expect(await claimableDraw.userClaimedDraws(wallet1.address))
-        .to.equal('0x0000000000000000000000000000000000000000000000000000000000000100')
+        .to.equal('0x0000000000000000000000000000000000000000000000000000000000000198')
 
       expect(await claimableDraw.hasClaimed(wallet1.address, 36))
         .to.equal(false)
@@ -310,7 +370,7 @@ describe('ClaimableDraw', () => {
       await claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], '0x') 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
-        .to.equal('0x0000000000000000000000000000000000000000000000000000000000000010')
+        .to.equal('0x0000000000000000000000000000000000000000000000000000000000000018')
       
       // Second User Claim
       await drawCalculator.mock.calculate
@@ -320,7 +380,7 @@ describe('ClaimableDraw', () => {
       await claimableDraw.claim(wallet1.address, [drawsIds[1]], [drawCalculator.address], '0x') 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
-        .to.equal('0x0000000000000000000000000000000000000000000000000000000000080010')
+        .to.equal('0x00000000000000000000000000000000000000000000000000000000000c0018')
     })
 
     it('should create a 256 draws and user should claim all non-expired draw ids', async () => {
@@ -329,7 +389,7 @@ describe('ClaimableDraw', () => {
       let drawTimestamps: Array<Array<number>> = [[], []]
       let drawPrizes: Array<Array<number>> = [[], []]
       let MOCK_UNIQUE_DRAW;
-      const CLAIM_COUNT = 257
+      const CLAIM_COUNT = 258
 
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, [DRAW_FIRST_CONFIG.randomNumber], [DRAW_FIRST_CONFIG.timestamp], [DRAW_FIRST_CONFIG.prize], '0x')
@@ -351,7 +411,7 @@ describe('ClaimableDraw', () => {
         }
 
         
-        if(index <= 0) {
+        if(index <= 1) {
           drawsIdsSplit[0].push(index)
           drawRandomNumbers[0].push(MOCK_UNIQUE_DRAW.randomNumber)
           drawTimestamps[0].push(MOCK_UNIQUE_DRAW.timestamp)
@@ -359,7 +419,7 @@ describe('ClaimableDraw', () => {
           await claimableDraw.createNewDraw(MOCK_UNIQUE_DRAW.randomNumber, MOCK_UNIQUE_DRAW.timestamp, MOCK_UNIQUE_DRAW.prize)
         }
         
-        if(index >= 1) {
+        if(index >= 2) {
           drawsIdsSplit[1].push(index)
           drawRandomNumbers[1].push(MOCK_UNIQUE_DRAW.randomNumber)
           drawTimestamps[1].push(MOCK_UNIQUE_DRAW.timestamp)
@@ -368,7 +428,6 @@ describe('ClaimableDraw', () => {
         }
 
       }
-
 
       await expect(claimableDraw.claim(wallet1.address, [drawsIdsSplit[0]], [drawCalculator.address], '0x'))
         .to.be.revertedWith('ClaimableDraw/claim-expired')
@@ -383,7 +442,7 @@ describe('ClaimableDraw', () => {
       await claimableDraw.claim(wallet1.address, [drawsIdsSplit[1]], [drawCalculator.address], '0x') 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
-        .to.equal('0x0000000000000000000000000000000000000000000000000000000000000001')
+        .to.equal('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
 
       expect(await claimableDraw.hasClaimed(wallet1.address, 256))
         .to.equal(true)
