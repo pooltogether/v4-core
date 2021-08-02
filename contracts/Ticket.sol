@@ -63,13 +63,13 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
   /// @notice Returns the ERC20 ticket token balance of a ticket holder.
   /// @return uint240 `_user` ticket token balance.
   function balanceOf(address _user) public view override returns (uint256) {
-    return _balancesWithTwabIndex[_user].balance;
+    return _balanceOf(_user);
   }
 
   /// @notice Returns the ERC20 ticket token total supply.
   /// @return uint256 Total supply of the ERC20 ticket token.
   function totalSupply() public view virtual override returns (uint256) {
-    return _totalSupply;
+    return _ticketTotalSupply();
   }
 
   /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
@@ -87,20 +87,22 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
     require(_sender != address(0), "ERC20: transfer from the zero address");
     require(_recipient != address(0), "ERC20: transfer to the zero address");
 
+    uint240 amount = uint240(_amount);
+
     _beforeTokenTransfer(_sender, _recipient, _amount);
 
     BalanceWithTwabIndex memory sender = _balancesWithTwabIndex[_sender];
-    require(sender.balance >= uint240(_amount), "ERC20: transfer amount exceeds balance");
+    require(sender.balance >= amount, "ERC20: transfer amount exceeds balance");
     unchecked {
         _balancesWithTwabIndex[_sender] = BalanceWithTwabIndex({
-          balance: sender.balance - uint240(_amount),
+          balance: sender.balance - amount,
           nextTwabIndex: _newTwab(_sender, sender.nextTwabIndex)
         });
     }
 
     BalanceWithTwabIndex memory recipient = _balancesWithTwabIndex[_recipient];
     _balancesWithTwabIndex[_recipient] = BalanceWithTwabIndex({
-      balance: recipient.balance + uint240(_amount),
+      balance: recipient.balance + amount,
       nextTwabIndex: _newTwab(_recipient, recipient.nextTwabIndex)
     });
 
@@ -116,13 +118,19 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
   function _mint(address _to, uint256 _amount) internal virtual override {
     require(_to != address(0), "ERC20: mint to the zero address");
 
+    uint240 amount = uint240(_amount);
+
     _beforeTokenTransfer(address(0), _to, _amount);
 
-    _totalSupply += _amount;
+    TotalSupplyWithTwabIndex memory ticket = _totalSupplyWithTwabIndex;
+    _totalSupplyWithTwabIndex = TotalSupplyWithTwabIndex({
+      totalSupply: ticket.totalSupply + amount,
+      nextTwabIndex: _newTotalSupplyTwab(_totalSupplyWithTwabIndex.nextTwabIndex)
+    });
 
     BalanceWithTwabIndex memory user = _balancesWithTwabIndex[_to];
     _balancesWithTwabIndex[_to] = BalanceWithTwabIndex({
-      balance: user.balance + uint240(_amount),
+      balance: user.balance + amount,
       nextTwabIndex: _newTwab(_to, user.nextTwabIndex)
     });
 
@@ -139,18 +147,24 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
   function _burn(address _from, uint256 _amount) internal virtual override {
     require(_from != address(0), "ERC20: burn from the zero address");
 
+    uint240 amount = uint240(_amount);
+
     _beforeTokenTransfer(_from, address(0), _amount);
 
     BalanceWithTwabIndex memory user = _balancesWithTwabIndex[_from];
-    require(user.balance >= uint240(_amount), "ERC20: burn amount exceeds balance");
+    require(user.balance >= amount, "ERC20: burn amount exceeds balance");
     unchecked {
       _balancesWithTwabIndex[_from] = BalanceWithTwabIndex({
-        balance: user.balance - uint240(_amount),
+        balance: user.balance - amount,
         nextTwabIndex: _newTwab(_from, user.nextTwabIndex)
       });
     }
 
-    _totalSupply -= _amount;
+    TotalSupplyWithTwabIndex memory ticket = _totalSupplyWithTwabIndex;
+    _totalSupplyWithTwabIndex = TotalSupplyWithTwabIndex({
+      totalSupply: ticket.totalSupply - amount,
+      nextTwabIndex:  _newTotalSupplyTwab(_totalSupplyWithTwabIndex.nextTwabIndex)
+    });
 
     emit Transfer(_from, address(0), _amount);
 

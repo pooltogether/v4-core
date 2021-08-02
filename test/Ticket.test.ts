@@ -12,16 +12,17 @@ const { parseEther: toWei } = utils;
 const increaseTime = (time: number) => increaseTimeHelper(provider, time);
 
 type BinarySearchResult = {
-  balance: BigNumber;
+  balance?: BigNumber;
+  totalSupply?: BigNumber;
   timestamp: number;
 };
 
-const calculateBalance = (response: BinarySearchResult[]) => {
+const calculateTwab = (response: BinarySearchResult[] ) => {
   const beforeOrAt = response[0];
   const atOrAfter = response[1];
 
-  const beforeOrAtBalance = beforeOrAt.balance;
-  const atOrAfterBalance = atOrAfter.balance;
+  const beforeOrAtBalance = beforeOrAt.balance ? beforeOrAt.balance : beforeOrAt.totalSupply as BigNumber;
+  const atOrAfterBalance = atOrAfter.balance ? atOrAfter.balance : atOrAfter.totalSupply as BigNumber;;
 
   const differenceInBalance = ethers.utils.formatUnits(atOrAfterBalance.sub(beforeOrAtBalance));
 
@@ -147,6 +148,24 @@ describe('Ticket', () => {
     });
   });
 
+  describe('_mostRecentTwabIndexOfTotalSupply()', () => {
+    it('should return default total supply twab index if no mint has happened', async () => {
+      expect(await ticket.mostRecentTwabIndexOfTotalSupply()).to.equal(cardinality - 1);
+    });
+
+    it('should return total supply most recent twab index if a transfer has happened', async () => {
+      expect(await ticket.mostRecentTwabIndexOfTotalSupply()).to.equal(cardinality - 1);
+
+      await ticket.mint(wallet1.address, toWei('1000'));
+
+      expect(await ticket.mostRecentTwabIndexOfTotalSupply()).to.equal(0);
+
+      await ticket.mint(wallet2.address, toWei('100'));
+
+      expect(await ticket.mostRecentTwabIndexOfTotalSupply()).to.equal(1);
+    });
+  });
+
   describe('_binarySearch()', () => {
     it('should perform a binary search', async () => {
       const mintAmount = toWei('1000');
@@ -162,13 +181,39 @@ describe('Ticket', () => {
       await ticket
         .binarySearch(wallet1.address, timestampAfterFirstMint)
         .then((response: BinarySearchResult[]) =>
-          expect(calculateBalance(response)).to.equal(1000),
+          expect(calculateTwab(response)).to.equal(1000),
         );
 
       await ticket
         .binarySearch(wallet1.address, timestampAfterSecondMint)
         .then((response: BinarySearchResult[]) =>
-          expect(calculateBalance(response)).to.equal(2000),
+          expect(calculateTwab(response)).to.equal(2000),
+        );
+    });
+  });
+
+  describe('_binarySearchTotalSupply()', () => {
+    it('should perform a binary search', async () => {
+      const mintAmount = toWei('1000');
+
+      await ticket.mint(wallet1.address, mintAmount);
+      const timestampAfterFirstMint = (await provider.getBlock('latest')).timestamp;
+
+      await ticket.mint(wallet1.address, mintAmount);
+      const timestampAfterSecondMint = (await provider.getBlock('latest')).timestamp;
+
+      await ticket.mint(wallet1.address, mintAmount);
+
+      await ticket
+        .binarySearchTotalSupply(timestampAfterFirstMint)
+        .then((response: BinarySearchResult[]) =>
+          expect(calculateTwab(response)).to.equal(1000),
+        );
+
+      await ticket
+        .binarySearchTotalSupply(timestampAfterSecondMint)
+        .then((response: BinarySearchResult[]) =>
+          expect(calculateTwab(response)).to.equal(2000),
         );
     });
   });
@@ -205,6 +250,41 @@ describe('Ticket', () => {
           await expect(ticket.mint(wallet1.address, balanceOverflow)).to.be.revertedWith(
             "SafeCast: value doesn't fit in 224 bits",
           );
+        }
+      }
+    });
+  });
+
+  describe('_newTotalSupplyTwab()', () => {
+    it('should record a new twab', async () => {
+      const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfTotalSupply();
+
+      expect(await ticket.newTotalSupplyTwab(mostRecentTwabIndex))
+        .to.emit(ticket, 'NewTotalSupplyTwab')
+        .withArgs([toWei('0'), (await provider.getBlock('latest')).timestamp]);
+    });
+
+    it('should return early if a twab already exists for this timestamp', async () => {
+      const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
+
+      await ticket.newTotalSupplyTwab(mostRecentTwabIndex);
+
+      await increaseTime(-1);
+
+      const nextTwabIndex = mostRecentTwabIndex.add(1) % (await ticket.CARDINALITY());
+
+      expect(await ticket.newTotalSupplyTwab(nextTwabIndex)).to.not.emit(ticket, 'NewTwab');
+    });
+
+    it('should fail to record a new twab if balance overflow', async () => {
+      const balanceOverflow = BigNumber.from(1);
+      const maxBalance = BigNumber.from(2).pow(223);
+
+      for (let index = 0; index < 2; index++) {
+        ticket.mint(wallet1.address, maxBalance);
+
+        if (index === 1) {
+          await expect(ticket.mint(wallet2.address, balanceOverflow)).to.be.revertedWith('SafeCast: value doesn\'t fit in 224 bits');
         }
       }
     });
@@ -314,8 +394,6 @@ describe('Ticket', () => {
     const balanceBefore = toWei('1000');
 
     beforeEach(async () => {
-      const timestampBeforeEach = (await provider.getBlock('latest')).timestamp;
-
       await ticket.mint(wallet1.address, balanceBefore);
     });
 
@@ -384,6 +462,98 @@ describe('Ticket', () => {
       expect(balances[0]).to.equal(toWei('0'));
       expect(balances[1]).to.equal(mintAmount);
       expect(balances[2]).to.equal(mintAmount.sub(transferAmount));
+    });
+  });
+
+  describe('getTotalSupply()', () => {
+    const balanceBefore = toWei('1000');
+
+    it('should get correct total supply after a transfer and burn', async () => {
+      await ticket.mint(wallet1.address, balanceBefore);
+
+      const transferAmount = toWei('500');
+      const burnAmount = transferAmount;
+
+      await increaseTime(60);
+
+      const timestampBefore = (await provider.getBlock('latest')).timestamp;
+
+      await ticket.transfer(wallet2.address, transferAmount);
+
+      expect(await ticket.getTotalSupply(timestampBefore)).to.equal(balanceBefore);
+
+      const timestampAfterTransfer = (await provider.getBlock('latest')).timestamp;
+
+      expect(await ticket.getTotalSupply(timestampAfterTransfer)).to.equal(
+        balanceBefore,
+      );
+
+      await ticket.burn(wallet2.address, burnAmount);
+
+      const timestampAfterBurn = (await provider.getBlock('latest')).timestamp;
+
+      expect(await ticket.getTotalSupply(timestampAfterBurn)).to.equal(
+        balanceBefore.sub(burnAmount),
+      );
+    });
+
+    it('should get correct total supply while looping through a full buffer', async () => {
+      const burnAmount = toWei('1');
+      const blocks = [];
+
+      // Should have 0 at beginning of time
+      const timestampBefore = (await provider.getBlock('latest')).timestamp;
+
+      expect(await ticket.getTotalSupply(timestampBefore)).to.equal(toWei('0'));
+
+      await ticket.mint(wallet1.address, balanceBefore);
+
+      const timestampAfterMint = (await provider.getBlock('latest')).timestamp;
+
+      // Should have 1000 after mint
+      expect(await ticket.getTotalSupply(timestampAfterMint)).to.equal(balanceBefore);
+
+      for (let i = 0; i < cardinality; i++) {
+        await ticket.burn(wallet1.address, burnAmount);
+        blocks.push(await provider.getBlock('latest'));
+      }
+
+      // Should have 1000 - (1 * cardinality) at end of time
+      const lastTime = blocks[blocks.length - 1].timestamp;
+
+      expect(await ticket.getTotalSupply(lastTime)).to.equal(
+        balanceBefore.sub(burnAmount.mul(cardinality)),
+      );
+
+      // Should match each and every total supply change
+      for (let i = 0; i < cardinality; i++) {
+        const expectedTotalSupply = balanceBefore.sub(burnAmount.mul(i + 1));
+        const actualTotalSupply = await ticket.getTotalSupply(blocks[i].timestamp);
+        console.log('blocks[i].timestamp', blocks[i].timestamp);
+
+        expect(actualTotalSupply).to.equal(expectedTotalSupply);
+      }
+    });
+
+    describe('getTotalSupplies()', () => {
+      it('should get ticket total supplies', async () => {
+        const mintAmount = toWei('2000');
+        const burnAmount = toWei('500');
+        const timestampBefore = (await provider.getBlock('latest')).timestamp;
+
+        await ticket.mint(wallet1.address, mintAmount);
+        await ticket.burn(wallet1.address, burnAmount);
+
+        const totalSupplies = await ticket.getTotalSupplies([
+          timestampBefore,
+          timestampBefore + 1,
+          timestampBefore + 2,
+        ]);
+
+        expect(totalSupplies[0]).to.equal(toWei('0'));
+        expect(totalSupplies[1]).to.equal(mintAmount);
+        expect(totalSupplies[2]).to.equal(mintAmount.sub(burnAmount));
+      });
     });
   });
 });

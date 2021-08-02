@@ -27,6 +27,10 @@ contract TicketHarness is Ticket {
     return _mostRecentTwabIndexOfUser(_user);
   }
 
+  function mostRecentTwabIndexOfTotalSupply() external view returns (uint256) {
+    return _mostRecentTwabIndexOfTotalSupply();
+  }
+
   function binarySearch(
     address _user,
     uint32 _target
@@ -34,7 +38,17 @@ contract TicketHarness is Ticket {
     (beforeOrAt, atOrAfter) = _binarySearch(_user, _target);
   }
 
-  function newTwab(address _user, uint16 _twabIndex) external {
-    _newTwab(_user, _twabIndex);
+  function binarySearchTotalSupply(
+    uint32 _target
+  ) external view returns (TotalSupplyTwab memory beforeOrAt, TotalSupplyTwab memory atOrAfter) {
+    (beforeOrAt, atOrAfter) = _binarySearchTotalSupply(_target);
+  }
+
+  function newTwab(address _user, uint16 _nextTwabIndex) external {
+    _newTwab(_user, _nextTwabIndex);
+  }
+
+  function newTotalSupplyTwab(uint16 _nextTwabIndex) external {
+    _newTotalSupplyTwab(_nextTwabIndex);
   }
 }
