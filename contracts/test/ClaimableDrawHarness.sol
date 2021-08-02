@@ -7,12 +7,15 @@ import "../interfaces/IDrawCalculator.sol";
 
 contract ClaimableDrawHarness is ClaimableDraw {
   
-  function createDraw(uint256 randomNumber, uint256 timestamp, uint256 prize) external returns (uint256){
+  function createNewDraw(uint256 randomNumber, uint32 timestamp, uint256 prize) external returns (uint256) {
     return _createDraw(randomNumber, timestamp, prize);
   } 
 
-  function claimIt(address user, uint256[][] calldata drawIds, IDrawCalculator[] calldata drawCalculators, bytes calldata data) external {
-    _claim(user, drawIds, drawCalculators, data);
+  function readLastClaimFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) external pure returns (bool) {
+    return _readUsersDrawClaimStatusFromClaimedHistory(_userClaimedDraws, _drawIndex);
   }
 
+  function writeLastClaimFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) external pure returns (bytes32) {
+    return _writeUsersDrawClaimStatusFromClaimedHistory(_userClaimedDraws, _drawIndex);
+  }
 }

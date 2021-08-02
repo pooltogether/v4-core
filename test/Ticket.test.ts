@@ -202,7 +202,9 @@ describe('Ticket', () => {
         ticket.mint(wallet1.address, maxBalance);
 
         if (index === 1) {
-          await expect(ticket.mint(wallet1.address, balanceOverflow)).to.be.revertedWith('SafeCast: value doesn\'t fit in 224 bits');
+          await expect(ticket.mint(wallet1.address, balanceOverflow)).to.be.revertedWith(
+            "SafeCast: value doesn't fit in 224 bits",
+          );
         }
       }
     });
