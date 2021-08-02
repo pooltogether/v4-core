@@ -3,12 +3,12 @@ pragma solidity 0.8.6;
 import "hardhat/console.sol";
 
 import "./interfaces/IDrawCalculator.sol";
-import "./interfaces/ITicket.sol";
+import "./interfaces/ITicketTwab.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
-  ITicket ticket;
+  ITicketTwab ticket;
 
   uint256 constant PICK_COST = 1 ether;
 
@@ -16,7 +16,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
   uint256[] public distributions; // [grandprize, 2nd prize, ..]
 
-  function initialize(ITicket _ticket, uint256 _matchCardinality, uint256[] memory _distributions) public initializer {
+  function initialize(ITicketTwab _ticket, uint256 _matchCardinality, uint256[] memory _distributions) public initializer {
     __Ownable_init();
     ticket = _ticket;
     matchCardinality = _matchCardinality;
@@ -79,11 +79,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   function calculatePickPercentage(uint256 randomNumberThisPick, uint256 randomNumber, uint256 _matchCardinality, uint256 distributionLength) internal view returns(uint256) {
     uint256 percentage = 0;
     uint256 numberOfMatches = 0;
-    
-    for(uint256 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++){       
+
+    for(uint256 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++){
       if(getValueAtIndex(randomNumberThisPick, matchIndex) == getValueAtIndex(randomNumber, matchIndex)){
           numberOfMatches++;
-      }          
+      }
     }
     uint256 prizeDistributionIndex = _matchCardinality - numberOfMatches;
     if(prizeDistributionIndex < distributionLength){ // they are going to receive prize funds

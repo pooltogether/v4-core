@@ -1,10 +1,8 @@
-import { Signer } from '@ethersproject/abstract-signer';
 import { BigNumber } from '@ethersproject/bignumber';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { deployMockContract } from 'ethereum-waffle';
 import { utils, Contract, ContractFactory } from 'ethers';
-import { ethers, artifacts } from 'hardhat';
+import { ethers } from 'hardhat';
 
 import { increaseTime as increaseTimeHelper } from '../helpers';
 
@@ -93,6 +91,27 @@ describe('Ticket', () => {
   describe('decimals()', () => {
     it('should return default decimals', async () => {
       expect(await ticket.decimals()).to.equal(18);
+    });
+  });
+
+  describe('balanceOf()', () => {
+    it('should return user balance', async () => {
+      const mintBalance = toWei('1000');
+
+      await ticket.mint(wallet1.address, mintBalance);
+
+      expect(await ticket.balanceOf(wallet1.address)).to.equal(mintBalance);
+    });
+  });
+
+  describe('totalSupply()', () => {
+    it('should return total supply of tickets', async () => {
+      const mintBalance = toWei('1000');
+
+      await ticket.mint(wallet1.address, mintBalance);
+      await ticket.mint(wallet2.address, mintBalance);
+
+      expect(await ticket.totalSupply()).to.equal(mintBalance.mul(2));
     });
   });
 
