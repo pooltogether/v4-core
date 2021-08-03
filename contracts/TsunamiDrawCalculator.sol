@@ -129,8 +129,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param word word to index
   ///@param index index to index (max 15)
   function _getValueAtIndex(uint256 word, uint256 index, uint8 _range) internal pure returns(uint256) {
-    uint256 mask =  (uint256(15)) << (index * 4);
-    return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (index * 4)), _range);
+    uint256 nibbleIndex = index * 4;
+    uint256 mask =  (uint256(15)) << nibbleIndex;
+    return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (nibbleIndex)), _range);
   }
 
   ///@notice Set the DrawCalculators DrawSettings
