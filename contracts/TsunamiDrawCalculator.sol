@@ -19,13 +19,17 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
   ///@notice Draw settings struct
   ///@param range Decimal representation of the range of number of bits consider within a 4-bit number. Max value 15.
+  ///@param nibbleMaskValue constant 15
+  ///@param nibbleSize constant 4
   ///@param matchCardinality The number of 4-bit matches within the 256 word. Max value 64 (4*64=256).
   ///@param pickCost Amount of ticket required per pick
   ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether.
   struct DrawSettings {
-    uint8 range; 
+    uint8 range;
+    uint8 nibbleMaskValue;
+    uint8 nibbleSize;
     uint16 matchCardinality;
-    uint224 pickCost;
+    uint216 pickCost;
     uint256[] distributions; // in order: index0: grandPrize, index1: runnerUp, etc. 
   }
   ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? 
@@ -107,19 +111,28 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     
     uint256 prizeFraction = 0;
     uint256 numberOfMatches = 0;
+
     uint256 _matchCardinality = _drawSettings.matchCardinality;
+    uint8 _nibbleSize = _drawSettings.nibbleSize; // constant = 4
+    uint8 _nibbleMaskValue = _drawSettings.nibbleMaskValue; //constant = 15
+    uint8 _range = _drawSettings.range;
     
-    for(uint256 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++){      
-      if(_getValueAtIndex(randomNumberThisPick, matchIndex, _drawSettings.range) == _getValueAtIndex(winningRandomNumber, matchIndex, _drawSettings.range)){
+    for(uint256 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++){
+      uint16 _matchIndexOffset = uint16(matchIndex * _nibbleSize);     
+      
+      if(_getValueAtIndex(randomNumberThisPick, _matchIndexOffset, _range, _nibbleMaskValue) 
+          == 
+        _getValueAtIndex(winningRandomNumber, _matchIndexOffset, _range, _nibbleMaskValue)
+        ){
           numberOfMatches++;
-      }          
+        }          
     }
     
     uint256 prizeDistributionIndex = _matchCardinality - numberOfMatches; // prizeDistributionIndex == 0 : top prize, ==1 : runner-up prize etc
     
     // if prizeDistibution > distribution lenght -> there is no prize at that index
     if(prizeDistributionIndex < _drawSettings.distributions.length){ // they are going to receive prize funds
-      uint256 numberOfPrizesForIndex = uint256(_drawSettings.range) ** prizeDistributionIndex;
+      uint256 numberOfPrizesForIndex = uint256(_range) ** prizeDistributionIndex;
       uint256 prizePercentageAtIndex = _drawSettings.distributions[prizeDistributionIndex];
       prizeFraction = prizePercentageAtIndex / numberOfPrizesForIndex;
     }
@@ -128,11 +141,12 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
   ///@notice helper function to return the unbiased 4-bit value within a word at a specified index
   ///@param word word to index
-  ///@param index index to index (max 15)
-  function _getValueAtIndex(uint256 word, uint256 index, uint8 _range) internal pure returns(uint256) {
-    uint256 nibbleRange = index * 4;
-    uint256 mask =  (uint256(15)) << nibbleRange;
-    return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (nibbleRange)), _range);
+  ///@param indexOffset 0 start index including 4-bit offset (i.e. 8 observes index 2 = 4 * 2)
+  ///@param _range numberic range to find a uniform number from
+  ///@param _maskValue constant 15
+  function _getValueAtIndex(uint256 word, uint256 indexOffset, uint8 _range, uint8 _maskValue) internal pure returns(uint256) {
+    uint256 mask =  (uint256(_maskValue)) << indexOffset;
+    return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (indexOffset)), _range);
   }
 
   ///@notice Set the DrawCalculators DrawSettings

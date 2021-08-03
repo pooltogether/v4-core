@@ -13,6 +13,8 @@ type DrawSettings  = {
     matchCardinality: BigNumber
     pickCost: BigNumber
     distributions: BigNumber[]
+    nibbleMaskValue: BigNumber
+    nibbleSize: BigNumber
 }
 
 describe('TsunamiDrawCalculator', () => {
@@ -90,7 +92,9 @@ describe('TsunamiDrawCalculator', () => {
             distributions: [ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")],
             range: BigNumber.from(10),
             pickCost: BigNumber.from(utils.parseEther("1")),
-            matchCardinality: BigNumber.from(8)
+            matchCardinality: BigNumber.from(8),
+            nibbleMaskValue: BigNumber.from(15),
+            nibbleSize : BigNumber.from(4)
         }
         await drawCalculator.initialize(ticket.address, drawSettings)
 
@@ -107,6 +111,8 @@ describe('TsunamiDrawCalculator', () => {
                         ],
                 range: BigNumber.from(5),
                 pickCost: BigNumber.from(utils.parseEther("1")),
+                nibbleMaskValue: BigNumber.from(15),
+                nibbleSize : BigNumber.from(4)
             }
             const result = await findWinningNumberForUser(wallet1.address, 3, params)
         })
@@ -123,6 +129,8 @@ describe('TsunamiDrawCalculator', () => {
                         ],
                 range: BigNumber.from(5),
                 pickCost: BigNumber.from(utils.parseEther("1")),
+                nibbleMaskValue: BigNumber.from(15),
+                nibbleSize : BigNumber.from(4)
             }
 
             expect(await drawCalculator.setDrawSettings(params)).
@@ -141,6 +149,8 @@ describe('TsunamiDrawCalculator', () => {
                         ],
                 range: BigNumber.from(5),
                 pickCost: BigNumber.from(utils.parseEther("1")),
+                nibbleMaskValue: BigNumber.from(15),
+                nibbleSize : BigNumber.from(4)
             }
             await expect(drawCalculator.setDrawSettings(params)).
                 to.be.revertedWith("DrawCalc/distributions-gt-100%")
@@ -156,6 +166,8 @@ describe('TsunamiDrawCalculator', () => {
                         ],
                 range: BigNumber.from(16),
                 pickCost: BigNumber.from(utils.parseEther("1")),
+                nibbleMaskValue: BigNumber.from(15),
+                nibbleSize : BigNumber.from(4)
             }
             await expect(drawCalculator.setDrawSettings(params)).
                 to.be.revertedWith("DrawCalc/range-gt-15")
@@ -163,28 +175,39 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     describe('getValueAtIndex()', ()=>{
-        it('should return the value at 0 index with full range, no bias', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","16")
+        //getValueAtIndex(uint256 word, uint256 index, uint8 range, uint8 maskValue) 
+        it('should return the value at 0 index with full range (no bias)', async ()=>{
+            // word = 63 populates the fist 6 bits with 1's
+            // index = 0 look at the 0-th index
+            // range = upperbound value for which to form uniform number under
+            // maskValue = constant 15 - used to get all 1's for the first 4 bits
+            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","16","15")
+            // the result should be all 1's 
             expect(result).to.equal(15)
         })
-        it('should return the value at 1 index with full range, no bias', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","1","15")
+        it('should return the value at 1 index with full range (no bias)', async ()=>{
+            const result = await drawCalculator.callStatic.getValueAtIndex("63","1","15","15")
+            // the result should be 2 1's shifted back to the LSB (1+2=3)
             expect(result).to.equal(3)
         })
-        it('should return the value at 1 index with full range, no bias', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("64","1","15")
+        it('should return the value at 1 index with full range (no bias)', async ()=>{
+            const result = await drawCalculator.callStatic.getValueAtIndex("64","1","15","15")
+            expect(result).to.equal(4)
+        })
+        it('should return the value at 2 index with full range (no bias)', async ()=>{
+            const result = await drawCalculator.callStatic.getValueAtIndex("1024","2","15","15")
             expect(result).to.equal(4)
         })
         it('should return the value at 0 index with half range', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","7")
+            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","7","15")
             expect(result).to.equal(1) // 15 % 7
         })
         it('should return the value at 0 index with 1 range', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","1")
+            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","1","15")
             expect(result).to.equal(0) // 15 % 1
         })
         it('should return the value at 0 index with half range', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","10")
+            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","10","15")
             expect(result).to.equal(5) // 15 % 10
         })
     })
@@ -303,6 +326,8 @@ describe('TsunamiDrawCalculator', () => {
                         ],
                 range: BigNumber.from(4),
                 pickCost: BigNumber.from(utils.parseEther("1")),
+                nibbleMaskValue: BigNumber.from(15),
+                nibbleSize : BigNumber.from(4)
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -325,6 +350,8 @@ describe('TsunamiDrawCalculator', () => {
                         ],
                 range: BigNumber.from(4),
                 pickCost: BigNumber.from(utils.parseEther("1")),
+                nibbleMaskValue: BigNumber.from(15),
+                nibbleSize : BigNumber.from(4)
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -357,6 +384,8 @@ describe('TsunamiDrawCalculator', () => {
                         ],
                 range: BigNumber.from(4),
                 pickCost: BigNumber.from(utils.parseEther("1")),
+                nibbleMaskValue: BigNumber.from(15),
+                nibbleSize : BigNumber.from(4)
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -381,6 +410,8 @@ describe('TsunamiDrawCalculator', () => {
                         ],
                 range: BigNumber.from(6),
                 pickCost: BigNumber.from(utils.parseEther("1")),
+                nibbleMaskValue: BigNumber.from(15),
+                nibbleSize : BigNumber.from(4)
             }
             await drawCalculator.setDrawSettings(params)
 
