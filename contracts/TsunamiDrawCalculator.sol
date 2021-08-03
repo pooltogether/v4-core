@@ -107,14 +107,15 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     
     uint256 prizeFraction = 0;
     uint256 numberOfMatches = 0;
+    uint256 _matchCardinality = _drawSettings.matchCardinality;
     
-    for(uint256 matchIndex = 0; matchIndex < _drawSettings.matchCardinality; matchIndex++){      
+    for(uint256 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++){      
       if(_getValueAtIndex(randomNumberThisPick, matchIndex, _drawSettings.range) == _getValueAtIndex(winningRandomNumber, matchIndex, _drawSettings.range)){
           numberOfMatches++;
       }          
     }
     
-    uint256 prizeDistributionIndex = _drawSettings.matchCardinality - numberOfMatches; // prizeDistributionIndex == 0 : top prize, ==1 : runner-up prize etc
+    uint256 prizeDistributionIndex = _matchCardinality - numberOfMatches; // prizeDistributionIndex == 0 : top prize, ==1 : runner-up prize etc
     
     // if prizeDistibution > distribution lenght -> there is no prize at that index
     if(prizeDistributionIndex < _drawSettings.distributions.length){ // they are going to receive prize funds
@@ -129,9 +130,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param word word to index
   ///@param index index to index (max 15)
   function _getValueAtIndex(uint256 word, uint256 index, uint8 _range) internal pure returns(uint256) {
-    uint256 nibbleIndex = index * 4;
-    uint256 mask =  (uint256(15)) << nibbleIndex;
-    return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (nibbleIndex)), _range);
+    uint256 nibbleRange = index * 4;
+    uint256 mask =  (uint256(15)) << nibbleRange;
+    return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (nibbleRange)), _range);
   }
 
   ///@notice Set the DrawCalculators DrawSettings
