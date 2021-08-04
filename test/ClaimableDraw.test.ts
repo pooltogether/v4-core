@@ -18,7 +18,6 @@ async function userClaimWithMock(drawCalculator:MockContract, drawSettings: any,
 describe('ClaimableDraw', () => {
   let wallet1: any;
   let wallet2: any;
-  let wallet3: any;
   let claimableDraw: Contract;
   let drawCalculator: MockContract;
 
@@ -35,7 +34,7 @@ describe('ClaimableDraw', () => {
   }
 
   before(async () =>{
-    [ wallet1, wallet2, wallet3 ] = await getSigners();
+    [ wallet1, wallet2 ] = await getSigners();
   })
   
   beforeEach(async () =>{
@@ -290,7 +289,6 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, [DRAW_SAMPLE_CONFIG.randomNumber], [DRAW_SAMPLE_CONFIG.timestamp], [DRAW_SAMPLE_CONFIG.prize], '0x')
         .returns(toWei("100"))
 
-
       for (let index = 0; index <= CLAIM_COUNT; index++) {
         MOCK_UNIQUE_DRAW = {
           randomNumber: DRAW_SAMPLE_CONFIG.randomNumber * index,
@@ -330,7 +328,6 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, [DRAW_SAMPLE_CONFIG.randomNumber], [DRAW_SAMPLE_CONFIG.timestamp], [DRAW_SAMPLE_CONFIG.prize], '0x')
         .returns(toWei("100"))
-
 
       for (let index = 0; index <= CLAIM_COUNT; index++) {
         MOCK_UNIQUE_DRAW = {
@@ -372,7 +369,6 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, [DRAW_SAMPLE_CONFIG.randomNumber], [DRAW_SAMPLE_CONFIG.timestamp], [DRAW_SAMPLE_CONFIG.prize], '0x')
         .returns(toWei("100"))
-
 
       for (let index = 0; index <= CLAIM_COUNT; index++) {
         MOCK_UNIQUE_DRAW = {
@@ -430,7 +426,6 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, [DRAW_SAMPLE_CONFIG.randomNumber], [DRAW_SAMPLE_CONFIG.timestamp], [DRAW_SAMPLE_CONFIG.prize], '0x')
         .returns(toWei("100"))
 
-
       for (let index = 0; index < CLAIM_COUNT; index++) {
         MOCK_UNIQUE_DRAW = {
           randomNumber: DRAW_SAMPLE_CONFIG.randomNumber * index,
@@ -444,7 +439,6 @@ describe('ClaimableDraw', () => {
           drawRandomNumbers[0].push(MOCK_UNIQUE_DRAW.randomNumber)
           drawTimestamps[0].push(MOCK_UNIQUE_DRAW.timestamp)
           drawPrizes[0].push(MOCK_UNIQUE_DRAW.prize)
-          // await claimableDraw.createNewDraw(MOCK_UNIQUE_DRAW.randomNumber, MOCK_UNIQUE_DRAW.timestamp, MOCK_UNIQUE_DRAW.prize)
         }
         
         if(index >= 1) {
@@ -490,8 +484,6 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, [DRAW_SAMPLE_CONFIG.randomNumber], [DRAW_SAMPLE_CONFIG.timestamp], [DRAW_SAMPLE_CONFIG.prize], '0x')
         .returns(toWei("100"))
-
-        
 
       for (let index = 0; index <= CLAIM_COUNT; index++) {
         MOCK_UNIQUE_DRAW = {
