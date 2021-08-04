@@ -9,12 +9,11 @@ const { getSigners, provider } = ethers;
 const { parseEther: toWei } = utils;
 
 type DrawSettings  = {
-    range : BigNumber
     matchCardinality: BigNumber
     pickCost: BigNumber
     distributions: BigNumber[]
-    nibbleMaskValue: BigNumber
-    nibbleSize: BigNumber
+    bitRangeValue: BigNumber
+    bitRangeSize: BigNumber
 }
 
 describe('TsunamiDrawCalculator', () => {
@@ -31,8 +30,9 @@ describe('TsunamiDrawCalculator', () => {
         
         let ticketArtifact = await artifacts.readArtifact('ITicket')
         ticket = await deployMockContract(wallet1, ticketArtifact.abi)
+        
         await drawCalculator.initialize(ticket.address, drawSettings)
-
+        
         const timestamp = 42
         const prizes = [utils.parseEther("1")]
         const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
@@ -41,23 +41,28 @@ describe('TsunamiDrawCalculator', () => {
         await ticket.mock.getBalances.withArgs(userAddress, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
 
         const distributionIndex = drawSettings.matchCardinality.toNumber() - matchesRequired
+        console.log("distributionIndex ", distributionIndex)
+
         if(distributionIndex > drawSettings.distributions.length){
            throw new Error(`There are only ${drawSettings.distributions.length} tiers of prizes`) // there is no "winning number" in this case
         }
 
         // now calculate the expected prize amount for these settings
         // totalPrize *  (distributions[index]/(range ^ index)) where index = matchCardinality - numberOfMatches
-        const numberOfPrizes = Math.pow(drawSettings.range.toNumber(), distributionIndex)
+        const numberOfPrizes = Math.pow(drawSettings.bitRangeSize.toNumber(), distributionIndex)
+        console.log("numberOfPrizes ", numberOfPrizes)
+        
         const valueAtDistributionIndex : BigNumber = drawSettings.distributions[distributionIndex]
         
         const percentageOfPrize: BigNumber= valueAtDistributionIndex.div(numberOfPrizes)
         const expectedPrizeAmount : BigNumber = (prizes[0]).mul(percentageOfPrize as any).div(ethers.constants.WeiPerEther) 
 
+        console.log("expectedPrizeAmount ", expectedPrizeAmount.toString())
         let winningRandomNumber
 
         while(true){
             winningRandomNumber = utils.solidityKeccak256(["address"], [ethers.Wallet.createRandom().address])
-
+            console.log("tring new winningRandomNumber")
             const result = await drawCalculator.calculate(
                 userAddress,
                 [winningRandomNumber],
@@ -65,6 +70,7 @@ describe('TsunamiDrawCalculator', () => {
                 prizes,
                 pickIndices
             )
+            console.log("resulted in a prize of ", result.toString())
 
             if(result.eq(expectedPrizeAmount)){
                 console.log("found a winning number!", winningRandomNumber)
@@ -88,20 +94,19 @@ describe('TsunamiDrawCalculator', () => {
         let ticketArtifact = await artifacts.readArtifact('ITicket')
         ticket = await deployMockContract(wallet1, ticketArtifact.abi)
 
-        const drawSettings = {
+        const drawSettings : DrawSettings = {
             distributions: [ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.2")],
-            range: BigNumber.from(10),
             pickCost: BigNumber.from(utils.parseEther("1")),
-            matchCardinality: BigNumber.from(8),
-            nibbleMaskValue: BigNumber.from(15),
-            nibbleSize : BigNumber.from(4)
+            matchCardinality: BigNumber.from(5),
+            bitRangeValue: BigNumber.from(15),
+            bitRangeSize : BigNumber.from(4)
         }
+        
         await drawCalculator.initialize(ticket.address, drawSettings)
-
     })
 
-    describe('finding winning random numbers with helper', ()=>{
-        it('find 3 winning numbers', async ()=>{
+    describe.only('finding winning random numbers with helper', ()=>{
+        it.only('find 3 winning numbers', async ()=>{
             const params: DrawSettings = {
                 matchCardinality: BigNumber.from(5),
                 distributions: [ethers.utils.parseEther("0.6"),
@@ -109,10 +114,9 @@ describe('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
                         ],
-                range: BigNumber.from(5),
                 pickCost: BigNumber.from(utils.parseEther("1")),
-                nibbleMaskValue: BigNumber.from(15),
-                nibbleSize : BigNumber.from(4)
+                bitRangeValue: BigNumber.from(7),
+                bitRangeSize : BigNumber.from(3)
             }
             const result = await findWinningNumberForUser(wallet1.address, 3, params)
         })
@@ -126,11 +130,10 @@ describe('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
-                        ],
-                range: BigNumber.from(5),
+                        ],      
                 pickCost: BigNumber.from(utils.parseEther("1")),
-                nibbleMaskValue: BigNumber.from(15),
-                nibbleSize : BigNumber.from(4)
+                bitRangeValue: BigNumber.from(15),
+                bitRangeSize : BigNumber.from(4)
             }
 
             expect(await drawCalculator.setDrawSettings(params)).
@@ -147,10 +150,9 @@ describe('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
                         ],
-                range: BigNumber.from(5),
                 pickCost: BigNumber.from(utils.parseEther("1")),
-                nibbleMaskValue: BigNumber.from(15),
-                nibbleSize : BigNumber.from(4)
+                bitRangeValue: BigNumber.from(15),
+                bitRangeSize : BigNumber.from(4)
             }
             await expect(drawCalculator.setDrawSettings(params)).
                 to.be.revertedWith("DrawCalc/distributions-gt-100%")
@@ -164,10 +166,10 @@ describe('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
                         ],
-                range: BigNumber.from(16),
+
                 pickCost: BigNumber.from(utils.parseEther("1")),
-                nibbleMaskValue: BigNumber.from(15),
-                nibbleSize : BigNumber.from(4)
+                bitRangeValue: BigNumber.from(15),
+                bitRangeSize : BigNumber.from(4)
             }
             await expect(drawCalculator.setDrawSettings(params)).
                 to.be.revertedWith("DrawCalc/range-gt-15")
@@ -175,40 +177,74 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     describe('getValueAtIndex()', ()=>{
-        //getValueAtIndex(uint256 word, uint256 index, uint8 range, uint8 maskValue) 
-        it('should return the value at 0 index with full range (no bias)', async ()=>{
-            // word = 63 populates the fist 6 bits with 1's
-            // index = 0 look at the 0-th index
-            // range = upperbound value for which to form uniform number under
-            // maskValue = constant 15 - used to get all 1's for the first 4 bits
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","16","15")
-            // the result should be all 1's 
-            expect(result).to.equal(15)
+        //function findBitMatchesAtIndex(uint256 word1, uint256 word2, uint256 indexOffset, uint8 _bitRangeSize, uint8 _maskValue) external returns(bool) 
+        it('should match the value at 0 index over 4 bits', async ()=>{
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("63","63","0", "4","15")
+            expect(result).to.equal(true)
         })
-        it('should return the value at 1 index with full range (no bias)', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","1","15","15")
-            // the result should be 2 1's shifted back to the LSB (1+2=3)
-            expect(result).to.equal(3)
+        it('should not match the value at 0 index over 8 bits', async ()=>{
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("64","63","0","8", "255")
+            expect(result).to.equal(false)
         })
-        it('should return the value at 1 index with full range (no bias)', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("64","1","15","15")
-            expect(result).to.equal(4)
+
+        it('should match the value at 0 index over 7 bits', async ()=>{
+            //63: 0 1111 11
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("63","63","0","7", "127")
+            expect(result).to.equal(true)
         })
-        it('should return the value at 2 index with full range (no bias)', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("1024","2","15","15")
-            expect(result).to.equal(4)
+
+        it('should match the value at 1 index over 4 bits', async ()=>{
+            // 252: 1111 1100
+            // 255  1111 1111
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("252","255","1","4","15")
+            expect(result).to.equal(true)
         })
-        it('should return the value at 0 index with half range', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","7","15")
-            expect(result).to.equal(1) // 15 % 7
+        it('should NOT match the value at 0 index over 4 bits', async ()=>{
+            // 252: 1111 1100
+            // 255  1111 1111
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("252","255","0","4","15")
+            expect(result).to.equal(false)
         })
-        it('should return the value at 0 index with 1 range', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","1","15")
-            expect(result).to.equal(0) // 15 % 1
+        it('should match the value at 1 index over 2 bits', async ()=>{
+            // 252: 1111 11 00
+            // 255  1111 11 11
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("252","255","1","2","3")
+            expect(result).to.equal(true)
         })
-        it('should return the value at 0 index with half range', async ()=>{
-            const result = await drawCalculator.callStatic.getValueAtIndex("63","0","10","15")
-            expect(result).to.equal(5) // 15 % 10
+
+        it('should match the value at 0 index over 6 bits', async ()=>{
+            // 61676: 001111 000011 101100
+            // 61612: 001111 000010 101100
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("61676","61612","0","6","63")
+            expect(result).to.equal(true)
+        })
+
+        it('should NOT match the value at 1 index over 6 bits', async ()=>{
+            // 61676: 001111 000011 101100
+            // 61612: 001111 000010 101100
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("61676","61612","1","6","63")
+            expect(result).to.equal(false)
+        })
+
+        it('should match the value at 2 index over 6 bits', async ()=>{
+            // 61676: 001111 000011 101100
+            // 61612: 001111 000010 101100
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("61676","61612","2","6","63")
+            expect(result).to.equal(true)
+        })
+
+        it('should NOT match the value at 0 index over 8 bits', async ()=>{
+            // 61676: 11110000 11101100
+            // 61612: 11110000 10101100
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("61676","61612","0","8","255")
+            expect(result).to.equal(false)
+        })
+
+        it('should match the value at 1 index over 8 bits', async ()=>{
+            // 61676: 11110000 11101100
+            // 61612: 11110000 10101100
+            const result = await drawCalculator.callStatic.findBitMatchesAtIndex("61676","61612","1","8","255")
+            expect(result).to.equal(true)
         })
     })
 
@@ -324,10 +360,9 @@ describe('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
                         ],
-                range: BigNumber.from(4),
                 pickCost: BigNumber.from(utils.parseEther("1")),
-                nibbleMaskValue: BigNumber.from(15),
-                nibbleSize : BigNumber.from(4)
+                bitRangeValue: BigNumber.from(15),
+                bitRangeSize : BigNumber.from(4)
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -348,10 +383,9 @@ describe('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
                         ],
-                range: BigNumber.from(4),
                 pickCost: BigNumber.from(utils.parseEther("1")),
-                nibbleMaskValue: BigNumber.from(15),
-                nibbleSize : BigNumber.from(4)
+                bitRangeValue: BigNumber.from(15),
+                bitRangeSize : BigNumber.from(4)
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -375,17 +409,16 @@ describe('TsunamiDrawCalculator', () => {
 
             await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
         
-            let params = {
+            let params: DrawSettings = {
                 matchCardinality: BigNumber.from(5),
                 distributions: [ethers.utils.parseEther("0.2"),
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
                         ],
-                range: BigNumber.from(4),
                 pickCost: BigNumber.from(utils.parseEther("1")),
-                nibbleMaskValue: BigNumber.from(15),
-                nibbleSize : BigNumber.from(4)
+                bitRangeValue: BigNumber.from(7),
+                bitRangeSize : BigNumber.from(3)
             }
             await drawCalculator.setDrawSettings(params)
 
@@ -408,10 +441,9 @@ describe('TsunamiDrawCalculator', () => {
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
                         ],
-                range: BigNumber.from(6),
                 pickCost: BigNumber.from(utils.parseEther("1")),
-                nibbleMaskValue: BigNumber.from(15),
-                nibbleSize : BigNumber.from(4)
+                bitRangeValue: BigNumber.from(15),
+                bitRangeSize : BigNumber.from(4)
             }
             await drawCalculator.setDrawSettings(params)
 

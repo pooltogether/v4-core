@@ -6,10 +6,6 @@ import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@pooltogether/uniform-random-number/contracts/UniformRandomNumber.sol";
-// import "./test/UniformRandomNumber.sol";
-
-import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 ///@title TsunamiDrawCalculator is an ownable implmentation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
@@ -18,18 +14,16 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ITicket ticket;
 
   ///@notice Draw settings struct
-  ///@param range Decimal representation of the range of number of bits consider within a 4-bit number. Max value 15.
-  ///@param nibbleMaskValue constant 15
-  ///@param nibbleSize constant 4
+  ///@param bitRangeValue constant 15
+  ///@param bitRangeSize constant 4
   ///@param matchCardinality The number of 4-bit matches within the 256 word. Max value 64 (4*64=256).
   ///@param pickCost Amount of ticket required per pick
   ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether.
   struct DrawSettings {
-    uint8 range;
-    uint8 nibbleMaskValue;
-    uint8 nibbleSize;
+    uint8 bitRangeValue; 
+    uint8 bitRangeSize;
     uint16 matchCardinality;
-    uint216 pickCost;
+    uint224 pickCost;
     uint256[] distributions; // in order: index0: grandPrize, index1: runnerUp, etc. 
   }
   ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? 
@@ -39,7 +33,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   event DrawSettingsSet(DrawSettings _drawSettings);
 
   ///@notice Emitted when the contract is initialized
-  event Initialized(ITicket indexed _ticket, DrawSettings _drawSettings); // only emit ticket?
+  event Initialized(ITicket indexed _ticket);
 
   ///@notice Initializer sets the initial parameters
   ///@param _ticket Ticket associated with this DrawCalculator
@@ -47,8 +41,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   function initialize(ITicket _ticket, DrawSettings calldata _drawSettings) public initializer {
     __Ownable_init();
     ticket = _ticket;
+    
     _setDrawSettings(_drawSettings);
-    emit Initialized(_ticket, _drawSettings);
+    emit Initialized(_ticket);
   }
 
   ///@notice Calulates the prize amount for a user at particular draws. Called by a Claimable Strategy.
@@ -91,14 +86,14 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     internal view returns (uint256)
   {
     uint256 totalUserPicks = balance / _drawSettings.pickCost;
-    uint256 pickPayoutPercentage = 0;
+    uint256 pickPayoutFraction = 0;
 
     for(uint256 index  = 0; index < picks.length; index++){
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(userRandomNumber, picks[index])));
-      require(picks[index] <= totalUserPicks, "DrawCalc/insufficient-user-picks");
-      pickPayoutPercentage += calculatePickFraction(randomNumberThisPick, winningRandomNumber, _drawSettings);
+      require(picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
+      pickPayoutFraction += calculatePickFraction(randomNumberThisPick, winningRandomNumber, _drawSettings);
     }
-    return (pickPayoutPercentage * prize) / 1 ether;
+    return (pickPayoutFraction * prize) / 1 ether;
   }
 
   ///@notice Calculates the fraction of the Draw's Prize awardable to that user 
@@ -107,23 +102,20 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param _drawSettings The parameters associated with the draw
   ///@return percentage of the Draw's Prize awardable to that user
   function calculatePickFraction(uint256 randomNumberThisPick, uint256 winningRandomNumber, DrawSettings memory _drawSettings)
-    internal pure returns(uint256) {
+    internal view returns(uint256) {
     
     uint256 prizeFraction = 0;
     uint256 numberOfMatches = 0;
 
-    uint256 _matchCardinality = _drawSettings.matchCardinality;
-    uint8 _nibbleSize = _drawSettings.nibbleSize; // constant = 4
-    uint8 _nibbleMaskValue = _drawSettings.nibbleMaskValue; //constant = 15
-    uint8 _range = _drawSettings.range;
+    uint256 _matchCardinality = _drawSettings.matchCardinality; // how many bitRangeSize to consider within the 256 bits. Max 256. 
+    uint8 _bitRangeSize = _drawSettings.bitRangeSize; // how many bits we attempt to match - must satisfy 1 <= bitRangeSize <= _matchCardinality
+    uint8 _bitRangeMaskValue = _drawSettings.bitRangeValue;  //decimal representation of _bitRangeSize must be equal to (2 ^ _bitRangeSize) - 1 //for gas efficiency only.
     
     for(uint256 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++){
-      uint16 _matchIndexOffset = uint16(matchIndex * _nibbleSize);     
+      uint16 _matchIndexOffset = uint16(matchIndex * _bitRangeSize);
       
-      if(_getValueAtIndex(randomNumberThisPick, _matchIndexOffset, _range, _nibbleMaskValue) 
-          == 
-        _getValueAtIndex(winningRandomNumber, _matchIndexOffset, _range, _nibbleMaskValue)
-        ){
+      if(_findBitMatchesAtIndex(randomNumberThisPick, winningRandomNumber, _matchIndexOffset, _bitRangeMaskValue)){
+          console.log("found a match!");
           numberOfMatches++;
         }          
     }
@@ -132,21 +124,30 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     
     // if prizeDistibution > distribution lenght -> there is no prize at that index
     if(prizeDistributionIndex < _drawSettings.distributions.length){ // they are going to receive prize funds
-      uint256 numberOfPrizesForIndex = uint256(_range) ** prizeDistributionIndex;
+      uint256 numberOfPrizesForIndex = uint256(_bitRangeSize) ** prizeDistributionIndex;
       uint256 prizePercentageAtIndex = _drawSettings.distributions[prizeDistributionIndex];
       prizeFraction = prizePercentageAtIndex / numberOfPrizesForIndex;
     }
     return prizeFraction;
   }
 
-  ///@notice helper function to return the unbiased 4-bit value within a word at a specified index
-  ///@param word word to index
+  ///@notice helper function to return if the bits in a word match at a particular index
+  ///@param word1 word1 to index and match
+  ///@param word2 word2 to index and match
   ///@param indexOffset 0 start index including 4-bit offset (i.e. 8 observes index 2 = 4 * 2)
-  ///@param _range numberic range to find a uniform number from
-  ///@param _maskValue constant 15
-  function _getValueAtIndex(uint256 word, uint256 indexOffset, uint8 _range, uint8 _maskValue) internal pure returns(uint256) {
-    uint256 mask =  (uint256(_maskValue)) << indexOffset;
-    return UniformRandomNumber.uniform(uint256((uint256(word) & mask) >> (indexOffset)), _range);
+  ///@param _bitRangeMaskValue _bitRangeMaskValue must be equal to (_bitRangeSize ^ 2) - 1
+  function _findBitMatchesAtIndex(uint256 word1, uint256 word2, uint256 indexOffset, uint8 _bitRangeMaskValue) 
+    internal pure returns(bool) {
+    // generate a mask of _bitRange length at the specified offset  
+    uint256 mask = (uint256(_bitRangeMaskValue)) << indexOffset;
+
+    // find bits at index for word1
+    uint256 bits1 = (uint256(word1) & mask); // >> indexOffset;
+
+    // find bits at index for word2
+    uint256 bits2 = (uint256(word2) & mask); // >> indexOffset;
+    
+    return bits1 == bits2;
   }
 
   ///@notice Set the DrawCalculators DrawSettings
@@ -164,14 +165,15 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256 distributionsLength = _drawSettings.distributions.length;
     
     require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gt-distributions");
-    require(_drawSettings.range <= 15, "DrawCalc/range-gt-15");
+    require(_drawSettings.bitRangeValue == (2 ** _drawSettings.bitRangeSize) - 1, "DrawCalc/bitRangeValue");
+    require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.pickCost > 0, "DrawCalc/pick-gt-0");
-
+    
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
     } 
-    require(sumTotalDistributions <= 1 ether, "DrawCalc/distributions-gt-100%");
     
+    require(sumTotalDistributions <= 1 ether, "DrawCalc/distributions-gt-100%");
     drawSettings = _drawSettings; //sstore
     emit DrawSettingsSet(_drawSettings);
   }
