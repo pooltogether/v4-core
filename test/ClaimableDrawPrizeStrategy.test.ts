@@ -755,7 +755,6 @@ describe('PeriodicPrizeStrategy', () => {
   })
 
   describe('_distributePrizeSplits()', () => {
-
     it("should award prize splits in _distribute", async () => {
       const prizeSplitConfig = [
         {
