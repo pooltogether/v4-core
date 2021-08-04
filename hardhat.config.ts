@@ -19,11 +19,6 @@ const config: HardhatUserConfig = {
     clear: true,
     flat: true,
   },
-  // dependencyCompiler: {
-  //   paths: [
-  //     '@pooltogether/pooltogether-contracts/contracts/builders/PoolWithMultipleWinnersBuilder.sol',
-  //   ],
-  // },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
@@ -31,8 +26,6 @@ const config: HardhatUserConfig = {
     currency: 'USD',
     gasPrice: 100,
     enabled: process.env.REPORT_GAS ? true : false,
-    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-    maxMethodDiff: 10,
   },
   mocha: {
     timeout: 30000,

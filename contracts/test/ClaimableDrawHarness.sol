@@ -12,15 +12,10 @@ contract ClaimableDrawHarness is ClaimableDraw {
   } 
 
   function readLastClaimFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) external pure returns (bool) {
-    return _readLastClaimFromClaimedHistory(_userClaimedDraws, _drawIndex);
+    return _readUsersDrawClaimStatusFromClaimedHistory(_userClaimedDraws, _drawIndex);
   }
 
   function writeLastClaimFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) external pure returns (bytes32) {
-    return _writeLastClaimFromClaimedHistory(_userClaimedDraws, _drawIndex);
+    return _writeUsersDrawClaimStatusFromClaimedHistory(_userClaimedDraws, _drawIndex);
   }
-
-  // function claim(address user, uint256[][] calldata drawIds, IDrawCalculator[] calldata drawCalculators, bytes calldata data) external override {
-  //   _claim(user, drawIds, drawCalculators, data);
-  // }
-
 }

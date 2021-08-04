@@ -108,9 +108,7 @@ describe('PeriodicPrizeStrategy', () => {
     const ClaimableDraw =  await hre.ethers.getContractFactory("ClaimableDraw", wallet, overrides)
     claimableDraw = await ClaimableDraw.deploy()
     
-    // Set prizeStrategy as claimableDraw draw manager
-    claimableDraw.initialize(prizeStrategy.address)
-    await claimableDraw.setDrawCalculator(drawCalculator.address)
+    claimableDraw.initialize(prizeStrategy.address, drawCalculator.address)
     
     debug('initializing prizeStrategy...')
     await prizeStrategy.initializeClaimableDraw(
@@ -123,7 +121,6 @@ describe('PeriodicPrizeStrategy', () => {
       claimableDraw.address
     )
     
-
     debug('initialized!')
     await externalERC20Award.mock.totalSupply.returns(0)
     await prizeStrategy.addExternalErc20Award(externalERC20Award.address)
@@ -741,7 +738,7 @@ describe('PeriodicPrizeStrategy', () => {
       await prizeStrategy.setClaimableDraw(claimableDraw.address)
     })
 
-    it('should succedd to claim award', async () => {
+    it('should succeed to claim award', async () => {
       const MOCK_DRAW = {...DRAW_CLAIM_SETTINGS, payout: toWei("100")}
       await drawCalculator.mock.calculate
         .withArgs(wallet.address, [MOCK_DRAW.randomNumber], [MOCK_DRAW.timestamp], [MOCK_DRAW.prize], '0x')
