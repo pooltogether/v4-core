@@ -12,7 +12,7 @@ async function userClaimWithMock(drawCalculator:MockContract, drawSettings: any,
     .withArgs(user, [drawSettings.randomNumber], [drawSettings.timestamp], [drawSettings.prize], '0x')
     .returns(drawSettings.payout)
   
-  return await claimableDraw.claim(user, drawIds, drawCalculators, '0x')
+  return await claimableDraw.claim(user, drawIds, drawCalculators, ['0x'])
 }
 
 describe('ClaimableDraw', () => {
@@ -146,7 +146,7 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, [DRAW_SAMPLE_CONFIG.randomNumber], [DRAW_SAMPLE_CONFIG.timestamp], [DRAW_SAMPLE_CONFIG.prize], '0x')
         .returns(toWei("100"))
-      await expect(claimableDraw.claim(wallet1.address, [[0]], [drawCalculator.address, drawCalculator.address], '0x'))
+      await expect(claimableDraw.claim(wallet1.address, [[0]], [drawCalculator.address, drawCalculator.address], ['0x']))
         .to.be.revertedWith('ClaimableDraw/invalid-calculator-array')
     })
 
@@ -155,7 +155,7 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, [DRAW_SAMPLE_CONFIG.randomNumber], [DRAW_SAMPLE_CONFIG.timestamp], [DRAW_SAMPLE_CONFIG.prize], '0x')
         .returns(toWei("100"))
-      await expect(claimableDraw.claim(wallet1.address, [[0]], [constants.AddressZero], '0x'))
+      await expect(claimableDraw.claim(wallet1.address, [[0]], [constants.AddressZero], ['0x']))
         .to.be.revertedWith('ClaimableDraw/calculator-address-invalid')
     })
 
@@ -163,7 +163,7 @@ describe('ClaimableDraw', () => {
       const MOCK_DRAW = {...DRAW_SAMPLE_CONFIG, payout: toWei("100")}
       await claimableDraw.createDraw(DRAW_SAMPLE_CONFIG.randomNumber, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.prize)
       await expect(await userClaimWithMock(drawCalculator, MOCK_DRAW, claimableDraw, wallet1.address, [[0]], [drawCalculator.address]))
-        .to.emit(claimableDraw, 'Claimed')
+        .to.emit(claimableDraw, 'ClaimedDraw')
         .withArgs(wallet1.address, '0x0000000000000000000000000000000000000000000000000000000000000001', MOCK_DRAW.payout)
     })
 
@@ -209,7 +209,7 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, drawRandomNumbers[0], drawTimestamps[0], drawPrizes[0], '0x')
         .returns(toWei("500"))
-      await claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], ['0x']) 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0x0000000000000000000000000000000000000000000000000000000000000001')
@@ -219,7 +219,7 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, drawRandomNumbers[0], drawTimestamps[0], drawPrizes[0], '0x')
         .returns(toWei("500"))
 
-      await expect(claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], '0x'))
+      await expect(claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], ['0x']))
         .to.be.revertedWith('ClaimableDraw/user-previously-claimed')
     })
 
@@ -265,7 +265,7 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, drawRandomNumbers[0], drawTimestamps[0], drawPrizes[0], '0x')
         .returns(toWei("500"))
-      await claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], ['0x']) 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0x0000000000000000000000000000000000000000000000000000000000001400')
       
@@ -274,7 +274,7 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, drawRandomNumbers[1], drawTimestamps[1], drawPrizes[1], '0x')
         .returns(toWei("500"))
 
-      await expect(claimableDraw.claim(wallet1.address, [drawsIds[1]], [drawCalculator.address], '0x'))
+      await expect(claimableDraw.claim(wallet1.address, [drawsIds[1]], [drawCalculator.address], ['0x']))
         .to.be.revertedWith('ClaimableDraw/user-previously-claimed')
     })
 
@@ -310,7 +310,7 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, drawRandomNumbers, drawTimestamps, drawPrizes, '0x')
         .returns(toWei("500"))
         
-      await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], ['0x']) 
 
       await expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0x0000000000000000000000000000000000000000000000000000001fffffffff')
@@ -352,7 +352,7 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, drawRandomNumbers, drawTimestamps, drawPrizes, '0x')
         .returns(toWei("500"))
       
-      await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], ['0x']) 
 
       await expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0x0000000000000000000000000000000000000000000000000000000000000198')
@@ -402,7 +402,7 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, drawRandomNumbers[0], drawTimestamps[0], drawPrizes[0], '0x')
         .returns(toWei("500"))
       
-      await claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIds[0]], [drawCalculator.address], ['0x']) 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0x0000000000000000000000000000000000000000000000000000000000000018')
@@ -412,7 +412,7 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, drawRandomNumbers[1], drawTimestamps[1], drawPrizes[1], '0x')
         .returns(toWei("500"))
       
-      await claimableDraw.claim(wallet1.address, [drawsIds[1]], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIds[1]], [drawCalculator.address], ['0x']) 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0x00000000000000000000000000000000000000000000000000000000000c0018')
@@ -457,7 +457,7 @@ describe('ClaimableDraw', () => {
         await claimableDraw.createNewDraw(MOCK_UNIQUE_DRAW.randomNumber, MOCK_UNIQUE_DRAW.timestamp, MOCK_UNIQUE_DRAW.prize)
       }
 
-      await expect(claimableDraw.claim(wallet1.address, [drawsIdsSplit[0]], [drawCalculator.address], '0x'))
+      await expect(claimableDraw.claim(wallet1.address, [drawsIdsSplit[0]], [drawCalculator.address], ['0x']))
         .to.be.revertedWith('ClaimableDraw/claim-expired')
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
@@ -467,7 +467,7 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, drawRandomNumbers[1], drawTimestamps[1], drawPrizes[1], '0x')
         .returns(toWei("500"))
       
-      await claimableDraw.claim(wallet1.address, [drawsIdsSplit[1]], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIdsSplit[1]], [drawCalculator.address], ['0x']) 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
@@ -526,7 +526,7 @@ describe('ClaimableDraw', () => {
       }
 
       // First User Claim
-      await expect(claimableDraw.claim(wallet1.address, [drawsIdsSplit[0]], [drawCalculator.address], '0x'))
+      await expect(claimableDraw.claim(wallet1.address, [drawsIdsSplit[0]], [drawCalculator.address], ['0x']))
         .to.be.revertedWith('ClaimableDraw/claim-expired')
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
@@ -536,7 +536,7 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate
         .withArgs(wallet1.address, drawRandomNumbers[1], drawTimestamps[1], drawPrizes[1], '0x')
         .returns(toWei("500"))
-      await claimableDraw.claim(wallet1.address, [drawsIdsSplit[1]], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIdsSplit[1]], [drawCalculator.address], ['0x']) 
 
       expect(await claimableDraw.userClaimedDraws(wallet1.address))
         .to.equal('0xfffffffffffffffffffffffffffffffffffffffffffffffe0000000000000001')
@@ -563,7 +563,7 @@ describe('ClaimableDraw', () => {
         .withArgs(wallet1.address, drawRandomNumbers[2], drawTimestamps[2], drawPrizes[2], '0x')
         .returns(toWei("500"))
 
-      await claimableDraw.claim(wallet1.address, [drawsIdsSplit[2]], [drawCalculator.address], '0x') 
+      await claimableDraw.claim(wallet1.address, [drawsIdsSplit[2]], [drawCalculator.address], ['0x']) 
 
       // Validate third batch of user draw claims
       for (let index = 0; index < drawsIdsSplit[2].length; index++) {

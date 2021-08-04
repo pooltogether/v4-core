@@ -27,9 +27,6 @@ import "./BeforeAwardListener.sol";
 abstract contract PeriodicPrizeStrategy is Initializable,
                                            OwnableUpgradeable,
                                            TokenListener {
-
-  using SafeMathUpgradeable for uint256;
-  using SafeMathUpgradeable for uint16;
   using SafeCastUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using MappedSinglyLinkedList for MappedSinglyLinkedList.Mapping;
@@ -254,7 +251,7 @@ abstract contract PeriodicPrizeStrategy is Initializable,
     if (time > endAt) {
       return 0;
     }
-    return endAt.sub(time);
+    return endAt - time;
   }
 
   /// @notice Returns whether the prize period is over
@@ -337,7 +334,7 @@ abstract contract PeriodicPrizeStrategy is Initializable,
   /// @return The timestamp at which the prize period ends.
   function _prizePeriodEndAt() internal view returns (uint256) {
     // current prize started at is non-inclusive, so add one
-    return prizePeriodStartedAt.add(prizePeriodSeconds);
+    return prizePeriodStartedAt + prizePeriodSeconds;
   }
 
   /// @notice Called by the PrizePool for transfers of controlled tokens
@@ -461,8 +458,8 @@ abstract contract PeriodicPrizeStrategy is Initializable,
   }
 
   function _calculateNextPrizePeriodStartTime(uint256 currentTime) internal view returns (uint256) {
-    uint256 elapsedPeriods = currentTime.sub(prizePeriodStartedAt).div(prizePeriodSeconds);
-    return prizePeriodStartedAt.add(elapsedPeriods.mul(prizePeriodSeconds));
+    uint256 elapsedPeriods = (currentTime - prizePeriodStartedAt) / (prizePeriodSeconds);
+    return prizePeriodStartedAt + (elapsedPeriods * prizePeriodSeconds);
   }
 
   /// @notice Calculates when the next prize period will start
@@ -663,7 +660,7 @@ abstract contract PeriodicPrizeStrategy is Initializable,
     if (rngRequest.requestedAt == 0) {
       return false;
     } else {
-      return _currentTime() > uint256(rngRequestTimeout).add(rngRequest.requestedAt);
+      return _currentTime() > uint256(rngRequestTimeout) + rngRequest.requestedAt;
     }
   }
 

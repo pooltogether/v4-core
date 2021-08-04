@@ -105,13 +105,13 @@ contract ClaimableDrawPrizeStrategy is Initializable,
     * @param user             Address of user
     * @param drawIds          Nested array of drawsIds
     * @param drawCalculators  Array of draw calculator addresses correlated to draw ids
-    * @param pickIndices      Nested array of pick indices (uint256[][]) correlated to the draw ids
+    * @param data             Nested array of pick indices (uint256[][][]) correlated to the draw ids
   */
-  function claim(address user, uint256[][] calldata drawIds, IDrawCalculator[] calldata drawCalculators, bytes calldata pickIndices) external returns (uint256){
+  function claim(address user, uint256[][] calldata drawIds, IDrawCalculator[] calldata drawCalculators, bytes[] calldata data) external returns (uint256){
     address _ticket = address(ticket); // single SLOAD
 
     // Calculate the total payout using the processed draw ids and associated draw calculators addresses. 
-    uint256 totalPayout = claimableDraw.claim(user, drawIds, drawCalculators, pickIndices);
+    uint256 totalPayout = claimableDraw.claim(user, drawIds, drawCalculators, data);
 
     // Award user with the total claim payout.
     prizePool.award(user, totalPayout, address(_ticket));
@@ -130,7 +130,7 @@ contract ClaimableDrawPrizeStrategy is Initializable,
   function _distribute(uint256 randomNumber) internal override virtual {
     uint256 prize = prizePool.captureAwardBalance();
     prize = _distributePrizeSplits(prize);
-    claimableDraw.createDraw(randomNumber, block.timestamp, prize);
+    claimableDraw.createDraw(randomNumber, uint32(block.timestamp), prize);
   }
 
   /**

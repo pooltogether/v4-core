@@ -11,7 +11,6 @@ import "./ControlledTokenInterface.sol";
 /// @title Controlled ERC20 Token
 /// @notice ERC20 Tokens with a controller for minting & burning
 contract ControlledToken is ERC20PermitUpgradeable, ControlledTokenInterface {
-  using SafeMathUpgradeable for uint256; // NOTE: Added on import
 
   /// @dev Emitted when an instance is initialized
   event Initialized(
@@ -76,7 +75,7 @@ contract ControlledToken is ERC20PermitUpgradeable, ControlledTokenInterface {
   /// @param _amount Amount of tokens to burn
   function controllerBurnFrom(address _operator, address _user, uint256 _amount) external virtual override onlyController {
     if (_operator != _user) {
-      uint256 decreasedAllowance = allowance(_user, _operator).sub(_amount, "ControlledToken/exceeds-allowance");
+      uint256 decreasedAllowance = allowance(_user, _operator) - _amount;
       _approve(_user, _operator, decreasedAllowance);
     }
     _burn(_user, _amount);

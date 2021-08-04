@@ -8,7 +8,7 @@ contract ClaimableDrawPrizeStrategyHarness is ClaimableDrawPrizeStrategy {
 
   PeriodicPrizeStrategyDistributorInterface distributor;
 
-  function createDraw(uint256 randomNumber, uint256 timestamp, uint256 prize) external returns (uint256){
+  function createDraw(uint256 randomNumber, uint32 timestamp, uint256 prize) external returns (uint256){
     return claimableDraw.createDraw(randomNumber, timestamp, prize);
   } 
 

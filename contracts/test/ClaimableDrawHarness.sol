@@ -7,7 +7,7 @@ import "../interfaces/IDrawCalculator.sol";
 
 contract ClaimableDrawHarness is ClaimableDraw {
   
-  function createNewDraw(uint256 randomNumber, uint256 timestamp, uint256 prize) external returns (uint256) {
+  function createNewDraw(uint256 randomNumber, uint32 timestamp, uint256 prize) external returns (uint256) {
     return _createDraw(randomNumber, timestamp, prize);
   } 
 

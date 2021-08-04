@@ -26,7 +26,6 @@ import "./PrizePoolInterface.sol";
 /// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
 /// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
 abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, ReentrancyGuardUpgradeable, TokenControllerInterface, IERC721ReceiverUpgradeable {
-  using SafeMathUpgradeable for uint256;
   using SafeCastUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeERC20Upgradeable for IERC721Upgradeable;
@@ -289,7 +288,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     ControlledToken(controlledToken).controllerBurnFrom(_msgSender(), from, amount);
 
     // redeem the tickets less the fee
-    uint256 amountLessFee = amount.sub(exitFee);
+    uint256 amountLessFee = amount - exitFee;
     uint256 redeemed = _redeem(amountLessFee);
 
     _token().safeTransfer(from, redeemed);
@@ -323,7 +322,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
       if (from != to) {
         // if they are sending funds to someone else, we need to limit their accrued credit to their new balance
-        newCreditBalance = _applyCreditLimit(msg.sender, fromBeforeBalance.sub(amount), newCreditBalance);
+        newCreditBalance = _applyCreditLimit(msg.sender, fromBeforeBalance - amount, newCreditBalance);
       }
 
       _updateCreditBalance(from, msg.sender, newCreditBalance);
@@ -352,17 +351,17 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
     // it's possible for the balance to be slightly less due to rounding errors in the underlying yield source
     uint256 currentBalance = _balance();
-    uint256 totalInterest = (currentBalance > tokenTotalSupply) ? currentBalance.sub(tokenTotalSupply) : 0;
-    uint256 unaccountedPrizeBalance = (totalInterest > _currentAwardBalance) ? totalInterest.sub(_currentAwardBalance) : 0;
+    uint256 totalInterest = (currentBalance > tokenTotalSupply) ? currentBalance - tokenTotalSupply : 0;
+    uint256 unaccountedPrizeBalance = (totalInterest > _currentAwardBalance) ? totalInterest - _currentAwardBalance : 0;
 
     if (unaccountedPrizeBalance > 0) {
       uint256 reserveFee = calculateReserveFee(unaccountedPrizeBalance);
       if (reserveFee > 0) {
-        reserveTotalSupply = reserveTotalSupply.add(reserveFee);
-        unaccountedPrizeBalance = unaccountedPrizeBalance.sub(reserveFee);
+        reserveTotalSupply = reserveTotalSupply + reserveFee;
+        unaccountedPrizeBalance = unaccountedPrizeBalance - reserveFee;
         emit ReserveFeeCaptured(reserveFee);
       }
-      _currentAwardBalance = _currentAwardBalance.add(unaccountedPrizeBalance);
+      _currentAwardBalance = _currentAwardBalance + unaccountedPrizeBalance;
 
       emit AwardCaptured(unaccountedPrizeBalance);
     }
@@ -402,7 +401,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     }
 
     require(amount <= _currentAwardBalance, "PrizePool/award-exceeds-avail");
-    _currentAwardBalance = _currentAwardBalance.sub(amount);
+    _currentAwardBalance = _currentAwardBalance - amount;
 
     _mint(to, amount, controlledToken, address(0));
 
@@ -595,14 +594,14 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     if (accruedPerSecond == 0) {
       return 0;
     }
-    return _interest.div(accruedPerSecond);
+    return (_interest / accruedPerSecond);
   }
 
   /// @notice Burns a users credit.
   /// @param user The user whose credit should be burned
   /// @param credit The amount of credit to burn
   function _burnCredit(address user, address controlledToken, uint256 credit) internal {
-    _tokenCreditBalances[controlledToken][user].balance = uint256(_tokenCreditBalances[controlledToken][user].balance).sub(credit).toUint128();
+    _tokenCreditBalances[controlledToken][user].balance = uint256(_tokenCreditBalances[controlledToken][user].balance - credit).toUint128();
 
     emit CreditBurned(user, controlledToken, credit);
   }
@@ -627,7 +626,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
       newBalance = 0;
     } else {
       uint256 credit = _calculateAccruedCredit(user, controlledToken, controlledTokenBalance);
-      newBalance = _applyCreditLimit(controlledToken, controlledTokenBalance, uint256(creditBalance.balance).add(credit).add(extra));
+      newBalance = _applyCreditLimit(controlledToken, controlledTokenBalance, uint256(creditBalance.balance) + credit + extra);
     }
     return newBalance;
   }
@@ -642,10 +641,10 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     });
 
     if (oldBalance < newBalance) {
-      emit CreditMinted(user, controlledToken, newBalance.sub(oldBalance));
+      emit CreditMinted(user, controlledToken, newBalance - oldBalance);
     } 
     else if (newBalance < oldBalance) {
-      emit CreditBurned(user, controlledToken, oldBalance.sub(newBalance));
+      emit CreditBurned(user, controlledToken, oldBalance - newBalance);
     }
   }
 
@@ -678,8 +677,8 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
       return 0;
     }
 
-    uint256 deltaTime = _currentTime().sub(userTimestamp);
-    uint256 deltaMantissa = deltaTime.mul(_tokenCreditPlans[controlledToken].creditRateMantissa);
+    uint256 deltaTime = _currentTime() - userTimestamp;
+    uint256 deltaMantissa = deltaTime * (_tokenCreditPlans[controlledToken].creditRateMantissa);
     return FixedPoint.multiplyUintByMantissa(controlledTokenBalance, deltaMantissa);
   }
 
@@ -761,17 +760,17 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     */
 
     // Determine available usable credit based on withdraw amount
-    uint256 remainingExitFee = _calculateEarlyExitFeeNoCredit(controlledToken, controlledTokenBalance.sub(amount));
+    uint256 remainingExitFee = _calculateEarlyExitFeeNoCredit(controlledToken, controlledTokenBalance - amount);
 
     uint256 availableCredit;
     if (_tokenCreditBalances[controlledToken][from].balance >= remainingExitFee) {
-      availableCredit = uint256(_tokenCreditBalances[controlledToken][from].balance).sub(remainingExitFee);
+      availableCredit = uint256(_tokenCreditBalances[controlledToken][from].balance) - remainingExitFee;
     }
 
     // Determine amount of credit to burn and amount of fees required
     uint256 totalExitFee = _calculateEarlyExitFeeNoCredit(controlledToken, amount);
     creditBurned = (availableCredit > totalExitFee) ? totalExitFee : availableCredit;
-    earlyExitFee = totalExitFee.sub(creditBurned);
+    earlyExitFee = totalExitFee - creditBurned;
   }
 
   /// @notice Allows the Governor to set a cap on the amount of liquidity that he pool can hold
@@ -855,7 +854,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     uint256 tokensLength = tokens.length;
     
     for(uint256 i = 0; i < tokensLength; i++){
-      total = total.add(IERC20Upgradeable(tokens[i]).totalSupply());
+      total = total + IERC20Upgradeable(tokens[i]).totalSupply();
     }
 
     return total;
@@ -866,7 +865,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @return True if the Prize Pool can receive the specified amount of liquidity
   function _canAddLiquidity(uint256 _amount) internal view returns (bool) {
     uint256 tokenTotalSupply = _tokenTotalSupply();
-    return (tokenTotalSupply.add(_amount) <= liquidityCap);
+    return (tokenTotalSupply + _amount <= liquidityCap);
   }
 
   /// @dev Checks if a specific token is controlled by the Prize Pool
