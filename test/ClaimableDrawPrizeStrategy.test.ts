@@ -855,6 +855,7 @@ describe('PeriodicPrizeStrategy', () => {
 
     it.skip('should succeed to claim award', async () => {
       const MOCK_DRAW = { ...DRAW_CLAIM_SETTINGS, payout: toWei('100') };
+
       await drawCalculator.mock.calculate
         .withArgs(
           wallet.address,
@@ -865,11 +866,9 @@ describe('PeriodicPrizeStrategy', () => {
         )
         .returns(MOCK_DRAW.payout);
 
-      await prizePool.mock.award.withArgs(
-        wallet.address.toLowerCase(),
-        MOCK_DRAW.payout,
-        ticket.address.toLowerCase(),
-      );
+      await prizePool.mock.award
+        .withArgs(wallet.address, MOCK_DRAW.payout, ticket.address)
+        .returns();
 
       await claimableDraw.mock.claim
         .withArgs(wallet.address, [[0]], [drawCalculator.address], ['0x'])
