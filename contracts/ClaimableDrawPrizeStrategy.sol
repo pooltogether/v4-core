@@ -114,7 +114,7 @@ contract ClaimableDrawPrizeStrategy is Initializable,
     uint256 totalPayout = claimableDraw.claim(user, drawIds, drawCalculators, data);
 
     // Award user with the total claim payout.
-    prizePool.award(user, totalPayout, address(_ticket));
+    prizePool.award(user, totalPayout, _ticket);
 
     emit Claimed(user, totalPayout, _ticket);
 

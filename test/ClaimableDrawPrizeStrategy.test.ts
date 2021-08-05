@@ -745,7 +745,7 @@ describe('PeriodicPrizeStrategy', () => {
         .returns(MOCK_DRAW.payout)
 
       await prizePool.mock.award
-        .withArgs(wallet.address, MOCK_DRAW.payout, ticket.address)
+        .withArgs(wallet.address.toLowerCase(), MOCK_DRAW.payout, ticket.address.toLowerCase())
 
       await claimableDraw.mock.claim
         .withArgs(wallet.address, [[0]], [drawCalculator.address], ['0x']).returns(MOCK_DRAW.payout)
