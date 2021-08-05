@@ -61,6 +61,22 @@ describe('ClaimableDraw', () => {
         .withArgs(DRAW_SECOND_CONFIG.randomNumber, DRAW_SECOND_CONFIG.timestamp, DRAW_SECOND_CONFIG.prize, drawCalculator.address)
     })
   });
+
+  describe('getDraw()', () => {
+    it('should fail to read non-existent draw', async () => {
+      await expect(claimableDraw.getDraw(1))
+        .to.revertedWith('ClaimableDraw/draw-nonexistent')
+    })
+
+    it('should read the recently created draw struct which includes the current calculator', async () => {
+      // await claimableDraw.createDraw(DRAW_SAMPLE_CONFIG.randomNumber, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.prize)
+      const draw = await claimableDraw.getDraw(0)
+      expect(draw.randomNumber).to.equal(DRAW_SAMPLE_CONFIG.randomNumber)
+      expect(draw.prize).to.equal(DRAW_SAMPLE_CONFIG.prize)
+      expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp)
+      expect(draw.calculator).to.equal(drawCalculator.address)
+    })
+  });
   
   describe('setDrawManager()', () => {
     it('should fail to set draw manager from unauthorized wallet', async () => {

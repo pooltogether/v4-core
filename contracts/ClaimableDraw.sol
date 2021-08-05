@@ -166,7 +166,8 @@ contract ClaimableDraw is OwnableUpgradeable {
     *
     * @param drawId  Address of user
   */
-  function getDraw(uint256 drawId) external view returns(Draw memory draw) {
+  function getDraw(uint256 drawId) external view returns(Draw memory) {
+    require(drawId <= currentDrawId, "ClaimableDraw/draw-nonexistent");
     return draws[drawId];
   }
 
