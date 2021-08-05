@@ -4,6 +4,9 @@ import { utils, Contract, ContractFactory, Signer, Wallet, BigNumber } from 'eth
 import { ethers, artifacts } from 'hardhat';
 import { Interface } from 'ethers/lib/utils';
 
+const printUtils = require("./helpers/printUtils")
+const { green } = printUtils
+
 const { getSigners, provider } = ethers;
 const { parseEther: toWei } = utils;
 
@@ -70,7 +73,7 @@ describe('TsunamiDrawCalculator', () => {
             )
             
             if(result.eq(expectedPrizeAmount)){
-                console.log("found a winning number!", winningRandomNumber)
+                green(`found a winning number! ${winningRandomNumber}`)
                 break
             }
         }
