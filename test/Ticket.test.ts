@@ -1,12 +1,15 @@
+import { Signer } from '@ethersproject/abstract-signer';
 import { BigNumber } from '@ethersproject/bignumber';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { utils, Contract, ContractFactory } from 'ethers';
-import { ethers } from 'hardhat';
+import { deployMockContract, MockContract } from 'ethereum-waffle';
+import hre, { ethers } from 'hardhat';
 
 import { increaseTime as increaseTimeHelper } from './helpers/increaseTime';
 
-const { getSigners, provider } = ethers;
+const { constants, getSigners, provider } = ethers;
+const { AddressZero } = constants;
 const { getBlock } = provider;
 const { parseEther: toWei } = utils;
 
@@ -35,20 +38,33 @@ const calculateTwab = (response: BinarySearchResult[]) => {
 };
 
 describe('Ticket', () => {
-  let ticket: Contract;
   let cardinality: number;
+  let controller: MockContract;
+  let ticket: Contract;
 
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
 
   let isInitializeTest = false;
 
-  const initializeTicket = async (decimals: number = 18) => {
-    await ticket.initialize('PoolTogether Dai Ticket', 'PcDAI', decimals);
+  const ticketName = 'PoolTogether Dai Ticket';
+  const ticketSymbol = 'PcDAI';
+  const ticketDecimals = 18;
+
+  const initializeTicket = async (
+    decimals: number = ticketDecimals,
+    controllerAddress: string = controller.address,
+  ) => {
+    await ticket.initialize(ticketName, ticketSymbol, decimals, controllerAddress);
   };
 
   beforeEach(async () => {
     [wallet1, wallet2] = await getSigners();
+
+    const TokenControllerInterface = await hre.artifacts.readArtifact('TokenControllerInterface');
+    controller = await deployMockContract(wallet1 as Signer, TokenControllerInterface.abi);
+
+    await controller.mock.beforeTokenTransfer.returns();
 
     const ticketFactory: ContractFactory = await ethers.getContractFactory('TicketHarness');
     ticket = await ticketFactory.deploy();
@@ -71,9 +87,9 @@ describe('Ticket', () => {
     it('should initialize ticket', async () => {
       await initializeTicket();
 
-      expect(await ticket.name()).to.equal('PoolTogether Dai Ticket');
-      expect(await ticket.symbol()).to.equal('PcDAI');
-      expect(await ticket.decimals()).to.equal(18);
+      expect(await ticket.name()).to.equal(ticketName);
+      expect(await ticket.symbol()).to.equal(ticketSymbol);
+      expect(await ticket.decimals()).to.equal(ticketDecimals);
       expect(await ticket.owner()).to.equal(wallet1.address);
     });
 
@@ -86,6 +102,12 @@ describe('Ticket', () => {
 
     it('should fail if token decimal is not greater than 0', async () => {
       await expect(initializeTicket(0)).to.be.revertedWith('Ticket/decimals-gt-zero');
+    });
+
+    it('should fail if controller address is address 0', async () => {
+      await expect(initializeTicket(ticketDecimals, AddressZero)).to.be.revertedWith(
+        'Ticket/controller-not-zero-address',
+      );
     });
   });
 
@@ -317,13 +339,13 @@ describe('Ticket', () => {
 
     it('should fail to transfer tickets if sender address is address zero', async () => {
       await expect(
-        ticket.transferTo(ethers.constants.AddressZero, wallet2.address, transferAmount),
+        ticket.transferTo(AddressZero, wallet2.address, transferAmount),
       ).to.be.revertedWith('ERC20: transfer from the zero address');
     });
 
     it('should fail to transfer tickets if receiver address is address zero', async () => {
       await expect(
-        ticket.transferTo(wallet1.address, ethers.constants.AddressZero, transferAmount),
+        ticket.transferTo(wallet1.address, AddressZero, transferAmount),
       ).to.be.revertedWith('ERC20: transfer to the zero address');
     });
 
@@ -342,7 +364,7 @@ describe('Ticket', () => {
     it('should mint tickets to user', async () => {
       expect(await ticket.mint(wallet1.address, mintAmount))
         .to.emit(ticket, 'Transfer')
-        .withArgs(ethers.constants.AddressZero, wallet1.address, mintAmount);
+        .withArgs(AddressZero, wallet1.address, mintAmount);
 
       expect(
         await ticket.getBalance(wallet1.address, (await getBlock('latest')).timestamp),
@@ -352,7 +374,7 @@ describe('Ticket', () => {
     });
 
     it('should fail to mint tickets if user address is address zero', async () => {
-      await expect(ticket.mint(ethers.constants.AddressZero, mintAmount)).to.be.revertedWith(
+      await expect(ticket.mint(AddressZero, mintAmount)).to.be.revertedWith(
         'ERC20: mint to the zero address',
       );
     });
@@ -367,7 +389,7 @@ describe('Ticket', () => {
 
       expect(await ticket.burn(wallet1.address, burnAmount))
         .to.emit(ticket, 'Transfer')
-        .withArgs(wallet1.address, ethers.constants.AddressZero, burnAmount);
+        .withArgs(wallet1.address, AddressZero, burnAmount);
 
       expect(
         await ticket.getBalance(wallet1.address, (await getBlock('latest')).timestamp),
@@ -377,7 +399,7 @@ describe('Ticket', () => {
     });
 
     it('should fail to burn tickets from user balance if user address is address zero', async () => {
-      await expect(ticket.burn(ethers.constants.AddressZero, mintAmount)).to.be.revertedWith(
+      await expect(ticket.burn(AddressZero, mintAmount)).to.be.revertedWith(
         'ERC20: burn from the zero address',
       );
     });
