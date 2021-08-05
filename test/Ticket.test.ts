@@ -56,7 +56,7 @@ describe('Ticket', () => {
             expect(await ticket.getBalance(wallet1.address, latestBlockAfter.timestamp + 1)).to.equal(transferBalance);
         })
 
-        it.only('should correctly handle a full buffer', async () => {
+        it('should correctly handle a full buffer', async () => {
             const cardinality = await ticket.CARDINALITY();
             const balanceBefore = toWei('1000');
             await ticket.mint(wallet1.address, balanceBefore);
@@ -73,7 +73,7 @@ describe('Ticket', () => {
 
             console.log('gas consumption', txReceipt.gasUsed.toString());
 
-            printBalances(await ticket.getBalances(wallet1.address))
+            // printBalances(await ticket.getBalances(wallet1.address))
 
             // should have nothing at beginning of time
             expect(await ticket.getBalance(wallet1.address, 0)).to.equal('0');

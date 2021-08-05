@@ -1,4 +1,5 @@
 module.exports = {
+  mocha: { reporter: 'mocha-junit-reporter' },
   providerOptions: {
     network_id: 1337,
     _chainId: 1337,
@@ -6,6 +7,7 @@ module.exports = {
   },
   skipFiles: [
     "external",
+    "import"
     "test",
     "Pseudocode.sol"
   ]
