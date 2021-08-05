@@ -43,7 +43,7 @@ describe('TsunamiDrawCalculator', () => {
         const distributionIndex = drawSettings.matchCardinality.toNumber() - matchesRequired
         console.log("distributionIndex ", distributionIndex)
 
-        if(distributionIndex > drawSettings.distributions.length){
+        if(drawSettings.distributions.length < distributionIndex){
            throw new Error(`There are only ${drawSettings.distributions.length} tiers of prizes`) // there is no "winning number" in this case
         }
 
@@ -53,7 +53,7 @@ describe('TsunamiDrawCalculator', () => {
         console.log("numberOfPrizes ", numberOfPrizes)
         
         const valueAtDistributionIndex : BigNumber = drawSettings.distributions[distributionIndex]
-        
+        console.log("valueAtDistributionIndex ", valueAtDistributionIndex)
         const percentageOfPrize: BigNumber= valueAtDistributionIndex.div(numberOfPrizes)
         const expectedPrizeAmount : BigNumber = (prizes[0]).mul(percentageOfPrize as any).div(ethers.constants.WeiPerEther) 
 
@@ -62,7 +62,7 @@ describe('TsunamiDrawCalculator', () => {
 
         while(true){
             winningRandomNumber = utils.solidityKeccak256(["address"], [ethers.Wallet.createRandom().address])
-            console.log("tring new winningRandomNumber")
+            console.log("trying a new random number")
             const result = await drawCalculator.calculate(
                 userAddress,
                 [winningRandomNumber],
@@ -70,7 +70,7 @@ describe('TsunamiDrawCalculator', () => {
                 prizes,
                 pickIndices
             )
-            console.log("resulted in a prize of ", result.toString())
+            
 
             if(result.eq(expectedPrizeAmount)){
                 console.log("found a winning number!", winningRandomNumber)
@@ -105,8 +105,8 @@ describe('TsunamiDrawCalculator', () => {
         await drawCalculator.initialize(ticket.address, drawSettings)
     })
 
-    describe.only('finding winning random numbers with helper', ()=>{
-        it.only('find 3 winning numbers', async ()=>{
+    describe('finding winning random numbers with helper', ()=>{
+        it('find 3 winning numbers', async ()=>{
             const params: DrawSettings = {
                 matchCardinality: BigNumber.from(5),
                 distributions: [ethers.utils.parseEther("0.6"),
@@ -162,21 +162,18 @@ describe('TsunamiDrawCalculator', () => {
             const params: DrawSettings = {
                 matchCardinality: BigNumber.from(5),
                 distributions: [ethers.utils.parseEther("0.9"),
-                            ethers.utils.parseEther("0.1"),
-                            ethers.utils.parseEther("0.1"),
-                            ethers.utils.parseEther("0.1")
-                        ],
-
+                                ethers.utils.parseEther("0.1"),
+                            ],
                 pickCost: BigNumber.from(utils.parseEther("1")),
                 bitRangeValue: BigNumber.from(15),
-                bitRangeSize : BigNumber.from(4)
+                bitRangeSize : BigNumber.from(1)
             }
             await expect(drawCalculator.setDrawSettings(params)).
-                to.be.revertedWith("DrawCalc/range-gt-15")
+                to.be.revertedWith("DrawCalc/bitRangeValue-incorrect")
         })
     })
 
-    describe('getValueAtIndex()', ()=>{
+    describe('findBitMatchesAtIndex()', ()=>{
         //function findBitMatchesAtIndex(uint256 word1, uint256 word2, uint256 indexOffset, uint8 _bitRangeSize, uint8 _maskValue) external returns(bool) 
         it('should match the value at 0 index over 4 bits', async ()=>{
             const result = await drawCalculator.callStatic.findBitMatchesAtIndex("63","63","0", "4","15")
@@ -366,7 +363,7 @@ describe('TsunamiDrawCalculator', () => {
             }
             await drawCalculator.setDrawSettings(params)
 
-            const winningRandomNumber = "0x3fa0adea2a0c897d68abddf4f91167acda84750ee4a68bf438860114c8592b35"
+            let winningRandomNumber = await findWinningNumberForUser(wallet1.address, 3, params)
             const resultingPrize = await drawCalculator.calculate(
                 wallet1.address,
                 [winningRandomNumber],
@@ -374,11 +371,12 @@ describe('TsunamiDrawCalculator', () => {
                 prizes,
                 pickIndices
             )
-            expect(resultingPrize).to.equal(ethers.BigNumber.from(utils.parseEther("0.625")))
+            expect(resultingPrize).to.equal(ethers.BigNumber.from(utils.parseEther("0.15625")))
             // now increase cardinality 
             params = {
                 matchCardinality: BigNumber.from(7),
                 distributions: [ethers.utils.parseEther("0.2"),
+                            ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1"),
                             ethers.utils.parseEther("0.1")
@@ -388,7 +386,7 @@ describe('TsunamiDrawCalculator', () => {
                 bitRangeSize : BigNumber.from(4)
             }
             await drawCalculator.setDrawSettings(params)
-
+            winningRandomNumber = await findWinningNumberForUser(wallet1.address, 3, params)
             const resultingPrize2 = await drawCalculator.calculate(
                 wallet1.address,
                 [winningRandomNumber],
@@ -396,7 +394,7 @@ describe('TsunamiDrawCalculator', () => {
                 prizes,
                 pickIndices
             )
-            expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther("0.15625")))
+            expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther("0.0390625")))
         })
 
         it('increasing the number range results in lower probability of matches', async () => {
@@ -431,8 +429,7 @@ describe('TsunamiDrawCalculator', () => {
                 prizes,
                 pickIndices
             )
-            expect(resultingPrize).to.equal(ethers.BigNumber.from(utils.parseEther("0.625"))) // with 3 matches
-
+            expect(resultingPrize).to.equal(ethers.BigNumber.from(utils.parseEther("1.1111111111111111")))
             // now increase number range 
             params = {
                 matchCardinality: BigNumber.from(5),
@@ -456,7 +453,7 @@ describe('TsunamiDrawCalculator', () => {
                 prizes,
                 pickIndices
             )
-            expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther("0.2777777777777777")))
+            expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther("0.625")))
         })
 
 

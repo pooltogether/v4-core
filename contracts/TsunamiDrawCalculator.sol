@@ -14,10 +14,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ITicket ticket;
 
   ///@notice Draw settings struct
-  ///@param bitRangeValue constant 15
-  ///@param bitRangeSize constant 4
-  ///@param matchCardinality The number of 4-bit matches within the 256 word. Max value 64 (4*64=256).
-  ///@param pickCost Amount of ticket required per pick
+  ///@param bitRangeValue Decimal representation of bitRangeSize
+  ///@param bitRangeSize Number of bits to consider matching
+  ///@param matchCardinality The bitRangeSize's to consider in the 256 random numbers. Must be > 1 and < 256/bitRangeSize
+  ///@param pickCost Amount of ticket balance required per pick
   ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether.
   struct DrawSettings {
     uint8 bitRangeValue; 
@@ -26,7 +26,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint224 pickCost;
     uint256[] distributions; // in order: index0: grandPrize, index1: runnerUp, etc. 
   }
-  ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? 
+  ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? store elsewhere?
   DrawSettings public drawSettings;
 
   ///@notice Emitted when the DrawParams are set/updated
@@ -115,7 +115,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
       uint16 _matchIndexOffset = uint16(matchIndex * _bitRangeSize);
       
       if(_findBitMatchesAtIndex(randomNumberThisPick, winningRandomNumber, _matchIndexOffset, _bitRangeMaskValue)){
-          console.log("found a match!");
           numberOfMatches++;
         }          
     }
@@ -136,16 +135,17 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param word2 word2 to index and match
   ///@param indexOffset 0 start index including 4-bit offset (i.e. 8 observes index 2 = 4 * 2)
   ///@param _bitRangeMaskValue _bitRangeMaskValue must be equal to (_bitRangeSize ^ 2) - 1
+  ///@return true if there is a match, false otherwise
   function _findBitMatchesAtIndex(uint256 word1, uint256 word2, uint256 indexOffset, uint8 _bitRangeMaskValue) 
     internal pure returns(bool) {
     // generate a mask of _bitRange length at the specified offset  
     uint256 mask = (uint256(_bitRangeMaskValue)) << indexOffset;
 
     // find bits at index for word1
-    uint256 bits1 = (uint256(word1) & mask); // >> indexOffset;
+    uint256 bits1 = (uint256(word1) & mask);
 
     // find bits at index for word2
-    uint256 bits2 = (uint256(word2) & mask); // >> indexOffset;
+    uint256 bits2 = (uint256(word2) & mask);
     
     return bits1 == bits2;
   }
@@ -165,7 +165,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256 distributionsLength = _drawSettings.distributions.length;
     
     require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gt-distributions");
-    require(_drawSettings.bitRangeValue == (2 ** _drawSettings.bitRangeSize) - 1, "DrawCalc/bitRangeValue");
+    require(_drawSettings.bitRangeValue == (2 ** _drawSettings.bitRangeSize) - 1, "DrawCalc/bitRangeValue-incorrect");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.pickCost > 0, "DrawCalc/pick-gt-0");
     
