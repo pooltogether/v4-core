@@ -1002,17 +1002,17 @@
     proper-lockfile "^4.1.1"
     solidity-ast "^0.4.15"
 
+"@pooltogether/fixed-point@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@pooltogether/fixed-point/-/fixed-point-1.0.0.tgz#2c9fb9fe1cca557ca2be7b9ed7414d5edd5a816f"
+  integrity sha512-YhvjswZuDpKK/NFboyeFWoXhq4763kbi/hNx0L5+6kCRUq8WruvXR4WFvWlDo+5Dx1UsaOnPygAMfrJT0h7bMw==
+
 "@pooltogether/fixed-point@1.0.0-beta.2":
   version "1.0.0-beta.2"
   resolved "https://registry.yarnpkg.com/@pooltogether/fixed-point/-/fixed-point-1.0.0-beta.2.tgz#d76a1e77f21833e9b680296d65526b0ffd7415d7"
   integrity sha512-aUw4R0Z2oM0AK3W4LIXyBaojTOzRRbhLDHX0egeuvxfjy4gBb6X66v81gI7Wngg/7O0y9QL/B8jWkUnAFzhTig==
 
-"@pooltogether/fixed-point@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@pooltogether/fixed-point/-/fixed-point-1.0.0.tgz#2c9fb9fe1cca557ca2be7b9ed7414d5edd5a816f"
-  integrity sha512-YhvjswZuDpKK/NFboyeFWoXhq4763kbi/hNx0L5+6kCRUq8WruvXR4WFvWlDo+5Dx1UsaOnPygAMfrJT0h7bMw==
-
-"@pooltogether/pooltogether-contracts@^3.4.4":
+"@pooltogether/pooltogether-contracts@3.4.4":
   version "3.4.4"
   resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-contracts/-/pooltogether-contracts-3.4.4.tgz#fa183e75d26959caa2075d71b80d9d7bef11a659"
   integrity sha512-GMaH3Z/jStCU9bJp0biufzur2stgVQywvm3Nv0OI2IQwIe/LcdOdhEnsn5eViUrbqe1FKtXatKZz9ozIE9Xa3w==
@@ -1025,7 +1025,7 @@
     deploy-eip-1820 "1.0.0"
     sortition-sum-tree-factory "0.1.0"
 
-"@pooltogether/pooltogether-proxy-factory-package@^1.0.1":
+"@pooltogether/pooltogether-proxy-factory-package@1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-proxy-factory-package/-/pooltogether-proxy-factory-package-1.0.1.tgz#c096ac0b56e97716f1974efca7887364ebb67fb2"
   integrity sha512-zG6ikHCmHOztrlXTba0CMlxs1XW0FnOXVVBLdegfhB+Onho//JMSxkrK9/Kwx0NMNx2wn5+QwGOL/mDQbIqYmQ==
@@ -1035,7 +1035,7 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-rng-contracts/-/pooltogether-rng-contracts-1.0.0.tgz#191d155dc960559cce06b7ec3b0f9ed2caed0f46"
   integrity sha512-jQub/+qPLQwTFtbBCvvyIEqxJDEBEV/hgLKnuocBg2/GySWtHLz67WCy17bNn1hZw8nWIt8Ih8h+7iT2UJhtmQ==
 
-"@pooltogether/pooltogether-rng-contracts@^1.2.0":
+"@pooltogether/pooltogether-rng-contracts@1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-rng-contracts/-/pooltogether-rng-contracts-1.2.0.tgz#f7a6989cb5578c56f72c6f21bcc5c5a5c5ede3a8"
   integrity sha512-oLbYjSbXsR2P+r/wYGxmfPSvWFHikT0D9ykOlPQ/Kq63gecgfskUTDUoEVvp0ryK2f8MtFNb81RdqEQLQOcyDw==
@@ -1045,7 +1045,7 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/uniform-random-number/-/uniform-random-number-1.0.0-beta.1.tgz#72257401fe8536e95f9f812f1d249262659084a7"
   integrity sha512-V4iqLOpNFNhnUqfKRlvqUeRwvKaODdz+qn4Qi65C3iMOnDb0J31tBvyhwKbhP4wauNuUN64WfepqkkxET9U7EQ==
 
-"@pooltogether/uniform-random-number@^1.0.0-beta.2":
+"@pooltogether/uniform-random-number@1.0.0-beta.2":
   version "1.0.0-beta.2"
   resolved "https://registry.yarnpkg.com/@pooltogether/uniform-random-number/-/uniform-random-number-1.0.0-beta.2.tgz#fcc388269098a7303c83de6f07cdc5d46dede0e9"
   integrity sha512-xwEpcg+WXcoWtRdG9WPmE5B93YvkhBi4XCEVQ/kfkXS5tVsrhCjFHWQOuqvX2P7zMyCuI/Bq6Y84QQJnRywJhg==
@@ -3439,7 +3439,7 @@ depd@~1.1.2:
   resolved "https://registry.yarnpkg.com/depd/-/depd-1.1.2.tgz#9bcd52e14c097763e749b274c4346ed2e560b5a9"
   integrity sha1-m81S4UwJd2PnSbJ0xDRu0uVgtak=
 
-deploy-eip-1820@1.0.0, deploy-eip-1820@^1.0.0:
+deploy-eip-1820@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/deploy-eip-1820/-/deploy-eip-1820-1.0.0.tgz#59aa3de9cc8d2bcee9d7a1e5d1aff8b0f117d693"
   integrity sha512-WQG0ANtT8/Wcq77Tva4quphOVWzwlpxvtVPUuLrbkXSuU27LMZ8tEszpelc/1nDudiuj54mVBIXbOgkCMqKOkg==
@@ -5288,11 +5288,6 @@ hardhat-abi-exporter@2.1.2:
   resolved "https://registry.yarnpkg.com/hardhat-abi-exporter/-/hardhat-abi-exporter-2.1.2.tgz#7f0aa1fc91d546ca595ca35b743e36211a71f987"
   integrity sha512-ovJr6zJ9uxHDZmqtRRfaaFA8KxVCNzfHroP44QOWZ+CAh06hSen3r4Qehw6u7Vl5xJmw7Pu7nz+7q5QvPWXTKA==
 
-hardhat-dependency-compiler@^1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/hardhat-dependency-compiler/-/hardhat-dependency-compiler-1.1.1.tgz#0bfe713d450a7fdad14a210b7a9b8a32e56cc744"
-  integrity sha512-2xubH8aPojhMGbILFlfL28twu6l/5Tyrj4Dpkogvycse6YegKW9GuGA3rnbPH0KP+Nv2xT626ZuR2Ys+w3ifPw==
-
 hardhat-deploy-ethers@0.3.0-beta.7:
   version "0.3.0-beta.7"
   resolved "https://registry.yarnpkg.com/hardhat-deploy-ethers/-/hardhat-deploy-ethers-0.3.0-beta.7.tgz#860d86b84ed3c4fdef64283ccf1e8d5623454d02"
@@ -5332,7 +5327,7 @@ hardhat-gas-reporter@1.0.4:
     eth-gas-reporter "^0.2.20"
     sha1 "^1.1.1"
 
-hardhat-log-remover@^2.0.2:
+hardhat-log-remover@2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/hardhat-log-remover/-/hardhat-log-remover-2.0.2.tgz#6014fe2c515ced1e0eaa7a4d854e37695aaac61a"
   integrity sha512-TvEWOisQmZUZ7Mlb7s4XYS/MxgZzjFJSjDI8v3uTcrD6aaXy1QtomW6D6WNsISEWtwwRlSntOGpHQwFjrz2MCw==
@@ -6923,7 +6918,7 @@ mnemonist@^0.38.0:
   dependencies:
     obliterator "^1.6.1"
 
-mocha-junit-reporter@^2.0.0:
+mocha-junit-reporter@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/mocha-junit-reporter/-/mocha-junit-reporter-2.0.0.tgz#3bf990fce7a42c0d2b718f188553a25d9f24b9a2"
   integrity sha512-20HoWh2HEfhqmigfXOKUhZQyX23JImskc37ZOhIjBKoBEsb+4cAFRJpAVhFpnvsztLklW/gFVzsrobjLwmX4lA==
