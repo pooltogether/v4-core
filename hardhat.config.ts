@@ -37,14 +37,18 @@ const config: HardhatUserConfig = {
   },
   networks,
   solidity: {
-    version: '0.8.6',
-    settings: {
-      optimizer: {
-        enabled: optimizerEnabled,
-        runs: 200,
-      },
-      evmVersion: 'berlin',
-    },
+    compilers: [
+      {
+        version: '0.8.6',
+        settings: {
+          optimizer: {
+            enabled: optimizerEnabled,
+            runs: 200,
+          },
+          evmVersion: 'berlin',
+        }
+      }
+    ]
   }
 };
 
