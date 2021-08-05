@@ -16,43 +16,66 @@ type DrawSettings = {
 };
 
 describe('TsunamiDrawCalculator', () => {
-  let drawCalculator: Contract;
-  let ticket: MockContract;
-  let wallet1: any;
-  let wallet2: any;
-  let wallet3: any;
+    let drawCalculator: Contract; let ticket: MockContract;
+    let wallet1: any;
+    let wallet2: any;
+    let wallet3: any;
 
-  const encoder = ethers.utils.defaultAbiCoder;
+    const encoder = ethers.utils.defaultAbiCoder
 
-  async function findWinningNumberForUser(
-    userAddress: string,
-    matchesRequired: number,
-    drawSettings: DrawSettings,
-  ) {
-    console.log(
-      `searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(
-        drawSettings,
-      )}..`,
-    );
-    const drawCalculator: Contract = await deployDrawCalculator(wallet1);
+    async function findWinningNumberForUser(userAddress: string, matchesRequired: number, drawSettings: DrawSettings) {
+        console.log(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
+        const drawCalculator: Contract = await deployDrawCalculator(wallet1)
+        
+        let ticketArtifact = await artifacts.readArtifact('ITicket')
+        ticket = await deployMockContract(wallet1, ticketArtifact.abi)
+        
+        await drawCalculator.initialize(ticket.address, drawSettings)
+        
+        const timestamp = 42
+        const prizes = [utils.parseEther("1")]
+        const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
+        const ticketBalance = utils.parseEther("10")
 
-    let ticketArtifact = await artifacts.readArtifact('ITicketTwab');
-    ticket = await deployMockContract(wallet1, ticketArtifact.abi);
+        await ticket.mock.getBalances.withArgs(userAddress, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
 
-    await drawCalculator.initialize(ticket.address, drawSettings);
+        const distributionIndex = drawSettings.matchCardinality.toNumber() - matchesRequired
+        console.log("distributionIndex ", distributionIndex)
 
-    const timestamp = 42;
-    const prizes = [utils.parseEther('1')];
-    const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
-    const ticketBalance = utils.parseEther('10');
+        if(drawSettings.distributions.length < distributionIndex){
+           throw new Error(`There are only ${drawSettings.distributions.length} tiers of prizes`) // there is no "winning number" in this case
+        }
 
-    await ticket.mock.getBalances.withArgs(userAddress, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+        // now calculate the expected prize amount for these settings
+        // totalPrize *  (distributions[index]/(range ^ index)) where index = matchCardinality - numberOfMatches
+        const numberOfPrizes = Math.pow(drawSettings.bitRangeSize.toNumber(), distributionIndex)
+        console.log("numberOfPrizes ", numberOfPrizes)
+        
+        const valueAtDistributionIndex : BigNumber = drawSettings.distributions[distributionIndex]
+        console.log("valueAtDistributionIndex ", valueAtDistributionIndex)
+        const percentageOfPrize: BigNumber= valueAtDistributionIndex.div(numberOfPrizes)
+        const expectedPrizeAmount : BigNumber = (prizes[0]).mul(percentageOfPrize as any).div(ethers.constants.WeiPerEther) 
 
-    const distributionIndex = drawSettings.matchCardinality.toNumber() - matchesRequired;
-    console.log('distributionIndex ', distributionIndex);
+        console.log("expectedPrizeAmount ", expectedPrizeAmount.toString())
+        let winningRandomNumber
 
-    if (drawSettings.distributions.length < distributionIndex) {
-      throw new Error(`There are only ${drawSettings.distributions.length} tiers of prizes`); // there is no "winning number" in this case
+        while(true){
+            winningRandomNumber = utils.solidityKeccak256(["address"], [ethers.Wallet.createRandom().address])
+            const result = await drawCalculator.calculate(
+                userAddress,
+                [winningRandomNumber],
+                [timestamp],
+                prizes,
+                pickIndices
+            )
+            
+            if(result.eq(expectedPrizeAmount)){
+                console.log("found a winning number!", winningRandomNumber)
+                break
+            }
+        }
+    
+        return winningRandomNumber
     }
 
     // now calculate the expected prize amount for these settings
