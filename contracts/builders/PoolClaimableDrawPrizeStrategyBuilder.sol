@@ -3,32 +3,21 @@
 pragma solidity 0.8.6;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import "@pooltogether/yield-source-interface/contracts/IYieldSource.sol";
 
-import "../registry/RegistryInterface.sol";
-import "../prize-pool/compound/CompoundPrizePoolProxyFactory.sol";
-import "../prize-pool/yield-source/YieldSourcePrizePoolProxyFactory.sol";
-import "../prize-pool/stake/StakePrizePoolProxyFactory.sol";
-import "./MultipleWinnersBuilder.sol";
+import "../import/registry/RegistryInterface.sol";
+import "../import/prize-pool/compound/CompoundPrizePoolProxyFactory.sol";
+import "./ClaimableDrawPrizeStrategyBuilder.sol";
 
-contract PoolWithMultipleWinnersBuilder {
+contract PoolClaimableDrawPrizeStrategyBuilder {
   using SafeCastUpgradeable for uint256;
 
-  event CompoundPrizePoolWithMultipleWinnersCreated(
+  event CompoundPrizePoolWithClaimableDrawCreated(
     CompoundPrizePool indexed prizePool,
     MultipleWinners indexed prizeStrategy
   );
 
-  event YieldSourcePrizePoolWithMultipleWinnersCreated(
-    YieldSourcePrizePool indexed prizePool,
-    MultipleWinners indexed prizeStrategy
-  );
-
-  event StakePrizePoolWithMultipleWinnersCreated(
-    StakePrizePool indexed prizePool,
-    MultipleWinners indexed prizeStrategy
-  );
 
   /// @notice The configuration used to initialize the Compound Prize Pool
   struct CompoundPrizePoolConfig {
@@ -36,49 +25,30 @@ contract PoolWithMultipleWinnersBuilder {
     uint256 maxExitFeeMantissa;
   }
 
-  /// @notice The configuration used to initialize the Compound Prize Pool
-  struct YieldSourcePrizePoolConfig {
-    IYieldSource yieldSource;
-    uint256 maxExitFeeMantissa;
-  }
-
-  struct StakePrizePoolConfig {
-    IERC20Upgradeable token;
-    uint256 maxExitFeeMantissa;
-  }
-
   RegistryInterface public reserveRegistry;
   CompoundPrizePoolProxyFactory public compoundPrizePoolProxyFactory;
-  YieldSourcePrizePoolProxyFactory public yieldSourcePrizePoolProxyFactory;
-  StakePrizePoolProxyFactory public stakePrizePoolProxyFactory;
-  MultipleWinnersBuilder public multipleWinnersBuilder;
+  ClaimableDrawPrizeStrategyBuilder public claimableDrawPrizeStrategyBuilder;
 
   constructor (
     RegistryInterface _reserveRegistry,
     CompoundPrizePoolProxyFactory _compoundPrizePoolProxyFactory,
-    YieldSourcePrizePoolProxyFactory _yieldSourcePrizePoolProxyFactory,
-    StakePrizePoolProxyFactory _stakePrizePoolProxyFactory,
-    MultipleWinnersBuilder _multipleWinnersBuilder
+    ClaimableDrawPrizeStrategyBuilder _claimableDrawPrizeStrategyBuilder
   ) public {
     require(address(_reserveRegistry) != address(0), "GlobalBuilder/reserveRegistry-not-zero");
     require(address(_compoundPrizePoolProxyFactory) != address(0), "GlobalBuilder/compoundPrizePoolProxyFactory-not-zero");
-    require(address(_yieldSourcePrizePoolProxyFactory) != address(0), "GlobalBuilder/yieldSourcePrizePoolProxyFactory-not-zero");
-    require(address(_stakePrizePoolProxyFactory) != address(0), "GlobalBuilder/stakePrizePoolProxyFactory-not-zero");
-    require(address(_multipleWinnersBuilder) != address(0), "GlobalBuilder/multipleWinnersBuilder-not-zero");
+    require(address(_claimableDrawPrizeStrategyBuilder) != address(0), "GlobalBuilder/claimableDrawPrizeStrategyBuilder-not-zero");
     reserveRegistry = _reserveRegistry;
     compoundPrizePoolProxyFactory = _compoundPrizePoolProxyFactory;
-    yieldSourcePrizePoolProxyFactory = _yieldSourcePrizePoolProxyFactory;
-    stakePrizePoolProxyFactory = _stakePrizePoolProxyFactory;
-    multipleWinnersBuilder = _multipleWinnersBuilder;
+    claimableDrawPrizeStrategyBuilder = _claimableDrawPrizeStrategyBuilder;
   }
 
   function createCompoundClaimableDrawPrizeStrategy(
     CompoundPrizePoolConfig memory prizePoolConfig,
-    MultipleWinnersBuilder.MultipleWinnersConfig memory prizeStrategyConfig,
+    ClaimableDrawPrizeStrategyBuilder.MultipleWinnersConfig memory prizeStrategyConfig,
     uint8 decimals
   ) external returns (CompoundPrizePool) {
     CompoundPrizePool prizePool = compoundPrizePoolProxyFactory.create();
-    MultipleWinners prizeStrategy = multipleWinnersBuilder.createMultipleWinners(
+    MultipleWinners prizeStrategy = multipleWinnersBuilder.createClaimableDrawBuilder(
       prizePool,
       prizeStrategyConfig,
       decimals,
@@ -97,7 +67,7 @@ contract PoolWithMultipleWinnersBuilder {
       prizeStrategyConfig.ticketCreditLimitMantissa.toUint128()
     );
     prizePool.transferOwnership(msg.sender);
-    emit CompoundPrizePoolWithMultipleWinnersCreated(prizePool, prizeStrategy);
+    emit CompoundPrizePoolWithClaimableDrawCreated(prizePool, prizeStrategy);
     return prizePool;
   }
 

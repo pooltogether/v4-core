@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.6;
 
 import "./ControlledTokenBuilder.sol";
-import "../ClaimableDrawBuilderProxyFactory.sol";
+import "../ClaimableDrawProxyFactory.sol";
+import "../ClaimableDrawPrizeStrategyProxyFactory.sol";
+import "../import/prize-strategy/PrizeSplit.sol";
 
 /* solium-disable security/no-block-members */
 contract ClaimableDrawPrizeStrategyBuilder {
@@ -21,21 +22,23 @@ contract ClaimableDrawPrizeStrategyBuilder {
     string sponsorshipSymbol;
     uint256 ticketCreditLimitMantissa;
     uint256 ticketCreditRateMantissa;
-    uint256 numberOfWinners;
-    ClaimableDrawBuilder.PrizeSplitConfig[] prizeSplits;
+    ClaimableDrawPrizeStrategy.PrizeSplitConfig[] prizeSplits;
     bool splitExternalErc20Awards;
   }
 
-  ClaimableDrawBuilderProxyFactory public multipleWinnersProxyFactory;
+  ClaimableDrawProxyFactory public claimableDrawProxyFactory;
+  ClaimableDrawPrizeStrategyProxyFactory public claimableDrawPrizeStrategyProxyFactory;
   ControlledTokenBuilder public controlledTokenBuilder;
 
   constructor (
-    ClaimableDrawBuilderProxyFactory _multipleWinnersProxyFactory,
+    ClaimableDrawProxyFactory _claimableDrawProxyFactory,
+    ClaimableDrawPrizeStrategyProxyFactory _claimableDrawPrizeStrategyProxyFactory,
     ControlledTokenBuilder _controlledTokenBuilder
-  ) public {
-    require(address(_multipleWinnersProxyFactory) != address(0), "ClaimableDrawBuilderBuilder/multipleWinnersProxyFactory-not-zero");
+  ) {
+    require(address(_claimableDrawProxyFactory) != address(0), "ClaimableDrawBuilderBuilder/claimableDrawProxyFactory-not-zero");
+    require(address(_claimableDrawPrizeStrategyProxyFactory) != address(0), "ClaimableDrawBuilderBuilder/claimableDrawPrizeStrategyProxyFactory-not-zero");
     require(address(_controlledTokenBuilder) != address(0), "ClaimableDrawBuilderBuilder/token-builder-not-zero");
-    multipleWinnersProxyFactory = _multipleWinnersProxyFactory;
+    claimableDrawPrizeStrategyProxyFactory = _claimableDrawPrizeStrategyProxyFactory;
     controlledTokenBuilder = _controlledTokenBuilder;
   }
 
@@ -44,8 +47,8 @@ contract ClaimableDrawPrizeStrategyBuilder {
     ClaimableDrawBuilderConfig memory prizeStrategyConfig,
     uint8 decimals,
     address owner
-  ) external returns (ClaimableDrawBuilder) {
-    ClaimableDrawBuilder mw = multipleWinnersProxyFactory.create();
+  ) external returns (ClaimableDrawPrizeStrategy) {
+    ClaimableDrawPrizeStrategy cd = claimableDrawPrizeStrategyProxyFactory.create();
 
     Ticket ticket = _createTicket(
       prizeStrategyConfig.ticketName,
@@ -61,27 +64,26 @@ contract ClaimableDrawPrizeStrategyBuilder {
       prizePool
     );
 
-    mw.initializeClaimableDrawBuilder(
+    cd.initializeClaimableDraw(
       prizeStrategyConfig.prizePeriodStart,
       prizeStrategyConfig.prizePeriodSeconds,
       prizePool,
       ticket,
       sponsorship,
-      prizeStrategyConfig.rngService,
-      prizeStrategyConfig.numberOfWinners
+      prizeStrategyConfig.rngService
     );
 
-    mw.setPrizeSplits(prizeStrategyConfig.prizeSplits);
+    cd.setPrizeSplits(prizeStrategyConfig.prizeSplits);
 
     if (prizeStrategyConfig.splitExternalErc20Awards) {
-      mw.setSplitExternalErc20Awards(true);
+      cd.setSplitExternalErc20Awards(true);
     }
 
-    mw.transferOwnership(owner);
+    cd.transferOwnership(owner);
 
-    emit ClaimableDrawBuilderCreated(address(mw));
+    emit ClaimableDrawBuilderCreated(address(cd));
 
-    return mw;
+    return cd;
   }
 
   function _createTicket(

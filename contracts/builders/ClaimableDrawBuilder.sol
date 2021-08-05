@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
 
-import "../import/token/ControlledTokenBuilder.sol";
-import "../ClaimableDrawBuilderProxyFactory.sol";
+import "./ControlledTokenBuilder.sol";
+import "../ClaimableDrawProxyFactory.sol";
+import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 
 /* solium-disable security/no-block-members */
 contract ClaimableDrawBuilder {
