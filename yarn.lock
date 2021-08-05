@@ -7385,6 +7385,37 @@ mocha@^7.1.1, mocha@^7.1.2:
     yargs-parser "13.1.2"
     yargs-unparser "1.6.0"
 
+mocha@^9.0.3:
+  version "9.0.3"
+  resolved "https://registry.yarnpkg.com/mocha/-/mocha-9.0.3.tgz#128cd6bbd3ee0adcdaef715f357f76ec1e6227c7"
+  integrity sha512-hnYFrSefHxYS2XFGtN01x8un0EwNu2bzKvhpRFhgoybIvMaOkkL60IVPmkb5h6XDmUl4IMSB+rT5cIO4/4bJgg==
+  dependencies:
+    "@ungap/promise-all-settled" "1.1.2"
+    ansi-colors "4.1.1"
+    browser-stdout "1.3.1"
+    chokidar "3.5.2"
+    debug "4.3.1"
+    diff "5.0.0"
+    escape-string-regexp "4.0.0"
+    find-up "5.0.0"
+    glob "7.1.7"
+    growl "1.10.5"
+    he "1.2.0"
+    js-yaml "4.1.0"
+    log-symbols "4.1.0"
+    minimatch "3.0.4"
+    ms "2.1.3"
+    nanoid "3.1.23"
+    serialize-javascript "6.0.0"
+    strip-json-comments "3.1.1"
+    supports-color "8.1.1"
+    which "2.0.2"
+    wide-align "1.1.3"
+    workerpool "6.1.5"
+    yargs "16.2.0"
+    yargs-parser "20.2.4"
+    yargs-unparser "2.0.0"
+
 mock-fs@^4.1.0:
   version "4.14.0"
   resolved "https://registry.yarnpkg.com/mock-fs/-/mock-fs-4.14.0.tgz#ce5124d2c601421255985e6e94da80a7357b1b18"
