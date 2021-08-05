@@ -58,7 +58,7 @@ describe('ClaimableDraw', () => {
     it('should create a new draw and emit an event', async () => {
       await expect(await claimableDraw.createDraw(DRAW_SECOND_CONFIG.randomNumber, DRAW_SECOND_CONFIG.timestamp, DRAW_SECOND_CONFIG.prize))
         .to.emit(claimableDraw, 'DrawSet')
-        .withArgs(DRAW_SECOND_CONFIG.randomNumber, DRAW_SECOND_CONFIG.timestamp, DRAW_SECOND_CONFIG.prize, drawCalculator.address)
+        .withArgs(1, DRAW_SECOND_CONFIG.randomNumber, DRAW_SECOND_CONFIG.timestamp, DRAW_SECOND_CONFIG.prize, drawCalculator.address)
     })
   });
 

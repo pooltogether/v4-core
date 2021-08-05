@@ -39,7 +39,7 @@ contract ClaimableDraw is OwnableUpgradeable {
   mapping(address => bytes32) internal claimedDraws;
 
   /**
-    * @notice Calculator reference saved when creating a new draw. Overtime multiple calculators may be used for calculating award payout.
+    * @notice Draw model used to calculate a user's claim payout.
   */
   IDrawCalculator public currentCalculator;
 
@@ -75,13 +75,11 @@ contract ClaimableDraw is OwnableUpgradeable {
   );
 
   /**
-    * @notice Emit when the smart contract is initialized.
+    * @notice Emit when a new draw has been generated.
     * @param drawManager Address of the ClaimableDrawPrizeStrategy authorized to create a new draw
-    * @param calculator  Address of the DrawCalculator used to calculate award payout
   */
-  event ClaimableDrawInitialized (
-    address indexed drawManager,
-    IDrawCalculator indexed calculator
+  event DrawManagerSet (
+    address indexed drawManager
   );
 
   /**
@@ -92,18 +90,11 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @param calculator   Address of the DrawCalculator used to calculate award payout
   */
   event DrawSet (
+    uint256 currentDrawIndex,
     uint256 randomNumber,
     uint256 timestamp,
     uint256 prize,
     IDrawCalculator indexed calculator
-  );
-
-  /**
-    * @notice Emit when a new draw has been generated.
-    * @param drawManager Address of the ClaimableDrawPrizeStrategy authorized to create a new draw
-  */
-  event DrawManagerSet (
-    address indexed drawManager
   );
 
   /* ============ Modifiers ============ */
@@ -128,13 +119,11 @@ contract ClaimableDraw is OwnableUpgradeable {
   function initialize (
     address _drawManager,
     IDrawCalculator _calculator
-  ) public initializer {
+  ) external initializer {
     __Ownable_init();
 
-    drawManager = _drawManager;
-    currentCalculator = _calculator;
-
-    emit ClaimableDrawInitialized(_drawManager, _calculator);
+    _setDrawManager(_drawManager);
+    _setDrawCalculator(_calculator);
   }
 
   /* ============ External Functions ============ */
@@ -143,8 +132,8 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @notice Allows users to check the claimable status for a target draw. 
     * @dev    Checks a claimable status for target draw by reading from a user's claim history in claimedDraws.
     *
-    * @param user    Address of user
-    * @param drawId  Unique draw id (index)
+    * @param user   Address of user
+    * @param drawId Unique draw id (index)
   */
   function hasClaimed(address user, uint256 drawId) external view returns (bool) {
     return _readUsersDrawClaimStatusFromClaimedHistory(claimedDraws[user], _drawIdToClaimIndex(drawId, currentDrawId));
@@ -153,8 +142,7 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice Reads a user draw claim history.
     * @dev    Reads a user draw claim history, which is stored in a packed bytes32 "word"
-    *
-    * @param user  Address of user
+    * @param user Address of user
   */
   function userClaimedDraws(address user) external view returns(bytes32) {
     return claimedDraws[user];
@@ -163,8 +151,8 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice Reads a Draw using the draw id
     * @dev    Reads a Draw using the draw id which equal the index position in the draws array. 
-    *
-    * @param drawId  Address of user
+    * @param drawId Address of user
+    * @return Draw struct
   */
   function getDraw(uint256 drawId) external view returns(Draw memory) {
     require(drawId <= currentDrawId, "ClaimableDraw/draw-nonexistent");
@@ -172,37 +160,23 @@ contract ClaimableDraw is OwnableUpgradeable {
   }
 
   /**
-    * @notice Sets a new authorized draw manager.
-    * @dev    Sets the ClaimableDrawPrizeStrategy, which should be called when a new prize strategy is deployed.
-    *
+    * @notice External function to set a new authorized draw manager.
+    * @dev    External function to set the ClaimableDrawPrizeStrategy, which should be called when a new prize strategy is deployed.
     * @param _newDrawManager  New draw manager address
+    * @return New draw manager address
   */
   function setDrawManager(address _newDrawManager) external onlyOwner returns(address) {
-    require(_newDrawManager != address(0), "ClaimableDraw/draw-manager-not-zero-address");
-    require(_newDrawManager != address(drawManager), "ClaimableDraw/existing-draw-manager-address");
-
-    emit DrawManagerSet(_newDrawManager);
-    
-    drawManager = _newDrawManager;
-
-    return _newDrawManager;
+    return _setDrawManager(_newDrawManager);
   }
 
   /**
-    * @notice Sets a new draw calculator.
-    * @dev    Sets a new draw calculator, which is then sequentially stored in new draw structs. Enabling unique prize calculators for individual draws.
-    *
+    * @notice External function to set a new draw calculator.
+    * @dev    External function to sets a new draw calculator, which is then sequentially stored in new draw structs. Enabling unique prize calculators for individual draws.
     * @param _newCalculator  New draw calculator address
+    * @return New calculator address
   */
   function setDrawCalculator(IDrawCalculator _newCalculator) external onlyOwner returns(IDrawCalculator) {
-    require(address(_newCalculator) != address(0), "ClaimableDraw/calculator-not-zero-address");
-    require(_newCalculator != currentCalculator, "ClaimableDraw/existing-calculator-address");
-
-    emit DrawCalculatorSet(_newCalculator);
-    
-    currentCalculator = _newCalculator;
-
-    return _newCalculator;
+    return _setDrawCalculator(_newCalculator);
   }
 
   /**
@@ -211,6 +185,7 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @param _randomNumber  Randomly generated draw number
     * @param _timestamp     Epoch timestamp of the draw
     * @param _prize         Award captured when creating a new draw 
+    * @return New draw id
   */
   function createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) public onlyDrawManager returns (uint256) {
     return _createDraw(_randomNumber, _timestamp, _prize);
@@ -223,6 +198,7 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @param _drawIds          Index of the draw in the draws array
     * @param _drawCalculators  Address of the draw calculator for a set of draw ids
     * @param _data             The draw pick indices (uint256[][]) passed as a formatted bytes correlating to the draw ids
+    * @return Total claim payout
   */
   function claim(address _user, uint256[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256) {
     return _claim(_user, _drawIds, _drawCalculators, _data);
@@ -231,13 +207,48 @@ contract ClaimableDraw is OwnableUpgradeable {
   /* ============ Internal Functions ============ */
 
   /**
+    * @notice Internal function to set a new authorized draw manager.
+    * @dev    Internal function to set the ClaimableDrawPrizeStrategy, which should be called when a new prize strategy is deployed.
+    * @param _newDrawManager  New draw manager address
+    * @return  New draw manager address
+  */
+  function _setDrawManager(address _newDrawManager) internal returns(address) {
+    require(_newDrawManager != address(0), "ClaimableDraw/draw-manager-not-zero-address");
+    require(_newDrawManager != address(drawManager), "ClaimableDraw/existing-draw-manager-address");
+
+    emit DrawManagerSet(_newDrawManager);
+    
+    drawManager = _newDrawManager;
+
+    return _newDrawManager;
+  }
+
+  /**
+    * @notice Internal function to set a new draw calculator.
+    * @dev    Internal function to sets a new draw calculator, which is then sequentially stored in new draw structs. Enabling unique prize calculators for individual draws.
+    * @param _newCalculator  New draw calculator address
+    * @return New calculator address
+  */
+  function _setDrawCalculator(IDrawCalculator _newCalculator) internal returns(IDrawCalculator) {
+    require(address(_newCalculator) != address(0), "ClaimableDraw/calculator-not-zero-address");
+    require(_newCalculator != currentCalculator, "ClaimableDraw/existing-calculator-address");
+
+    emit DrawCalculatorSet(_newCalculator);
+    
+    currentCalculator = _newCalculator;
+
+    return _newCalculator;
+  }
+
+  /**
     * @notice Claim a user's award by passing in the calculated drawIds, drawCalculators and pickIndices. 
     * @dev Calculates a user's total award by calling an external drawCalculator with winning drawIds and pickIndices. 
     *
     * @param _user             Address of user to claim awards for. Does NOT need to be msg.sender
     * @param _drawIds          Index of the draw in the draws array
     * @param _drawCalculators  Address of the draw calculator for a set of draw ids
-    * @param _data      The draw pick indices (uint256[][]) passed as a formatted bytes correlating to the draw ids
+    * @param _data             The draw pick indices (uint256[][]) passed as a formatted bytes correlating to the draw ids
+    * @return Total claim payout
   */
   function _claim(
     address _user, 
@@ -249,9 +260,9 @@ contract ClaimableDraw is OwnableUpgradeable {
     require(drawCalculatorsLength == _drawIds.length, "ClaimableDraw/invalid-calculator-array");
     bytes32 userDrawClaimHistory = claimedDraws[_user]; //sload
     uint256 _currentDrawId = currentDrawId; // sload
-
     uint256 payout;
     uint256 totalPayout;
+
     for (uint256 calcIndex = 0; calcIndex < drawCalculatorsLength; calcIndex++) {
       IDrawCalculator _drawCalculator = _drawCalculators[calcIndex];
       (payout, userDrawClaimHistory) = _calculateAllDraws(_user, _drawIds[calcIndex], _drawCalculator, _data[calcIndex], _currentDrawId, userDrawClaimHistory);
@@ -266,13 +277,14 @@ contract ClaimableDraw is OwnableUpgradeable {
 
   /**
     * @dev Calculates user payout for a list of draws linked to single draw calculator.
-    *
-    * @param _user  Address of user
-    * @param _drawIds  Array of draws for target draw calculator
+    * @param _user            Address of user
+    * @param _drawIds         Array of draws for target draw calculator
     * @param _drawCalculator  Address of draw calculator to determine award payout
-    * @param _data  Pick indices for target draw
-    * @param _currentDrawId  ID of draw being calculated
-    * @param _claimedDraws  User's claimed draw history
+    * @param _data            Pick indices for target draw
+    * @param _currentDrawId   ID of draw being calculated
+    * @param _claimedDraws    User's claimed draw history
+    * @return totalPayout Total claim payout
+    * @return userDrawClaimHistory Updated userDrawClaimHistory
   */
   function _calculateAllDraws(
     address _user, 
@@ -302,10 +314,10 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice Create a new claimable draw.
     * @dev Create a new claimable draw, updates currentDrawId and adds the draw to the draws array.
-    *
     * @param _randomNumber  Randomly generated draw number
     * @param _timestamp     Epoch timestamp of the draw
     * @param _prize         Draw's captured award (i.e. prize) amount
+    * @return New draw id
   */
   function _createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) internal returns (uint256) {
     uint256 drawsLength =  draws.length;
@@ -313,7 +325,7 @@ contract ClaimableDraw is OwnableUpgradeable {
     Draw memory _draw = Draw({randomNumber: _randomNumber, prize: _prize, timestamp: _timestamp, calculator: _currentCalculator});
     currentDrawId = drawsLength;
     draws.push(_draw);
-    emit DrawSet(_randomNumber, _timestamp, _prize, _currentCalculator);
+    emit DrawSet(drawsLength, _randomNumber, _timestamp, _prize, _currentCalculator);
     
     return drawsLength;
   } 
@@ -321,26 +333,25 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice Update the draw claim history for target draw id.
     * @dev Update the draw claim history for target draw id.
-    *
     * @param _userDrawClaimHistory  Current user claimed draws
-    * @param _drawId            ID of draw to update 
-    * @param _currentDrawId    Current draw id (i.e. last draw id)
+    * @param _drawId                ID of draw to update 
+    * @param _currentDrawId         Current draw id (i.e. last draw id)
+    * @return Updated userDrawClaimHistory
   */
   function _updateUsersDrawClaimStatus(bytes32 _userDrawClaimHistory, uint256 _drawId, uint256 _currentDrawId) internal pure returns (bytes32) {
     uint8 drawIndex = _drawIdToClaimIndex(_drawId, _currentDrawId);
     bool isClaimed = _readUsersDrawClaimStatusFromClaimedHistory(_userDrawClaimHistory, drawIndex);
-
     require(!isClaimed, "ClaimableDraw/user-previously-claimed");
 
     return _writeUsersDrawClaimStatusFromClaimedHistory(_userDrawClaimHistory, drawIndex);
   }
 
   /**
-    * @dev Calculates the claim index using the draw id.
+    * @notice Calculates the claim index using the draw id.
     * @dev Calculates the claim index, while accounting for a draws expiration status. 
-    *
     * @param drawId          Draw id used for calculation
     * @param _currentDrawId  The current draw id
+    * @return Absolute draw index in draws ring buffer
   */
   function _drawIdToClaimIndex(uint256 drawId, uint256 _currentDrawId) internal pure returns (uint8) { 
     require(drawId + 256 > _currentDrawId, "ClaimableDraw/claim-expired");
@@ -359,6 +370,7 @@ contract ClaimableDraw is OwnableUpgradeable {
     *
     * @param _userClaimedDraws  User claim draw history (256 bit word)
     * @param _drawIndex         The index within that word (0 to 7)
+    * @return User's draw claim status
   */
   function _readUsersDrawClaimStatusFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) internal pure returns (bool) {
     uint256 mask = (uint256(1)) << (_drawIndex);
@@ -370,6 +382,7 @@ contract ClaimableDraw is OwnableUpgradeable {
     *
     * @param _userClaimedDraws  User claim draw history (256 bit word)
     * @param _drawIndex         The index within that word (0 to 7)
+    * @return Updated User's draw claim history
   */
   function _writeUsersDrawClaimStatusFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) internal pure returns (bytes32) { 
     uint256 mask =  (uint256(1)) << (_drawIndex);
