@@ -38,6 +38,7 @@ contract ClaimableDrawPrizeStrategyBuilder {
     require(address(_claimableDrawProxyFactory) != address(0), "ClaimableDrawBuilderBuilder/claimableDrawProxyFactory-not-zero");
     require(address(_claimableDrawPrizeStrategyProxyFactory) != address(0), "ClaimableDrawBuilderBuilder/claimableDrawPrizeStrategyProxyFactory-not-zero");
     require(address(_controlledTokenBuilder) != address(0), "ClaimableDrawBuilderBuilder/token-builder-not-zero");
+    claimableDrawProxyFactory = _claimableDrawProxyFactory;
     claimableDrawPrizeStrategyProxyFactory = _claimableDrawPrizeStrategyProxyFactory;
     controlledTokenBuilder = _controlledTokenBuilder;
   }
@@ -48,7 +49,8 @@ contract ClaimableDrawPrizeStrategyBuilder {
     uint8 decimals,
     address owner
   ) external returns (ClaimableDrawPrizeStrategy) {
-    ClaimableDrawPrizeStrategy cd = claimableDrawPrizeStrategyProxyFactory.create();
+    ClaimableDraw cd = claimableDrawProxyFactory.create();
+    ClaimableDrawPrizeStrategy cdprz = claimableDrawPrizeStrategyProxyFactory.create();
 
     Ticket ticket = _createTicket(
       prizeStrategyConfig.ticketName,
@@ -64,26 +66,27 @@ contract ClaimableDrawPrizeStrategyBuilder {
       prizePool
     );
 
-    cd.initializeClaimableDraw(
+    cdprz.initializeClaimableDraw(
       prizeStrategyConfig.prizePeriodStart,
       prizeStrategyConfig.prizePeriodSeconds,
       prizePool,
       ticket,
       sponsorship,
-      prizeStrategyConfig.rngService
+      prizeStrategyConfig.rngService,
+      cd
     );
 
-    cd.setPrizeSplits(prizeStrategyConfig.prizeSplits);
+    cdprz.setPrizeSplits(prizeStrategyConfig.prizeSplits);
 
     if (prizeStrategyConfig.splitExternalErc20Awards) {
-      cd.setSplitExternalErc20Awards(true);
+      cdprz.setSplitExternalErc20Awards(true);
     }
 
-    cd.transferOwnership(owner);
+    cdprz.transferOwnership(owner);
 
-    emit ClaimableDrawBuilderCreated(address(cd));
+    emit ClaimableDrawBuilderCreated(address(cdprz));
 
-    return cd;
+    return cdprz;
   }
 
   function _createTicket(
