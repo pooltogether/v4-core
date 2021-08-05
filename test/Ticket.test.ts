@@ -7,13 +7,13 @@ import { ethers } from 'hardhat';
 import { increaseTime as increaseTimeHelper } from '../helpers';
 
 const { getSigners, provider } = ethers;
+const { getBlock } = provider;
 const { parseEther: toWei } = utils;
 
 const increaseTime = (time: number) => increaseTimeHelper(provider, time);
 
 type BinarySearchResult = {
-  balance?: BigNumber;
-  totalSupply?: BigNumber;
+  amount: BigNumber;
   timestamp: number;
 };
 
@@ -21,17 +21,17 @@ const calculateTwab = (response: BinarySearchResult[] ) => {
   const beforeOrAt = response[0];
   const atOrAfter = response[1];
 
-  const beforeOrAtBalance = beforeOrAt.balance ? beforeOrAt.balance : beforeOrAt.totalSupply as BigNumber;
-  const atOrAfterBalance = atOrAfter.balance ? atOrAfter.balance : atOrAfter.totalSupply as BigNumber;;
+  const beforeOrAtAmount = beforeOrAt.amount;
+  const atOrAfterAmount = atOrAfter.amount;
 
-  const differenceInBalance = ethers.utils.formatUnits(atOrAfterBalance.sub(beforeOrAtBalance));
+  const differenceInAmount = ethers.utils.formatUnits(atOrAfterAmount.sub(beforeOrAtAmount));
 
   const beforeOrAtTimestamp = beforeOrAt.timestamp;
   const atOrAfterTimestamp = atOrAfter.timestamp;
 
   const differenceInTimestamp = atOrAfterTimestamp - beforeOrAtTimestamp;
 
-  return Number(differenceInBalance) / differenceInTimestamp;
+  return Number(differenceInAmount) / differenceInTimestamp;
 };
 
 describe('Ticket', () => {
@@ -171,72 +171,71 @@ describe('Ticket', () => {
       const mintAmount = toWei('1000');
 
       await ticket.mint(wallet1.address, mintAmount);
-      const timestampAfterFirstMint = (await provider.getBlock('latest')).timestamp;
+      const timestampAfterFirstMint = (await getBlock('latest')).timestamp;
 
       await ticket.mint(wallet1.address, mintAmount);
-      const timestampAfterSecondMint = (await provider.getBlock('latest')).timestamp;
+      const timestampAfterSecondMint = (await getBlock('latest')).timestamp;
 
       await ticket.mint(wallet1.address, mintAmount);
+      const timestampAfterThirdMint = (await getBlock('latest')).timestamp;
+
+      const userTwabs = [
+        {
+          amount: 0,
+          timestamp: timestampAfterFirstMint,
+        },
+        {
+          amount: mintAmount,
+          timestamp: timestampAfterSecondMint,
+        },
+        {
+          amount: mintAmount.mul(3),
+          timestamp: timestampAfterThirdMint,
+        },
+      ];
+
+      for (let index = 0; index < 29; index++) {
+        userTwabs.push({
+          amount: 0,
+          timestamp: 0,
+        })
+      }
+
+      const userTwabIndex = ticket.mostRecentTwabIndexOfUser(wallet1.address);
 
       await ticket
-        .binarySearch(wallet1.address, timestampAfterFirstMint)
+        .binarySearch(userTwabs, userTwabIndex, timestampAfterFirstMint)
         .then((response: BinarySearchResult[]) =>
-          expect(calculateTwab(response)).to.equal(1000),
+          expect(calculateTwab(response)).to.equal(1000)
         );
 
       await ticket
-        .binarySearch(wallet1.address, timestampAfterSecondMint)
+        .binarySearch(userTwabs, userTwabIndex, timestampAfterSecondMint)
         .then((response: BinarySearchResult[]) =>
           expect(calculateTwab(response)).to.equal(2000),
         );
     });
   });
 
-  describe('_binarySearchTotalSupply()', () => {
-    it('should perform a binary search', async () => {
-      const mintAmount = toWei('1000');
-
-      await ticket.mint(wallet1.address, mintAmount);
-      const timestampAfterFirstMint = (await provider.getBlock('latest')).timestamp;
-
-      await ticket.mint(wallet1.address, mintAmount);
-      const timestampAfterSecondMint = (await provider.getBlock('latest')).timestamp;
-
-      await ticket.mint(wallet1.address, mintAmount);
-
-      await ticket
-        .binarySearchTotalSupply(timestampAfterFirstMint)
-        .then((response: BinarySearchResult[]) =>
-          expect(calculateTwab(response)).to.equal(1000),
-        );
-
-      await ticket
-        .binarySearchTotalSupply(timestampAfterSecondMint)
-        .then((response: BinarySearchResult[]) =>
-          expect(calculateTwab(response)).to.equal(2000),
-        );
-    });
-  });
-
-  describe('_newTwab()', () => {
-    it('should record a new twab', async () => {
+  describe('_newUserTwab()', () => {
+    it('should record a new twab for user', async () => {
       const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
 
-      expect(await ticket.newTwab(wallet1.address, mostRecentTwabIndex))
-        .to.emit(ticket, 'NewTwab')
-        .withArgs(wallet1.address, [toWei('0'), (await provider.getBlock('latest')).timestamp]);
+      expect(await ticket.newUserTwab(wallet1.address, mostRecentTwabIndex))
+        .to.emit(ticket, 'NewUserTwab')
+        .withArgs(wallet1.address, [toWei('0'), (await getBlock('latest')).timestamp]);
     });
 
     it('should return early if a twab already exists for this timestamp', async () => {
       const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
 
-      await ticket.newTwab(wallet1.address, mostRecentTwabIndex);
+      await ticket.newUserTwab(wallet1.address, mostRecentTwabIndex);
 
       await increaseTime(-1);
 
       const nextTwabIndex = mostRecentTwabIndex.add(1) % (await ticket.CARDINALITY());
 
-      expect(await ticket.newTwab(wallet1.address, nextTwabIndex)).to.not.emit(ticket, 'NewTwab');
+      expect(await ticket.newUserTwab(wallet1.address, nextTwabIndex)).to.not.emit(ticket, 'NewUserTwab');
     });
 
     it('should fail to record a new twab if balance overflow', async () => {
@@ -261,7 +260,7 @@ describe('Ticket', () => {
 
       expect(await ticket.newTotalSupplyTwab(mostRecentTwabIndex))
         .to.emit(ticket, 'NewTotalSupplyTwab')
-        .withArgs([toWei('0'), (await provider.getBlock('latest')).timestamp]);
+        .withArgs([toWei('0'), (await getBlock('latest')).timestamp]);
     });
 
     it('should return early if a twab already exists for this timestamp', async () => {
@@ -273,7 +272,7 @@ describe('Ticket', () => {
 
       const nextTwabIndex = mostRecentTwabIndex.add(1) % (await ticket.CARDINALITY());
 
-      expect(await ticket.newTotalSupplyTwab(nextTwabIndex)).to.not.emit(ticket, 'NewTwab');
+      expect(await ticket.newTotalSupplyTwab(nextTwabIndex)).to.not.emit(ticket, 'NewTotalSupplyTwab');
     });
 
     it('should fail to record a new twab if balance overflow', async () => {
@@ -304,11 +303,11 @@ describe('Ticket', () => {
         .withArgs(wallet1.address, wallet2.address, transferAmount);
 
       expect(
-        await ticket.getBalance(wallet2.address, (await provider.getBlock('latest')).timestamp),
+        await ticket.getBalance(wallet2.address, (await getBlock('latest')).timestamp),
       ).to.equal(transferAmount);
 
       expect(
-        await ticket.getBalance(wallet1.address, (await provider.getBlock('latest')).timestamp),
+        await ticket.getBalance(wallet1.address, (await getBlock('latest')).timestamp),
       ).to.equal(mintAmount.sub(transferAmount));
     });
 
@@ -342,7 +341,7 @@ describe('Ticket', () => {
         .withArgs(ethers.constants.AddressZero, wallet1.address, mintAmount);
 
       expect(
-        await ticket.getBalance(wallet1.address, (await provider.getBlock('latest')).timestamp),
+        await ticket.getBalance(wallet1.address, (await getBlock('latest')).timestamp),
       ).to.equal(mintAmount);
 
       expect(await ticket.totalSupply()).to.equal(mintAmount);
@@ -367,7 +366,7 @@ describe('Ticket', () => {
         .withArgs(wallet1.address, ethers.constants.AddressZero, burnAmount);
 
       expect(
-        await ticket.getBalance(wallet1.address, (await provider.getBlock('latest')).timestamp),
+        await ticket.getBalance(wallet1.address, (await getBlock('latest')).timestamp),
       ).to.equal(mintAmount.sub(burnAmount));
 
       expect(await ticket.totalSupply()).to.equal(mintAmount.sub(burnAmount));
@@ -402,13 +401,13 @@ describe('Ticket', () => {
 
       await increaseTime(60);
 
-      const timestampBefore = (await provider.getBlock('latest')).timestamp;
+      const timestampBefore = (await getBlock('latest')).timestamp;
 
       await ticket.transfer(wallet2.address, transferAmount);
 
       expect(await ticket.getBalance(wallet1.address, timestampBefore)).to.equal(balanceBefore);
 
-      const timestampAfter = (await provider.getBlock('latest')).timestamp;
+      const timestampAfter = (await getBlock('latest')).timestamp;
 
       expect(await ticket.getBalance(wallet1.address, timestampAfter)).to.equal(
         balanceBefore.sub(transferAmount),
@@ -421,7 +420,7 @@ describe('Ticket', () => {
 
       for (let i = 0; i < cardinality; i++) {
         await ticket.transfer(wallet2.address, transferAmount);
-        blocks.push(await provider.getBlock('latest'));
+        blocks.push(await getBlock('latest'));
       }
 
       // Should have nothing at beginning of time
@@ -448,7 +447,7 @@ describe('Ticket', () => {
     it('should get user balances', async () => {
       const mintAmount = toWei('2000');
       const transferAmount = toWei('500');
-      const timestampBefore = (await provider.getBlock('latest')).timestamp;
+      const timestampBefore = (await getBlock('latest')).timestamp;
 
       await ticket.mint(wallet1.address, mintAmount);
       await ticket.transfer(wallet2.address, transferAmount);
@@ -476,13 +475,13 @@ describe('Ticket', () => {
 
       await increaseTime(60);
 
-      const timestampBefore = (await provider.getBlock('latest')).timestamp;
+      const timestampBefore = (await getBlock('latest')).timestamp;
 
       await ticket.transfer(wallet2.address, transferAmount);
 
       expect(await ticket.getTotalSupply(timestampBefore)).to.equal(balanceBefore);
 
-      const timestampAfterTransfer = (await provider.getBlock('latest')).timestamp;
+      const timestampAfterTransfer = (await getBlock('latest')).timestamp;
 
       expect(await ticket.getTotalSupply(timestampAfterTransfer)).to.equal(
         balanceBefore,
@@ -490,7 +489,7 @@ describe('Ticket', () => {
 
       await ticket.burn(wallet2.address, burnAmount);
 
-      const timestampAfterBurn = (await provider.getBlock('latest')).timestamp;
+      const timestampAfterBurn = (await getBlock('latest')).timestamp;
 
       expect(await ticket.getTotalSupply(timestampAfterBurn)).to.equal(
         balanceBefore.sub(burnAmount),
@@ -502,20 +501,20 @@ describe('Ticket', () => {
       const blocks = [];
 
       // Should have 0 at beginning of time
-      const timestampBefore = (await provider.getBlock('latest')).timestamp;
+      const timestampBefore = (await getBlock('latest')).timestamp;
 
       expect(await ticket.getTotalSupply(timestampBefore)).to.equal(toWei('0'));
 
       await ticket.mint(wallet1.address, balanceBefore);
 
-      const timestampAfterMint = (await provider.getBlock('latest')).timestamp;
+      const timestampAfterMint = (await getBlock('latest')).timestamp;
 
       // Should have 1000 after mint
       expect(await ticket.getTotalSupply(timestampAfterMint)).to.equal(balanceBefore);
 
       for (let i = 0; i < cardinality; i++) {
         await ticket.burn(wallet1.address, burnAmount);
-        blocks.push(await provider.getBlock('latest'));
+        blocks.push(await getBlock('latest'));
       }
 
       // Should have 1000 - (1 * cardinality) at end of time
@@ -529,7 +528,6 @@ describe('Ticket', () => {
       for (let i = 0; i < cardinality; i++) {
         const expectedTotalSupply = balanceBefore.sub(burnAmount.mul(i + 1));
         const actualTotalSupply = await ticket.getTotalSupply(blocks[i].timestamp);
-        console.log('blocks[i].timestamp', blocks[i].timestamp);
 
         expect(actualTotalSupply).to.equal(expectedTotalSupply);
       }
@@ -539,7 +537,7 @@ describe('Ticket', () => {
       it('should get ticket total supplies', async () => {
         const mintAmount = toWei('2000');
         const burnAmount = toWei('500');
-        const timestampBefore = (await provider.getBlock('latest')).timestamp;
+        const timestampBefore = (await getBlock('latest')).timestamp;
 
         await ticket.mint(wallet1.address, mintAmount);
         await ticket.burn(wallet1.address, burnAmount);

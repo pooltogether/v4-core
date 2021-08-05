@@ -32,23 +32,18 @@ contract TicketHarness is Ticket {
   }
 
   function binarySearch(
-    address _user,
+    Twab[CARDINALITY] memory _twabs,
+    uint16 _twabIndex,
     uint32 _target
   ) external view returns (Twab memory beforeOrAt, Twab memory atOrAfter) {
-    (beforeOrAt, atOrAfter) = _binarySearch(_user, _target);
+    (beforeOrAt, atOrAfter) = _binarySearch(_twabs, _twabIndex, _target);
   }
 
-  function binarySearchTotalSupply(
-    uint32 _target
-  ) external view returns (TotalSupplyTwab memory beforeOrAt, TotalSupplyTwab memory atOrAfter) {
-    (beforeOrAt, atOrAfter) = _binarySearchTotalSupply(_target);
+  function newUserTwab(address _user, uint16 _nextTwabIndex) external returns (uint16) {
+    return _newUserTwab(_user, _nextTwabIndex);
   }
 
-  function newTwab(address _user, uint16 _nextTwabIndex) external {
-    _newTwab(_user, _nextTwabIndex);
-  }
-
-  function newTotalSupplyTwab(uint16 _nextTwabIndex) external {
-    _newTotalSupplyTwab(_nextTwabIndex);
+  function newTotalSupplyTwab(uint16 _nextTwabIndex) external returns (uint16) {
+    return _newTotalSupplyTwab(_nextTwabIndex);
   }
 }

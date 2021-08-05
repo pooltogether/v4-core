@@ -91,19 +91,19 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
 
     _beforeTokenTransfer(_sender, _recipient, _amount);
 
-    BalanceWithTwabIndex memory sender = _balancesWithTwabIndex[_sender];
-    require(sender.balance >= amount, "ERC20: transfer amount exceeds balance");
+    AmountWithTwabIndex memory sender = _usersBalanceWithTwabIndex[_sender];
+    require(sender.amount >= amount, "ERC20: transfer amount exceeds balance");
     unchecked {
-        _balancesWithTwabIndex[_sender] = BalanceWithTwabIndex({
-          balance: sender.balance - amount,
-          nextTwabIndex: _newTwab(_sender, sender.nextTwabIndex)
+        _usersBalanceWithTwabIndex[_sender] = AmountWithTwabIndex({
+          amount: sender.amount - amount,
+          nextTwabIndex: _newUserTwab(_sender, sender.nextTwabIndex)
         });
     }
 
-    BalanceWithTwabIndex memory recipient = _balancesWithTwabIndex[_recipient];
-    _balancesWithTwabIndex[_recipient] = BalanceWithTwabIndex({
-      balance: recipient.balance + amount,
-      nextTwabIndex: _newTwab(_recipient, recipient.nextTwabIndex)
+    AmountWithTwabIndex memory recipient = _usersBalanceWithTwabIndex[_recipient];
+    _usersBalanceWithTwabIndex[_recipient] = AmountWithTwabIndex({
+      amount: recipient.amount + amount,
+      nextTwabIndex: _newUserTwab(_recipient, recipient.nextTwabIndex)
     });
 
     emit Transfer(_sender, _recipient, _amount);
@@ -122,16 +122,16 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
 
     _beforeTokenTransfer(address(0), _to, _amount);
 
-    TotalSupplyWithTwabIndex memory ticket = _totalSupplyWithTwabIndex;
-    _totalSupplyWithTwabIndex = TotalSupplyWithTwabIndex({
-      totalSupply: ticket.totalSupply + amount,
-      nextTwabIndex: _newTotalSupplyTwab(_totalSupplyWithTwabIndex.nextTwabIndex)
+    AmountWithTwabIndex memory ticketTotalSupply = _totalSupplyWithTwabIndex;
+    _totalSupplyWithTwabIndex = AmountWithTwabIndex({
+      amount: ticketTotalSupply.amount + amount,
+      nextTwabIndex: _newTotalSupplyTwab(ticketTotalSupply.nextTwabIndex)
     });
 
-    BalanceWithTwabIndex memory user = _balancesWithTwabIndex[_to];
-    _balancesWithTwabIndex[_to] = BalanceWithTwabIndex({
-      balance: user.balance + amount,
-      nextTwabIndex: _newTwab(_to, user.nextTwabIndex)
+    AmountWithTwabIndex memory user = _usersBalanceWithTwabIndex[_to];
+    _usersBalanceWithTwabIndex[_to] = AmountWithTwabIndex({
+      amount: user.amount + amount,
+      nextTwabIndex: _newUserTwab(_to, user.nextTwabIndex)
     });
 
     emit Transfer(address(0), _to, _amount);
@@ -151,19 +151,19 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
 
     _beforeTokenTransfer(_from, address(0), _amount);
 
-    BalanceWithTwabIndex memory user = _balancesWithTwabIndex[_from];
-    require(user.balance >= amount, "ERC20: burn amount exceeds balance");
+    AmountWithTwabIndex memory user = _usersBalanceWithTwabIndex[_from];
+    require(user.amount >= amount, "ERC20: burn amount exceeds balance");
     unchecked {
-      _balancesWithTwabIndex[_from] = BalanceWithTwabIndex({
-        balance: user.balance - amount,
-        nextTwabIndex: _newTwab(_from, user.nextTwabIndex)
+      _usersBalanceWithTwabIndex[_from] = AmountWithTwabIndex({
+        amount: user.amount - amount,
+        nextTwabIndex: _newUserTwab(_from, user.nextTwabIndex)
       });
     }
 
-    TotalSupplyWithTwabIndex memory ticket = _totalSupplyWithTwabIndex;
-    _totalSupplyWithTwabIndex = TotalSupplyWithTwabIndex({
-      totalSupply: ticket.totalSupply - amount,
-      nextTwabIndex:  _newTotalSupplyTwab(_totalSupplyWithTwabIndex.nextTwabIndex)
+    AmountWithTwabIndex memory ticketTotalSupply = _totalSupplyWithTwabIndex;
+    _totalSupplyWithTwabIndex = AmountWithTwabIndex({
+      amount: ticketTotalSupply.amount - amount,
+      nextTwabIndex:  _newTotalSupplyTwab(ticketTotalSupply.nextTwabIndex)
     });
 
     emit Transfer(_from, address(0), _amount);
