@@ -7,8 +7,7 @@ module.exports = {
   },
   skipFiles: [
     "external",
-    "import"
+    "import",
     "test",
-    "Pseudocode.sol"
   ]
 };
