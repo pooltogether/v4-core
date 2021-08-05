@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { utils, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
 
-import { increaseTime as increaseTimeHelper } from '../helpers';
+import { increaseTime as increaseTimeHelper } from './helpers/increaseTime';
 
 const { getSigners, provider } = ethers;
 const { getBlock } = provider;
@@ -17,7 +17,7 @@ type BinarySearchResult = {
   timestamp: number;
 };
 
-const calculateTwab = (response: BinarySearchResult[] ) => {
+const calculateTwab = (response: BinarySearchResult[]) => {
   const beforeOrAt = response[0];
   const atOrAfter = response[1];
 
@@ -198,22 +198,18 @@ describe('Ticket', () => {
         userTwabs.push({
           amount: 0,
           timestamp: 0,
-        })
+        });
       }
 
       const userTwabIndex = ticket.mostRecentTwabIndexOfUser(wallet1.address);
 
       await ticket
         .binarySearch(userTwabs, userTwabIndex, timestampAfterFirstMint)
-        .then((response: BinarySearchResult[]) =>
-          expect(calculateTwab(response)).to.equal(1000)
-        );
+        .then((response: BinarySearchResult[]) => expect(calculateTwab(response)).to.equal(1000));
 
       await ticket
         .binarySearch(userTwabs, userTwabIndex, timestampAfterSecondMint)
-        .then((response: BinarySearchResult[]) =>
-          expect(calculateTwab(response)).to.equal(2000),
-        );
+        .then((response: BinarySearchResult[]) => expect(calculateTwab(response)).to.equal(2000));
     });
   });
 
@@ -235,7 +231,10 @@ describe('Ticket', () => {
 
       const nextTwabIndex = mostRecentTwabIndex.add(1) % (await ticket.CARDINALITY());
 
-      expect(await ticket.newUserTwab(wallet1.address, nextTwabIndex)).to.not.emit(ticket, 'NewUserTwab');
+      expect(await ticket.newUserTwab(wallet1.address, nextTwabIndex)).to.not.emit(
+        ticket,
+        'NewUserTwab',
+      );
     });
 
     it('should fail to record a new twab if balance overflow', async () => {
@@ -272,7 +271,10 @@ describe('Ticket', () => {
 
       const nextTwabIndex = mostRecentTwabIndex.add(1) % (await ticket.CARDINALITY());
 
-      expect(await ticket.newTotalSupplyTwab(nextTwabIndex)).to.not.emit(ticket, 'NewTotalSupplyTwab');
+      expect(await ticket.newTotalSupplyTwab(nextTwabIndex)).to.not.emit(
+        ticket,
+        'NewTotalSupplyTwab',
+      );
     });
 
     it('should fail to record a new twab if balance overflow', async () => {
@@ -283,7 +285,9 @@ describe('Ticket', () => {
         ticket.mint(wallet1.address, maxBalance);
 
         if (index === 1) {
-          await expect(ticket.mint(wallet2.address, balanceOverflow)).to.be.revertedWith('SafeCast: value doesn\'t fit in 224 bits');
+          await expect(ticket.mint(wallet2.address, balanceOverflow)).to.be.revertedWith(
+            "SafeCast: value doesn't fit in 224 bits",
+          );
         }
       }
     });
@@ -483,9 +487,7 @@ describe('Ticket', () => {
 
       const timestampAfterTransfer = (await getBlock('latest')).timestamp;
 
-      expect(await ticket.getTotalSupply(timestampAfterTransfer)).to.equal(
-        balanceBefore,
-      );
+      expect(await ticket.getTotalSupply(timestampAfterTransfer)).to.equal(balanceBefore);
 
       await ticket.burn(wallet2.address, burnAmount);
 
