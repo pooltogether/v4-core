@@ -9,7 +9,7 @@ type DrawSettings  = {
 }
 
 type Draw = {
-    timestamp : number
+    timestamp : number // dont think this is needed
     prize: BigNumber
     winningRandomNumber: BigNumber
 }
@@ -20,6 +20,32 @@ type User = {
     pickIndices: BigNumber[]
 }
 
+
+const exampleDrawSettings : DrawSettings = {
+    distributions: [ethers.utils.parseEther("0.3"),
+                    ethers.utils.parseEther("0.2"),
+                    ethers.utils.parseEther("0.1")],
+    pickCost: BigNumber.from(ethers.utils.parseEther("1")),
+    matchCardinality: BigNumber.from(5),
+    bitRangeValue: BigNumber.from(15),
+    bitRangeSize : BigNumber.from(4)
+}
+
+const exampleDraw : Draw = {
+    timestamp : 10000,
+    prize: BigNumber.from(100),
+    winningRandomNumber: BigNumber.from(61676)
+}
+
+const exampleUser : User = {
+    address: "0x568Ea56Dd5d8044269b1482D3ad4120a7aB0933A",
+    balance: ethers.utils.parseEther("10"),
+    pickIndices: [BigNumber.from(1)]
+} 
+
+
+
+runDrawCalculatorForSingleDraw(exampleDrawSettings, exampleDraw, exampleUser)
 
 async function runSimulationNTimes(n: number, drawSettings: DrawSettings){
     console.log(`running DrawCalculator simulation ${n} times..`)
@@ -33,14 +59,12 @@ async function runSimulationNTimes(n: number, drawSettings: DrawSettings){
     //record finishing time
 }
 
-const defaultAbiCoder = ethers.utils.defaultAbiCoder
-
 async function runDrawCalculatorForSingleDraw(drawSettings: DrawSettings, draw: Draw, user: User): Promise<BigNumber>{ // returns number of runs it took to find a result
-    
+    console.log("running single draw calc")
     /* CALCULATE() */
     //  bytes32 userRandomNumber = keccak256(abi.encodePacked(user)); // hash the users address
     const userRandomNumber = ethers.utils.solidityKeccak256(["address"], [user.address])
-
+    console.log("user random number ")
     // for (uint256 index = 0; index < winningRandomNumbers.length; index++) {
 
     //single winning number -> no loop required
@@ -48,8 +72,10 @@ async function runDrawCalculatorForSingleDraw(drawSettings: DrawSettings, draw: 
     /* _CALCULATE()*/   
     // uint256 totalUserPicks = balance / _drawSettings.pickCost;
     const totalUserPicks = user.balance.div(drawSettings.pickCost)
-
+    console.log("totalUserPicks ", totalUserPicks)
     let pickPayoutFraction: BigNumber = BigNumber.from(0)
+
+    const defaultAbiCoder = ethers.utils.defaultAbiCoder
 
     const picksLength = user.pickIndices.length
     //for(uint256 index  = 0; index < picks.length; index++){
@@ -60,7 +86,10 @@ async function runDrawCalculatorForSingleDraw(drawSettings: DrawSettings, draw: 
     
         // uint256 randomNumberThisPick = uint256(keccak256(abi.encode(userRandomNumber, picks[index])));       
         const abiEncodedRandomNumberPlusPickIndice = defaultAbiCoder.encode(["bytes32","uint256"],[userRandomNumber,user. pickIndices[i]])
-        const randomNumberThisPick: string = ethers.utils.solidityKeccak256(["bytes32"], [abiEncodedRandomNumberPlusPickIndice])
+        console.log(abiEncodedRandomNumberPlusPickIndice)
+        
+        // does the below line type need to be bytes32?
+        const randomNumberThisPick: string = ethers.utils.solidityKeccak256(["string"], [abiEncodedRandomNumberPlusPickIndice])
         
         // pickPayoutFraction += calculatePickFraction(randomNumberThisPick, winningRandomNumber, _drawSettings);
         pickPayoutFraction = pickPayoutFraction.add(calculatePickFraction(randomNumberThisPick, draw.winningRandomNumber, drawSettings, draw))
@@ -110,7 +139,10 @@ function findBitMatchesAtIndex(word1: BigNumber, word2: BigNumber, indexOffset: 
 
 }
 
-
+// console.log(findBitMatchesAtIndex(BigNumber.from(61676),
+//                                  BigNumber.from(61612),
+//                                  BigNumber.from(8),
+//                                   BigNumber.from(255)))
 
 
 // calculates the absolute amount of Prize in Wei for the Draw and DrawSettings
