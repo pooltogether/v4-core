@@ -1,23 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
-import "@pooltogether/yield-source-interface/contracts/IYieldSource.sol";
 
+import "./ClaimableDrawPrizeStrategyBuilder.sol";
 import "../import/registry/RegistryInterface.sol";
 import "../import/prize-pool/compound/CompoundPrizePoolProxyFactory.sol";
-import "./ClaimableDrawPrizeStrategyBuilder.sol";
 
 contract PoolClaimableDrawPrizeStrategyBuilder {
   using SafeCastUpgradeable for uint256;
 
   event CompoundPrizePoolWithClaimableDrawCreated(
     CompoundPrizePool indexed prizePool,
-    MultipleWinners indexed prizeStrategy
+    ClaimableDrawPrizeStrategy indexed prizeStrategy
   );
-
 
   /// @notice The configuration used to initialize the Compound Prize Pool
   struct CompoundPrizePoolConfig {
@@ -33,7 +29,7 @@ contract PoolClaimableDrawPrizeStrategyBuilder {
     RegistryInterface _reserveRegistry,
     CompoundPrizePoolProxyFactory _compoundPrizePoolProxyFactory,
     ClaimableDrawPrizeStrategyBuilder _claimableDrawPrizeStrategyBuilder
-  ) public {
+  ) {
     require(address(_reserveRegistry) != address(0), "GlobalBuilder/reserveRegistry-not-zero");
     require(address(_compoundPrizePoolProxyFactory) != address(0), "GlobalBuilder/compoundPrizePoolProxyFactory-not-zero");
     require(address(_claimableDrawPrizeStrategyBuilder) != address(0), "GlobalBuilder/claimableDrawPrizeStrategyBuilder-not-zero");
@@ -44,13 +40,15 @@ contract PoolClaimableDrawPrizeStrategyBuilder {
 
   function createCompoundClaimableDrawPrizeStrategy(
     CompoundPrizePoolConfig memory prizePoolConfig,
-    ClaimableDrawPrizeStrategyBuilder.MultipleWinnersConfig memory prizeStrategyConfig,
+    ClaimableDrawPrizeStrategyBuilder.ClaimableDrawBuilderConfig memory prizeStrategyConfig,
+    TsunamiDrawCalculator.DrawSettings memory calculatorDrawSettings,
     uint8 decimals
   ) external returns (CompoundPrizePool) {
     CompoundPrizePool prizePool = compoundPrizePoolProxyFactory.create();
-    MultipleWinners prizeStrategy = multipleWinnersBuilder.createClaimableDrawBuilder(
+    ClaimableDrawPrizeStrategy prizeStrategy = claimableDrawPrizeStrategyBuilder.createClaimableDraw(
       prizePool,
       prizeStrategyConfig,
+      calculatorDrawSettings,
       decimals,
       msg.sender
     );
@@ -72,10 +70,10 @@ contract PoolClaimableDrawPrizeStrategyBuilder {
   }
 
  
-  function _tokens(MultipleWinners _multipleWinners) internal view returns (ControlledTokenInterface[] memory) {
+  function _tokens(ClaimableDrawPrizeStrategy _claimableDrawPrizeStrategy) internal view returns (ControlledTokenInterface[] memory) {
     ControlledTokenInterface[] memory tokens = new ControlledTokenInterface[](2);
-    tokens[0] = ControlledTokenInterface(address(_multipleWinners.ticket()));
-    tokens[1] = ControlledTokenInterface(address(_multipleWinners.sponsorship()));
+    tokens[0] = ControlledTokenInterface(address(_claimableDrawPrizeStrategy.ticket()));
+    tokens[1] = ControlledTokenInterface(address(_claimableDrawPrizeStrategy.sponsorship()));
     return tokens;
   }
 

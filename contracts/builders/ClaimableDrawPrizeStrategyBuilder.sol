@@ -5,7 +5,8 @@ pragma solidity 0.8.6;
 import "./ControlledTokenBuilder.sol";
 import "../ClaimableDrawProxyFactory.sol";
 import "../ClaimableDrawPrizeStrategyProxyFactory.sol";
-import "../import/prize-strategy/PrizeSplit.sol";
+import "../TsunamiDrawCalculatorProxyFactory.sol";
+import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 
 /* solium-disable security/no-block-members */
 contract ClaimableDrawPrizeStrategyBuilder {
@@ -28,29 +29,53 @@ contract ClaimableDrawPrizeStrategyBuilder {
 
   ClaimableDrawProxyFactory public claimableDrawProxyFactory;
   ClaimableDrawPrizeStrategyProxyFactory public claimableDrawPrizeStrategyProxyFactory;
+  TsunamiDrawCalculatorProxyFactory public tsunamiDrawCalculatorProxyFactory;
   ControlledTokenBuilder public controlledTokenBuilder;
 
   constructor (
     ClaimableDrawProxyFactory _claimableDrawProxyFactory,
     ClaimableDrawPrizeStrategyProxyFactory _claimableDrawPrizeStrategyProxyFactory,
+    TsunamiDrawCalculatorProxyFactory _tsunamiDrawCalculatorProxyFactory,
     ControlledTokenBuilder _controlledTokenBuilder
   ) {
     require(address(_claimableDrawProxyFactory) != address(0), "ClaimableDrawBuilderBuilder/claimableDrawProxyFactory-not-zero");
     require(address(_claimableDrawPrizeStrategyProxyFactory) != address(0), "ClaimableDrawBuilderBuilder/claimableDrawPrizeStrategyProxyFactory-not-zero");
+    require(address(_tsunamiDrawCalculatorProxyFactory) != address(0), "ClaimableDrawBuilderBuilder/tsunamiDrawCalculatorProxyFactory-not-zero");
     require(address(_controlledTokenBuilder) != address(0), "ClaimableDrawBuilderBuilder/token-builder-not-zero");
     claimableDrawProxyFactory = _claimableDrawProxyFactory;
     claimableDrawPrizeStrategyProxyFactory = _claimableDrawPrizeStrategyProxyFactory;
+    tsunamiDrawCalculatorProxyFactory = _tsunamiDrawCalculatorProxyFactory;
     controlledTokenBuilder = _controlledTokenBuilder;
   }
 
-  function createClaimableDrawBuilder(
+  function createClaimableDraw(
     PrizePool prizePool,
     ClaimableDrawBuilderConfig memory prizeStrategyConfig,
+    TsunamiDrawCalculator.DrawSettings memory calculatorDrawSettings,
     uint8 decimals,
     address owner
   ) external returns (ClaimableDrawPrizeStrategy) {
-    ClaimableDraw cd = claimableDrawProxyFactory.create();
     ClaimableDrawPrizeStrategy cdprz = claimableDrawPrizeStrategyProxyFactory.create();
+
+    // Internal function to avoid stack to deep error. 
+    initializeClaimableDraw(prizePool, cdprz, prizeStrategyConfig, calculatorDrawSettings, decimals);
+
+    cdprz.setPrizeSplits(prizeStrategyConfig.prizeSplits);
+    cdprz.transferOwnership(owner);
+    emit ClaimableDrawBuilderCreated(address(cdprz));
+
+    return cdprz;
+  }
+
+  function initializeClaimableDraw(
+    PrizePool prizePool,
+    ClaimableDrawPrizeStrategy cdprz, 
+    ClaimableDrawBuilderConfig memory prizeStrategyConfig, 
+    TsunamiDrawCalculator.DrawSettings memory calculatorDrawSettings,
+    uint8 decimals
+  ) internal {
+    ClaimableDraw cd = claimableDrawProxyFactory.create();
+    TsunamiDrawCalculator calculator = tsunamiDrawCalculatorProxyFactory.create();
 
     Ticket ticket = _createTicket(
       prizeStrategyConfig.ticketName,
@@ -76,17 +101,12 @@ contract ClaimableDrawPrizeStrategyBuilder {
       cd
     );
 
-    cdprz.setPrizeSplits(prizeStrategyConfig.prizeSplits);
+    // Initialize ClaimableDraw
+    cd.initialize(address(cdprz), calculator);
+    
+    // Initialize Calculator
+    calculator.initialize(ITicket(address(ticket)), calculatorDrawSettings);
 
-    if (prizeStrategyConfig.splitExternalErc20Awards) {
-      cdprz.setSplitExternalErc20Awards(true);
-    }
-
-    cdprz.transferOwnership(owner);
-
-    emit ClaimableDrawBuilderCreated(address(cdprz));
-
-    return cdprz;
   }
 
   function _createTicket(

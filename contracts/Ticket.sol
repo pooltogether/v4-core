@@ -13,9 +13,10 @@ import "hardhat/console.sol";
 
 import "./interfaces/IClaimer.sol";
 import "./interfaces/ITicket.sol";
+import "./interfaces/TicketInterface.sol";
 
 
-contract Ticket is ITicket, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable {
+contract Ticket is TicketInterface, IClaimer, ERC20PermitUpgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeCastUpgradeable for uint256;
   using SafeMathUpgradeable for uint256;

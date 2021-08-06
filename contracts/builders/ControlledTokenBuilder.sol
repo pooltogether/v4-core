@@ -24,7 +24,7 @@ contract ControlledTokenBuilder {
   constructor (
     ControlledTokenProxyFactory _controlledTokenProxyFactory,
     TicketProxyFactory _ticketProxyFactory
-  ) public {
+  ) {
     require(address(_controlledTokenProxyFactory) != address(0), "ControlledTokenBuilder/controlledTokenProxyFactory-not-zero");
     require(address(_ticketProxyFactory) != address(0), "ControlledTokenBuilder/ticketProxyFactory-not-zero");
     controlledTokenProxyFactory = _controlledTokenProxyFactory;
@@ -56,8 +56,8 @@ contract ControlledTokenBuilder {
     token.initialize(
       config.name,
       config.symbol,
-      config.decimals,
-      config.controller
+      config.decimals
+      // config.controller
     );
 
     emit CreatedTicket(address(token));

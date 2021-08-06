@@ -58,7 +58,7 @@ contract ClaimableDrawPrizeStrategy is Initializable,
     uint256 _prizePeriodStart,
     uint256 _prizePeriodSeconds,
     PrizePool _prizePool,
-    Ticket _ticket,
+    TicketInterface _ticket,
     IERC20Upgradeable _sponsorship,
     RNGInterface _rng,
     ClaimableDraw _claimableDraw
