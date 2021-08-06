@@ -30,7 +30,7 @@ describe('TsunamiDrawCalculator', () => {
         dim(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
         const drawCalculator: Contract = await deployDrawCalculator(wallet1)
         
-        let ticketArtifact = await artifacts.readArtifact('ITicketTwab')
+        let ticketArtifact = await artifacts.readArtifact('Ticket')
         ticket = await deployMockContract(wallet1, ticketArtifact.abi)
         
         await drawCalculator.initialize(ticket.address, drawSettings)
@@ -95,18 +95,19 @@ describe('TsunamiDrawCalculator', () => {
     [wallet1, wallet2, wallet3] = await getSigners();
     drawCalculator = await deployDrawCalculator(wallet1);
 
-    let ticketArtifact = await artifacts.readArtifact('ITicketTwab');
+    let ticketArtifact = await artifacts.readArtifact('TicketTwab');
     ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
     const drawSettings: DrawSettings = {
       distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-      pickCost: BigNumber.from(utils.parseEther('1')),
+      pickCost: BigNumber.from(utils.parseEther('2')),
       matchCardinality: BigNumber.from(5),
       bitRangeValue: BigNumber.from(15),
       bitRangeSize: BigNumber.from(4),
     };
-
+    
     await drawCalculator.initialize(ticket.address, drawSettings);
+    
   });
 
   describe('finding winning random numbers with helper', () => {
@@ -119,7 +120,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther('1')),
+        pickCost: BigNumber.from(utils.parseEther("1")),
         bitRangeValue: BigNumber.from(7),
         bitRangeSize: BigNumber.from(3),
       };
@@ -137,7 +138,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther('1')),
+        pickCost: BigNumber.from(utils.parseEther("1")),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(4),
       };
@@ -159,7 +160,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther('1')),
+        pickCost: BigNumber.from(utils.parseEther("1")),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(4),
       };
@@ -172,7 +173,7 @@ describe('TsunamiDrawCalculator', () => {
       const params: DrawSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [ethers.utils.parseEther('0.9'), ethers.utils.parseEther('0.1')],
-        pickCost: BigNumber.from(utils.parseEther('1')),
+        pickCost: BigNumber.from(1),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(1),
       };
@@ -388,6 +389,20 @@ describe('TsunamiDrawCalculator', () => {
           pickIndices,
         ),
       ).to.equal(utils.parseEther('80'));
+
+      console.log(
+        'GasUsed for 2 calculate() calls: ',
+        (
+          await drawCalculator.estimateGas.calculate(
+            wallet1.address,
+            [winningRandomNumber, winningRandomNumber],
+            [timestamp1, timestamp2],
+            prizes,
+            pickIndices,
+          )
+        ).toString(),
+      );
+
     });
 
     it('should not have enough funds for a second pick and revert', async () => {
@@ -407,6 +422,16 @@ describe('TsunamiDrawCalculator', () => {
       await ticket.mock.getBalances
         .withArgs(wallet1.address, [timestamp1, timestamp2])
         .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
+
+      const drawSettings: DrawSettings = {
+        distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
+        pickCost: BigNumber.from(utils.parseEther("10")),
+        matchCardinality: BigNumber.from(5),
+        bitRangeValue: BigNumber.from(15),
+        bitRangeSize: BigNumber.from(4),
+      };
+
+      await drawCalculator.setDrawSettings(drawSettings)
 
       await expect(
         drawCalculator.calculate(
