@@ -30,7 +30,7 @@ describe('TsunamiDrawCalculator', () => {
         dim(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
         const drawCalculator: Contract = await deployDrawCalculator(wallet1)
         
-        let ticketArtifact = await artifacts.readArtifact('ITicket')
+        let ticketArtifact = await artifacts.readArtifact('ITicketTwab')
         ticket = await deployMockContract(wallet1, ticketArtifact.abi)
         
         await drawCalculator.initialize(ticket.address, drawSettings)

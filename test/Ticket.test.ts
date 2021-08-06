@@ -61,7 +61,7 @@ describe('Ticket', () => {
   beforeEach(async () => {
     [wallet1, wallet2] = await getSigners();
 
-    const TokenControllerInterface = await hre.artifacts.readArtifact('TokenControllerInterface');
+    const TokenControllerInterface = await hre.artifacts.readArtifact('contracts/import/token/TokenControllerInterface.sol:TokenControllerInterface');
     controller = await deployMockContract(wallet1 as Signer, TokenControllerInterface.abi);
 
     await controller.mock.beforeTokenTransfer.returns();
