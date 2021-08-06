@@ -5,7 +5,7 @@ import { ethers, artifacts } from 'hardhat';
 import { Interface } from 'ethers/lib/utils';
 
 const printUtils = require("./helpers/printUtils")
-const { green } = printUtils
+const { green, dim } = printUtils
 
 const { getSigners, provider } = ethers;
 const { parseEther: toWei } = utils;
@@ -27,7 +27,7 @@ describe('TsunamiDrawCalculator', () => {
     const encoder = ethers.utils.defaultAbiCoder
 
     async function findWinningNumberForUser(userAddress: string, matchesRequired: number, drawSettings: DrawSettings) {
-        console.log(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
+        dim(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
         const drawCalculator: Contract = await deployDrawCalculator(wallet1)
         
         let ticketArtifact = await artifacts.readArtifact('ITicket')
@@ -43,7 +43,7 @@ describe('TsunamiDrawCalculator', () => {
         await ticket.mock.getBalances.withArgs(userAddress, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
 
         const distributionIndex = drawSettings.matchCardinality.toNumber() - matchesRequired
-        console.log("distributionIndex ", distributionIndex)
+        dim(`distributionIndex: ${distributionIndex}`)
 
         if(drawSettings.distributions.length < distributionIndex){
            throw new Error(`There are only ${drawSettings.distributions.length} tiers of prizes`) // there is no "winning number" in this case
@@ -52,14 +52,15 @@ describe('TsunamiDrawCalculator', () => {
         // now calculate the expected prize amount for these settings
         // totalPrize *  (distributions[index]/(range ^ index)) where index = matchCardinality - numberOfMatches
         const numberOfPrizes = Math.pow(drawSettings.bitRangeSize.toNumber(), distributionIndex)
-        console.log("numberOfPrizes ", numberOfPrizes)
+        dim(`numberOfPrizes: ${numberOfPrizes}`)
         
         const valueAtDistributionIndex : BigNumber = drawSettings.distributions[distributionIndex]
-        console.log("valueAtDistributionIndex ", valueAtDistributionIndex)
+        dim(`valueAtDistributionIndex: ${valueAtDistributionIndex}`)
+        
         const percentageOfPrize: BigNumber= valueAtDistributionIndex.div(numberOfPrizes)
         const expectedPrizeAmount : BigNumber = (prizes[0]).mul(percentageOfPrize as any).div(ethers.constants.WeiPerEther) 
 
-        console.log("expectedPrizeAmount ", expectedPrizeAmount.toString())
+        dim(`expectedPrizeAmount: ${expectedPrizeAmount.toString()}`)
         let winningRandomNumber
 
         while(true){
