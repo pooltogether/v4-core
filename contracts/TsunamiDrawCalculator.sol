@@ -9,20 +9,21 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 ///@title TsunamiDrawCalculator is an ownable implmentation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   
+  ///@notice Ticket associated with DrawCalculator
   ITicketTwab ticket;
 
   ///@notice Draw settings struct
   ///@param bitRangeValue Decimal representation of bitRangeSize
   ///@param bitRangeSize Number of bits to consider matching
   ///@param matchCardinality The bitRangeSize's to consider in the 256 random numbers. Must be > 1 and < 256/bitRangeSize
-  ///@param picksAllowed Amount of ticket balance required per pick
-  ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether.
+  ///@param pickCost Amount of ticket balance required per pick
+  ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether. ordering: index0: grandPrize, index1: runnerUp, etc.
   struct DrawSettings {
     uint8 bitRangeValue;
     uint8 bitRangeSize;
     uint16 matchCardinality;
-    uint224 picksAllowed;
-    uint256[] distributions; // in order: index0: grandPrize, index1: runnerUp, etc. -- can we make this smaller since just storing <1e18 numbers
+    uint224 pickCost;
+    uint128[] distributions;
   }
 
   ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? store elsewhere?
@@ -84,12 +85,12 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   function _calculate(uint256 winningRandomNumber, uint256 prize, uint256 balance, bytes32 userRandomNumber, uint256[] memory picks, DrawSettings memory _drawSettings)
     internal pure returns (uint256)
   {
-    // uint256 totalUserPicks = balance / _drawSettings.pickCost;
+    uint256 totalUserPicks = balance / _drawSettings.pickCost;
     uint256 pickPayoutFraction = 0;
 
     for(uint256 index  = 0; index < picks.length; index++){
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(userRandomNumber, picks[index])));
-      require(picks[index] < _drawSettings.picksAllowed, "DrawCalc/insufficient-user-picks");
+      require(picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
       pickPayoutFraction += calculatePickFraction(randomNumberThisPick, winningRandomNumber, _drawSettings);
     }
     return (pickPayoutFraction * prize) / 1 ether;
@@ -174,7 +175,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gt-distributions");
     require(_drawSettings.bitRangeValue == (2 ** _drawSettings.bitRangeSize) - 1, "DrawCalc/bitRangeValue-incorrect");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
-    require(_drawSettings.picksAllowed > 0, "DrawCalc/pick-gt-0");
+    require(_drawSettings.pickCost > 0, "DrawCalc/pick-cost-gt-0");
 
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];

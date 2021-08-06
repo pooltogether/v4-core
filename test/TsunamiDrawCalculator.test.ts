@@ -12,7 +12,7 @@ const { parseEther: toWei } = utils;
 
 type DrawSettings = {
   matchCardinality: BigNumber;
-  picksAllowed: BigNumber;
+  pickCost: BigNumber;
   distributions: BigNumber[];
   bitRangeValue: BigNumber;
   bitRangeSize: BigNumber;
@@ -100,7 +100,7 @@ describe('TsunamiDrawCalculator', () => {
 
     const drawSettings: DrawSettings = {
       distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-      picksAllowed: BigNumber.from(utils.parseEther('2')),
+      pickCost: BigNumber.from(utils.parseEther('2')),
       matchCardinality: BigNumber.from(5),
       bitRangeValue: BigNumber.from(15),
       bitRangeSize: BigNumber.from(4),
@@ -120,7 +120,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        picksAllowed: BigNumber.from(2),
+        pickCost: BigNumber.from(utils.parseEther("1")),
         bitRangeValue: BigNumber.from(7),
         bitRangeSize: BigNumber.from(3),
       };
@@ -138,7 +138,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        picksAllowed: BigNumber.from(1),
+        pickCost: BigNumber.from(utils.parseEther("1")),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(4),
       };
@@ -160,7 +160,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        picksAllowed: BigNumber.from(1),
+        pickCost: BigNumber.from(utils.parseEther("1")),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(4),
       };
@@ -173,7 +173,7 @@ describe('TsunamiDrawCalculator', () => {
       const params: DrawSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [ethers.utils.parseEther('0.9'), ethers.utils.parseEther('0.1')],
-        picksAllowed: BigNumber.from(1),
+        pickCost: BigNumber.from(1),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(1),
       };
@@ -389,6 +389,20 @@ describe('TsunamiDrawCalculator', () => {
           pickIndices,
         ),
       ).to.equal(utils.parseEther('80'));
+
+      console.log(
+        'GasUsed for 2 calculate() calls: ',
+        (
+          await drawCalculator.estimateGas.calculate(
+            wallet1.address,
+            [winningRandomNumber, winningRandomNumber],
+            [timestamp1, timestamp2],
+            prizes,
+            pickIndices,
+          )
+        ).toString(),
+      );
+
     });
 
     it('should not have enough funds for a second pick and revert', async () => {
@@ -411,7 +425,7 @@ describe('TsunamiDrawCalculator', () => {
 
       const drawSettings: DrawSettings = {
         distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-        picksAllowed: BigNumber.from(1),
+        pickCost: BigNumber.from(utils.parseEther("10")),
         matchCardinality: BigNumber.from(5),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(4),
@@ -467,7 +481,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        picksAllowed: BigNumber.from(utils.parseEther('1')),
+        pickCost: BigNumber.from(utils.parseEther('1')),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(4),
       };
@@ -492,7 +506,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        picksAllowed: BigNumber.from(utils.parseEther('1')),
+        pickCost: BigNumber.from(utils.parseEther('1')),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(4),
       };
@@ -525,7 +539,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        picksAllowed: BigNumber.from(utils.parseEther('1')),
+        pickCost: BigNumber.from(utils.parseEther('1')),
         bitRangeValue: BigNumber.from(7),
         bitRangeSize: BigNumber.from(3),
       };
@@ -552,7 +566,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        picksAllowed: BigNumber.from(utils.parseEther('1')),
+        pickCost: BigNumber.from(utils.parseEther('1')),
         bitRangeValue: BigNumber.from(15),
         bitRangeSize: BigNumber.from(4),
       };
