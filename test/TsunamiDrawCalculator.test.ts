@@ -81,53 +81,15 @@ describe('TsunamiDrawCalculator', () => {
     
         return winningRandomNumber
     }
-
-    // now calculate the expected prize amount for these settings
-    // totalPrize *  (distributions[index]/(range ^ index)) where index = matchCardinality - numberOfMatches
-    const numberOfPrizes = Math.pow(drawSettings.bitRangeSize.toNumber(), distributionIndex);
-    console.log('numberOfPrizes ', numberOfPrizes);
-
-    const valueAtDistributionIndex: BigNumber = drawSettings.distributions[distributionIndex];
-    console.log('valueAtDistributionIndex ', valueAtDistributionIndex);
-    const percentageOfPrize: BigNumber = valueAtDistributionIndex.div(numberOfPrizes);
-    const expectedPrizeAmount: BigNumber = prizes[0]
-      .mul(percentageOfPrize as any)
-      .div(ethers.constants.WeiPerEther);
-
-    console.log('expectedPrizeAmount ', expectedPrizeAmount.toString());
-    let winningRandomNumber;
-
-    while (true) {
-      winningRandomNumber = utils.solidityKeccak256(
-        ['address'],
-        [ethers.Wallet.createRandom().address],
-      );
-      console.log('trying a new random number');
-      const result = await drawCalculator.calculate(
-        userAddress,
-        [winningRandomNumber],
-        [timestamp],
-        prizes,
-        pickIndices,
-      );
-
-      if (result.eq(expectedPrizeAmount)) {
-        console.log('found a winning number!', winningRandomNumber);
-        break;
-      }
+  
+    async function deployDrawCalculator(signer: any): Promise<Contract> {
+        const drawCalculatorFactory = await ethers.getContractFactory(
+        'TsunamiDrawCalculatorHarness',
+        signer,
+        );
+        const drawCalculator: Contract = await drawCalculatorFactory.deploy();
+        return drawCalculator;
     }
-
-    return winningRandomNumber;
-  }
-
-  async function deployDrawCalculator(signer: any): Promise<Contract> {
-    const drawCalculatorFactory = await ethers.getContractFactory(
-      'TsunamiDrawCalculatorHarness',
-      signer,
-    );
-    const drawCalculator: Contract = await drawCalculatorFactory.deploy();
-    return drawCalculator;
-  }
 
   beforeEach(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
