@@ -1,66 +1,17 @@
 import { BigNumber, ethers } from "ethers";
-
-type DrawSettings  = {
-    matchCardinality: BigNumber
-    pickCost: BigNumber
-    distributions: BigNumber[]
-    bitRangeValue: BigNumber
-    bitRangeSize: BigNumber
-}
-
-type Draw = {
-    timestamp : number // dont think this is needed
-    prize: BigNumber
-    winningRandomNumber: BigNumber
-}
-
-type User = {
-    address: string
-    balance: BigNumber
-    pickIndices: BigNumber[]
-}
-
-
-const exampleDrawSettings : DrawSettings = {
-    distributions: [ethers.utils.parseEther("0.3"),
-                    ethers.utils.parseEther("0.2"),
-                    ethers.utils.parseEther("0.1")],
-    pickCost: BigNumber.from(ethers.utils.parseEther("1")),
-    matchCardinality: BigNumber.from(5),
-    bitRangeValue: BigNumber.from(15),
-    bitRangeSize : BigNumber.from(4)
-}
-
-const exampleDraw : Draw = {
-    timestamp : 10000,
-    prize: BigNumber.from(100),
-    winningRandomNumber: BigNumber.from(61676)
-}
-
-const exampleUser : User = {
-    address: "0x568Ea56Dd5d8044269b1482D3ad4120a7aB0933A",
-    balance: ethers.utils.parseEther("10"),
-    pickIndices: [BigNumber.from(1)]
-} 
+import {Draw, DrawSettings, User} from "./types"
 
 
 
-runDrawCalculatorForSingleDraw(exampleDrawSettings, exampleDraw, exampleUser)
-
-async function runSimulationNTimes(n: number, drawSettings: DrawSettings){
-    console.log(`running DrawCalculator simulation ${n} times..`)
-
-    //record starting time
-
-    // for i = 0; i < n; 
-        // change random number
-        // runDrawCalculatorForSingleWinningNumber
-
-    //record finishing time
-}
-
-async function runDrawCalculatorForSingleDraw(drawSettings: DrawSettings, draw: Draw, user: User): Promise<BigNumber>{ // returns number of runs it took to find a result
+export function runDrawCalculatorForSingleDraw(drawSettings: DrawSettings, draw: Draw, user: User): BigNumber { // returns number of runs it took to find a result
     console.log("running single draw calc")
+    
+    const sanityCheckDrawSettingsResult = sanityCheckDrawSettings(drawSettings)
+    
+    if(sanityCheckDrawSettingsResult != ""){
+        throw new Error(`DrawSettings invalid: ${sanityCheckDrawSettingsResult}`)
+    }
+
     /* CALCULATE() */
     //  bytes32 userRandomNumber = keccak256(abi.encodePacked(user)); // hash the users address
     const userRandomNumber = ethers.utils.solidityKeccak256(["address"], [user.address])
@@ -95,11 +46,11 @@ async function runDrawCalculatorForSingleDraw(drawSettings: DrawSettings, draw: 
         pickPayoutFraction = pickPayoutFraction.add(calculatePickFraction(randomNumberThisPick, draw.winningRandomNumber, drawSettings, draw))
 
     }
-    return pickPayoutFraction.mul(draw.prize); // div by 1 ether? 
+    return pickPayoutFraction.mul(draw.prize);
 }
 
 //function calculatePickFraction(uint256 randomNumberThisPick, uint256 winningRandomNumber, DrawSettings memory _drawSettings)
-function calculatePickFraction(randomNumberThisPick: string, winningRandomNumber: BigNumber, _drawSettings: DrawSettings, draw: Draw):BigNumber{
+export function calculatePickFraction(randomNumberThisPick: string, winningRandomNumber: BigNumber, _drawSettings: DrawSettings, draw: Draw): BigNumber {
     
     const prizeFraction : BigNumber = BigNumber.from(0);
     let numberOfMatches : number = 0;
@@ -112,45 +63,35 @@ function calculatePickFraction(randomNumberThisPick: string, winningRandomNumber
             numberOfMatches++;
         }
     }
-    console.log(`found ${numberOfMatches}`)
+    console.log(`found ${numberOfMatches} matches..`)
 
     return calculatePrizeAmount(_drawSettings, draw, numberOfMatches)
-
 }
 
 
 //function _findBitMatchesAtIndex(uint256 word1, uint256 word2, uint256 indexOffset, uint8 _bitRangeMaskValue) 
-function findBitMatchesAtIndex(word1: BigNumber, word2: BigNumber, indexOffset: BigNumber, bitRangeValue: BigNumber): boolean {
+export function findBitMatchesAtIndex(word1: BigNumber, word2: BigNumber, indexOffset: BigNumber, bitRangeValue: BigNumber): boolean {
 
     const word1DataHexString: string = word1.toHexString()
     const word2DataHexString: string = word2.toHexString()
 
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators
 
-    // const word1BigInt : BigInt = BigInt(word1DataHexString)
-    // const word2BigInt : BigInt = BigInt(word2DataHexString)
-
     const mask : BigInt = BigInt(bitRangeValue.toString()) << BigInt(indexOffset.toString())
 
-    const bits1 = BigInt(word1DataHexString) & BigInt(mask) // need to re-cast here stop compiler from complaining
+    const bits1 = BigInt(word1DataHexString) & BigInt(mask)
     const bits2 = BigInt(word2DataHexString) & BigInt(mask)
 
     return bits1 == bits2
-
 }
-
-// console.log(findBitMatchesAtIndex(BigNumber.from(61676),
-//                                  BigNumber.from(61612),
-//                                  BigNumber.from(8),
-//                                   BigNumber.from(255)))
 
 
 // calculates the absolute amount of Prize in Wei for the Draw and DrawSettings
-function calculatePrizeAmount(drawSettings: DrawSettings, draw: Draw, matches :number): BigNumber {
+export function calculatePrizeAmount(drawSettings: DrawSettings, draw: Draw, matches :number): BigNumber {
     const distributionIndex = drawSettings.matchCardinality.toNumber() - matches
     console.log("distributionIndex ", distributionIndex)
 
-    if(drawSettings.distributions.length < distributionIndex){
+    if(distributionIndex > drawSettings.distributions.length){
        throw new Error(`There are only ${drawSettings.distributions.length} tiers of prizes`) // there is no "winning number" in this case
     }
     // now calculate the expected prize amount for these settings
@@ -168,3 +109,31 @@ function calculatePrizeAmount(drawSettings: DrawSettings, draw: Draw, matches :n
     return expectedPrizeAmount
 }
 
+
+
+export function sanityCheckDrawSettings(drawSettings: DrawSettings) : string {
+
+    if(drawSettings.matchCardinality.gt(drawSettings.distributions.length)){
+        console.log("DrawCalc/matchCardinality-gt-distributions")
+        return "DrawCalc/matchCardinality-gt-distributions"
+    }
+    else if(!(drawSettings.bitRangeValue.toNumber() == (Math.pow(2, drawSettings.bitRangeSize.toNumber())-1))){
+        return "DrawCalc/bitRangeValue-incorrect"
+    }
+    else if(drawSettings.bitRangeSize.gte(Math.floor((256 / drawSettings.matchCardinality.toNumber())))){
+        return "DrawCalc/bitRangeSize-too-large"
+    }
+    else if(drawSettings.pickCost.lte(0)){
+        return "DrawCalc/pick-gt-0"
+    }
+    else{
+        let sum = BigNumber.from(0)
+        for(let i = 0; i < drawSettings.distributions.length; i++){
+            sum = sum.add(drawSettings.distributions[i])
+        }
+        if(sum.gte(ethers.utils.parseEther("1"))){
+            return "DrawCalc/distributions-gt-100%"
+        }
+    }
+    return ""
+}
