@@ -4,15 +4,15 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
+import "./import/token/ControlledToken.sol";
 import "./TicketTwab.sol";
 
 /// @title Ticket contract inerhiting from ERC20 and updated to keep track of users balance.
 /// @author PoolTogether Inc.
-contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
+contract Ticket is ControlledToken, TicketTwab, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using OverflowSafeComparator for uint32;
   using SafeCastUpgradeable for uint256;
@@ -24,10 +24,12 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
   /// @param name Ticket name (eg: PoolTogether Dai Ticket (Compound)).
   /// @param symbol Ticket symbol (eg: PcDAI).
   /// @param decimals Ticket decimals.
+  /// @param controller Token controller address.
   event TicketInitialized(
     string name,
     string symbol,
-    uint8 decimals
+    uint8 decimals,
+    TokenControllerInterface controller
   );
 
   /// @notice ERC20 ticket token decimals.
@@ -40,8 +42,9 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
   function initialize (
     string calldata _name,
     string calldata _symbol,
-    uint8 decimals_
-  ) public initializer {
+    uint8 decimals_,
+    TokenControllerInterface _controller
+  ) public virtual override initializer {
     __ERC20_init(_name, _symbol);
     __ERC20Permit_init("PoolTogether Ticket");
 
@@ -50,7 +53,10 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
 
     __Ownable_init();
 
-    emit TicketInitialized(_name, _symbol, decimals_);
+    require(address(_controller) != address(0), "Ticket/controller-not-zero-address");
+    ControlledToken.initialize(_name, _symbol, _decimals, _controller);
+
+    emit TicketInitialized(_name, _symbol, decimals_, _controller);
   }
 
   /// @notice Returns the ERC20 ticket token decimals.
@@ -70,6 +76,16 @@ contract Ticket is TicketTwab, ERC20PermitUpgradeable, OwnableUpgradeable {
   /// @return uint256 Total supply of the ERC20 ticket token.
   function totalSupply() public view virtual override returns (uint256) {
     return _ticketTotalSupply();
+  }
+
+  /// @dev Controller hook to provide notifications & rule validations on token transfers to the controller.
+  /// This includes minting and burning.
+  /// May be overridden to provide more granular control over operator-burning
+  /// @param _from Address of the account sending the tokens (address(0x0) on minting)
+  /// @param _to Address of the account receiving the tokens (address(0x0) on burning)
+  /// @param _amount Amount of tokens being transferred
+  function _beforeTokenTransfer(address _from, address _to, uint256 _amount) internal virtual override {
+    super._beforeTokenTransfer(_from, _to, _amount);
   }
 
   /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
