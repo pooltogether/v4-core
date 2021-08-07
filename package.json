@@ -52,15 +52,9 @@
     "hardhat-deploy": "0.7.0-beta.47",
     "hardhat-deploy-ethers": "0.3.0-beta.10",
     "hardhat-gas-reporter": "1.0.4",
-<<<<<<< HEAD
     "hardhat-log-remover": "2.0.2",
     "mocha": "9.0.3",
     "mocha-junit-reporter": "2.0.0",
-=======
-    "hardhat-log-remover": "^2.0.2",
-    "mocha": "^9.0.3",
-    "mocha-junit-reporter": "^2.0.0",
->>>>>>> added mocha for parallel tests
     "prettier": "2.2.1",
     "solhint": "3.3.3",
     "solidity-coverage": "0.7.16",
