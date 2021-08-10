@@ -10,20 +10,23 @@ describe('ClaimableDrawProxyFactory', () => {
   let wallet3: any;
   let claimableDrawProxyFactory: Contract;
 
-  before(async () =>{
-    [ wallet1, wallet2, wallet3 ] = await getSigners();
-  })
-  
-  beforeEach(async () =>{
-    const ClaimableDrawProxyFactoryFactory: ContractFactory = await ethers.getContractFactory("ClaimableDrawProxyFactory");
-    claimableDrawProxyFactory = await ClaimableDrawProxyFactoryFactory.deploy();
+  before(async () => {
+    [wallet1, wallet2, wallet3] = await getSigners();
+  });
 
-  })
+  beforeEach(async () => {
+    const ClaimableDrawProxyFactoryFactory: ContractFactory = await ethers.getContractFactory(
+      'ClaimableDrawProxyFactory',
+    );
+    claimableDrawProxyFactory = await ClaimableDrawProxyFactoryFactory.deploy();
+  });
 
   describe('create()', () => {
     it('should create a new claimable draw instance', async () => {
-      await expect(await claimableDrawProxyFactory.create())
-        .to.emit(claimableDrawProxyFactory, 'ProxyCreated')
-    })
+      await expect(await claimableDrawProxyFactory.create()).to.emit(
+        claimableDrawProxyFactory,
+        'ProxyCreated',
+      );
+    });
   });
-})
+});

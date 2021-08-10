@@ -98,13 +98,12 @@ async function deployTestPool({
 
   debug("created prizePool: ", prizePool.address)
 
-  let sponsorship = await hardhat.ethers.getContractAt('ControlledToken', (await prizePool.tokens())[0], wallet)
+  let sponsorship = await hardhat.ethers.getContractAt('contracts/import/token/ControlledToken.sol:ControlledToken', (await prizePool.tokens())[0], wallet)
   let ticket = await hardhat.ethers.getContractAt('Ticket', (await prizePool.tokens())[1], wallet)
 
   debug(`sponsorship: ${sponsorship.address}, ticket: ${ticket.address}`)
 
   await prizePool.setCreditPlanOf(ticket.address, creditRate || toWei('0.1').div(prizePeriodSeconds), creditLimit || toWei('0.1'))
-
   const prizeStrategyAddress = await prizePool.prizeStrategy()
 
   debug("Addresses: \n", {

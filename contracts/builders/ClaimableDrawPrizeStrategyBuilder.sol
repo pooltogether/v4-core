@@ -105,7 +105,7 @@ contract ClaimableDrawPrizeStrategyBuilder {
     cd.initialize(address(cdprz), calculator);
     
     // Initialize Calculator
-    calculator.initialize(ITicket(address(ticket)), calculatorDrawSettings);
+    calculator.initialize(ITicketTwab(address(ticket)), calculatorDrawSettings);
 
   }
 

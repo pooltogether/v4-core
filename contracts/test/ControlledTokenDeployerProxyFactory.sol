@@ -2,12 +2,12 @@
 
 pragma solidity 0.8.6;
 
-import "./import/token/ControlledToken.sol";
-import "./external/openzeppelin/ProxyFactory.sol";
+import "../import/token/ControlledToken.sol";
+import "../external/openzeppelin/ProxyFactory.sol";
 
 /// @title Controlled ERC20 Token Factory
 /// @notice Minimal proxy pattern for creating new Controlled ERC20 Tokens
-contract ControlledTokenProxyFactory2 is ProxyFactory {
+contract ControlledTokenDeployerProxyFactory is ProxyFactory {
 
   /// @notice Contract template for deploying proxied tokens
   ControlledToken public instance;

@@ -56,8 +56,8 @@ contract ControlledTokenBuilder {
     token.initialize(
       config.name,
       config.symbol,
-      config.decimals
-      // config.controller
+      config.decimals,
+      config.controller
     );
 
     emit CreatedTicket(address(token));

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 /**
 Copyright 2019 PoolTogether LLC
 
@@ -16,9 +18,7 @@ You should have received a copy of the GNU General Public License
 along with PoolTogether.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-pragma solidity >=0.6.0;
-
-import "hardhat/console.sol";
+pragma solidity 0.8.6;
 
 /**
  * @author Brendan Asselstine
@@ -30,23 +30,18 @@ library UniformRandomNumber {
   /// @param _entropy The seed for randomness
   /// @param _upperBound The upper bound of the desired number
   /// @return A random number less than the _upperBound
-  function uniform(uint256 _entropy, uint256 _upperBound) internal view returns (uint256) {
+  function uniform(uint256 _entropy, uint256 _upperBound) internal pure returns (uint256) {
     require(_upperBound > 0, "UniformRand/min-bound");
-    console.log("upper bound is ", _upperBound);
     uint256 min = (type(uint256).max - _upperBound + 1) % _upperBound;
-    console.log("min: ", min);
 
     uint256 random = _entropy;
     while (true) {
       if (random >= min) {
-        console.log("random >= min BREAK");
         break;
       }
       random = uint256(keccak256(abi.encodePacked(random)));
-      console.log("random is now ", random);
     }
-    uint256 value = random %_upperBound;
-    console.log("returning ", value);
+
     return random % _upperBound;
   }
 }
