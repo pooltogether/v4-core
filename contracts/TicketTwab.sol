@@ -8,6 +8,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20Pe
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
+import "hardhat/console.sol";
+
 import "./interfaces/ITicketTwab.sol";
 import "./libraries/OverflowSafeComparator.sol";
 
@@ -68,6 +70,10 @@ contract TicketTwab is ITicketTwab {
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function getBalance(address _user, uint32 _target) override external view returns (uint256) {
     return _getBalance(_user, _target);
+  }
+
+  function getAverageBalance(address _user, uint32 _startTime, uint32 _endTime) external view returns (uint256) {
+    return _getAverageBalance(usersTwabs[_user], _balanceOf(_user).toUint224(), _mostRecentTwabIndexOfUser(_user), _startTime, _endTime);
   }
 
   /// @notice Retrieves `_user` TWAB balances.
@@ -228,8 +234,8 @@ contract TicketTwab is ITicketTwab {
 
       // We've landed on an uninitialized timestamp, keep searching higher (more recently)
       if (beforeOrAtTimestamp == 0) {
-          leftSide = currentIndex + 1;
-          continue;
+        leftSide = currentIndex + 1;
+        continue;
       }
 
       atOrAfter = _twabs[_moduloCardinality(currentIndex + 1)];
@@ -289,6 +295,74 @@ contract TicketTwab is ITicketTwab {
     uint32 differenceInTime = afterOrAt.timestamp - beforeOrAt.timestamp;
 
     return differenceInAmount / differenceInTime;
+  }
+
+  function _getAverageBalance(
+    Twab[CARDINALITY] memory _twabs,
+    uint224 _currentAmount,
+    uint16 _twabIndex,
+    uint32 _startTime,
+    uint32 _endTime
+  ) internal view returns (uint256) {
+    require(_endTime > _startTime, "start time must be greater than end time");
+    uint32 endTime = _endTime > uint32(block.timestamp) ? uint32(block.timestamp) : _endTime;
+
+    Twab memory newestTwab = _twabs[_twabIndex];
+    // Now, set to the oldest TWAB
+    Twab memory oldestTwab = _twabs[_moduloCardinality(_twabIndex + 1)];
+    // If the TWAB is not initialized we go to the beginning of the TWAB circular buffer at index 0
+    if (oldestTwab.timestamp == 0) oldestTwab = _twabs[0];
+
+    Twab memory startTwab = _calculateTwab(_twabs, newestTwab, oldestTwab, _twabIndex, _startTime, _currentAmount);
+    Twab memory endTwab = _calculateTwab(_twabs, newestTwab, oldestTwab, _twabIndex, endTime, _currentAmount);
+
+    // Difference in amount / time
+    return (endTwab.amount - startTwab.amount) / (endTwab.timestamp - startTwab.timestamp);
+  }
+
+  function _calculateTwab(
+    Twab[CARDINALITY] memory _twabs,
+    Twab memory newestTwab,
+    Twab memory oldestTwab,
+    uint16 _twabIndex,
+    uint32 targetTimestamp,
+    uint224 _currentAmount
+  ) internal view returns (Twab memory) {
+    uint32 time = uint32(block.timestamp);
+    // If `targetTimestamp` is chronologically after the newest TWAB, we extrapolate a new one
+    if (newestTwab.timestamp.lt(targetTimestamp, time)) {
+      return Twab({
+        amount: newestTwab.amount + _currentAmount*(targetTimestamp - newestTwab.timestamp),
+        timestamp: targetTimestamp
+      });
+    }
+
+    if (newestTwab.timestamp == targetTimestamp) {
+      return newestTwab;
+    }
+
+    if (oldestTwab.timestamp == targetTimestamp) {
+      return oldestTwab;
+    }
+
+    // If `targetTimestamp` is chronologically before the oldest TWAB, we create a zero twab
+    if (targetTimestamp.lt(oldestTwab.timestamp, time)) {
+      return Twab({
+        amount: 0,
+        timestamp: targetTimestamp
+      });
+    }
+
+    // Otherwise, both timestamps must be surrounded by twabs.
+    (Twab memory beforeOrAtStart, Twab memory afterOrAtStart) = _binarySearch(_twabs, _twabIndex, targetTimestamp);
+
+    uint224 heldBalance = (afterOrAtStart.amount - beforeOrAtStart.amount) / (afterOrAtStart.timestamp - beforeOrAtStart.timestamp);
+    uint224 amount = beforeOrAtStart.amount + heldBalance * (targetTimestamp - beforeOrAtStart.timestamp);
+
+    return Twab({
+      amount: amount,
+      timestamp: targetTimestamp
+    });
   }
 
   /// @notice Retrieves `_user` TWAB balance.

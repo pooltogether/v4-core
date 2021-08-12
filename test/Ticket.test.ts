@@ -415,6 +415,85 @@ describe('Ticket', () => {
     });
   });
 
+  describe('getAverageBalance()', () => {
+    const balanceBefore = toWei('1000');
+    let timestamp: number
+
+    beforeEach(async () => {
+      await ticket.mint(wallet1.address, balanceBefore);
+      timestamp = (await getBlock('latest')).timestamp;
+      // console.log(`Minted at time ${timestamp}`)
+
+    });
+
+    it('should return an average of zero for pre-history requests', async () => {
+      // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
+      expect(await ticket.getAverageBalance(wallet1.address, timestamp - 100, timestamp - 50)).to.equal(toWei('0'));
+    });
+
+    it('should not project into the future', async () => {
+      // at this time the user has held 1000 tokens for zero seconds
+      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
+      expect(await ticket.getAverageBalance(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('0'))
+    })
+
+    it('should return half the minted balance when the duration is centered over first twab', async () => {
+      await increaseTime(100);
+      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
+      expect(await ticket.getAverageBalance(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('500'))
+    })
+
+    it('should return an accurate average when the range is after the last twab', async () => {
+      await increaseTime(100);
+      // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 51}`)
+      expect(await ticket.getAverageBalance(wallet1.address, timestamp + 50, timestamp + 51)).to.equal(toWei('1000'))
+    })
+    
+    context('with two twabs', () => {
+      const transferAmount = toWei('500');
+      let timestamp2: number
+
+      beforeEach(async () => {
+        // they've held 1000 for t+100 seconds
+        await increaseTime(100);
+
+        // now transfer out 500
+        await ticket.transfer(wallet2.address, transferAmount);
+        timestamp2 = (await getBlock('latest')).timestamp;
+        // console.log(`Transferred at time ${timestamp2}`)
+
+        // they've held 500 for t+100+100 seconds
+        await increaseTime(100);
+      })
+
+      it('should return an average of zero for pre-history requests', async () => {
+        // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
+        expect(await ticket.getAverageBalance(wallet1.address, timestamp - 100, timestamp - 50)).to.equal(toWei('0'));
+      });
+
+      it('should return half the minted balance when the duration is centered over first twab', async () => {
+        // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
+        expect(await ticket.getAverageBalance(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('500'))
+      })
+
+      it('should return an accurate average when the range is between twabs', async () => {
+        // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 55}`)
+        expect(await ticket.getAverageBalance(wallet1.address, timestamp + 50, timestamp + 55)).to.equal(toWei('1000'))
+      })
+
+      it('should return an accurate average when the end is after the last twab', async () => {
+        // console.log(`Test getAverageBalance() : ${timestamp2 - 50}, ${timestamp2 + 50}`)
+        expect(await ticket.getAverageBalance(wallet1.address, timestamp2 - 50, timestamp2 + 50)).to.equal(toWei('750'))
+      })
+
+      it('should return an accurate average when the range is after twabs', async () => {
+        // console.log(`Test getAverageBalance() : ${timestamp2 + 50}, ${timestamp2 + 51}`)
+        expect(await ticket.getAverageBalance(wallet1.address, timestamp2 + 50, timestamp2 + 51)).to.equal(toWei('500'))
+      })
+    })
+
+  })
+
   describe('getBalance()', () => {
     const balanceBefore = toWei('1000');
 
