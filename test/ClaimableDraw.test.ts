@@ -666,7 +666,7 @@ describe('ClaimableDraw', () => {
       expect(await claimableDraw.hasClaimed(wallet1.address, 256)).to.equal(true);
     });
 
-    it.only('should first create a 256 draws, user should claim all draw ids, then create 30 draws and claim the remaining draws', async () => {
+    it('should first create a 256 draws, user should claim all draw ids, then create 30 draws and claim new draws', async () => {
       let MOCK_UNIQUE_DRAW;
       let CLAIM_COUNT_FIRST = 256;
       let drawsIdsSplit_FIRST: Array<number> = [];
