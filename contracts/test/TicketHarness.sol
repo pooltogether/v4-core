@@ -2,12 +2,12 @@
 
 pragma solidity 0.8.6;
 
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+
 import "../Ticket.sol";
 
 contract TicketHarness is Ticket {
-  function moduloCardinality(uint256 _index) external pure returns (uint256) {
-    return _moduloCardinality(_index);
-  }
+  using SafeCastUpgradeable for uint256;
 
   function burn(address _from, uint256 _amount) external {
     _burn(_from, _amount);
@@ -31,12 +31,12 @@ contract TicketHarness is Ticket {
     return _mostRecentTwabIndexOfTotalSupply();
   }
 
-  function binarySearch(
-    Twab[CARDINALITY] memory _twabs,
-    uint16 _twabIndex,
-    uint32 _target
-  ) external view returns (Twab memory beforeOrAt, Twab memory atOrAfter) {
-    (beforeOrAt, atOrAfter) = _binarySearch(_twabs, _twabIndex, _target);
+  function getBalanceTx(address _user, uint32 _target) external returns (uint256) {
+    return _getBalance(_user, _target);
+  }
+
+  function getAverageBalanceTx(address _user, uint32 _startTime, uint32 _endTime) external returns (uint256) {
+    return _getAverageBalance(_user, _startTime, _endTime);
   }
 
   function newUserTwab(address _user, uint16 _nextTwabIndex) external returns (uint16) {

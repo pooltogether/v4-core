@@ -21,6 +21,7 @@
     "remove-logs": "yarn run hardhat remove-logs",
     "run-fork": "yarn impersonate-accounts && yarn distribute-ether && yarn create-prize-pool",
     "test": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat test",
+    "gas": "REPORT_GAS=true yarn test",
     "parallel-test": "mocha --require hardhat/register --recursive --parallel --exit --extension ts"
   },
   "dependencies": {
