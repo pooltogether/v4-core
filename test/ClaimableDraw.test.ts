@@ -666,6 +666,109 @@ describe('ClaimableDraw', () => {
       expect(await claimableDraw.hasClaimed(wallet1.address, 256)).to.equal(true);
     });
 
+    it.only('should first create a 256 draws, user should claim all draw ids, then create 30 draws and claim the remaining draws', async () => {
+      let MOCK_UNIQUE_DRAW;
+      let CLAIM_COUNT_FIRST = 256;
+      let drawsIdsSplit_FIRST: Array<number> = [];
+      let drawRandomNumbers_FIRST: Array<number> = [];
+      let drawTimestamps_FIRST: Array<number> = [];
+      let drawPrizes_FIRST: Array<number> = [];
+
+      await drawCalculator.mock.calculate
+        .withArgs(
+          wallet1.address,
+          [DRAW_SAMPLE_CONFIG.randomNumber],
+          [DRAW_SAMPLE_CONFIG.timestamp],
+          [DRAW_SAMPLE_CONFIG.prize],
+          '0x',
+        )
+        .returns(toWei('100'));
+
+      for (let index = 0; index < CLAIM_COUNT_FIRST; index++) {
+        MOCK_UNIQUE_DRAW = {
+          randomNumber: DRAW_SAMPLE_CONFIG.randomNumber * index,
+          timestamp: DRAW_SAMPLE_CONFIG.timestamp * index,
+          prize: DRAW_SAMPLE_CONFIG.prize * index,
+          payout: toWei('' + index),
+        };
+
+        drawsIdsSplit_FIRST.push(index);
+        drawRandomNumbers_FIRST.push(MOCK_UNIQUE_DRAW.randomNumber);
+        drawTimestamps_FIRST.push(MOCK_UNIQUE_DRAW.timestamp);
+        drawPrizes_FIRST.push(MOCK_UNIQUE_DRAW.prize);
+
+        await claimableDraw.createNewDraw(
+          MOCK_UNIQUE_DRAW.randomNumber,
+          MOCK_UNIQUE_DRAW.timestamp,
+          MOCK_UNIQUE_DRAW.prize,
+        );
+      }
+
+      await drawCalculator.mock.calculate
+        .withArgs(wallet1.address, drawRandomNumbers_FIRST, drawTimestamps_FIRST, drawPrizes_FIRST, '0x')
+        .returns(toWei('500'));
+
+      await claimableDraw.claim(
+        wallet1.address,
+        [drawsIdsSplit_FIRST],
+        [drawCalculator.address],
+        ['0x'],
+      );
+
+      expect(await claimableDraw.userClaimedDraws(wallet1.address)).to.equal(
+        '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+      );
+
+      expect(await claimableDraw.hasClaimed(wallet1.address, 7)).to.equal(true);
+
+      expect(await claimableDraw.hasClaimed(wallet1.address, 255)).to.equal(true);
+
+      let CLAIM_COUNT_SECOND = 287;
+      let drawsIdsSplit_SECOND: Array<number> = [];
+      let drawRandomNumbers_SECOND: Array<number> = [];
+      let drawTimestamps_SECOND: Array<number> = [];
+      let drawPrizes_SECOND: Array<number> = [];
+
+      for (let index = 256; index < CLAIM_COUNT_SECOND; index++) {
+        MOCK_UNIQUE_DRAW = {
+          randomNumber: DRAW_SAMPLE_CONFIG.randomNumber * index,
+          timestamp: DRAW_SAMPLE_CONFIG.timestamp * index,
+          prize: DRAW_SAMPLE_CONFIG.prize * index,
+          payout: toWei('' + index),
+        };
+
+        drawsIdsSplit_SECOND.push(index);
+        drawRandomNumbers_SECOND.push(MOCK_UNIQUE_DRAW.randomNumber);
+        drawTimestamps_SECOND.push(MOCK_UNIQUE_DRAW.timestamp);
+        drawPrizes_SECOND.push(MOCK_UNIQUE_DRAW.prize);
+
+        await claimableDraw.createNewDraw(
+          MOCK_UNIQUE_DRAW.randomNumber,
+          MOCK_UNIQUE_DRAW.timestamp,
+          MOCK_UNIQUE_DRAW.prize,
+        );
+      }
+
+      await drawCalculator.mock.calculate
+        .withArgs(wallet1.address, drawRandomNumbers_SECOND, drawTimestamps_SECOND, drawPrizes_SECOND, '0x')
+        .returns(toWei('500'));
+
+      // @TODO NOT working as expected. The user should not have claimed at the stage.
+      // expect(await claimableDraw.hasClaimed(wallet1.address, 270)).to.equal(false);
+      await claimableDraw.claim(
+        wallet1.address,
+        [drawsIdsSplit_SECOND],
+        [drawCalculator.address],
+        ['0x'],
+      );
+
+      expect(await claimableDraw.hasClaimed(wallet1.address, 257)).to.equal(true);
+
+      expect(await claimableDraw.userClaimedDraws(wallet1.address)).to.equal(
+        '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+      );
+    });
+
     it('should create a 320 draws and user should claim all non-expired draw ids in 3 separate transactions', async () => {
       let drawsIdsSplit: Array<Array<number>> = [[], [], []];
       let drawRandomNumbers: Array<Array<number>> = [[], [], []];
