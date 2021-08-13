@@ -37,9 +37,9 @@ contract TicketTwab is ITicketTwab {
   /// @param amount Current `amount`.
   /// @param nextTwabIndex Next TWAB index of twab circular buffer.
   struct AmountWithTwabIndex {
-    uint240 amount;
+    uint224 amount;
     uint16 nextTwabIndex;
-    // uint16 cardinality;
+    uint16 cardinality;
   }
 
   /// @notice Record of token holders balance and most recent TWAB index.
@@ -69,13 +69,16 @@ contract TicketTwab is ITicketTwab {
   }
 
   function _getAverageBalance(address _user, uint32 _startTime, uint32 _endTime) internal view returns (uint256) {
+    AmountWithTwabIndex memory amount = _usersBalanceWithTwabIndex[_user];
+    uint16 card = minCardinality(amount.cardinality);
+    uint16 recentIndex = TwabLibrary.mostRecentIndex(amount.nextTwabIndex, card);
     return TwabLibrary.getAverageBalanceBetween(
       usersTwabs[_user],
       _balanceOf(_user).toUint224(),
-      _mostRecentTwabIndexOfUser(_user),
+      recentIndex,
       _startTime,
       _endTime,
-      CARDINALITY
+      card
     );
   }
 
@@ -87,12 +90,15 @@ contract TicketTwab is ITicketTwab {
     uint256 length = _targets.length;
     uint256[] memory balances = new uint256[](length);
 
+    AmountWithTwabIndex memory amount = _usersBalanceWithTwabIndex[_user];
+    uint16 card = minCardinality(amount.cardinality);
+    uint16 twabIndex = TwabLibrary.mostRecentIndex(amount.nextTwabIndex, card);
+
     TwabLibrary.Twab[CARDINALITY] storage twabs = usersTwabs[_user];
     uint224 currentBalance = _balanceOf(_user).toUint224();
-    uint16 twabIndex = _mostRecentTwabIndexOfUser(_user);
 
     for(uint256 i = 0; i < length; i++){
-      balances[i] = twabs.getBalanceAt(_targets[i], currentBalance, twabIndex, CARDINALITY);
+      balances[i] = twabs.getBalanceAt(_targets[i], currentBalance, twabIndex, card);
     }
 
     return balances;
@@ -128,19 +134,6 @@ contract TicketTwab is ITicketTwab {
   /// @return uint256 Total supply of the ERC20 ticket token.
   function _ticketTotalSupply() internal view returns (uint256) {
     return _totalSupplyWithTwabIndex.amount;
-  }
-
-  /// @notice Returns the `mostRecentTwabIndex` of a `_user`.
-  /// @param _user Address of the user whose most recent TWAB index is being fetched.
-  /// @return uint256 `mostRecentTwabIndex` of `_user`.
-  function _mostRecentTwabIndexOfUser(address _user) internal view returns (uint16) {
-    return TwabLibrary.mostRecentIndex(_usersBalanceWithTwabIndex[_user].nextTwabIndex, CARDINALITY);
-  }
-
-  /// @notice Returns the `mostRecentTwabIndex` of `totalSupply`.
-  /// @return uint256 `mostRecentTwabIndex` of `totalSupply`.
-  function _mostRecentTwabIndexOfTotalSupply() internal view returns (uint16) {
-    return TwabLibrary.mostRecentIndex(_totalSupplyWithTwabIndex.nextTwabIndex, CARDINALITY);
   }
 
   /// @notice Records a new TWAB for `_user`.
@@ -196,13 +189,23 @@ contract TicketTwab is ITicketTwab {
   /// @param _user Address of the user whose TWAB is being fetched.
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function _getBalance(address _user, uint32 _target) internal view returns (uint256) {
-    return usersTwabs[_user].getBalanceAt(_target, _balanceOf(_user), _mostRecentTwabIndexOfUser(_user), CARDINALITY);
+    AmountWithTwabIndex memory amount = _usersBalanceWithTwabIndex[_user];
+    uint16 card = minCardinality(amount.cardinality);
+    uint16 recentIndex = TwabLibrary.mostRecentIndex(amount.nextTwabIndex, card);
+    return usersTwabs[_user].getBalanceAt(_target, _balanceOf(_user), recentIndex, card);
   }
 
   /// @notice Retrieves ticket TWAB `totalSupply`.
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function _getTotalSupply(uint32 _target) internal view returns (uint256) {
-    return totalSupplyTwabs.getBalanceAt(_target, _ticketTotalSupply(), _mostRecentTwabIndexOfTotalSupply(), CARDINALITY);
+    AmountWithTwabIndex memory amount = _totalSupplyWithTwabIndex;
+    uint16 card = minCardinality(amount.cardinality);
+    uint16 recentIndex = TwabLibrary.mostRecentIndex(amount.nextTwabIndex, card);
+    return totalSupplyTwabs.getBalanceAt(_target, _ticketTotalSupply(), recentIndex, card);
+  }
+
+  function minCardinality(uint16 cardinality) internal pure returns (uint16) {
+    return cardinality > 0 ? cardinality : CARDINALITY;
   }
 
 }

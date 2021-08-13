@@ -24,11 +24,15 @@ contract TicketHarness is Ticket {
   }
 
   function mostRecentTwabIndexOfUser(address _user) external view returns (uint256) {
-    return _mostRecentTwabIndexOfUser(_user);
+    AmountWithTwabIndex memory amount = _usersBalanceWithTwabIndex[_user];
+    uint16 card = minCardinality(amount.cardinality);
+    return TwabLibrary.mostRecentIndex(amount.nextTwabIndex, card);
   }
 
   function mostRecentTwabIndexOfTotalSupply() external view returns (uint256) {
-    return _mostRecentTwabIndexOfTotalSupply();
+    AmountWithTwabIndex memory amount = _totalSupplyWithTwabIndex;
+    uint16 card = minCardinality(amount.cardinality);
+    return TwabLibrary.mostRecentIndex(amount.nextTwabIndex, card);
   }
 
   function getBalanceTx(address _user, uint32 _target) external returns (uint256) {

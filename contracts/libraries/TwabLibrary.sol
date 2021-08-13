@@ -24,6 +24,7 @@ library TwabLibrary {
     uint32 timestamp;
   }
 
+  /// @dev A struct that just used internally to bypass the stack variable limitation
   struct AvgHelper {
     uint16 twabIndex;
     uint16 oldestTwabIndex;
@@ -264,7 +265,7 @@ library TwabLibrary {
   function nextTwab(
     TwabLibrary.Twab memory _currentTwab,
     uint256 _currentBalance,
-    uint16 _nextAvailableTwabIndex,
+    uint256 _nextAvailableTwabIndex,
     uint16 _cardinality,
     uint32 currentTimestamp
   ) internal view returns (TwabLibrary.Twab memory newTwab, uint16 nextAvailableTwabIndex) {
@@ -276,7 +277,7 @@ library TwabLibrary {
 
     // New twab amount = last twab amount (or zero) + (current amount * elapsed seconds)
     newTwab = Twab({
-      amount: _currentTwab.amount + (_currentBalance * (currentTimestamp - _currentTwab.timestamp)).toUint224(),
+      amount: (uint256(_currentTwab.amount) + (_currentBalance * (currentTimestamp - _currentTwab.timestamp))).toUint224(),
       timestamp: currentTimestamp
     });
 

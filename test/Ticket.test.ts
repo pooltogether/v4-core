@@ -203,17 +203,13 @@ describe('Ticket', () => {
 
     it('should fail to record a new twab if balance overflow', async () => {
       const balanceOverflow = BigNumber.from(1);
-      const maxBalance = BigNumber.from(2).pow(223);
+      const maxBalance = BigNumber.from(2).pow(224).sub(1);
 
-      for (let index = 0; index < 2; index++) {
-        ticket.mint(wallet1.address, maxBalance);
+      ticket.mint(wallet1.address, maxBalance);
 
-        if (index === 1) {
-          await expect(ticket.mint(wallet1.address, balanceOverflow)).to.be.revertedWith(
-            "SafeCast: value doesn't fit in 224 bits",
-          );
-        }
-      }
+      await expect(ticket.mint(wallet1.address, balanceOverflow)).to.be.revertedWith(
+        "SafeCast: value doesn't fit in 224 bits",
+      );
     });
   });
 

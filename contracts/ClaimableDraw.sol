@@ -6,7 +6,7 @@ import "./interfaces/IDrawCalculator.sol";
 contract ClaimableDraw is OwnableUpgradeable {
 
   /**
-    * @notice The current draw id. 
+    * @notice The current draw id.
     * @dev    The current draw id which correlates to index position in the draws array.
   */
   uint256 public currentDrawId;
