@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
+import"hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./interfaces/IDrawCalculator.sol";
 
@@ -35,6 +36,8 @@ contract ClaimableDraw is OwnableUpgradeable {
   // | user    | drawHistory |
   // +---------+-------------+
   mapping(address => bytes32) internal claimedDraws;
+
+  mapping(address => uint256) internal userClaimedDrawsLastDrawId;
 
   /**
     * @notice Draw model used to calculate a user's claim payout.
@@ -205,6 +208,27 @@ contract ClaimableDraw is OwnableUpgradeable {
   /* ============ Internal Functions ============ */
 
   /**
+    * @notice Resets the draw claim history for expired draws.
+    * @dev    Resets the draw claim history for expired draws, so users can claim draws that share the same index position in claimedDraws.
+    * @param _userDrawClaimHistory  Current user claimed draws
+    * @param _user                  User address claiming
+    * @param _currentDrawId         Current draw id (i.e. last draw id)
+    * @return Updated userDrawClaimHistory
+  */
+  function _resetUserClaimedDrawHistory(bytes32 _userDrawClaimHistory, address _user, uint256 _currentDrawId) internal returns (bytes32) {
+    uint256 userClaimedDrawsLastDrawId = userClaimedDrawsLastDrawId[_user]; //sload
+    // Reset previous history of user's claim history if user's last draw id is equal/greater then 256
+    if(userClaimedDrawsLastDrawId >= 256) {
+        _userDrawClaimHistory = _resetUsersDrawClaimStatusFromExpiredDraws(_userDrawClaimHistory, uint8(_currentDrawId - userClaimedDrawsLastDrawId));
+    }
+    // Reset entire user's claim history if the current draw id has shifted 256 index positions since user's last claim.
+    if(_currentDrawId - userClaimedDrawsLastDrawId > 256) {
+        _userDrawClaimHistory = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    }
+    return _userDrawClaimHistory;
+  }
+
+  /**
     * @notice Internal function to set a new authorized draw manager.
     * @dev    Internal function to set the ClaimableDrawPrizeStrategy, which should be called when a new prize strategy is deployed.
     * @param _newDrawManager  New draw manager address
@@ -261,13 +285,17 @@ contract ClaimableDraw is OwnableUpgradeable {
     uint256 payout;
     uint256 totalPayout;
 
+    userDrawClaimHistory = _resetUserClaimedDrawHistory(userDrawClaimHistory, _user, _currentDrawId);
+    console.logBytes32(userDrawClaimHistory);
     for (uint256 calcIndex = 0; calcIndex < drawCalculatorsLength; calcIndex++) {
       IDrawCalculator _drawCalculator = _drawCalculators[calcIndex];
       (payout, userDrawClaimHistory) = _calculateAllDraws(_user, _drawIds[calcIndex], _drawCalculator, _data[calcIndex], _currentDrawId, userDrawClaimHistory);
+      console.logBytes32(userDrawClaimHistory);
       totalPayout += payout;
     }
 
     claimedDraws[_user] = userDrawClaimHistory; //sstore
+    userClaimedDrawsLastDrawId[_user] = _currentDrawId; //sstore
     emit ClaimedDraw(_user, userDrawClaimHistory, totalPayout);
 
     return totalPayout;
@@ -304,6 +332,7 @@ contract ClaimableDraw is OwnableUpgradeable {
       timestamps[drawIndex] = uint32(_draw.timestamp);
       randomNumbers[drawIndex] = _draw.randomNumber;
       userDrawClaimHistory = _updateUsersDrawClaimStatus(userDrawClaimHistory, _drawIds[drawIndex], _currentDrawId);
+      console.logBytes32(userDrawClaimHistory);
     }
 
     totalPayout += _drawCalculator.calculate(_user, randomNumbers, timestamps, prizes, _data);
@@ -383,8 +412,19 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @return Updated User's draw claim history
   */
   function _writeUsersDrawClaimStatusFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) internal pure returns (bytes32) { 
-    uint256 mask =  (uint256(1)) << (_drawIndex);
+    uint256 mask = (uint256(1)) << (_drawIndex);
     return bytes32(uint256(_userClaimedDraws) | mask); 
+  }
+
+  /**
+    * @dev Updates a 256 bit word with a 32 bit representation of a block number at a particular index
+    *
+    * @param _userClaimedDraws  User claim draw history (256 bit word)
+    * @param _drawIndexDiff     The index within that word (0 to 256)
+    * @return Updated User's draw claim history
+  */
+  function _resetUsersDrawClaimStatusFromExpiredDraws(bytes32 _userClaimedDraws, uint8 _drawIndexDiff) internal pure returns (bytes32) { 
+    return bytes32(uint256(_userClaimedDraws) << (_drawIndexDiff + 1)); 
   }
 
 }
