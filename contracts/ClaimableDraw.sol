@@ -288,7 +288,7 @@ contract ClaimableDraw is OwnableUpgradeable {
 
     for (uint256 drawIndex = 0; drawIndex < _drawIds.length; drawIndex++) {
       Draw memory _draw = draws[(_drawIds[drawIndex]) % 256];
-      require(_draw.calculator == _drawCalculator || address(_draw.calculator) != address(0), "ClaimableDraw/calculator-address-invalid");
+      require(_draw.calculator == _drawCalculator && address(_draw.calculator) != address(0), "ClaimableDraw/calculator-address-invalid");
       prizes[drawIndex] = _draw.prize;
       timestamps[drawIndex] = uint32(_draw.timestamp);
       randomNumbers[drawIndex] = _draw.randomNumber;
