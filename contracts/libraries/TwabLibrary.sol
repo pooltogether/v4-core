@@ -14,7 +14,7 @@ library TwabLibrary {
   using OverflowSafeComparator for uint32;
   using SafeCastUpgradeable for uint256;
 
-  uint16 public constant MAX_CARDINALITY = 4;
+  uint16 public constant MAX_CARDINALITY = 65535;
 
   /// @notice Time Weighted Average Balance (TWAB).
   /// @param amount `amount` at `timestamp`.

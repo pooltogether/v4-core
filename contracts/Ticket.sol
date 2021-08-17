@@ -7,8 +7,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
 import "./interfaces/TicketInterface.sol";
@@ -17,7 +15,7 @@ import "./import/token/ControlledToken.sol";
 /// @title Ticket contract inerhiting from ERC20 and updated to keep track of users balance.
 /// @author PoolTogether Inc.
 contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
-  uint16 public constant MAX_CARDINALITY = 4;
+  uint16 public constant MAX_CARDINALITY = 65535;
 
   uint32 public constant TWAB_LIFETIME = 8 weeks;
 
@@ -174,11 +172,6 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   ) internal {
     uint16 cardinality = _minCardinality(amountWithTwabIndex.cardinality);
     uint32 currentTimestamp = uint32(block.timestamp);
-
-    // console.log("amountWithTwabIndex.nextTwabIndex: ");
-    // console.log(amountWithTwabIndex.nextTwabIndex);
-    // console.log("cardinality: ");
-    // console.log(cardinality);
 
     TwabLibrary.Twab memory newestTwab = usersTwabs[_user][TwabLibrary.mostRecentIndex(amountWithTwabIndex.nextTwabIndex, cardinality)];
 
