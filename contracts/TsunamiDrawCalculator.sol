@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import "./interfaces/IDrawCalculator.sol";
-import "./interfaces/ITicketTwab.sol";
+import "./interfaces/TicketInterface.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   
   ///@notice Ticket associated with DrawCalculator
-  ITicketTwab ticket;
+  TicketInterface ticket;
 
   ///@notice Draw settings struct
   ///@param bitRangeValue Decimal representation of bitRangeSize
@@ -33,12 +33,12 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   event DrawSettingsSet(DrawSettings _drawSettings);
 
   ///@notice Emitted when the contract is initialized
-  event Initialized(ITicketTwab indexed _ticket);
+  event Initialized(TicketInterface indexed _ticket);
 
   ///@notice Initializer sets the initial parameters
   ///@param _ticket Ticket associated with this DrawCalculator
   ///@param _drawSettings Initial DrawSettings
-  function initialize(ITicketTwab _ticket, DrawSettings calldata _drawSettings) public initializer {
+  function initialize(TicketInterface _ticket, DrawSettings calldata _drawSettings) public initializer {
     __Ownable_init();
     ticket = _ticket;
 
@@ -61,7 +61,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256[][] memory pickIndices = abi.decode(data, (uint256 [][]));
     require(pickIndices.length == timestamps.length, "DrawCalc/invalid-pick-indices-length");
 
-    uint256[] memory userBalances = ticket.getBalances(user, timestamps); // CALL
+    uint256[] memory userBalances = ticket.getBalancesAt(user, timestamps); // CALL
     bytes32 userRandomNumber = keccak256(abi.encodePacked(user)); // hash the users address
 
     DrawSettings memory settings = drawSettings; //sload

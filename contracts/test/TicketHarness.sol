@@ -25,26 +25,22 @@ contract TicketHarness is Ticket {
 
   function mostRecentTwabIndexOfUser(address _user) external view returns (uint256) {
     AmountWithTwabIndex memory amount = _usersBalanceWithTwabIndex[_user];
-    uint16 card = minCardinality(amount.cardinality);
+    uint16 card = _minCardinality(amount.cardinality);
     return TwabLibrary.mostRecentIndex(amount.nextTwabIndex, card);
   }
 
   function mostRecentTwabIndexOfTotalSupply() external view returns (uint256) {
     AmountWithTwabIndex memory amount = _totalSupplyWithTwabIndex;
-    uint16 card = minCardinality(amount.cardinality);
+    uint16 card = _minCardinality(amount.cardinality);
     return TwabLibrary.mostRecentIndex(amount.nextTwabIndex, card);
   }
 
   function getBalanceTx(address _user, uint32 _target) external returns (uint256) {
-    return _getBalance(_user, _target);
+    return _getBalanceAt(_user, _target);
   }
 
   function getAverageBalanceTx(address _user, uint32 _startTime, uint32 _endTime) external returns (uint256) {
-    return _getAverageBalance(_user, _startTime, _endTime);
-  }
-
-  function newUserTwab(address _user, uint16 _nextTwabIndex) external returns (uint16) {
-    return _newUserTwab(_user, _nextTwabIndex);
+    return _getAverageBalanceBetween(_user, _startTime, _endTime);
   }
 
   function newTotalSupplyTwab(uint16 _nextTwabIndex) external returns (uint16) {

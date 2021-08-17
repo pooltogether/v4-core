@@ -14,7 +14,7 @@ library TwabLibrary {
   using OverflowSafeComparator for uint32;
   using SafeCastUpgradeable for uint256;
 
-  uint16 public constant CARDINALITY = 4;
+  uint16 public constant MAX_CARDINALITY = 4;
 
   /// @notice Time Weighted Average Balance (TWAB).
   /// @param amount `amount` at `timestamp`.
@@ -34,16 +34,16 @@ library TwabLibrary {
   }
 
   /// @notice Returns TWAB index.
-  /// @dev `twabs` is a circular buffer of `CARDINALITY` size equal to 32. So the array goes from 0 to 31.
+  /// @dev `twabs` is a circular buffer of `MAX_CARDINALITY` size equal to 32. So the array goes from 0 to 31.
   /// @dev In order to navigate the circular buffer, we need to use the modulo operator.
-  /// @dev For example, if `_index` is equal to 32, `_index % CARDINALITY` will return 0 and will point to the first element of the array.
+  /// @dev For example, if `_index` is equal to 32, `_index % MAX_CARDINALITY` will return 0 and will point to the first element of the array.
   /// @param _index Index used to navigate through `twabs` circular buffer.
   function wrapCardinality(uint256 _index, uint16 _cardinality) internal pure returns (uint16) {
     return uint16(_index % _cardinality);
   }
 
   function mostRecentIndex(uint256 _nextAvailableIndex, uint16 _cardinality) internal pure returns (uint16) {
-    return wrapCardinality(_nextAvailableIndex + _cardinality - 1, _cardinality);
+    return wrapCardinality(_nextAvailableIndex + uint256(_cardinality) - 1, _cardinality);
   }
 
   /// @notice Fetches TWABs `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
@@ -56,7 +56,7 @@ library TwabLibrary {
   /// @return beforeOrAt TWAB recorded before, or at, the target.
   /// @return atOrAfter TWAB recorded at, or after, the target.
   function _binarySearch(
-    Twab[CARDINALITY] storage _twabs,
+    Twab[MAX_CARDINALITY] storage _twabs,
     uint16 _twabIndex,
     uint16 _oldestTwabIndex,
     uint32 _target,
@@ -72,12 +72,12 @@ library TwabLibrary {
       beforeOrAt = _twabs[wrapCardinality(currentIndex, _cardinality)];
       uint32 beforeOrAtTimestamp = beforeOrAt.timestamp;
 
-      console.log("leftSide: ", leftSide);
-      console.log("currentIndex: ", currentIndex);
-      console.log("rightSide: ", rightSide);
+      // console.log("leftSide: ", leftSide);
+      // console.log("currentIndex: ", currentIndex);
+      // console.log("rightSide: ", rightSide);
 
-      console.log("_target: ", _target);
-      console.log("beforeOrAtTimestamp: ", beforeOrAtTimestamp);
+      // console.log("_target: ", _target);
+      // console.log("beforeOrAtTimestamp: ", beforeOrAtTimestamp);
 
       // We've landed on an uninitialized timestamp, keep searching higher (more recently)
       if (beforeOrAtTimestamp == 0) {
@@ -90,7 +90,7 @@ library TwabLibrary {
       bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, time);
 
       
-      console.log("atOrAfter.timestamp: ", atOrAfter.timestamp);
+      // console.log("atOrAfter.timestamp: ", atOrAfter.timestamp);
 
       // Check if we've found the corresponding TWAB
       if (targetAtOrAfter && _target.lt(atOrAfter.timestamp, time)) {
@@ -106,7 +106,7 @@ library TwabLibrary {
   }
 
   function calculateTwab(
-    Twab[CARDINALITY] storage _twabs,
+    Twab[MAX_CARDINALITY] storage _twabs,
     Twab memory newestTwab,
     Twab memory oldestTwab,
     uint16 _twabIndex,
@@ -153,7 +153,7 @@ library TwabLibrary {
   }
 
   function getAverageBalanceBetween(
-    Twab[CARDINALITY] storage _twabs,
+    Twab[MAX_CARDINALITY] storage _twabs,
     uint224 _currentBalance,
     uint16 _twabIndex,
     uint32 _startTime,
@@ -186,7 +186,7 @@ library TwabLibrary {
   }
 
   function _getAverageBalanceBetween(
-    Twab[CARDINALITY] storage _twabs,
+    Twab[MAX_CARDINALITY] storage _twabs,
     uint224 _currentBalance,
     AvgHelper memory helper,
     Twab memory _oldestTwab
@@ -210,7 +210,7 @@ library TwabLibrary {
   /// @param _twabIndex Most recent TWAB index recorded.
   /// @return uint256 TWAB amount at `_target`.
   function getBalanceAt(
-    Twab[CARDINALITY] storage _twabs,
+    Twab[MAX_CARDINALITY] storage _twabs,
     uint32 _target,
     uint256 _currentBalance,
     uint16 _twabIndex,
@@ -237,10 +237,10 @@ library TwabLibrary {
       beforeOrAt = _twabs[0];
     }
 
-    console.log("beforeOrAt.timestamp: ", beforeOrAt.timestamp);
-    console.log("target: ", _target);
-    console.log("twabIndex: ", _twabIndex);
-    console.log("oldestTwabIndex: ", oldestTwabIndex);
+    // console.log("beforeOrAt.timestamp: ", beforeOrAt.timestamp);
+    // console.log("target: ", _target);
+    // console.log("twabIndex: ", _twabIndex);
+    // console.log("oldestTwabIndex: ", oldestTwabIndex);
 
     // If `targetTimestamp` is chronologically before the oldest TWAB, we can early return
     if (targetTimestamp.lt(beforeOrAt.timestamp, time)) {
