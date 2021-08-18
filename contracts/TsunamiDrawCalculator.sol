@@ -76,11 +76,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param data The encoded pick indices
   ///@return An array of prizes awardable
   function calculate(address user, uint256[] calldata winningRandomNumbers, uint32[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
-    external override view returns (uint256[] memory){ // can we do less than 256 bits here?
+    external override view returns (uint96[] memory){
 
     require(winningRandomNumbers.length == timestamps.length && timestamps.length == prizes.length, "DrawCalc/invalid-calculate-input-lengths");
 
-    uint256[] memory prizesAwardable = new uint256[](prizes.length);
+    uint96[] memory prizesAwardable = new uint96[](prizes.length);
 
     uint256[][] memory pickIndices = abi.decode(data, (uint256 [][]));
     require(pickIndices.length == timestamps.length, "DrawCalc/invalid-pick-indices-length");
@@ -91,7 +91,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     DrawSettings memory settings = drawSettings; //sload
 
     for (uint256 index = 0; index < winningRandomNumbers.length; index++) {
-      prizesAwardable[index] = _calculate(winningRandomNumbers[index], prizes[index], userBalances[index], userRandomNumber, pickIndices[index], settings);
+      prizesAwardable[index] = uint96(_calculate(winningRandomNumbers[index], prizes[index], userBalances[index], userRandomNumber, pickIndices[index], settings));
     }
     return prizesAwardable;
   }
