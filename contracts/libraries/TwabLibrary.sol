@@ -43,6 +43,9 @@ library TwabLibrary {
   }
 
   function mostRecentIndex(uint256 _nextAvailableIndex, uint16 _cardinality) internal pure returns (uint16) {
+    if (_cardinality == 0) {
+      return 0;
+    }
     return wrapCardinality(_nextAvailableIndex + uint256(_cardinality) - 1, _cardinality);
   }
 
@@ -55,14 +58,14 @@ library TwabLibrary {
   /// @param _target Timestamp at which the reserved TWAB should be for.
   /// @return beforeOrAt TWAB recorded before, or at, the target.
   /// @return atOrAfter TWAB recorded at, or after, the target.
-  function _binarySearch(
+  function binarySearch(
     Twab[MAX_CARDINALITY] storage _twabs,
     uint16 _twabIndex,
     uint16 _oldestTwabIndex,
     uint32 _target,
-    uint16 _cardinality
+    uint16 _cardinality,
+    uint32 _time
   ) internal view returns (Twab memory beforeOrAt, Twab memory atOrAfter) {
-    uint32 time = uint32(block.timestamp);
     uint256 leftSide = _oldestTwabIndex; // Oldest TWAB
     uint256 rightSide = _twabIndex < leftSide ? leftSide + _cardinality - 1 : _twabIndex;
     uint256 currentIndex;
@@ -87,13 +90,10 @@ library TwabLibrary {
 
       atOrAfter = _twabs[wrapCardinality(currentIndex + 1, _cardinality)];
 
-      bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, time);
-
-      
-      // console.log("atOrAfter.timestamp: ", atOrAfter.timestamp);
+      bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, _time);
 
       // Check if we've found the corresponding TWAB
-      if (targetAtOrAfter && _target.lt(atOrAfter.timestamp, time)) {
+      if (targetAtOrAfter && _target.lte(atOrAfter.timestamp, _time)) {
         break;
       }
 
@@ -113,11 +113,11 @@ library TwabLibrary {
     uint16 _oldestTwabIndex,
     uint32 targetTimestamp,
     uint224 _currentBalance,
-    uint16 _cardinality
+    uint16 _cardinality,
+    uint32 _time
   ) internal view returns (Twab memory) {
-    uint32 time = uint32(block.timestamp);
     // If `targetTimestamp` is chronologically after the newest TWAB, we extrapolate a new one
-    if (newestTwab.timestamp.lt(targetTimestamp, time)) {
+    if (newestTwab.timestamp.lt(targetTimestamp, _time)) {
       return Twab({
         amount: newestTwab.amount + _currentBalance*(targetTimestamp - newestTwab.timestamp),
         timestamp: targetTimestamp
@@ -133,7 +133,7 @@ library TwabLibrary {
     }
 
     // If `targetTimestamp` is chronologically before the oldest TWAB, we create a zero twab
-    if (targetTimestamp.lt(oldestTwab.timestamp, time)) {
+    if (targetTimestamp.lt(oldestTwab.timestamp, _time)) {
       return Twab({
         amount: 0,
         timestamp: targetTimestamp
@@ -141,7 +141,7 @@ library TwabLibrary {
     }
 
     // Otherwise, both timestamps must be surrounded by twabs.
-    (Twab memory beforeOrAtStart, Twab memory afterOrAtStart) = _binarySearch(_twabs, _twabIndex, _oldestTwabIndex, targetTimestamp, _cardinality);
+    (Twab memory beforeOrAtStart, Twab memory afterOrAtStart) = binarySearch(_twabs, _twabIndex, _oldestTwabIndex, targetTimestamp, _cardinality, _time);
 
     uint224 heldBalance = (afterOrAtStart.amount - beforeOrAtStart.amount) / (afterOrAtStart.timestamp - beforeOrAtStart.timestamp);
     uint224 amount = beforeOrAtStart.amount + heldBalance * (targetTimestamp - beforeOrAtStart.timestamp);
@@ -158,7 +158,8 @@ library TwabLibrary {
     uint16 _twabIndex,
     uint32 _startTime,
     uint32 _endTime,
-    uint16 _cardinality
+    uint16 _cardinality,
+    uint32 _time
   ) internal view returns (uint256) {
     require(_endTime > _startTime, "start time must be greater than end time");
 
@@ -181,7 +182,8 @@ library TwabLibrary {
         endTime: _endTime,
         cardinality: _cardinality
       }),
-      oldestTwab
+      oldestTwab,
+      _time
     );
   }
 
@@ -189,15 +191,15 @@ library TwabLibrary {
     Twab[MAX_CARDINALITY] storage _twabs,
     uint224 _currentBalance,
     AvgHelper memory helper,
-    Twab memory _oldestTwab
+    Twab memory _oldestTwab,
+    uint32 _time
   ) internal view returns (uint256) {
-    uint32 time = uint32(block.timestamp);
-    uint32 endTime = helper.endTime > time ? time : helper.endTime;
+    uint32 endTime = helper.endTime > _time ? _time : helper.endTime;
 
     Twab memory newestTwab = _twabs[helper.twabIndex];
 
-    Twab memory startTwab = calculateTwab(_twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, helper.startTime, _currentBalance, helper.cardinality);
-    Twab memory endTwab = calculateTwab(_twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, endTime, _currentBalance, helper.cardinality);
+    Twab memory startTwab = calculateTwab(_twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, helper.startTime, _currentBalance, helper.cardinality, _time);
+    Twab memory endTwab = calculateTwab(_twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, endTime, _currentBalance, helper.cardinality, _time);
 
     // Difference in amount / time
     return (endTwab.amount - startTwab.amount) / (endTwab.timestamp - startTwab.timestamp);
@@ -214,16 +216,18 @@ library TwabLibrary {
     uint32 _target,
     uint256 _currentBalance,
     uint16 _twabIndex,
-    uint16 _cardinality
+    uint16 _cardinality,
+    uint32 _time
   ) internal view returns (uint256) {
-    uint32 time = uint32(block.timestamp);
-    uint32 targetTimestamp = _target > time ? time : _target;
+    uint32 targetTimestamp = _target > _time ? _time : _target;
 
     Twab memory afterOrAt;
     Twab memory beforeOrAt = _twabs[_twabIndex];
 
-    // If `targetTimestamp` is chronologically at or after the newest TWAB, we can early return
-    if (beforeOrAt.timestamp.lte(targetTimestamp, time)) {
+    // console.log("getBalanceAt: %s, %s", beforeOrAt.timestamp, targetTimestamp);
+
+    // If `targetTimestamp` is chronologically after the newest TWAB, we can simply return the current balance
+    if (beforeOrAt.timestamp.lte(targetTimestamp, _time)) {
       return _currentBalance;
     }
 
@@ -242,13 +246,13 @@ library TwabLibrary {
     // console.log("twabIndex: ", _twabIndex);
     // console.log("oldestTwabIndex: ", oldestTwabIndex);
 
-    // If `targetTimestamp` is chronologically before the oldest TWAB, we can early return
-    if (targetTimestamp.lt(beforeOrAt.timestamp, time)) {
+    // If `targetTimestamp` is chronologically before or equal to the oldest TWAB, we can early return
+    if (targetTimestamp.lte(beforeOrAt.timestamp, _time)) {
       return 0;
     }
 
-    // Otherwise, we perform the `_binarySearch`
-    (beforeOrAt, afterOrAt) = _binarySearch(_twabs, _twabIndex, oldestTwabIndex, _target, _cardinality);
+    // Otherwise, we perform the `binarySearch`
+    (beforeOrAt, afterOrAt) = binarySearch(_twabs, _twabIndex, oldestTwabIndex, _target, _cardinality, _time);
 
     // Difference in amount / time
     uint224 differenceInAmount = afterOrAt.amount - beforeOrAt.amount;
@@ -259,28 +263,126 @@ library TwabLibrary {
 
   /// @notice Records a new TWAB.
   /// @param _currentBalance Current `amount`.
-  /// @param _nextAvailableTwabIndex Next TWAB index to record to.
-  /// @return newTwab New TWAB that was recorded.
-  /// @return nextAvailableTwabIndex Next available TWAB index after recording.
+  /// @return New TWAB that was recorded.
   function nextTwab(
-    TwabLibrary.Twab memory _currentTwab,
+    Twab memory _currentTwab,
     uint256 _currentBalance,
-    uint256 _nextAvailableTwabIndex,
-    uint16 _cardinality,
     uint32 currentTimestamp
-  ) internal view returns (TwabLibrary.Twab memory newTwab, uint16 nextAvailableTwabIndex) {
+  ) internal view returns (Twab memory) {
     // If a TWAB already exists at this timestamp, then we don't need to update values
     // This is to avoid recording a new TWAB if several transactions happen in the same block
-    if (_currentTwab.timestamp == currentTimestamp) {
-      return (_currentTwab, nextAvailableTwabIndex);
-    }
+    require(currentTimestamp > _currentTwab.timestamp, "TwabLibrary: same timestamp");
 
     // New twab amount = last twab amount (or zero) + (current amount * elapsed seconds)
-    newTwab = Twab({
+    return Twab({
       amount: (uint256(_currentTwab.amount) + (_currentBalance * (currentTimestamp - _currentTwab.timestamp))).toUint224(),
       timestamp: currentTimestamp
     });
+  }
 
-    nextAvailableTwabIndex = wrapCardinality(_nextAvailableTwabIndex + 1, _cardinality);
+  function calculateNextWithExpiry(
+    Twab[MAX_CARDINALITY] storage _twabs,
+    uint16 _nextTwabIndex,
+    uint16 _cardinality,
+    uint32 _time,
+    uint32 _expiry
+  ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality) {
+    // console.log("calculateNextWithExpiry entry cardinality: %s", _cardinality);
+/*
+
+    Desired min history: 100
+
+    1) 
+      next: 100
+
+      0: 10
+      1: 90
+
+      if we eliminate 0, we're down to 10
+
+    2) 
+      next: 105
+      0: 1
+      1: 5
+
+      if we eliminate 0, the history is 100.  ok!
+
+    Q: when do we eliminate the oldest twab?
+    A: when current time - second oldest twab >= TWAB_LIFETIME
+
+    For 1) 100 - 90 = 10.  First one is negative!
+    For 2) 105 - 5 = 100.  We can eliminate the first one!
+
+    */
+
+    // console.log("TwabLibrary _calculateNextWithLifespan1");
+
+    Twab memory secondOldestTwab;
+    // if there are two or more records
+    if (_cardinality > 1) {
+      // get the second oldest twab
+      secondOldestTwab = _twabs[wrapCardinality(uint32(_nextTwabIndex) + 1, _cardinality)];
+    }
+
+    // console.log("TwabLibrary _calculateNextWithExpiry _nextTwabIndex: %s", _nextTwabIndex);
+    // console.log("TwabLibrary _calculateNextWithExpiry _cardinality: %s", _cardinality);
+
+    nextCardinality = _cardinality;
+    if (secondOldestTwab.timestamp == 0 || _time - secondOldestTwab.timestamp < _expiry) {
+      nextCardinality = _cardinality < MAX_CARDINALITY ? _cardinality + 1 : MAX_CARDINALITY;
+    }
+
+    // console.log("TwabLibrary _calculateNextWithExpiry nextCardinality: %s", nextCardinality);
+
+    nextAvailableTwabIndex = wrapCardinality(uint32(_nextTwabIndex) + 1, nextCardinality);
+
+    // console.log("TwabLibrary _calculateNextWithExpiry nextAvailableTwabIndex: %s", nextAvailableTwabIndex);
+  }
+
+  function nextTwabWithExpiry (
+    Twab[MAX_CARDINALITY] storage _twabs,
+    uint224 _balance,
+    uint224 _newBalance,
+    uint16 _nextTwabIndex,
+    uint16 _cardinality,
+    uint32 _time,
+    uint32 _maxLifetime
+  ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, Twab memory twab, bool isNew) {
+    uint16 cardinality = _cardinality > 0 ? _cardinality : 1;
+
+    // console.log("nextTwabWithExpiry: using cardinality: %s", cardinality);
+
+    Twab memory newestTwab = _twabs[mostRecentIndex(_nextTwabIndex, cardinality)];
+
+    if (newestTwab.timestamp == _time) {
+      // console.log("nextTwabWithExpiry: SAME SAME");
+      // if we're in the same block, return
+      return (_nextTwabIndex, cardinality, newestTwab, false);
+    }
+
+    (nextAvailableTwabIndex, nextCardinality) = calculateNextWithExpiry(_twabs, _nextTwabIndex, cardinality, _time, _maxLifetime);
+
+    // console.log("nextTwabWithExpiry nextAvailableTwabIndex: %s", nextAvailableTwabIndex);
+
+    Twab memory newTwab = nextTwab(
+      newestTwab,
+      _balance,
+      _time
+    );
+
+    // console.log("TwabLibrary _calculateNextWithLifespan5");
+
+    // We don't record a new TWAB if a TWAB already exists at the same timestamp
+    // So we don't emit `NewUserTwab` since no new TWAB has been recorded
+    // console.log("nextTwabWithExpiry writing to %s", _nextTwabIndex);
+    _twabs[_nextTwabIndex] = newTwab;
+
+    // console.log("nextTwabWithExpiry nextcardinality: %s", nextCardinality);
+
+    // console.log("TwabLibrary _calculateNextWithLifespan6");
+
+    // console.log("TwabLibrary _calculateNextWithLifespan7");
+
+    return (nextAvailableTwabIndex, nextCardinality, newTwab, true);
   }
 }
