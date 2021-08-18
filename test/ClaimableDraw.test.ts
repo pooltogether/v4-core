@@ -98,6 +98,13 @@ describe('ClaimableDraw', () => {
     });
   });
 
+  describe('userClaimedDraws()', () => {
+    it('should read an uninitialized userClaimedDraws', async () => {
+      const userClaimedDraws = await claimableDraw.userClaimedDraws(wallet1.address);
+      console.log(userClaimedDraws)
+    });
+  });
+
   describe('getDraw()', () => {
     it('should fail to read non-existent draw', async () => {
       await expect(claimableDraw.getDraw(1)).to.revertedWith('ClaimableDraw/draw-nonexistent');
@@ -264,7 +271,7 @@ describe('ClaimableDraw', () => {
       ).to.be.revertedWith('ClaimableDraw/calculator-address-invalid');
     });
 
-    it('should succeed to claim and emit ', async () => {
+    it.only('should succeed to claim and emit ', async () => {
       const MOCK_DRAW = { ...DRAW_SAMPLE_CONFIG, payout: toWei('100') };
       await claimableDraw.createDraw(
         DRAW_SAMPLE_CONFIG.randomNumber,
@@ -284,10 +291,15 @@ describe('ClaimableDraw', () => {
         .to.emit(claimableDraw, 'ClaimedDraw')
         .withArgs(
           wallet1.address,
-          '0x0000000000000000000000000000000000000000000000000000000000000001',
           MOCK_DRAW.payout,
         );
-    });
+
+      const userClaimedDraws = await claimableDraw.userClaimedDraws(wallet1.address);
+      expect(userClaimedDraws[0])
+        .to.equal(toWei('100'))
+
+    })
+
 
     it('should fail to claim a previously claimed prize', async () => {
       let drawsIds: Array<Array<number>> = [[], []];

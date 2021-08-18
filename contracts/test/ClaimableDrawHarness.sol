@@ -11,11 +11,11 @@ contract ClaimableDrawHarness is ClaimableDraw {
     return _createDraw(randomNumber, timestamp, prize);
   } 
 
-  function readLastClaimFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) external pure returns (bool) {
-    return _readUsersDrawClaimStatusFromClaimedHistory(_userClaimedDraws, _drawIndex);
-  }
+  // function readLastClaimFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) external pure returns (bool) {
+  //   return _readUsersDrawClaimStatusFromClaimedHistory(_userClaimedDraws, _drawIndex);
+  // }
 
-  function writeLastClaimFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) external pure returns (bytes32) {
-    return _writeUsersDrawClaimStatusFromClaimedHistory(_userClaimedDraws, _drawIndex);
-  }
+  // function writeLastClaimFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) external pure returns (bytes32) {
+  //   return _writeUsersDrawClaimStatusFromClaimedHistory(_userClaimedDraws, _drawIndex);
+  // }
 }
