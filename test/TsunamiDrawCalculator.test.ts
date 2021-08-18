@@ -64,18 +64,24 @@ describe('TsunamiDrawCalculator', () => {
         let winningRandomNumber
 
         while(true){
+            let prizeFoundFlag: boolean = false
             winningRandomNumber = utils.solidityKeccak256(["address"], [ethers.Wallet.createRandom().address])
-            const result = await drawCalculator.calculate(
+            const prizesAwardable : BigNumber[] = await drawCalculator.calculate(
                 userAddress,
                 [winningRandomNumber],
                 [timestamp],
                 prizes,
                 pickIndices
             )
-            
-            if(result.eq(expectedPrizeAmount)){
+
+            for(const prize of prizesAwardable){
+              if(prize.eq(expectedPrizeAmount)){
                 green(`found a winning number! ${winningRandomNumber}`)
-                break
+                prizeFoundFlag = true
+              }
+            }
+            if(prizeFoundFlag == true){
+              break
             }
         }
     
@@ -336,15 +342,15 @@ describe('TsunamiDrawCalculator', () => {
 
       await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
-      expect(
-        await drawCalculator.calculate(
-          wallet1.address,
-          [winningRandomNumber],
-          [timestamp],
-          prizes,
-          pickIndices,
-        ),
-      ).to.equal(utils.parseEther('80'));
+      const prizesAwardable = await drawCalculator.calculate(
+        wallet1.address,
+        [winningRandomNumber],
+        [timestamp],
+        prizes,
+        pickIndices,
+      )
+
+      expect(prizesAwardable[0]).to.equal(utils.parseEther('80'));
 
       console.log(
         'GasUsed for calculate(): ',
@@ -380,14 +386,16 @@ describe('TsunamiDrawCalculator', () => {
         .withArgs(wallet1.address, [timestamp1, timestamp2])
         .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
+      const prizesAwardable = await drawCalculator.calculate(
+        wallet1.address,
+        [winningRandomNumber, winningRandomNumber],
+        [timestamp1, timestamp2],
+        prizes,
+        pickIndices,
+      )
+
       expect(
-        await drawCalculator.calculate(
-          wallet1.address,
-          [winningRandomNumber, winningRandomNumber],
-          [timestamp1, timestamp2],
-          prizes,
-          pickIndices,
-        ),
+        prizesAwardable[0]
       ).to.equal(utils.parseEther('80'));
 
       console.log(
@@ -454,14 +462,16 @@ describe('TsunamiDrawCalculator', () => {
 
       await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
-      expect(
-        await drawCalculator.calculate(
-          wallet1.address,
-          [userRandomNumber],
-          [timestamp],
-          prizes,
-          pickIndices,
-        ),
+      const prizesAwardable = await drawCalculator.calculate(
+        wallet1.address,
+        [userRandomNumber],
+        [timestamp],
+        prizes,
+        pickIndices,
+      )
+
+     expect(
+        prizesAwardable[0]
       ).to.equal(utils.parseEther('0'));
     });
 
@@ -488,14 +498,14 @@ describe('TsunamiDrawCalculator', () => {
       await drawCalculator.setDrawSettings(params);
 
       let winningRandomNumber = await findWinningNumberForUser(wallet1.address, 3, params);
-      const resultingPrize = await drawCalculator.calculate(
+      const resultingPrizes = await drawCalculator.calculate(
         wallet1.address,
         [winningRandomNumber],
         [timestamp],
         prizes,
         pickIndices,
       );
-      expect(resultingPrize).to.equal(ethers.BigNumber.from(utils.parseEther('0.15625')));
+      expect(resultingPrizes[0]).to.equal(ethers.BigNumber.from(utils.parseEther('0.15625')));
       // now increase cardinality
       params = {
         matchCardinality: BigNumber.from(7),
@@ -512,14 +522,14 @@ describe('TsunamiDrawCalculator', () => {
       };
       await drawCalculator.setDrawSettings(params);
       winningRandomNumber = await findWinningNumberForUser(wallet1.address, 3, params);
-      const resultingPrize2 = await drawCalculator.calculate(
+      const resultingPrizes2 = await drawCalculator.calculate(
         wallet1.address,
         [winningRandomNumber],
         [timestamp],
         prizes,
         pickIndices,
       );
-      expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther('0.0390625')));
+      expect(resultingPrizes2[0]).to.equal(ethers.BigNumber.from(utils.parseEther('0.0390625')));
     });
 
     it('increasing the number range results in lower probability of matches', async () => {
@@ -547,14 +557,14 @@ describe('TsunamiDrawCalculator', () => {
 
       const winningRandomNumber = await findWinningNumberForUser(wallet1.address, 3, params);
 
-      const resultingPrize = await drawCalculator.calculate(
+      const resultingPrizes = await drawCalculator.calculate(
         wallet1.address,
         [winningRandomNumber],
         [timestamp],
         prizes,
         pickIndices,
       );
-      expect(resultingPrize).to.equal(
+      expect(resultingPrizes[0]).to.equal(
         ethers.BigNumber.from(utils.parseEther('1.1111111111111111')),
       );
       // now increase number range
@@ -574,14 +584,14 @@ describe('TsunamiDrawCalculator', () => {
 
       const winningRandomNumber2 = await findWinningNumberForUser(wallet1.address, 3, params);
 
-      const resultingPrize2 = await drawCalculator.calculate(
+      const resultingPrizes2 = await drawCalculator.calculate(
         wallet1.address,
         [winningRandomNumber2],
         [timestamp],
         prizes,
         pickIndices,
       );
-      expect(resultingPrize2).to.equal(ethers.BigNumber.from(utils.parseEther('0.625')));
+      expect(resultingPrizes2[0]).to.equal(ethers.BigNumber.from(utils.parseEther('0.625')));
     });
   });
 });

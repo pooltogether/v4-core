@@ -12,6 +12,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice Ticket associated with DrawCalculator
   ITicketTwab ticket;
 
+  ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? store elsewhere?
+  DrawSettings public drawSettings;
+
+  /* ============ Structs ============ */
+
   ///@notice Draw settings struct
   ///@param bitRangeValue Decimal representation of bitRangeSize
   ///@param bitRangeSize Number of bits to consider matching
@@ -26,14 +31,16 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint128[] distributions;
   }
 
-  ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? store elsewhere?
-  DrawSettings public drawSettings;
+  /* ============ Events ============ */
 
   ///@notice Emitted when the DrawParams are set/updated
   event DrawSettingsSet(DrawSettings _drawSettings);
 
   ///@notice Emitted when the contract is initialized
   event Initialized(ITicketTwab indexed _ticket);
+
+
+  /* ============ External Functions ============ */
 
   ///@notice Initializer sets the initial parameters
   ///@param _ticket Ticket associated with this DrawCalculator
@@ -46,17 +53,34 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     emit Initialized(_ticket);
   }
 
+  ///@notice Calculates the expected prize fraction per DrawSettings and prizeDistributionIndex
+  ///@param _drawSettings DrawSettings struct for Draw
+  ///@param prizeDistributionIndex Index of the prize distribution array to calculate
+  ///@return returns the fraction of the total prize
+  function calculatePrizeDistributionFraction(DrawSettings calldata _drawSettings, uint256 prizeDistributionIndex) external pure returns(uint256){
+    return _calculatePrizeDistributionFraction(_drawSettings, prizeDistributionIndex);
+  }
+
+  ///@notice Set the DrawCalculators DrawSettings
+  ///@dev Distributions must be expressed with Ether decimals (1e18)
+  ///@param _drawSettings DrawSettings struct to set
+  function setDrawSettings(DrawSettings calldata _drawSettings) external onlyOwner {
+    _setDrawSettings(_drawSettings);
+  }
+
   ///@notice Calulates the prize amount for a user at particular draws. Called by a Claimable Strategy.
   ///@param user User for which to calcualte prize amount
   ///@param winningRandomNumbers the winning random numbers for the Draws
   ///@param timestamps the timestamps at which the Draws occurred
   ///@param prizes The prizes at those Draws
   ///@param data The encoded pick indices
-  ///@return The amount of prize to award to the user
+  ///@return An array of prizes awardable
   function calculate(address user, uint256[] calldata winningRandomNumbers, uint32[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
-    external override view returns (uint256){
+    external override view returns (uint256[] memory){ // can we do less than 256 bits here?
 
     require(winningRandomNumbers.length == timestamps.length && timestamps.length == prizes.length, "DrawCalc/invalid-calculate-input-lengths");
+
+    uint256[] memory prizesAwardable = new uint256[](prizes.length);
 
     uint256[][] memory pickIndices = abi.decode(data, (uint256 [][]));
     require(pickIndices.length == timestamps.length, "DrawCalc/invalid-pick-indices-length");
@@ -66,13 +90,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
     DrawSettings memory settings = drawSettings; //sload
 
-    uint256 prize = 0;
-
     for (uint256 index = 0; index < winningRandomNumbers.length; index++) {
-      prize += _calculate(winningRandomNumbers[index], prizes[index], userBalances[index], userRandomNumber, pickIndices[index], settings);
+      prizesAwardable[index] = _calculate(winningRandomNumbers[index], prizes[index], userBalances[index], userRandomNumber, pickIndices[index], settings);
     }
-    return prize;
+    return prizesAwardable;
   }
+
+  /* ============ Internal Functions ============ */
 
   ///@notice calculates the prize amount per Draw per users pick
   ///@param winningRandomNumber The Draw's winningRandomNumber
@@ -144,26 +168,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param _drawSettings DrawSettings struct for Draw
   ///@param prizeDistributionIndex Index of the prize distribution array to calculate
   ///@return returns the fraction of the total prize
-  function calculatePrizeDistributionFraction(DrawSettings calldata _drawSettings, uint256 prizeDistributionIndex) external pure returns(uint256){
-    return _calculatePrizeDistributionFraction(_drawSettings, prizeDistributionIndex);
-  }
-
-  ///@notice Calculates the expected prize fraction per DrawSettings and prizeDistributionIndex
-  ///@param _drawSettings DrawSettings struct for Draw
-  ///@param prizeDistributionIndex Index of the prize distribution array to calculate
-  ///@return returns the fraction of the total prize
   function _calculatePrizeDistributionFraction(DrawSettings memory _drawSettings, uint256 prizeDistributionIndex) internal pure returns (uint256) {
       uint256 numberOfPrizesForIndex = uint256(_drawSettings.bitRangeSize) ** prizeDistributionIndex;
       uint256 prizePercentageAtIndex = _drawSettings.distributions[prizeDistributionIndex];
       return prizePercentageAtIndex / numberOfPrizesForIndex;
   } 
-
-  ///@notice Set the DrawCalculators DrawSettings
-  ///@dev Distributions must be expressed with Ether decimals (1e18)
-  ///@param _drawSettings DrawSettings struct to set
-  function setDrawSettings(DrawSettings calldata _drawSettings) external onlyOwner {
-    _setDrawSettings(_drawSettings);
-  }
 
   ///@notice Set the DrawCalculators DrawSettings
   ///@dev Distributions must be expressed with Ether decimals (1e18)
