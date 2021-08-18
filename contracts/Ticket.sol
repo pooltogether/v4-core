@@ -24,7 +24,7 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using OverflowSafeComparator for uint32;
   using SafeCastUpgradeable for uint256;
-  using TwabLibrary for TwabLibrary.Twab[65535];
+  using TwabLibrary for TwabLibrary.Twab[4294967296];
   using TwabContextLibrary for TwabContextLibrary.TwabContext;
 
   /// @notice Emitted when ticket is initialized.
@@ -130,7 +130,7 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   /// @notice Returns the ERC20 ticket token balance of a ticket holder.
   /// @return uint256 `_user` ticket token balance.
   function _balanceOf(address _user) internal view returns (uint256) {
-    return userTwabs[_user].context.amount;
+    return userTwabs[_user].context.balance;
   }
 
   /// @notice Initializes Ticket with passed parameters.
@@ -173,7 +173,7 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   /// @notice Returns the ERC20 ticket token total supply.
   /// @return uint256 Total supply of the ERC20 ticket token.
   function totalSupply() public view virtual override returns (uint256) {
-    return totalSupplyTwab.context.amount;
+    return totalSupplyTwab.context.balance;
   }
 
   /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
@@ -198,8 +198,14 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
     _beforeTokenTransfer(_sender, _recipient, _amount);
 
     if (_sender != _recipient) {
-      userTwabs[_sender].decreaseBalance(amount, "ERC20: transfer amount exceeds balance", time, TWAB_EXPIRY);
-      userTwabs[_recipient].increaseBalance(amount, time, TWAB_EXPIRY);
+      (TwabLibrary.Twab memory senderTwab, bool senderIsNew) = userTwabs[_sender].decreaseBalance(amount, "ERC20: transfer amount exceeds balance", time, TWAB_EXPIRY);
+      if (senderIsNew) {
+        emit NewUserTwab(_sender, senderTwab);
+      }
+      (TwabLibrary.Twab memory recipientTwab, bool recipientIsNew) = userTwabs[_recipient].increaseBalance(amount, time, TWAB_EXPIRY);
+      if (recipientIsNew) {
+        emit NewUserTwab(_recipient, recipientTwab);
+      }
     }
 
     emit Transfer(_sender, _recipient, _amount);
@@ -219,8 +225,14 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
 
     _beforeTokenTransfer(address(0), _to, _amount);
 
-    totalSupplyTwab.increaseBalance(amount, time, TWAB_EXPIRY);
-    userTwabs[_to].increaseBalance(amount, time, TWAB_EXPIRY);
+    (TwabLibrary.Twab memory totalSupply, bool tsIsNew) = totalSupplyTwab.increaseBalance(amount, time, TWAB_EXPIRY);
+    if (tsIsNew) {
+      emit NewTotalSupplyTwab(totalSupply);
+    }
+    (TwabLibrary.Twab memory userTwab, bool userIsNew) = userTwabs[_to].increaseBalance(amount, time, TWAB_EXPIRY);
+    if (userIsNew) {
+      emit NewUserTwab(_to, userTwab);
+    }
 
     emit Transfer(address(0), _to, _amount);
 
@@ -240,8 +252,25 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
 
     _beforeTokenTransfer(_from, address(0), _amount);
 
-    totalSupplyTwab.decreaseBalance(amount, "ERC20: burn amount exceeds balance", time, TWAB_EXPIRY);
-    userTwabs[_from].decreaseBalance(amount, "ERC20: burn amount exceeds balance", time, TWAB_EXPIRY);
+    (TwabLibrary.Twab memory tsTwab, bool tsIsNew) = totalSupplyTwab.decreaseBalance(
+      amount,
+      "ERC20: burn amount exceeds balance",
+      time,
+      TWAB_EXPIRY
+    );
+    if (tsIsNew) {
+      emit NewTotalSupplyTwab(tsTwab);
+    }
+
+    (TwabLibrary.Twab memory userTwab, bool userIsNew) = userTwabs[_from].decreaseBalance(
+      amount,
+      "ERC20: burn amount exceeds balance",
+      time,
+      TWAB_EXPIRY
+    );
+    if (userIsNew) {
+      emit NewUserTwab(_from, userTwab);
+    }
 
     emit Transfer(_from, address(0), _amount);
 

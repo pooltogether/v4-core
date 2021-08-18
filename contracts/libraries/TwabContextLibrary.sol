@@ -20,7 +20,7 @@ library TwabContextLibrary {
   using TwabLibrary for TwabLibrary.Twab[MAX_CARDINALITY];
 
   struct Context {
-    uint224 amount;
+    uint224 balance;
     uint16 nextTwabIndex;
     uint16 cardinality;
   }
@@ -41,7 +41,7 @@ library TwabContextLibrary {
     uint16 cardinality = _minCardinality(context.cardinality);
     uint16 recentIndex = TwabLibrary.mostRecentIndex(context.nextTwabIndex, cardinality);
     // console.log("getBalanceAt _target: %s, _time: %s ", _target, _time);
-    return twabContext.twabs.getBalanceAt(_target, context.amount, recentIndex, cardinality, _time);
+    return twabContext.twabs.getBalanceAt(_target, context.balance, recentIndex, cardinality, _time);
   }
 
   function getAverageBalanceBetween(
@@ -53,10 +53,10 @@ library TwabContextLibrary {
     Context memory context = twabContext.context;
     uint16 card = _minCardinality(context.cardinality);
     uint16 recentIndex = TwabLibrary.mostRecentIndex(context.nextTwabIndex, card);
-    // console.log("getAverageBalanceBetween: amount: %s, index: %s, card: %s", context.amount, recentIndex, card);
+    // console.log("getAverageBalanceBetween: amount: %s, index: %s, card: %s", context.balance, recentIndex, card);
     // console.log("getAverageBalanceBetween: startTime: %s, endTime: %s, time: %s", _startTime, _endTime, _time);
     return twabContext.twabs.getAverageBalanceBetween(
-      context.amount,
+      context.balance,
       recentIndex,
       _startTime,
       _endTime,
@@ -72,7 +72,7 @@ library TwabContextLibrary {
     uint32 _expiry
   ) internal returns (TwabLibrary.Twab memory twab, bool isNew) {
     Context memory context = twabContext.context;
-    uint224 newBalance = (context.amount + _amount).toUint224();
+    uint224 newBalance = (context.balance + _amount).toUint224();
     (context, twab, isNew) = _update(context, twabContext.twabs, newBalance, _time, _expiry);
     twabContext.context = context;
   }
@@ -85,8 +85,8 @@ library TwabContextLibrary {
     uint32 _expiry
   ) internal returns (TwabLibrary.Twab memory twab, bool isNew) {
     Context memory context = twabContext.context;
-    require(context.amount >= _amount, _message);
-    uint224 newBalance = (context.amount - _amount).toUint224();
+    require(context.balance >= _amount, _message);
+    uint224 newBalance = (context.balance - _amount).toUint224();
     (context, twab, isNew) = _update(context, twabContext.twabs, newBalance, _time, _expiry);
     twabContext.context = context;
   }
@@ -106,7 +106,7 @@ library TwabContextLibrary {
     uint16 cardinality;
 
     (nextTwabIndex, cardinality, twab, isNew) = twabs.nextTwabWithExpiry(
-      context.amount,
+      context.balance,
       _newBalance,
       context.nextTwabIndex,
       context.cardinality,
@@ -115,7 +115,7 @@ library TwabContextLibrary {
     );
 
     newContext = Context({
-      amount: _newBalance,
+      balance: _newBalance,
       nextTwabIndex: nextTwabIndex,
       cardinality: cardinality
     });

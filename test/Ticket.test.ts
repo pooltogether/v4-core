@@ -24,7 +24,7 @@ type BinarySearchResult = {
 
 async function printTwabs(debug: any, ticketContract: Contract, wallet: SignerWithAddress) {
   const context = await ticketContract.userBalanceWithTwab(wallet.address)
-  debug(`Twab Context for ${wallet.address}: { amount: ${ethers.utils.formatEther(context.amount)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
+  debug(`Twab Context for ${wallet.address}: { balance: ${ethers.utils.formatEther(context.balance)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
   const twabs = []
   for (var i = 0; i < context.cardinality; i++) {
     twabs.push(await ticketContract.getTwab(wallet.address, i));

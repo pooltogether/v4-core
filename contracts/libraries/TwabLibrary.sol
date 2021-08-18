@@ -286,12 +286,9 @@ library TwabLibrary {
     uint16 _cardinality,
     uint32 _time,
     uint32 _expiry
-  ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality) {
-    // console.log("calculateNextWithExpiry entry cardinality: %s", _cardinality);
+  ) internal view returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality) {
 /*
-
     Desired min history: 100
-
     1) 
       next: 100
 
@@ -312,10 +309,7 @@ library TwabLibrary {
 
     For 1) 100 - 90 = 10.  First one is negative!
     For 2) 105 - 5 = 100.  We can eliminate the first one!
-
     */
-
-    // console.log("TwabLibrary _calculateNextWithLifespan1");
 
     Twab memory secondOldestTwab;
     // if there are two or more records
@@ -324,22 +318,15 @@ library TwabLibrary {
       secondOldestTwab = _twabs[wrapCardinality(uint32(_nextTwabIndex) + 1, _cardinality)];
     }
 
-    // console.log("TwabLibrary _calculateNextWithExpiry _nextTwabIndex: %s", _nextTwabIndex);
-    // console.log("TwabLibrary _calculateNextWithExpiry _cardinality: %s", _cardinality);
-
     nextCardinality = _cardinality;
     if (secondOldestTwab.timestamp == 0 || _time - secondOldestTwab.timestamp < _expiry) {
       nextCardinality = _cardinality < MAX_CARDINALITY ? _cardinality + 1 : MAX_CARDINALITY;
     }
 
-    // console.log("TwabLibrary _calculateNextWithExpiry nextCardinality: %s", nextCardinality);
-
     nextAvailableTwabIndex = wrapCardinality(uint32(_nextTwabIndex) + 1, nextCardinality);
-
-    // console.log("TwabLibrary _calculateNextWithExpiry nextAvailableTwabIndex: %s", nextAvailableTwabIndex);
   }
 
-  function nextTwabWithExpiry (
+  function nextTwabWithExpiry(
     Twab[MAX_CARDINALITY] storage _twabs,
     uint224 _balance,
     uint224 _newBalance,
@@ -350,19 +337,14 @@ library TwabLibrary {
   ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, Twab memory twab, bool isNew) {
     uint16 cardinality = _cardinality > 0 ? _cardinality : 1;
 
-    // console.log("nextTwabWithExpiry: using cardinality: %s", cardinality);
-
     Twab memory newestTwab = _twabs[mostRecentIndex(_nextTwabIndex, cardinality)];
 
+    // if we're in the same block, return
     if (newestTwab.timestamp == _time) {
-      // console.log("nextTwabWithExpiry: SAME SAME");
-      // if we're in the same block, return
       return (_nextTwabIndex, cardinality, newestTwab, false);
     }
 
     (nextAvailableTwabIndex, nextCardinality) = calculateNextWithExpiry(_twabs, _nextTwabIndex, cardinality, _time, _maxLifetime);
-
-    // console.log("nextTwabWithExpiry nextAvailableTwabIndex: %s", nextAvailableTwabIndex);
 
     Twab memory newTwab = nextTwab(
       newestTwab,
@@ -370,18 +352,7 @@ library TwabLibrary {
       _time
     );
 
-    // console.log("TwabLibrary _calculateNextWithLifespan5");
-
-    // We don't record a new TWAB if a TWAB already exists at the same timestamp
-    // So we don't emit `NewUserTwab` since no new TWAB has been recorded
-    // console.log("nextTwabWithExpiry writing to %s", _nextTwabIndex);
     _twabs[_nextTwabIndex] = newTwab;
-
-    // console.log("nextTwabWithExpiry nextcardinality: %s", nextCardinality);
-
-    // console.log("TwabLibrary _calculateNextWithLifespan6");
-
-    // console.log("TwabLibrary _calculateNextWithLifespan7");
 
     return (nextAvailableTwabIndex, nextCardinality, newTwab, true);
   }

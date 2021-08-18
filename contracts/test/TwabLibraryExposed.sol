@@ -97,4 +97,24 @@ contract TwabLibraryExposed {
   ) external view returns (TwabLibrary.Twab memory) {
     return TwabLibrary.nextTwab(_currentTwab, _currentBalance, _currentTimestamp);
   }
+
+  function calculateNextWithExpiry(
+    uint16 _nextTwabIndex,
+    uint16 _cardinality,
+    uint32 _time,
+    uint32 _expiry
+  ) internal view returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality) {
+    return twabs.calculateNextWithExpiry(_nextTwabIndex, _cardinality, _time, _expiry);
+  }
+
+  function nextTwabWithExpiry(
+    uint224 _balance,
+    uint224 _newBalance,
+    uint16 _nextTwabIndex,
+    uint16 _cardinality,
+    uint32 _time,
+    uint32 _maxLifetime
+  ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, Twab memory twab, bool isNew) {
+    return twabs.nextTwabWithExpiry(_balance, _newBalance, _nextTwabIndex, _cardinality, _time, _maxLifetime);
+  }
 }
