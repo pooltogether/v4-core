@@ -24,7 +24,6 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using OverflowSafeComparator for uint32;
   using SafeCastUpgradeable for uint256;
-  using TwabLibrary for TwabLibrary.Twab[4294967296];
   using TwabContextLibrary for TwabContextLibrary.TwabContext;
 
   /// @notice Emitted when ticket is initialized.
@@ -62,6 +61,30 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   /// @notice Record of tickets total supply and most recent TWAB index.
   TwabContextLibrary.TwabContext internal totalSupplyTwab;
 
+  /// @notice Initializes Ticket with passed parameters.
+  /// @param _name ERC20 ticket token name.
+  /// @param _symbol ERC20 ticket token symbol.
+  /// @param decimals_ ERC20 ticket token decimals.
+  function initialize (
+    string calldata _name,
+    string calldata _symbol,
+    uint8 decimals_,
+    TokenControllerInterface _controller
+  ) public virtual override initializer {
+    __ERC20_init(_name, _symbol);
+    __ERC20Permit_init("PoolTogether Ticket");
+
+    require(decimals_ > 0, "Ticket/decimals-gt-zero");
+    _decimals = decimals_;
+
+    __Ownable_init();
+
+    require(address(_controller) != address(0), "Ticket/controller-not-zero-address");
+    ControlledToken.initialize(_name, _symbol, _decimals, _controller);
+
+    emit TicketInitialized(_name, _symbol, decimals_, _controller);
+  }
+
   function userBalanceWithTwab(address _user) external view returns (TwabContextLibrary.Context memory) {
     return userTwabs[_user].context;
   }
@@ -73,16 +96,16 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   /// @notice Retrieves `_user` TWAB balance.
   /// @param _user Address of the user whose TWAB is being fetched.
   /// @param _target Timestamp at which the reserved TWAB should be for.
-  function getBalanceAt(address _user, uint32 _target) external override view returns (uint256) {
+  function getBalanceAt(address _user, uint256 _target) external override view returns (uint256) {
     return _getBalanceAt(_user, _target);
   }
 
-  function _getBalanceAt(address _user, uint32 _target) internal view returns (uint256) {
-    return userTwabs[_user].getBalanceAt(_target, uint32(block.timestamp));
+  function _getBalanceAt(address _user, uint256 _target) internal view returns (uint256) {
+    return userTwabs[_user].getBalanceAt(uint32(_target), uint32(block.timestamp));
   }
 
-  function getAverageBalanceBetween(address _user, uint32 _startTime, uint32 _endTime) external override view returns (uint256) {
-    return _getAverageBalanceBetween(_user, _startTime, _endTime);
+  function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
+    return _getAverageBalanceBetween(_user, uint32(_startTime), uint32(_endTime));
   }
 
   function _getAverageBalanceBetween(address _user, uint32 _startTime, uint32 _endTime) internal view returns (uint256) {
@@ -131,30 +154,6 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   /// @return uint256 `_user` ticket token balance.
   function _balanceOf(address _user) internal view returns (uint256) {
     return userTwabs[_user].context.balance;
-  }
-
-  /// @notice Initializes Ticket with passed parameters.
-  /// @param _name ERC20 ticket token name.
-  /// @param _symbol ERC20 ticket token symbol.
-  /// @param decimals_ ERC20 ticket token decimals.
-  function initialize (
-    string calldata _name,
-    string calldata _symbol,
-    uint8 decimals_,
-    TokenControllerInterface _controller
-  ) public virtual override initializer {
-    __ERC20_init(_name, _symbol);
-    __ERC20Permit_init("PoolTogether Ticket");
-
-    require(decimals_ > 0, "Ticket/decimals-gt-zero");
-    _decimals = decimals_;
-
-    __Ownable_init();
-
-    require(address(_controller) != address(0), "Ticket/controller-not-zero-address");
-    ControlledToken.initialize(_name, _symbol, _decimals, _controller);
-
-    emit TicketInitialized(_name, _symbol, decimals_, _controller);
   }
 
   /// @notice Returns the ERC20 ticket token decimals.

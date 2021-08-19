@@ -10,6 +10,8 @@ import { increaseTime as increaseTimeHelper } from './helpers/increaseTime';
 
 const newDebug = require('debug')
 
+const debug = newDebug("pt:Ticket.test.ts")
+
 const { constants, getSigners, provider } = ethers;
 const { AddressZero } = constants;
 const { getBlock } = provider;
@@ -22,15 +24,15 @@ type BinarySearchResult = {
   timestamp: number;
 };
 
-async function printTwabs(debug: any, ticketContract: Contract, wallet: SignerWithAddress) {
+async function printTwabs(ticketContract: Contract, wallet: SignerWithAddress, debugLog: any = debug) {
   const context = await ticketContract.userBalanceWithTwab(wallet.address)
-  debug(`Twab Context for ${wallet.address}: { balance: ${ethers.utils.formatEther(context.balance)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
+  debugLog(`Twab Context for ${wallet.address}: { balance: ${ethers.utils.formatEther(context.balance)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
   const twabs = []
   for (var i = 0; i < context.cardinality; i++) {
     twabs.push(await ticketContract.getTwab(wallet.address, i));
   }
   twabs.forEach((twab, index) => {
-    debug(`Twab ${index} { amount: ${twab.amount}, timestamp: ${twab.timestamp}}`)
+    debugLog(`Twab ${index} { amount: ${twab.amount}, timestamp: ${twab.timestamp}}`)
   })
 }
 
@@ -265,7 +267,7 @@ describe('Ticket', () => {
         .to.emit(ticket, 'Transfer')
         .withArgs(AddressZero, wallet1.address, mintAmount);
 
-      await printTwabs(debug, ticket, wallet1)
+      await printTwabs(ticket, wallet1, debug)
 
       const context = await ticket.userBalanceWithTwab(wallet1.address)
 
@@ -330,7 +332,7 @@ describe('Ticket', () => {
     });
 
     it('should return an average of zero for pre-history requests', async () => {
-      await printTwabs(debug, ticket, wallet1)
+      await printTwabs(ticket, wallet1, debug)
       // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
       expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 100, timestamp - 50)).to.equal(toWei('0'));
     });
@@ -379,7 +381,7 @@ describe('Ticket', () => {
       });
 
       it('should return half the minted balance when the duration is centered over first twab', async () => {
-        await printTwabs(debug, ticket, wallet1)
+        await printTwabs(ticket, wallet1, debug)
         debug(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
         expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('500'))
       })
@@ -516,4 +518,78 @@ describe('Ticket', () => {
       expect(totalSupplies[2]).to.equal(mintAmount.sub(burnAmount));
     });
   });
+
+  /**
+   * Overflow risk.
+   * 
+   * A user cannot mint or receive more than 2**224 tokens, as that is the numerical limit.
+   * 
+   * The user's TWAB will always be larger than their balance, as it continually sums (delta time * balance).
+   * The user's TWAB will always have an increasing timestamp.
+   * 
+   * Overflow situations:
+   * 
+   * 1. The TWAB timestamp overflows.
+   * 2. The TWAB amount overflows.
+   * 
+   * Invariants:
+   * 
+   * - the newest TWAB timestamp must always be larger than the oldest.
+   * - the newest TWAB must always be larger than the oldest one.
+   * 
+   * 
+   * This means we need to *allow* overflow then try to take it into account when calculating.
+   * 
+   */
+
+
+
+   describe.only('TWAB timestamp overflow', () => {
+
+    it('should allow transfers to continue even after timestamp overflow', async () => {
+      await ticket.mint(wallet1.address, toWei('1000'))
+      await increaseTime(2**30)
+      await ticket.transfer(wallet2.address, toWei('100'))
+      
+      debug(`Transfer 1:`)
+      await printTwabs(ticket, wallet1)
+      await increaseTime(2**30) // now halfway to end
+      await ticket.transfer(wallet2.address, toWei('100'))
+      
+      debug(`Transfer 2:`)
+      await printTwabs(ticket, wallet1)
+      await increaseTime(2**30) // three quarters to end
+      await ticket.transfer(wallet2.address, toWei('100'))
+      
+      debug(`Transfer 3:`)
+      await printTwabs(ticket, wallet1)
+      await increaseTime(2**30) // at end!
+      await ticket.transfer(wallet2.address, toWei('100'))
+      let transfer3Time = (await provider.getBlock('latest')).timestamp
+      await increaseTime(1000)
+      expect(await ticket.getBalanceAt(wallet1.address, transfer3Time)).to.equal(toWei('600'))
+      expect(await ticket.getAverageBalanceBetween(
+        wallet1.address,
+        transfer3Time - 1,
+        transfer3Time + 1
+      )).to.equal(toWei('650'))
+
+      debug(`Transfer 4:`)
+      await printTwabs(ticket, wallet1)
+      await increaseTime(1000) // overflow
+      await ticket.transfer(wallet2.address, toWei('100'))
+      let transfer4Time = (await provider.getBlock('latest')).timestamp
+      await increaseTime(1000) // overflow
+
+      expect(await ticket.getBalanceAt(wallet1.address, transfer4Time)).to.equal(toWei('500'))
+      expect(await ticket.getAverageBalanceBetween(
+        wallet1.address,
+        transfer4Time-1,
+        transfer4Time+1
+      )).to.equal(toWei('550'))
+
+      await printTwabs(ticket, wallet1)
+    })
+  })
+
 });

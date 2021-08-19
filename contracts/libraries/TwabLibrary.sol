@@ -224,8 +224,6 @@ library TwabLibrary {
     Twab memory afterOrAt;
     Twab memory beforeOrAt = _twabs[_twabIndex];
 
-    // console.log("getBalanceAt: %s, %s", beforeOrAt.timestamp, targetTimestamp);
-
     // If `targetTimestamp` is chronologically after the newest TWAB, we can simply return the current balance
     if (beforeOrAt.timestamp.lte(targetTimestamp, _time)) {
       return _currentBalance;
@@ -267,16 +265,12 @@ library TwabLibrary {
   function nextTwab(
     Twab memory _currentTwab,
     uint256 _currentBalance,
-    uint32 currentTimestamp
-  ) internal view returns (Twab memory) {
-    // If a TWAB already exists at this timestamp, then we don't need to update values
-    // This is to avoid recording a new TWAB if several transactions happen in the same block
-    require(currentTimestamp > _currentTwab.timestamp, "TwabLibrary: same timestamp");
-
+    uint32 _time
+  ) internal pure returns (Twab memory) {
     // New twab amount = last twab amount (or zero) + (current amount * elapsed seconds)
     return Twab({
-      amount: (uint256(_currentTwab.amount) + (_currentBalance * (currentTimestamp - _currentTwab.timestamp))).toUint224(),
-      timestamp: currentTimestamp
+      amount: (uint256(_currentTwab.amount) + (_currentBalance * (_time.checkedSub(_currentTwab.timestamp, _time)))).toUint224(),
+      timestamp: _time
     });
   }
 
@@ -319,7 +313,7 @@ library TwabLibrary {
     }
 
     nextCardinality = _cardinality;
-    if (secondOldestTwab.timestamp == 0 || _time - secondOldestTwab.timestamp < _expiry) {
+    if (secondOldestTwab.timestamp == 0 || _time.checkedSub(secondOldestTwab.timestamp, _time) < _expiry) {
       nextCardinality = _cardinality < MAX_CARDINALITY ? _cardinality + 1 : MAX_CARDINALITY;
     }
 
@@ -341,6 +335,7 @@ library TwabLibrary {
 
     // if we're in the same block, return
     if (newestTwab.timestamp == _time) {
+      console.log("OH SHIT!!!!!!!!!!!!!");
       return (_nextTwabIndex, cardinality, newestTwab, false);
     }
 
