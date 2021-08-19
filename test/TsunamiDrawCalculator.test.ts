@@ -2,13 +2,12 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, ContractFactory, Signer, Wallet, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-import { Interface } from 'ethers/lib/utils';
 
 const printUtils = require("./helpers/printUtils")
 const { green, dim } = printUtils
 
 const { getSigners, provider } = ethers;
-const { parseEther: toWei } = utils;
+
 
 type DrawSettings = {
   matchCardinality: BigNumber;
@@ -64,7 +63,6 @@ describe('TsunamiDrawCalculator', () => {
         let winningRandomNumber
 
         while(true){
-            let prizeFoundFlag: boolean = false
             winningRandomNumber = utils.solidityKeccak256(["address"], [ethers.Wallet.createRandom().address])
             const prizesAwardable : BigNumber[] = await drawCalculator.calculate(
                 userAddress,
@@ -74,13 +72,9 @@ describe('TsunamiDrawCalculator', () => {
                 pickIndices
             )
 
-            for(const prize of prizesAwardable){
-              if(prize.eq(expectedPrizeAmount)){
-                green(`found a winning number! ${winningRandomNumber}`)
-                prizeFoundFlag = true
-              }
-            }
-            if(prizeFoundFlag == true){
+            const testEqualTo = (prize: BigNumber): boolean => prize.eq(expectedPrizeAmount)
+            if(prizesAwardable.some(testEqualTo)){
+              green(`found a winning number! ${winningRandomNumber}`)
               break
             }
         }
