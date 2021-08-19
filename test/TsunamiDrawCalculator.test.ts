@@ -100,7 +100,7 @@ describe('TsunamiDrawCalculator', () => {
 
     const drawSettings: DrawSettings = {
       distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-      pickCost: BigNumber.from(utils.parseEther('2')),
+      pickCost: BigNumber.from(utils.parseEther('1')),
       matchCardinality: BigNumber.from(5),
       bitRangeValue: BigNumber.from(15),
       bitRangeSize: BigNumber.from(4),
@@ -321,8 +321,8 @@ describe('TsunamiDrawCalculator', () => {
     });
   });
 
-  describe('calculate()', () => {
-    it('should calculate and win grand prize', async () => {
+  describe.only('calculate()', () => {
+    it.only('should calculate and win grand prize', async () => {
       const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
       const winningRandomNumber = utils.solidityKeccak256(
         ['bytes32', 'uint256'],
@@ -348,6 +348,44 @@ describe('TsunamiDrawCalculator', () => {
 
       console.log(
         'GasUsed for calculate(): ',
+        (
+          await drawCalculator.estimateGas.calculate(
+            wallet1.address,
+            [winningRandomNumber],
+            [timestamp],
+            prizes,
+            pickIndices,
+          )
+        ).toString(),
+      );
+    });
+
+    it.only('should calculate and win grand prize multiple picks', async () => {
+      const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+      const winningRandomNumber = utils.solidityKeccak256(
+        ['bytes32', 'uint256'],
+        [winningNumber, 1],
+      );
+
+      const timestamp = 42;
+      const prizes = [utils.parseEther('100')];
+      const pickIndices = encoder.encode(['uint256[][]'], [[[...new Array<number>(100).keys()]]]);
+      const ticketBalance = utils.parseEther('200');
+
+      await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+
+      const prizesAwardable = await drawCalculator.calculate(
+        wallet1.address,
+        [winningRandomNumber],
+        [timestamp],
+        prizes,
+        pickIndices,
+      )
+
+      // expect(prizesAwardable[0]).to.equal(utils.parseEther('80'));
+
+      console.log(
+        'GasUsed for calculate two picks(): ',
         (
           await drawCalculator.estimateGas.calculate(
             wallet1.address,
