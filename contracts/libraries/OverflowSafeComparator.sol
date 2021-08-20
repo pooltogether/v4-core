@@ -17,7 +17,7 @@ library OverflowSafeComparator {
       uint32 _timestamp
   ) internal pure returns (bool) {
       // No need to adjust if there hasn't been an overflow
-      if (_a < _timestamp && _b < _timestamp) return _a < _b;
+      if (_a <= _timestamp && _b <= _timestamp) return _a < _b;
 
       uint256 aAdjusted = _a > _timestamp ? _a : _a + 2**32;
       uint256 bAdjusted = _b > _timestamp ? _b : _b + 2**32;
@@ -43,5 +43,19 @@ library OverflowSafeComparator {
       uint256 bAdjusted = _b > _timestamp ? _b : _b + 2**32;
 
       return aAdjusted <= bAdjusted;
+  }
+
+  function checkedSub(
+      uint32 _a,
+      uint32 _b,
+      uint32 _timestamp
+  ) internal pure returns (uint32) {
+      // No need to adjust if there hasn't been an overflow
+      if (_a <= _timestamp && _b <= _timestamp) return _a - _b;
+
+      uint256 aAdjusted = _a > _timestamp ? _a : _a + 2**32;
+      uint256 bAdjusted = _b > _timestamp ? _b : _b + 2**32;
+
+      return uint32(aAdjusted - bAdjusted);
   }
 }

@@ -2,11 +2,16 @@
 
 pragma solidity 0.8.6;
 
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+
 import "../Ticket.sol";
 
 contract TicketHarness is Ticket {
-  function moduloCardinality(uint256 _index) external pure returns (uint256) {
-    return _moduloCardinality(_index);
+  using SafeCastUpgradeable for uint256;
+
+  function flashLoan(address _to, uint256 _amount) external {
+    _mint(_to, _amount);
+    _burn(_to, _amount);
   }
 
   function burn(address _from, uint256 _amount) external {
@@ -17,33 +22,22 @@ contract TicketHarness is Ticket {
     _mint(_to, _amount);
   }
 
+  function mintTwice(address _to, uint256 _amount) external {
+    _mint(_to, _amount);
+    _mint(_to, _amount);
+  }
+
   /// @dev we need to use a different function name than `transfer`
   /// otherwise it collides with the `transfer` function of the `ERC20Upgradeable` contract
   function transferTo(address _sender, address _recipient, uint256 _amount) external {
     _transfer(_sender, _recipient, _amount);
   }
 
-  function mostRecentTwabIndexOfUser(address _user) external view returns (uint256) {
-    return _mostRecentTwabIndexOfUser(_user);
+  function getBalanceTx(address _user, uint32 _target) external returns (uint256) {
+    return _getBalanceAt(_user, _target);
   }
 
-  function mostRecentTwabIndexOfTotalSupply() external view returns (uint256) {
-    return _mostRecentTwabIndexOfTotalSupply();
-  }
-
-  function binarySearch(
-    Twab[CARDINALITY] memory _twabs,
-    uint16 _twabIndex,
-    uint32 _target
-  ) external view returns (Twab memory beforeOrAt, Twab memory atOrAfter) {
-    (beforeOrAt, atOrAfter) = _binarySearch(_twabs, _twabIndex, _target);
-  }
-
-  function newUserTwab(address _user, uint16 _nextTwabIndex) external returns (uint16) {
-    return _newUserTwab(_user, _nextTwabIndex);
-  }
-
-  function newTotalSupplyTwab(uint16 _nextTwabIndex) external returns (uint16) {
-    return _newTotalSupplyTwab(_nextTwabIndex);
+  function getAverageBalanceTx(address _user, uint32 _startTime, uint32 _endTime) external returns (uint256) {
+    return _getAverageBalanceBetween(_user, _startTime, _endTime);
   }
 }

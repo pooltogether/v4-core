@@ -103,9 +103,9 @@ contract ClaimableDrawPrizeStrategyBuilder {
 
     // Initialize ClaimableDraw
     cd.initialize(address(cdprz), calculator);
-    
+
     // Initialize Calculator
-    calculator.initialize(ITicketTwab(address(ticket)), calculatorDrawSettings);
+    calculator.initialize(TicketInterface(address(ticket)), calculatorDrawSettings);
 
   }
 
