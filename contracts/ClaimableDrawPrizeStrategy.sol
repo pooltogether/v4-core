@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./import/prize-strategy/PrizeSplit.sol";
 import "./import/prize-strategy/PeriodicPrizeStrategy.sol";
 import "./ClaimableDraw.sol";
+import "./interfaces/TicketInterface.sol";
 
 contract ClaimableDrawPrizeStrategy is Initializable, 
                                        OwnableUpgradeable, 
@@ -69,7 +70,7 @@ contract ClaimableDrawPrizeStrategy is Initializable,
       _prizePeriodStart,
       _prizePeriodSeconds,
       _prizePool,
-      _ticket,
+      TicketInterface(address(_ticket)),
       _sponsorship,
       _rng,
       _externalErc20Awards

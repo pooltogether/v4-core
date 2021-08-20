@@ -20,6 +20,9 @@ const networks: HardhatUserConfig['networks'] = {
 if (alchemyUrl && process.env.FORK_ENABLED && mnemonic) {
   networks.hardhat = {
     chainId: 1,
+    allowUnlimitedContractSize: true,
+    gas: 12000000,
+    blockGasLimit: 0x1fffffffffffff,
     forking: {
       url: alchemyUrl,
     },
@@ -30,6 +33,8 @@ if (alchemyUrl && process.env.FORK_ENABLED && mnemonic) {
 } else {
   networks.hardhat = {
     allowUnlimitedContractSize: true,
+    gas: 12000000,
+    blockGasLimit: 0x1fffffffffffff,
   };
 }
 

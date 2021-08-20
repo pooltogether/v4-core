@@ -1,13 +1,12 @@
 import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
-import { utils, Contract, ContractFactory, Signer, Wallet, BigNumber } from 'ethers';
+import { utils, Contract, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
 
 const printUtils = require("./helpers/printUtils")
 const { green, dim } = printUtils
 
 const { getSigners } = ethers;
-
 
 type DrawSettings = {
   matchCardinality: BigNumber;
@@ -38,7 +37,7 @@ describe('TsunamiDrawCalculator', () => {
         const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
         const ticketBalance = utils.parseEther("10")
 
-        await ticket.mock.getBalances.withArgs(userAddress, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
+        await ticket.mock.getBalancesAt.withArgs(userAddress, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
 
         const distributionIndex = drawSettings.matchCardinality.toNumber() - matchesRequired
         dim(`distributionIndex: ${distributionIndex}`)
@@ -87,7 +86,7 @@ describe('TsunamiDrawCalculator', () => {
     [wallet1, wallet2, wallet3] = await getSigners();
     drawCalculator = await deployDrawCalculator(wallet1);
 
-    let ticketArtifact = await artifacts.readArtifact('TicketTwab');
+    let ticketArtifact = await artifacts.readArtifact('Ticket');
     ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
     const drawSettings: DrawSettings = {
@@ -309,7 +308,7 @@ describe('TsunamiDrawCalculator', () => {
       const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
       const ticketBalance = utils.parseEther('10');
 
-      await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
       const prizesAwardable = await drawCalculator.calculate(
         wallet1.address,
@@ -389,7 +388,7 @@ describe('TsunamiDrawCalculator', () => {
       const ticketBalance = utils.parseEther('10');
       const ticketBalance2 = utils.parseEther('10');
 
-      await ticket.mock.getBalances
+      await ticket.mock.getBalancesAt
         .withArgs(wallet1.address, [timestamp1, timestamp2])
         .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
@@ -434,7 +433,7 @@ describe('TsunamiDrawCalculator', () => {
       const ticketBalance = utils.parseEther('10');
       const ticketBalance2 = utils.parseEther('0.4');
 
-      await ticket.mock.getBalances
+      await ticket.mock.getBalancesAt
         .withArgs(wallet1.address, [timestamp1, timestamp2])
         .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
@@ -466,7 +465,7 @@ describe('TsunamiDrawCalculator', () => {
       const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
       const ticketBalance = utils.parseEther('10');
 
-      await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
       const prizesAwardable = await drawCalculator.calculate(
         wallet1.address,
@@ -487,7 +486,7 @@ describe('TsunamiDrawCalculator', () => {
       const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
       const ticketBalance = utils.parseEther('10');
 
-      await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
       let params: DrawSettings = {
         matchCardinality: BigNumber.from(6),
@@ -546,7 +545,7 @@ describe('TsunamiDrawCalculator', () => {
       const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
       const ticketBalance = utils.parseEther('10');
 
-      await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
       let params: DrawSettings = {
         matchCardinality: BigNumber.from(5),

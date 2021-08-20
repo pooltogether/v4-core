@@ -2,11 +2,15 @@ import { Signer } from '@ethersproject/abstract-signer';
 import { BigNumber } from '@ethersproject/bignumber';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { utils, Contract, ContractFactory } from 'ethers';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
+import { utils, Contract, ContractFactory } from 'ethers';
 import hre, { ethers } from 'hardhat';
 
 import { increaseTime as increaseTimeHelper } from './helpers/increaseTime';
+
+const newDebug = require('debug')
+
+const debug = newDebug("pt:Ticket.test.ts")
 
 const { constants, getSigners, provider } = ethers;
 const { AddressZero } = constants;
@@ -20,25 +24,19 @@ type BinarySearchResult = {
   timestamp: number;
 };
 
-const calculateTwab = (response: BinarySearchResult[]) => {
-  const beforeOrAt = response[0];
-  const atOrAfter = response[1];
-
-  const beforeOrAtAmount = beforeOrAt.amount;
-  const atOrAfterAmount = atOrAfter.amount;
-
-  const differenceInAmount = ethers.utils.formatUnits(atOrAfterAmount.sub(beforeOrAtAmount));
-
-  const beforeOrAtTimestamp = beforeOrAt.timestamp;
-  const atOrAfterTimestamp = atOrAfter.timestamp;
-
-  const differenceInTimestamp = atOrAfterTimestamp - beforeOrAtTimestamp;
-
-  return Number(differenceInAmount) / differenceInTimestamp;
-};
+async function printTwabs(ticketContract: Contract, wallet: SignerWithAddress, debugLog: any = debug) {
+  const context = await ticketContract.getAccountDetails(wallet.address)
+  debugLog(`Twab Context for ${wallet.address}: { balance: ${ethers.utils.formatEther(context.balance)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
+  const twabs = []
+  for (var i = 0; i < context.cardinality; i++) {
+    twabs.push(await ticketContract.getTwab(wallet.address, i));
+  }
+  twabs.forEach((twab, index) => {
+    debugLog(`Twab ${index} { amount: ${twab.amount}, timestamp: ${twab.timestamp}}`)
+  })
+}
 
 describe('Ticket', () => {
-  let cardinality: number;
   let controller: MockContract;
   let ticket: Contract;
 
@@ -68,7 +66,6 @@ describe('Ticket', () => {
 
     const ticketFactory: ContractFactory = await ethers.getContractFactory('TicketHarness');
     ticket = await ticketFactory.deploy();
-    cardinality = await ticket.CARDINALITY();
 
     if (!isInitializeTest) {
       await initializeTicket();
@@ -90,7 +87,6 @@ describe('Ticket', () => {
       expect(await ticket.name()).to.equal(ticketName);
       expect(await ticket.symbol()).to.equal(ticketSymbol);
       expect(await ticket.decimals()).to.equal(ticketDecimals);
-      expect(await ticket.owner()).to.equal(wallet1.address);
     });
 
     it('should set custom decimals', async () => {
@@ -137,183 +133,64 @@ describe('Ticket', () => {
       expect(await ticket.totalSupply()).to.equal(mintBalance.mul(2));
     });
   });
+  
+  describe('flash loan attack', () => {
+    let flashTimestamp: number
+    let mintTimestamp: number
 
-  describe('_moduloCardinality()', () => {
-    it('should get correct twab index', async () => {
-      for (let i = 0; i < cardinality * 2; i++) {
-        if (i < cardinality) {
-          expect(await ticket.moduloCardinality(i)).to.equal(i);
-        } else {
-          // We should go back to beginning of the circular buffer array
-          expect(await ticket.moduloCardinality(i)).to.equal(i % cardinality);
-        }
-      }
-    });
-  });
+    beforeEach(async () => {
+      await ticket.flashLoan(wallet1.address, toWei('100000'))
+      flashTimestamp = (await provider.getBlock('latest')).timestamp
+      await increaseTime(10)
+      
+      await ticket.mint(wallet1.address, toWei('100'))
+      mintTimestamp = (await provider.getBlock('latest')).timestamp
 
-  describe('_mostRecentTwabIndexOfUser()', () => {
-    it('should return user default twab index if no transfer has happened', async () => {
-      expect(await ticket.mostRecentTwabIndexOfUser(wallet1.address)).to.equal(cardinality - 1);
-    });
+      await increaseTime(20)
+    })
 
-    it('should return user most recent twab index if a transfer has happened', async () => {
-      expect(await ticket.mostRecentTwabIndexOfUser(wallet1.address)).to.equal(cardinality - 1);
+    it('should not affect getBalanceAt()', async () => {
+      expect(await ticket.getBalanceAt(wallet1.address, flashTimestamp - 1)).to.equal(0)
+      expect(await ticket.getBalanceAt(wallet1.address, flashTimestamp)).to.equal(0)
+      expect(await ticket.getBalanceAt(wallet1.address, flashTimestamp + 1)).to.equal(0)
+    })
 
-      await ticket.mint(wallet1.address, toWei('1000'));
+    it('should not affect getAverageBalanceBetween() for that time', async () => {
+      expect(await ticket.getAverageBalanceBetween(wallet1.address, flashTimestamp - 1, flashTimestamp + 1)).to.equal(0)
+    })
 
-      expect(await ticket.mostRecentTwabIndexOfUser(wallet1.address)).to.equal(0);
+    it('should not affect subsequent twabs for getAverageBalanceBetween()', async () => {
+      expect(await ticket.getAverageBalanceBetween(wallet1.address, mintTimestamp - 11, mintTimestamp + 11)).to.equal(toWei('50'))
+    })
+  })
 
-      await ticket.transfer(wallet2.address, toWei('100'));
+  describe('twab lifetime', () => {
+    let twabLifetime: number
+    const mintBalance = toWei('1000')
 
-      expect(await ticket.mostRecentTwabIndexOfUser(wallet2.address)).to.equal(0);
-      expect(await ticket.mostRecentTwabIndexOfUser(wallet1.address)).to.equal(1);
-    });
-  });
+    beforeEach(async () => {
+      twabLifetime = await ticket.TWAB_TIME_TO_LIVE()
+    })
 
-  describe('_mostRecentTwabIndexOfTotalSupply()', () => {
-    it('should return default total supply twab index if no mint has happened', async () => {
-      expect(await ticket.mostRecentTwabIndexOfTotalSupply()).to.equal(cardinality - 1);
-    });
+    it('should expire old twabs and save gas', async () => {
+      let quarterOfLifetime = twabLifetime / 4
 
-    it('should return total supply most recent twab index if a transfer has happened', async () => {
-      expect(await ticket.mostRecentTwabIndexOfTotalSupply()).to.equal(cardinality - 1);
+      await ticket.mint(wallet1.address, mintBalance)
 
-      await ticket.mint(wallet1.address, toWei('1000'));
-
-      expect(await ticket.mostRecentTwabIndexOfTotalSupply()).to.equal(0);
-
-      await ticket.mint(wallet2.address, toWei('100'));
-
-      expect(await ticket.mostRecentTwabIndexOfTotalSupply()).to.equal(1);
-    });
-  });
-
-  describe('_binarySearch()', () => {
-    it('should perform a binary search', async () => {
-      const mintAmount = toWei('1000');
-
-      await ticket.mint(wallet1.address, mintAmount);
-      const timestampAfterFirstMint = (await getBlock('latest')).timestamp;
-
-      await ticket.mint(wallet1.address, mintAmount);
-      const timestampAfterSecondMint = (await getBlock('latest')).timestamp;
-
-      await ticket.mint(wallet1.address, mintAmount);
-      const timestampAfterThirdMint = (await getBlock('latest')).timestamp;
-
-      const userTwabs = [
-        {
-          amount: 0,
-          timestamp: timestampAfterFirstMint,
-        },
-        {
-          amount: mintAmount,
-          timestamp: timestampAfterSecondMint,
-        },
-        {
-          amount: mintAmount.mul(3),
-          timestamp: timestampAfterThirdMint,
-        },
-      ];
-
-      for (let index = 0; index < 29; index++) {
-        userTwabs.push({
-          amount: 0,
-          timestamp: 0,
-        });
+      // now try transfers
+      for (var i = 0; i < 8; i++) {
+        await increaseTime(quarterOfLifetime)
+        await ticket.mint(wallet2.address, mintBalance)
+        await ticket.transfer(wallet2.address, toWei('100'))
+        await ticket.burn(wallet2.address, mintBalance.div(2))
       }
 
-      const userTwabIndex = ticket.mostRecentTwabIndexOfUser(wallet1.address);
+      await ticket.burn(wallet1.address, await ticket.balanceOf(wallet1.address))
+      await ticket.burn(wallet2.address, await ticket.balanceOf(wallet2.address))
 
-      await ticket
-        .binarySearch(userTwabs, userTwabIndex, timestampAfterFirstMint)
-        .then((response: BinarySearchResult[]) => expect(calculateTwab(response)).to.equal(1000));
-
-      await ticket
-        .binarySearch(userTwabs, userTwabIndex, timestampAfterSecondMint)
-        .then((response: BinarySearchResult[]) => expect(calculateTwab(response)).to.equal(2000));
-    });
-  });
-
-  describe('_newUserTwab()', () => {
-    it('should record a new twab for user', async () => {
-      const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
-
-      expect(await ticket.newUserTwab(wallet1.address, mostRecentTwabIndex))
-        .to.emit(ticket, 'NewUserTwab')
-        .withArgs(wallet1.address, [toWei('0'), (await getBlock('latest')).timestamp]);
-    });
-
-    it('should return early if a twab already exists for this timestamp', async () => {
-      const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
-
-      await ticket.newUserTwab(wallet1.address, mostRecentTwabIndex);
-
-      await increaseTime(-1);
-
-      const nextTwabIndex = mostRecentTwabIndex.add(1) % (await ticket.CARDINALITY());
-
-      expect(await ticket.newUserTwab(wallet1.address, nextTwabIndex)).to.not.emit(
-        ticket,
-        'NewUserTwab',
-      );
-    });
-
-    it('should fail to record a new twab if balance overflow', async () => {
-      const balanceOverflow = BigNumber.from(1);
-      const maxBalance = BigNumber.from(2).pow(223);
-
-      for (let index = 0; index < 2; index++) {
-        ticket.mint(wallet1.address, maxBalance);
-
-        if (index === 1) {
-          await expect(ticket.mint(wallet1.address, balanceOverflow)).to.be.revertedWith(
-            "SafeCast: value doesn't fit in 224 bits",
-          );
-        }
-      }
-    });
-  });
-
-  describe('_newTotalSupplyTwab()', () => {
-    it('should record a new twab', async () => {
-      const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfTotalSupply();
-
-      expect(await ticket.newTotalSupplyTwab(mostRecentTwabIndex))
-        .to.emit(ticket, 'NewTotalSupplyTwab')
-        .withArgs([toWei('0'), (await getBlock('latest')).timestamp]);
-    });
-
-    it('should return early if a twab already exists for this timestamp', async () => {
-      const mostRecentTwabIndex = await ticket.mostRecentTwabIndexOfUser(wallet1.address);
-
-      await ticket.newTotalSupplyTwab(mostRecentTwabIndex);
-
-      await increaseTime(-1);
-
-      const nextTwabIndex = mostRecentTwabIndex.add(1) % (await ticket.CARDINALITY());
-
-      expect(await ticket.newTotalSupplyTwab(nextTwabIndex)).to.not.emit(
-        ticket,
-        'NewTotalSupplyTwab',
-      );
-    });
-
-    it('should fail to record a new twab if balance overflow', async () => {
-      const balanceOverflow = BigNumber.from(1);
-      const maxBalance = BigNumber.from(2).pow(223);
-
-      for (let index = 0; index < 2; index++) {
-        ticket.mint(wallet1.address, maxBalance);
-
-        if (index === 1) {
-          await expect(ticket.mint(wallet2.address, balanceOverflow)).to.be.revertedWith(
-            "SafeCast: value doesn't fit in 224 bits",
-          );
-        }
-      }
-    });
-  });
+      // here we should have looped around.
+    })
+  })
 
   describe('_transfer()', () => {
     const mintAmount = toWei('2500');
@@ -327,13 +204,15 @@ describe('Ticket', () => {
       expect(await ticket.transferTo(wallet1.address, wallet2.address, transferAmount))
         .to.emit(ticket, 'Transfer')
         .withArgs(wallet1.address, wallet2.address, transferAmount);
+      
+      await increaseTime(10)
 
       expect(
-        await ticket.getBalance(wallet2.address, (await getBlock('latest')).timestamp),
+        await ticket.getBalanceAt(wallet2.address, (await getBlock('latest')).timestamp),
       ).to.equal(transferAmount);
 
       expect(
-        await ticket.getBalance(wallet1.address, (await getBlock('latest')).timestamp),
+        await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
       ).to.equal(mintAmount.sub(transferAmount));
     });
 
@@ -359,6 +238,7 @@ describe('Ticket', () => {
   });
 
   describe('_mint()', () => {
+    const debug = newDebug('pt:Ticket.test.ts:_mint()')
     const mintAmount = toWei('1000');
 
     it('should mint tickets to user', async () => {
@@ -366,8 +246,10 @@ describe('Ticket', () => {
         .to.emit(ticket, 'Transfer')
         .withArgs(AddressZero, wallet1.address, mintAmount);
 
+      await increaseTime(10)
+
       expect(
-        await ticket.getBalance(wallet1.address, (await getBlock('latest')).timestamp),
+        await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
       ).to.equal(mintAmount);
 
       expect(await ticket.totalSupply()).to.equal(mintAmount);
@@ -378,9 +260,27 @@ describe('Ticket', () => {
         'ERC20: mint to the zero address',
       );
     });
+
+    it('should not record additional twabs when minting twice in the same block', async () => {
+      expect(await ticket.mintTwice(wallet1.address, mintAmount))
+        .to.emit(ticket, 'Transfer')
+        .withArgs(AddressZero, wallet1.address, mintAmount);
+
+      await printTwabs(ticket, wallet1, debug)
+
+      const context = await ticket.getAccountDetails(wallet1.address)
+
+      debug(`Twab Context: `, context)
+
+      expect(context.cardinality).to.equal(2)
+      expect(context.nextTwabIndex).to.equal(1)
+      expect(await ticket.totalSupply()).to.equal(mintAmount.mul(2));
+    })
   });
 
   describe('_burn()', () => {
+    const debug = newDebug('pt:Ticket.test.ts:_burn()')
+
     const burnAmount = toWei('500');
     const mintAmount = toWei('1500');
 
@@ -391,8 +291,10 @@ describe('Ticket', () => {
         .to.emit(ticket, 'Transfer')
         .withArgs(wallet1.address, AddressZero, burnAmount);
 
+      await increaseTime(1)
+
       expect(
-        await ticket.getBalance(wallet1.address, (await getBlock('latest')).timestamp),
+        await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
       ).to.equal(mintAmount.sub(burnAmount));
 
       expect(await ticket.totalSupply()).to.equal(mintAmount.sub(burnAmount));
@@ -415,6 +317,92 @@ describe('Ticket', () => {
     });
   });
 
+  describe('getAverageBalanceBetween()', () => {
+    const debug = newDebug('pt:Ticket.test.ts:getAverageBalanceBetween()')
+    const balanceBefore = toWei('1000');
+    let timestamp: number
+
+    beforeEach(async () => {
+      await ticket.mint(wallet1.address, balanceBefore);
+      timestamp = (await getBlock('latest')).timestamp;
+      debug(`minted ${ethers.utils.formatEther(balanceBefore)} @ timestamp ${timestamp}`)
+      // console.log(`Minted at time ${timestamp}`)
+
+    });
+
+    it('should return an average of zero for pre-history requests', async () => {
+      await printTwabs(ticket, wallet1, debug)
+      // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
+      expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 100, timestamp - 50)).to.equal(toWei('0'));
+    });
+
+    it('should not project into the future', async () => {
+      // at this time the user has held 1000 tokens for zero seconds
+      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
+      expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('0'))
+    })
+
+    it('should return half the minted balance when the duration is centered over first twab', async () => {
+      await increaseTime(100);
+      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
+      expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('500'))
+    })
+
+    it('should return an accurate average when the range is after the last twab', async () => {
+      await increaseTime(100);
+      // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 51}`)
+      expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp + 50, timestamp + 51)).to.equal(toWei('1000'))
+    })
+    
+    context('with two twabs', () => {
+      const transferAmount = toWei('500');
+      let timestamp2: number
+
+      beforeEach(async () => {
+        // they've held 1000 for t+100 seconds
+        await increaseTime(100);
+
+        debug(`Transferring ${ethers.utils.formatEther(transferAmount)}...`)
+        // now transfer out 500
+        await ticket.transfer(wallet2.address, transferAmount);
+        timestamp2 = (await getBlock('latest')).timestamp;
+        debug(`Transferred at time ${timestamp2}`)
+
+        // they've held 500 for t+100+100 seconds
+        await increaseTime(100);
+      })
+
+      it('should return an average of zero for pre-history requests', async () => {
+        await ticket.getAverageBalanceTx(wallet1.address, timestamp - 100, timestamp - 50)
+
+        debug(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
+        expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 100, timestamp - 50)).to.equal(toWei('0'));
+      });
+
+      it('should return half the minted balance when the duration is centered over first twab', async () => {
+        await printTwabs(ticket, wallet1, debug)
+        debug(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
+        expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('500'))
+      })
+
+      it('should return an accurate average when the range is between twabs', async () => {
+        await ticket.getAverageBalanceTx(wallet1.address, timestamp + 50, timestamp + 55)
+        debug(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 55}`)
+        expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp + 50, timestamp + 55)).to.equal(toWei('1000'))
+      })
+
+      it('should return an accurate average when the end is after the last twab', async () => {
+        debug(`Test getAverageBalance() : ${timestamp2 - 50}, ${timestamp2 + 50}`)
+        expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp2 - 50, timestamp2 + 50)).to.equal(toWei('750'))
+      })
+
+      it('should return an accurate average when the range is after twabs', async () => {
+        debug(`Test getAverageBalance() : ${timestamp2 + 50}, ${timestamp2 + 51}`)
+        expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp2 + 50, timestamp2 + 51)).to.equal(toWei('500'))
+      })
+    })
+  })
+
   describe('getBalance()', () => {
     const balanceBefore = toWei('1000');
 
@@ -431,57 +419,38 @@ describe('Ticket', () => {
 
       await ticket.transfer(wallet2.address, transferAmount);
 
-      expect(await ticket.getBalance(wallet1.address, timestampBefore)).to.equal(balanceBefore);
+      // no-op register for gas usage
+      await ticket.getBalanceTx(wallet1.address, timestampBefore)
+
+      expect(await ticket.getBalanceAt(wallet1.address, timestampBefore)).to.equal(balanceBefore);
 
       const timestampAfter = (await getBlock('latest')).timestamp;
 
-      expect(await ticket.getBalance(wallet1.address, timestampAfter)).to.equal(
+      expect(await ticket.getBalanceAt(wallet1.address, timestampAfter)).to.equal(
         balanceBefore.sub(transferAmount),
       );
     });
-
-    it('should get correct balance while looping through a full buffer', async () => {
-      const transferAmount = toWei('1');
-      const blocks = [];
-
-      for (let i = 0; i < cardinality; i++) {
-        await ticket.transfer(wallet2.address, transferAmount);
-        blocks.push(await getBlock('latest'));
-      }
-
-      // Should have nothing at beginning of time
-      expect(await ticket.getBalance(wallet1.address, 0)).to.equal('0');
-
-      // Should have 1000 - cardinality at end of time
-      const lastTime = blocks[blocks.length - 1].timestamp;
-
-      expect(await ticket.getBalance(wallet1.address, lastTime)).to.equal(
-        balanceBefore.sub(transferAmount.mul(cardinality)),
-      );
-
-      // Should match each and every balance change
-      for (let i = 0; i < cardinality; i++) {
-        const expectedBalance = balanceBefore.sub(transferAmount.mul(i + 1));
-        const actualBalance = await ticket.getBalance(wallet1.address, blocks[i].timestamp);
-
-        expect(actualBalance).to.equal(expectedBalance);
-      }
-    });
   });
 
-  describe('getBalances()', () => {
+  describe('getBalancesAt()', () => {
     it('should get user balances', async () => {
       const mintAmount = toWei('2000');
       const transferAmount = toWei('500');
-      const timestampBefore = (await getBlock('latest')).timestamp;
-
+      
       await ticket.mint(wallet1.address, mintAmount);
+      const mintTimestamp = (await getBlock('latest')).timestamp;
+      
+      await increaseTime(10)
+      
       await ticket.transfer(wallet2.address, transferAmount);
+      const transferTimestamp = (await getBlock('latest')).timestamp;
 
-      const balances = await ticket.getBalances(wallet1.address, [
-        timestampBefore,
-        timestampBefore + 1,
-        timestampBefore + 2,
+      await increaseTime(10)
+
+      const balances = await ticket.getBalancesAt(wallet1.address, [
+        mintTimestamp,
+        mintTimestamp + 1,
+        transferTimestamp + 2,
       ]);
 
       expect(balances[0]).to.equal(toWei('0'));
@@ -491,91 +460,61 @@ describe('Ticket', () => {
   });
 
   describe('getTotalSupply()', () => {
-    const balanceBefore = toWei('1000');
+    const debug = newDebug("pt:Ticket.test.ts:getTotalSupply()")
 
-    it('should get correct total supply after a transfer and burn', async () => {
-      await ticket.mint(wallet1.address, balanceBefore);
+    context('after a mint', () => {
+      const mintAmount = toWei('1000');
+      let timestamp: number
 
-      const transferAmount = toWei('500');
-      const burnAmount = transferAmount;
-
-      await increaseTime(60);
-
-      const timestampBefore = (await getBlock('latest')).timestamp;
-
-      await ticket.transfer(wallet2.address, transferAmount);
-
-      expect(await ticket.getTotalSupply(timestampBefore)).to.equal(balanceBefore);
-
-      const timestampAfterTransfer = (await getBlock('latest')).timestamp;
-
-      expect(await ticket.getTotalSupply(timestampAfterTransfer)).to.equal(balanceBefore);
-
-      await ticket.burn(wallet2.address, burnAmount);
-
-      const timestampAfterBurn = (await getBlock('latest')).timestamp;
-
-      expect(await ticket.getTotalSupply(timestampAfterBurn)).to.equal(
-        balanceBefore.sub(burnAmount),
-      );
-    });
-
-    it('should get correct total supply while looping through a full buffer', async () => {
-      const burnAmount = toWei('1');
-      const blocks = [];
-
-      // Should have 0 at beginning of time
-      const timestampBefore = (await getBlock('latest')).timestamp;
-
-      expect(await ticket.getTotalSupply(timestampBefore)).to.equal(toWei('0'));
-
-      await ticket.mint(wallet1.address, balanceBefore);
-
-      const timestampAfterMint = (await getBlock('latest')).timestamp;
-
-      // Should have 1000 after mint
-      expect(await ticket.getTotalSupply(timestampAfterMint)).to.equal(balanceBefore);
-
-      for (let i = 0; i < cardinality; i++) {
-        await ticket.burn(wallet1.address, burnAmount);
-        blocks.push(await getBlock('latest'));
-      }
-
-      // Should have 1000 - (1 * cardinality) at end of time
-      const lastTime = blocks[blocks.length - 1].timestamp;
-
-      expect(await ticket.getTotalSupply(lastTime)).to.equal(
-        balanceBefore.sub(burnAmount.mul(cardinality)),
-      );
-
-      // Should match each and every total supply change
-      for (let i = 0; i < cardinality; i++) {
-        const expectedTotalSupply = balanceBefore.sub(burnAmount.mul(i + 1));
-        const actualTotalSupply = await ticket.getTotalSupply(blocks[i].timestamp);
-
-        expect(actualTotalSupply).to.equal(expectedTotalSupply);
-      }
-    });
-
-    describe('getTotalSupplies()', () => {
-      it('should get ticket total supplies', async () => {
-        const mintAmount = toWei('2000');
-        const burnAmount = toWei('500');
-        const timestampBefore = (await getBlock('latest')).timestamp;
-
+      beforeEach(async () => {
         await ticket.mint(wallet1.address, mintAmount);
-        await ticket.burn(wallet1.address, burnAmount);
+        timestamp = (await getBlock('latest')).timestamp;
+      })
 
-        const totalSupplies = await ticket.getTotalSupplies([
-          timestampBefore,
-          timestampBefore + 1,
-          timestampBefore + 2,
-        ]);
+      it('should return 0 before the mint', async () => {
+        expect(await ticket.getTotalSupply(timestamp - 50)).to.equal(0)
+      })
 
-        expect(totalSupplies[0]).to.equal(toWei('0'));
-        expect(totalSupplies[1]).to.equal(mintAmount);
-        expect(totalSupplies[2]).to.equal(mintAmount.sub(burnAmount));
-      });
+      it('should return 0 at the time of the mint', async () => {
+        expect(await ticket.getTotalSupply(timestamp)).to.equal(mintAmount)
+      })
+
+      it('should return the value after the timestamp', async () => {
+        const twab = await ticket.getTwab(wallet1.address, 0)
+        debug(`twab: `, twab)
+        debug(`Checking time ${timestamp + 1}`)
+        await increaseTime(10)
+        expect(await ticket.getTotalSupply(timestamp + 1)).to.equal(mintAmount)
+      })
+    })
+  });
+
+  describe('getTotalSupplies()', () => {
+    const debug = newDebug('pt:Ticket.test.ts:getTotalSupplies()')
+
+    it('should get ticket total supplies', async () => {
+      const mintAmount = toWei('2000');
+      const burnAmount = toWei('500');
+      
+      await ticket.mint(wallet1.address, mintAmount);
+      const mintTimestamp = (await getBlock('latest')).timestamp;
+      debug(`mintTimestamp: ${mintTimestamp}`)
+
+      await increaseTime(10)
+
+      await ticket.burn(wallet1.address, burnAmount);
+      const burnTimestamp = (await getBlock('latest')).timestamp;
+      debug(`burnTimestamp: ${burnTimestamp}`)
+
+      const totalSupplies = await ticket.getTotalSupplies([
+        mintTimestamp,
+        mintTimestamp + 1,
+        burnTimestamp + 1,
+      ]);
+
+      expect(totalSupplies[0]).to.equal(toWei('0'));
+      expect(totalSupplies[1]).to.equal(mintAmount);
+      expect(totalSupplies[2]).to.equal(mintAmount.sub(burnAmount));
     });
   });
 });

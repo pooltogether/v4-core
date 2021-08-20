@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import "./interfaces/IDrawCalculator.sol";
-import "./interfaces/ITicketTwab.sol";
+import "./interfaces/TicketInterface.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   
   ///@notice Ticket associated with DrawCalculator
-  ITicketTwab ticket;
+  TicketInterface ticket;
 
   ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? store elsewhere?
   DrawSettings public drawSettings;
@@ -35,7 +35,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   event DrawSettingsSet(DrawSettings _drawSettings);
 
   ///@notice Emitted when the contract is initialized
-  event Initialized(ITicketTwab indexed _ticket);
+  event Initialized(TicketInterface indexed _ticket);
 
 
   /* ============ External Functions ============ */
@@ -43,7 +43,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@notice Initializer sets the initial parameters
   ///@param _ticket Ticket associated with this DrawCalculator
   ///@param _drawSettings Initial DrawSettings
-  function initialize(ITicketTwab _ticket, DrawSettings calldata _drawSettings) public initializer {
+  function initialize(TicketInterface _ticket, DrawSettings calldata _drawSettings) public initializer {
     __Ownable_init();
     ticket = _ticket;
 
@@ -83,7 +83,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     uint256[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint256 [][]));
     require(pickIndices.length == _timestamps.length, "DrawCalc/invalid-pick-indices-length");
 
-    uint256[] memory userBalances = ticket.getBalances(_user, _timestamps); // CALL
+    uint256[] memory userBalances = ticket.getBalancesAt(_user, _timestamps); // CALL
     bytes32 userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
     DrawSettings memory _drawSettings = drawSettings; //sload
