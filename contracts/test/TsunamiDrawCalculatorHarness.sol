@@ -10,5 +10,4 @@ contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
     require(_maskValue == (2 ** _bitRangeSize) - 1);
     return _findBitMatchesAtIndex(word1, word2, (index * _bitRangeSize), _maskValue);
   }
-
 }

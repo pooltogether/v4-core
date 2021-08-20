@@ -67,17 +67,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     _setDrawSettings(_drawSettings);
   }
 
-  ///@notice Calulates the prize amount for a user at particular draws. Called by a Claimable Strategy.
+  ///@notice Calulates the prize amount for a user for Multiple Draws. Called by a Claimable Strategy.
   ///@param user User for which to calcualte prize amount
   ///@param winningRandomNumbers the winning random numbers for the Draws
   ///@param timestamps the timestamps at which the Draws occurred
   ///@param prizes The prizes at those Draws
   ///@param data The encoded pick indices  TODO add example
   ///@return An array of prizes awardable
-
-
-  // user has 10 picks bal: 100, cost of pick: 10, [11, 19,...........]
-
   function calculate(address user, uint256[] calldata winningRandomNumbers, uint32[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
     external override view returns (uint96[] memory){
 
@@ -112,62 +108,48 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   function _calculate(uint256 winningRandomNumber, uint256 prize, uint256 balance, bytes32 userRandomNumber, uint256[] memory picks, DrawSettings memory _drawSettings)
     internal view returns (uint256)
   {
+    
     uint256 totalUserPicks = balance / _drawSettings.pickCost;
-    uint256 prizeFraction = 0;
-    
-    
-    // uint256[] memory prizeDistributionCounts = new uint256[](length);
-    // for(uint256 i = 0; i < length; i++){
-
-    // }
-
     uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
-    uint256[] memory masks =  createMasks(_drawSettings);
+    uint256[] memory masks =  createBitMasks(_drawSettings);
 
-
-
-
+    // for each pick find number of matching numbers and calculate prioze distribution index
     for(uint256 index  = 0; index < picks.length; index++){
-      // console.log("gasleft1 ", gasleft());
+      
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(userRandomNumber, picks[index])));
-      // console.log("gasleft2 ", gasleft());
       require(picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
-      // console.log("gasleft3 ", gasleft());
+      
       uint256 distributionIndex =  calculateDistributionIndex(randomNumberThisPick, winningRandomNumber, masks);
-      if(distributionIndex < _drawSettings.distributions.length){
+      if(distributionIndex < _drawSettings.distributions.length){ // there is prize for this distributionIndex
         prizeCounts[distributionIndex]++;
       } 
-      // console.log("gasleft4 ", gasleft());
     }
+
+    // now calculate prizeFraction given prize counts
+    uint256 prizeFraction = 0;
     for(uint256 prizeCountIndex = 0; prizeCountIndex < _drawSettings.distributions.length; prizeCountIndex++){
       if(prizeCounts[prizeCountIndex] > 0){
         prizeFraction += _calculatePrizeDistributionFraction(_drawSettings, prizeCountIndex) * prizeCounts[prizeCountIndex];
       }
     }
-    // console.log("gasleft7 ", gasleft());
-    return (prizeFraction * prize) / 1 ether;
+    // return the absolute amount of prize awardable
+    return (prizeFraction * prize) / 1 ether; // div by 1 ether as prize distributions are base 1e18
   }
 
-  ///@notice Calculates the fraction of the Draw's Prize awardable to that user
+  ///@notice Calculates the distribution index given the random numbers and masks
   ///@param randomNumberThisPick users random number for this Pick
   ///@param winningRandomNumber The winning number for this draw
-  
-  ///@return percentage of the Draw's Prize awardable to that user
+  ///@param masks The pre-calculate bitmasks for the drawSettings
+  ///@return The position within the prize distribution array
   function calculateDistributionIndex(uint256 randomNumberThisPick, uint256 winningRandomNumber, uint256[] memory masks)
     internal view returns(uint256) {
 
     uint256 numberOfMatches = 0;
-
-    // console.log("gasleft5 ", gasleft());
-    
     for(uint256 matchIndex = 0; matchIndex < masks.length; matchIndex++){
-      // console.log("gasleft6 ", gasleft());
-      if ((uint256(randomNumberThisPick) & masks[matchIndex]) == (uint256(winningRandomNumber) & masks[matchIndex])){
+      if((uint256(randomNumberThisPick) & masks[matchIndex]) == (uint256(winningRandomNumber) & masks[matchIndex])){
         numberOfMatches++;
       }
     }
-    // console.log("gasleft8 ", gasleft());
-
     return masks.length - numberOfMatches; // prizeDistributionIndex == 0 : top prize, ==1 : runner-up prize etc
   }
 
@@ -183,14 +165,17 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     return (uint256(word1) & mask) == (uint256(word2) & mask);
   }
 
-  function createMasks(DrawSettings memory _drawSettings)internal pure returns (uint256[] memory){
+
+  ///@notice helper function to create bitmasks equal to the matchCardinality
+  ///@return An array of bitmasks
+  function createBitMasks(DrawSettings memory _drawSettings)internal view returns (uint256[] memory){
     uint256[] memory masks = new uint256[](_drawSettings.matchCardinality);
     
-    uint8 _bitRangeMaskValue = (2 ^ _drawSettings.bitRangeSize) - 1;
-
+    uint256 _bitRangeMaskValue = (2 ** _drawSettings.bitRangeSize) - 1; // get a decimal representation of bitRangeSize
+    
     for(uint256 maskIndex = 0; maskIndex < _drawSettings.matchCardinality; maskIndex++){
       uint16 _matchIndexOffset = uint16(maskIndex * _drawSettings.bitRangeSize);
-      masks[maskIndex] = (uint256(_bitRangeMaskValue)) << _matchIndexOffset;
+      masks[maskIndex] = _bitRangeMaskValue << _matchIndexOffset;
     }
     
     return masks;
