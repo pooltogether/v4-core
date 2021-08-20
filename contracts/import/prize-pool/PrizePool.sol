@@ -22,6 +22,8 @@ import "../token/TokenControllerInterface.sol";
 import "../utils/MappedSinglyLinkedList.sol";
 import "./PrizePoolInterface.sol";
 
+import "hardhat/console.sol";
+
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.  Users deposit and withdraw from this contract to participate in Prize Pool.
 /// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
 /// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
@@ -365,7 +367,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
       emit AwardCaptured(unaccountedPrizeBalance);
     }
-
+    console.log("PrizePool:: _currentAwardBalance", _currentAwardBalance);
     return _currentAwardBalance;
   }
 

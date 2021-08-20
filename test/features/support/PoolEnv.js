@@ -54,6 +54,15 @@ function PoolEnv() {
       overrides: this.overrides,
     });
 
+    debug("poolenv ticketaddress ", this.env.ticket.address)
+
+    const creditPlan = await this.env.prizePool.creditPlanOf(this.env.ticket.address)
+    debug("creditPlan: ", creditPlan)
+
+
+    debug("get credit plan rate", ethers.utils.formatEther(creditPlan.creditRateMantissa))
+    debug("get credit plan limit", ethers.utils.formatEther(creditPlan.creditLimitMantissa))
+
     // const externalAwardAddresses = []
     // this.externalERC20Awards = {}
 
@@ -246,6 +255,8 @@ function PoolEnv() {
   this.expectUserToHaveCredit = async function ({ user, credit }) {
     let wallet = await this.wallet(user);
     let ticket = await this.ticket(wallet);
+    debug("expectUserToHaveCredit ticket address ", ticket.address)
+
     let prizePool = await this.prizePool(wallet);
     let ticketInterest = await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address);
     debug(`expectUserToHaveCredit ticketInterest ${ticketInterest.toString()}`);

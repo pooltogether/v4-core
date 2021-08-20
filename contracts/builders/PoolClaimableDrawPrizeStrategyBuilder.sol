@@ -72,8 +72,8 @@ contract PoolClaimableDrawPrizeStrategyBuilder {
  
   function _tokens(ClaimableDrawPrizeStrategy _claimableDrawPrizeStrategy) internal view returns (ControlledTokenInterface[] memory) {
     ControlledTokenInterface[] memory tokens = new ControlledTokenInterface[](2);
-    tokens[0] = ControlledTokenInterface(address(_claimableDrawPrizeStrategy.ticket()));
-    tokens[1] = ControlledTokenInterface(address(_claimableDrawPrizeStrategy.sponsorship()));
+    tokens[0] = ControlledTokenInterface(address(_claimableDrawPrizeStrategy.sponsorship()));
+    tokens[1] = ControlledTokenInterface(address(_claimableDrawPrizeStrategy.ticket()));
     return tokens;
   }
 
