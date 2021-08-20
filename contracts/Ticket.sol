@@ -11,20 +11,19 @@ import "hardhat/console.sol";
 
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
-import "./libraries/TwabContextLibrary.sol";
 import "./interfaces/TicketInterface.sol";
 import "./import/token/ControlledToken.sol";
 
-/// @title Ticket contract inerhiting from ERC20 and updated to keep track of users balance.
+/// @title An ERC20 token that allows you to see user's past balances, and average balance held between timestamps.
 /// @author PoolTogether Inc.
-contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
-  /// @notice How long it takes for TWABs to expire.  After they expire they are overwritten.
-  uint32 public constant TWAB_EXPIRY = 8 weeks;
+contract Ticket is ControlledToken, TicketInterface {
+  /// @notice The minimum length of time a twab should exist.
+  /// @dev Once the twab ttl expires, its storage slot is recycled.
+  uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
 
   using SafeERC20Upgradeable for IERC20Upgradeable;
-  using OverflowSafeComparator for uint32;
   using SafeCastUpgradeable for uint256;
-  using TwabContextLibrary for TwabContextLibrary.TwabContext;
+  using TwabLibrary for TwabLibrary.Account;
 
   /// @notice Emitted when ticket is initialized.
   /// @param name Ticket name (eg: PoolTogether Dai Ticket (Compound)).
@@ -53,13 +52,13 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   );
 
   /// @notice Record of token holders TWABs for each account.
-  mapping (address => TwabContextLibrary.TwabContext) internal userTwabs;
+  mapping (address => TwabLibrary.Account) internal userTwabs;
 
   /// @notice ERC20 ticket token decimals.
   uint8 private _decimals;
 
   /// @notice Record of tickets total supply and most recent TWAB index.
-  TwabContextLibrary.TwabContext internal totalSupplyTwab;
+  TwabLibrary.Account internal totalSupplyTwab;
 
   /// @notice Initializes Ticket with passed parameters.
   /// @param _name ERC20 ticket token name.
@@ -77,18 +76,23 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
     require(decimals_ > 0, "Ticket/decimals-gt-zero");
     _decimals = decimals_;
 
-    __Ownable_init();
-
     require(address(_controller) != address(0), "Ticket/controller-not-zero-address");
     ControlledToken.initialize(_name, _symbol, _decimals, _controller);
 
     emit TicketInitialized(_name, _symbol, decimals_, _controller);
   }
 
-  function userBalanceWithTwab(address _user) external view returns (TwabContextLibrary.Context memory) {
-    return userTwabs[_user].context;
+  /// @notice Gets a users twap context.  This is a struct with their balance, next twab index, and cardinality.
+  /// @param _user The user for whom to fetch the TWAB context
+  /// @return The TWAB context, which includes { balance, nextTwabIndex, cardinality }
+  function getAccountDetails(address _user) external view returns (TwabLibrary.AccountDetails memory) {
+    return userTwabs[_user].details;
   }
 
+  /// @notice Gets the TWAB at a specific index for a user.
+  /// @param _user The user for whom to fetch the TWAB
+  /// @param _index The index of the TWAB to fetch
+  /// @return The TWAB, which includes the twab amount and the timestamp.
   function getTwab(address _user, uint16 _index) external view returns (TwabLibrary.Twab memory) {
     return userTwabs[_user].twabs[_index];
   }
@@ -100,14 +104,27 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
     return _getBalanceAt(_user, _target);
   }
 
+  /// @notice Retrieves `_user` TWAB balance.
+  /// @param _user Address of the user whose TWAB is being fetched.
+  /// @param _target Timestamp at which the reserved TWAB should be for.
   function _getBalanceAt(address _user, uint256 _target) internal view returns (uint256) {
     return userTwabs[_user].getBalanceAt(uint32(_target), uint32(block.timestamp));
   }
 
+  /// @notice Calculates the average balance held by a user for a given time frame.
+  /// @param _user The user whose balance is checked
+  /// @param _startTime The start time of the time frame.
+  /// @param _endTime The end time of the time frame.
+  /// @return The average balance that the user held during the time frame.
   function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
     return _getAverageBalanceBetween(_user, uint32(_startTime), uint32(_endTime));
   }
 
+  /// @notice Calculates the average balance held by a user for a given time frame.
+  /// @param _user The user whose balance is checked
+  /// @param _startTime The start time of the time frame.
+  /// @param _endTime The end time of the time frame.
+  /// @return The average balance that the user held during the time frame.
   function _getAverageBalanceBetween(address _user, uint32 _startTime, uint32 _endTime) internal view returns (uint256) {
     return userTwabs[_user].getAverageBalanceBetween(_startTime, _endTime, uint32(block.timestamp));
   }
@@ -120,7 +137,7 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
     uint256 length = _targets.length;
     uint256[] memory balances = new uint256[](length);
 
-    TwabContextLibrary.TwabContext storage twabContext = userTwabs[_user];
+    TwabLibrary.Account storage twabContext = userTwabs[_user];
 
     for(uint256 i = 0; i < length; i++){
       balances[i] = twabContext.getBalanceAt(_targets[i], uint32(block.timestamp));
@@ -153,7 +170,7 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   /// @notice Returns the ERC20 ticket token balance of a ticket holder.
   /// @return uint256 `_user` ticket token balance.
   function _balanceOf(address _user) internal view returns (uint256) {
-    return userTwabs[_user].context.balance;
+    return userTwabs[_user].details.balance;
   }
 
   /// @notice Returns the ERC20 ticket token decimals.
@@ -172,7 +189,7 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
   /// @notice Returns the ERC20 ticket token total supply.
   /// @return uint256 Total supply of the ERC20 ticket token.
   function totalSupply() public view virtual override returns (uint256) {
-    return totalSupplyTwab.context.balance;
+    return totalSupplyTwab.details.balance;
   }
 
   /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
@@ -191,17 +208,16 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
     require(_recipient != address(0), "ERC20: transfer to the zero address");
 
     uint32 time = uint32(block.timestamp);
-
     uint224 amount = uint224(_amount);
 
     _beforeTokenTransfer(_sender, _recipient, _amount);
 
     if (_sender != _recipient) {
-      (TwabLibrary.Twab memory senderTwab, bool senderIsNew) = userTwabs[_sender].decreaseBalance(amount, "ERC20: transfer amount exceeds balance", time, TWAB_EXPIRY);
+      (TwabLibrary.Twab memory senderTwab, bool senderIsNew) = userTwabs[_sender].decreaseBalance(amount, "ERC20: transfer amount exceeds balance", time, TWAB_TIME_TO_LIVE);
       if (senderIsNew) {
         emit NewUserTwab(_sender, senderTwab);
       }
-      (TwabLibrary.Twab memory recipientTwab, bool recipientIsNew) = userTwabs[_recipient].increaseBalance(amount, time, TWAB_EXPIRY);
+      (TwabLibrary.Twab memory recipientTwab, bool recipientIsNew) = userTwabs[_recipient].increaseBalance(amount, time, TWAB_TIME_TO_LIVE);
       if (recipientIsNew) {
         emit NewUserTwab(_recipient, recipientTwab);
       }
@@ -224,11 +240,11 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
 
     _beforeTokenTransfer(address(0), _to, _amount);
 
-    (TwabLibrary.Twab memory totalSupply, bool tsIsNew) = totalSupplyTwab.increaseBalance(amount, time, TWAB_EXPIRY);
+    (TwabLibrary.Twab memory totalSupply, bool tsIsNew) = totalSupplyTwab.increaseBalance(amount, time, TWAB_TIME_TO_LIVE);
     if (tsIsNew) {
       emit NewTotalSupplyTwab(totalSupply);
     }
-    (TwabLibrary.Twab memory userTwab, bool userIsNew) = userTwabs[_to].increaseBalance(amount, time, TWAB_EXPIRY);
+    (TwabLibrary.Twab memory userTwab, bool userIsNew) = userTwabs[_to].increaseBalance(amount, time, TWAB_TIME_TO_LIVE);
     if (userIsNew) {
       emit NewUserTwab(_to, userTwab);
     }
@@ -255,7 +271,7 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
       amount,
       "ERC20: burn amount exceeds balance",
       time,
-      TWAB_EXPIRY
+      TWAB_TIME_TO_LIVE
     );
     if (tsIsNew) {
       emit NewTotalSupplyTwab(tsTwab);
@@ -265,7 +281,7 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
       amount,
       "ERC20: burn amount exceeds balance",
       time,
-      TWAB_EXPIRY
+      TWAB_TIME_TO_LIVE
     );
     if (userIsNew) {
       emit NewUserTwab(_from, userTwab);
@@ -275,5 +291,4 @@ contract Ticket is ControlledToken, OwnableUpgradeable, TicketInterface {
 
     _afterTokenTransfer(_from, address(0), _amount);
   }
-
 }

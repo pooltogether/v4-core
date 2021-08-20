@@ -4,16 +4,16 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 import "./OverflowSafeComparator.sol";
 
-/// @title OverflowSafeComparator library to share comparator functions between contracts
+/// @title Time-Weighted Average Balance Library
+/// @notice This library allows you to efficiently track a user's historic balance.  You can get a
 /// @author PoolTogether Inc.
 library TwabLibrary {
   using OverflowSafeComparator for uint32;
   using SafeCastUpgradeable for uint256;
 
+  /// @notice The maximum number of twab entries
   uint16 public constant MAX_CARDINALITY = 65535;
 
   /// @notice Time Weighted Average Balance (TWAB).
@@ -22,6 +22,146 @@ library TwabLibrary {
   struct Twab {
     uint224 amount;
     uint32 timestamp;
+  }
+
+  /// @notice A struct containing details for an Account
+  /// @param balance The current balance for an Account
+  /// @param nextTwabIndex The next available index to store a new twab
+  /// @param cardinality The number of recorded twabs (plus one!)
+  struct AccountDetails {
+    uint224 balance;
+    uint16 nextTwabIndex;
+    uint16 cardinality;
+  }
+
+  /// @notice Combines account details with their twab history
+  /// @param details The account details
+  /// @param twabs The history of twabs for this account
+  struct Account {
+    AccountDetails details;
+    Twab[MAX_CARDINALITY] twabs;
+  }
+
+  /// @notice Ensures the passed cardinality is a minimum of 1
+  /// @param _cardinality The cardinality to ensure a floor of 1
+  /// @return Returns 1 if the given cardinality is zero, otherwise return the cardinality
+  function _minCardinality(uint16 _cardinality) internal pure returns (uint16) {
+    return _cardinality > 0 ? _cardinality : 1;
+  }
+
+  /// @notice Retrieves TWAB balance.
+  /// @param _account The account to retrieve the balance ata gi
+  /// @param _target Timestamp at which the reserved TWAB should be for.
+  function getBalanceAt(Account storage _account, uint32 _target, uint32 _time) internal view returns (uint256) {
+    AccountDetails memory details = _account.details;
+    uint16 cardinality = _minCardinality(details.cardinality);
+    uint16 recentIndex = mostRecentIndex(details.nextTwabIndex, cardinality);
+    return getBalanceAt(_account.twabs, _target, details.balance, recentIndex, cardinality, _time);
+  }
+
+  /// @notice Calculates the average balance held by an Account for a given time frame.
+  /// @param _account The account to retrieve the average balance for
+  /// @param _startTime The start time of the time frame.
+  /// @param _endTime The end time of the time frame.
+  /// @param _time The current time
+  /// @return The average balance that the user held during the time frame.
+  function getAverageBalanceBetween(
+    Account storage _account,
+    uint32 _startTime,
+    uint32 _endTime,
+    uint32 _time
+  ) internal view returns (uint256) {
+    AccountDetails memory details = _account.details;
+    uint16 card = _minCardinality(details.cardinality);
+    uint16 recentIndex = mostRecentIndex(details.nextTwabIndex, card);
+    return getAverageBalanceBetween(
+      _account.twabs,
+      details.balance,
+      recentIndex,
+      _startTime,
+      _endTime,
+      card,
+      _time
+    );
+  }
+
+  /// @notice Increases an account's balance and records a new twab.
+  /// @param _account The account whose balance will be increased
+  /// @param _amount The amount to increase the balance by
+  /// @param _time The current time
+  /// @param _ttl The time-to-live for TWABs.  This is essentially how long twabs are kept around.  History is not available longer than the time-to-live.
+  /// @return twab The user's latest TWAB
+  /// @return isNew Whether the TWAB is new
+  function increaseBalance(
+    Account storage _account,
+    uint256 _amount,
+    uint32 _time,
+    uint32 _ttl
+  ) internal returns (Twab memory twab, bool isNew) {
+    AccountDetails memory details = _account.details;
+    uint224 newBalance = (details.balance + _amount).toUint224();
+    (details, twab, isNew) = _update(details, _account.twabs, newBalance, _time, _ttl);
+    _account.details = details;
+  }
+
+  /// @notice Decreases an account's balance and records a new twab.
+  /// @param _account The account whose balance will be decreased
+  /// @param _amount The amount to decrease the balance by
+  /// @param _message The revert message in the event of insufficient balance
+  /// @param _time The current time
+  /// @param _ttl The time-to-live for TWABs. This is essentially how long twabs are kept around.  History is not available longer than the time-to-live.
+  /// @return twab The user's latest TWAB
+  /// @return isNew Whether the TWAB is new
+  function decreaseBalance(
+    Account storage _account,
+    uint256 _amount,
+    string memory _message,
+    uint32 _time,
+    uint32 _ttl
+  ) internal returns (Twab memory twab, bool isNew) {
+    AccountDetails memory details = _account.details;
+    require(details.balance >= _amount, _message);
+    uint224 newBalance = (details.balance - _amount).toUint224();
+    (details, twab, isNew) = _update(details, _account.twabs, newBalance, _time, _ttl);
+    _account.details = details;
+  }
+
+  /// @notice Called to add a new TWAB for a balance change.  The new AccountDetails is returned.
+  /// @param _details The Account details.
+  /// @param _twabs The history of TWABs.  May be modified.
+  /// @param _newBalance The new balance of the account
+  /// @param _time The current time
+  /// @param _ttl The time-to-live for TWABs
+  /// @return newAccountDetails The new account details
+  function _update(
+    AccountDetails memory _details,
+    Twab[MAX_CARDINALITY] storage _twabs,
+    uint224 _newBalance,
+    uint32 _time,
+    uint32 _ttl
+  ) private returns (
+    AccountDetails memory newAccountDetails,
+    Twab memory twab,
+    bool isNew
+  ) {
+    uint16 nextTwabIndex;
+    uint16 cardinality;
+
+    (nextTwabIndex, cardinality, twab, isNew) = nextTwabWithExpiry(
+      _twabs,
+      _details.balance,
+      _newBalance,
+      _details.nextTwabIndex,
+      _details.cardinality,
+      _time,
+      _ttl
+    );
+
+    newAccountDetails = AccountDetails({
+      balance: _newBalance,
+      nextTwabIndex: nextTwabIndex,
+      cardinality: cardinality
+    });
   }
 
   /// @dev A struct that just used internally to bypass the stack variable limitation
@@ -42,6 +182,10 @@ library TwabLibrary {
     return uint16(_index % _cardinality);
   }
 
+  /// @notice Returns the index of the last recorded TWAB
+  /// @param _nextAvailableIndex The next available twab index.  This will be recorded to next.
+  /// @param _cardinality The cardinality of the TWAB history.
+  /// @return The index of the last recorded TWAB
   function mostRecentIndex(uint256 _nextAvailableIndex, uint16 _cardinality) internal pure returns (uint16) {
     if (_cardinality == 0) {
       return 0;
@@ -75,13 +219,6 @@ library TwabLibrary {
       beforeOrAt = _twabs[wrapCardinality(currentIndex, _cardinality)];
       uint32 beforeOrAtTimestamp = beforeOrAt.timestamp;
 
-      // console.log("leftSide: ", leftSide);
-      // console.log("currentIndex: ", currentIndex);
-      // console.log("rightSide: ", rightSide);
-
-      // console.log("_target: ", _target);
-      // console.log("beforeOrAtTimestamp: ", beforeOrAtTimestamp);
-
       // We've landed on an uninitialized timestamp, keep searching higher (more recently)
       if (beforeOrAtTimestamp == 0) {
         leftSide = currentIndex + 1;
@@ -105,6 +242,8 @@ library TwabLibrary {
     }
   }
 
+  /// @notice Calculates the TWAB for a given timestamp.  It interpolates as necessary.
+  /// @param _twabs The TWAB history
   function calculateTwab(
     Twab[MAX_CARDINALITY] storage _twabs,
     Twab memory newestTwab,
@@ -193,13 +332,17 @@ library TwabLibrary {
     AvgHelper memory helper,
     Twab memory _oldestTwab,
     uint32 _time
-  ) internal view returns (uint256) {
+  ) private view returns (uint256) {
     uint32 endTime = helper.endTime > _time ? _time : helper.endTime;
 
     Twab memory newestTwab = _twabs[helper.twabIndex];
 
-    Twab memory startTwab = calculateTwab(_twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, helper.startTime, _currentBalance, helper.cardinality, _time);
-    Twab memory endTwab = calculateTwab(_twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, endTime, _currentBalance, helper.cardinality, _time);
+    Twab memory startTwab = calculateTwab(
+      _twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, helper.startTime, _currentBalance, helper.cardinality, _time
+    );
+    Twab memory endTwab = calculateTwab(
+      _twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, endTime, _currentBalance, helper.cardinality, _time
+    );
 
     // Difference in amount / time
     return (endTwab.amount - startTwab.amount) / (endTwab.timestamp - startTwab.timestamp);
@@ -239,11 +382,6 @@ library TwabLibrary {
       beforeOrAt = _twabs[0];
     }
 
-    // console.log("beforeOrAt.timestamp: ", beforeOrAt.timestamp);
-    // console.log("target: ", _target);
-    // console.log("twabIndex: ", _twabIndex);
-    // console.log("oldestTwabIndex: ", oldestTwabIndex);
-
     // If `targetTimestamp` is chronologically before or equal to the oldest TWAB, we can early return
     if (targetTimestamp.lte(beforeOrAt.timestamp, _time)) {
       return 0;
@@ -279,30 +417,32 @@ library TwabLibrary {
     uint16 _nextTwabIndex,
     uint16 _cardinality,
     uint32 _time,
-    uint32 _expiry
+    uint32 _ttl
   ) internal view returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality) {
 /*
-    Desired min history: 100
-    1) 
-      next: 100
+    TTL: 100
 
+    Example 1:
+      next twab timestamp: 100
+
+      existing twab timestamps:
       0: 10
       1: 90
 
-      if we eliminate 0, we're down to 10
+      we should not eliminate 0 or else the history will be 10 seconds long
 
-    2) 
-      next: 105
+    Example 2:
+
+      next twab timestamp: 105
+
+      existing twab timestamps
       0: 1
       1: 5
 
-      if we eliminate 0, the history is 100.  ok!
+      We can eliminate 0, because the history will be 100 seconds long
 
     Q: when do we eliminate the oldest twab?
-    A: when current time - second oldest twab >= TWAB_LIFETIME
-
-    For 1) 100 - 90 = 10.  First one is negative!
-    For 2) 105 - 5 = 100.  We can eliminate the first one!
+    A: when current time - second oldest twab >= time to live
     */
 
     Twab memory secondOldestTwab;
@@ -313,7 +453,7 @@ library TwabLibrary {
     }
 
     nextCardinality = _cardinality;
-    if (secondOldestTwab.timestamp == 0 || _time.checkedSub(secondOldestTwab.timestamp, _time) < _expiry) {
+    if (secondOldestTwab.timestamp == 0 || _time.checkedSub(secondOldestTwab.timestamp, _time) < _ttl) {
       nextCardinality = _cardinality < MAX_CARDINALITY ? _cardinality + 1 : MAX_CARDINALITY;
     }
 

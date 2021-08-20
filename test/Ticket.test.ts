@@ -25,7 +25,7 @@ type BinarySearchResult = {
 };
 
 async function printTwabs(ticketContract: Contract, wallet: SignerWithAddress, debugLog: any = debug) {
-  const context = await ticketContract.userBalanceWithTwab(wallet.address)
+  const context = await ticketContract.getAccountDetails(wallet.address)
   debugLog(`Twab Context for ${wallet.address}: { balance: ${ethers.utils.formatEther(context.balance)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
   const twabs = []
   for (var i = 0; i < context.cardinality; i++) {
@@ -170,7 +170,7 @@ describe('Ticket', () => {
     const mintBalance = toWei('1000')
 
     beforeEach(async () => {
-      twabLifetime = await ticket.TWAB_EXPIRY()
+      twabLifetime = await ticket.TWAB_TIME_TO_LIVE()
     })
 
     it('should expire old twabs and save gas', async () => {
@@ -269,7 +269,7 @@ describe('Ticket', () => {
 
       await printTwabs(ticket, wallet1, debug)
 
-      const context = await ticket.userBalanceWithTwab(wallet1.address)
+      const context = await ticket.getAccountDetails(wallet1.address)
 
       debug(`Twab Context: `, context)
 
