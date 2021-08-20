@@ -433,7 +433,7 @@ describe('Ticket', () => {
     });
   });
 
-  describe('getBalances()', () => {
+  describe('getBalancesAt()', () => {
     it('should get user balances', async () => {
       const mintAmount = toWei('2000');
       const transferAmount = toWei('500');

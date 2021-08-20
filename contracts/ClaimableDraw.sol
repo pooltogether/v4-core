@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
+
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./interfaces/IDrawCalculator.sol";
 
@@ -336,9 +337,10 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @param _currentDrawId         Current draw id (i.e. last draw id)
     * @return Updated userDrawClaimHistory
   */
-  function _updateUsersDrawClaimStatus(bytes32 _userDrawClaimHistory, uint256 _drawId, uint256 _currentDrawId) internal pure returns (bytes32) {
+  function _updateUsersDrawClaimStatus(bytes32 _userDrawClaimHistory, uint256 _drawId, uint256 _currentDrawId) internal view returns (bytes32) {
     uint8 drawIndex = _drawIdToClaimIndex(_drawId, _currentDrawId);
     bool isClaimed = _readUsersDrawClaimStatusFromClaimedHistory(_userDrawClaimHistory, drawIndex);
+
     require(!isClaimed, "ClaimableDraw/user-previously-claimed");
 
     return _writeUsersDrawClaimStatusFromClaimedHistory(_userDrawClaimHistory, drawIndex);
