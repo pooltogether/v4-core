@@ -346,7 +346,7 @@ describe('TsunamiDrawCalculator', () => {
       const pickIndices = encoder.encode(['uint256[][]'], [[[...new Array<number>(1000).keys()]]]);
       const ticketBalance = utils.parseEther('20000');
 
-      await ticket.mock.getBalances.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
       const prizesAwardable = await drawCalculator.calculate(
         wallet1.address,
