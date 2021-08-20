@@ -335,7 +335,6 @@ library TwabLibrary {
 
     // if we're in the same block, return
     if (newestTwab.timestamp == _time) {
-      console.log("OH SHIT!!!!!!!!!!!!!");
       return (_nextTwabIndex, cardinality, newestTwab, false);
     }
 

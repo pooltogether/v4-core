@@ -113,12 +113,12 @@ describe('TwabLibrary', () => {
         await twabLib.setTwabs([{ amount: 0, timestamp }])
       });
 
-      it('should return 0 for time before history', async () => {
+      it('should return 0 for time before twabs', async () => {
         expect(await twabLib.getBalanceAt(500, currentBalance, 0, cardinality, currentTime)).to.equal(0)
       })
 
-      it('should return 0 for twab timestamp', async () => {
-        expect(await twabLib.getBalanceAt(timestamp, currentBalance, 0, cardinality, currentTime)).to.equal(0)
+      it('should return the current balance if time at or after last twab', async () => {
+        expect(await twabLib.getBalanceAt(timestamp, currentBalance, 0, cardinality, currentTime)).to.equal(currentBalance)
       })
 
       it('should return the current balance after the twab', async () => {
@@ -128,7 +128,6 @@ describe('TwabLibrary', () => {
 
     context('with two twabs', () => {
       const mintAmount = toWei('1000');
-      const transferAmount = toWei('500')
       const currentBalance = toWei('500')
 
       let timestamp1 = 1000
@@ -170,9 +169,9 @@ describe('TwabLibrary', () => {
         expect(await twabLib.getBalanceAt(timestamp1 + 50, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(mintAmount)
       })
 
-      it('should return mint amount when on last twab', async () => {
+      it('should return current balance when on last twab', async () => {
         // console.log(`Test getAverageBalance() : ${timestamp2 - 50}, ${timestamp2 + 50}`)
-        expect(await twabLib.getBalanceAt(timestamp2, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(mintAmount)
+        expect(await twabLib.getBalanceAt(timestamp2, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(currentBalance)
       })
 
       it('should return current balance when after last twab', async () => {
