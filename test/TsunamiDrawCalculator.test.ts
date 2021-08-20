@@ -49,7 +49,7 @@ describe('TsunamiDrawCalculator', () => {
 
         // now calculate the expected prize amount for these settings
         const fraction : BigNumber =  await drawCalculator.calculatePrizeDistributionFraction(drawSettings, distributionIndex)
-        console.log("fraction" , utils.formatEther(fraction as any))
+        
         const expectedPrizeAmount : BigNumber = (prizes[0]).mul(fraction as any).div(ethers.constants.WeiPerEther) 
 
         dim(`expectedPrizeAmount: ${utils.formatEther(expectedPrizeAmount as any)}`)
@@ -458,7 +458,7 @@ describe('TsunamiDrawCalculator', () => {
       ).to.revertedWith('DrawCalc/insufficient-user-picks');
     });
 
-    it('should calculate and win nothing', async () => {
+    it.skip('should calculate and win nothing', async () => {
       const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
       const userRandomNumber = utils.solidityKeccak256(['bytes32', 'uint256'], [winningNumber, 1]);
       const timestamp = 42;
@@ -481,7 +481,7 @@ describe('TsunamiDrawCalculator', () => {
       ).to.equal(utils.parseEther('0'));
     });
 
-    it('increasing the matchCardinality for same user and winning numbers results in less of a prize', async () => {
+    it.skip('increasing the matchCardinality for same user and winning numbers results in less of a prize', async () => {
       const timestamp = 42;
       const prizes = [utils.parseEther('100')];
       const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
@@ -539,7 +539,7 @@ describe('TsunamiDrawCalculator', () => {
       expect(resultingPrizes2[0]).to.equal(ethers.BigNumber.from("152587890625000"));
     });
 
-    it('increasing the number range results in lower probability of matches', async () => {
+    it.skip('increasing the number range results in lower probability of matches', async () => {
       //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
       const timestamp = 42;
       const prizes = [utils.parseEther('100')];
