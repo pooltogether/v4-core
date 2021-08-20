@@ -87,7 +87,6 @@ describe('Ticket', () => {
       expect(await ticket.name()).to.equal(ticketName);
       expect(await ticket.symbol()).to.equal(ticketSymbol);
       expect(await ticket.decimals()).to.equal(ticketDecimals);
-      expect(await ticket.owner()).to.equal(wallet1.address);
     });
 
     it('should set custom decimals', async () => {
