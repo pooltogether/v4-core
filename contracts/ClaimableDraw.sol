@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
-
+import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./interfaces/IDrawCalculator.sol";
 
 contract ClaimableDraw is OwnableUpgradeable {
 
-  /**
-    * @notice The current draw id.
-    * @dev    The current draw id which correlates to index position in the draws array.
-  */
-  uint256 public currentDrawId;
+  uint16 public constant CARDINALITY = 8;
 
   /**
-    * @notice Current draw index for managing the draws ring buffer.
+    * @notice The next draw id.
+    * @dev    The next draw id which correlates to index position in the draws array.
   */
-  uint256 public currentDrawIndex;
+  uint256 public nextDrawId;
 
   /**
     * @notice External account/contract authorized to create new draws.
@@ -26,16 +23,16 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice A historical list of all draws. The index position is used as the Draw ID.
   */
-  Draw[] internal draws;
+  Draw[CARDINALITY] internal draws;
 
-  // Mapping of user claimed draws
-  // +---------+-------------+
-  // | Address | Bytes32     |
-  // +---------+-------------+
-  // | user    | drawHistory |
-  // | user    | drawHistory |
-  // +---------+-------------+
-  mapping(address => bytes32) internal claimedDraws;
+  // Mapping of user draw payout history
+  // +---------+-------------------+
+  // | Address | uint96[]          |
+  // +---------+-------------------+
+  // | user    | userPayoutHistory |
+  // | user    | userPayoutHistory |
+  // +---------+-------------------+
+  mapping(address => uint96[CARDINALITY]) internal userPayoutHistory;
 
   /**
     * @notice Draw model used to calculate a user's claim payout.
@@ -56,12 +53,10 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice Emit when a user has claimed N of draw prizes.
     * @param user             Address of user receiving draw(s) total award payout
-    * @param userClaimedDraws User's updated claim history after executing succesful draw claims
     * @param totalPayout      Total award payout calculated using total draw ids and pick indices
   */
   event ClaimedDraw (
     address indexed user,
-    bytes32 userClaimedDraws,
     uint256 totalPayout
   );
 
@@ -89,7 +84,8 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @param calculator   Address of the DrawCalculator used to calculate award payout
   */
   event DrawSet (
-    uint256 currentDrawIndex,
+    uint256 drawId,
+    uint256 drawIndex,
     uint256 randomNumber,
     uint256 timestamp,
     uint256 prize,
@@ -99,7 +95,7 @@ contract ClaimableDraw is OwnableUpgradeable {
   /* ============ Modifiers ============ */
 
   /**
-    * @notice Authorizate caller to create new draw.
+    * @notice Authorizes caller to create new draw.
     * @dev    Authorizes the calling ClaimableDrawPrizeStrategy to create a new draw during the capture award stage.
   */
   modifier onlyDrawManager() {
@@ -132,10 +128,11 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @dev    Checks a claimable status for target draw by reading from a user's claim history in claimedDraws.
     *
     * @param user   Address of user
-    * @param drawId Unique draw id (index)
+    * @param drawId Draw id
   */
-  function hasClaimed(address user, uint256 drawId) external view returns (bool) {
-    return _readUsersDrawClaimStatusFromClaimedHistory(claimedDraws[user], _drawIdToClaimIndex(drawId, currentDrawId));
+  function userDrawPayout(address user, uint256 drawId) external view returns (uint96) {
+    uint96[CARDINALITY] memory _userPayoutHistory = userPayoutHistory[user];
+    return _userPayoutHistory[_drawIdToClaimIndex(drawId, nextDrawId - 1)];
   }
 
   /**
@@ -143,8 +140,8 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @dev    Reads a user draw claim history, which is stored in a packed bytes32 "word"
     * @param user Address of user
   */
-  function userClaimedDraws(address user) external view returns(bytes32) {
-    return claimedDraws[user];
+  function userDrawPayouts(address user) external view returns(uint96[CARDINALITY] memory) {
+    return userPayoutHistory[user];
   }
 
   /**
@@ -154,8 +151,9 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @return Draw struct
   */
   function getDraw(uint256 drawId) external view returns(Draw memory) {
-    require(drawId <= currentDrawId, "ClaimableDraw/draw-nonexistent");
-    return draws[drawId];
+    uint256 _currentDrawId = nextDrawId - 1;
+    uint8 drawIndex = _drawIdToClaimIndex(drawId, _currentDrawId);
+    return draws[drawIndex];
   }
 
   /**
@@ -206,6 +204,20 @@ contract ClaimableDraw is OwnableUpgradeable {
   /* ============ Internal Functions ============ */
 
   /**
+    * @notice Calculates the claim index using the draw id.
+    * @dev Calculates the claim index, while accounting for a draws expiration status. 
+    * @param _drawId         Draw id used for calculation
+    * @param _currentDrawId  The current draw id
+    * @return Absolute draw index in draws ring buffer
+  */
+  function _drawIdToClaimIndex(uint256 _drawId, uint256 _currentDrawId) internal pure returns (uint8) { 
+    require(_drawId + CARDINALITY > _currentDrawId, "ClaimableDraw/claim-expired");
+    require(_drawId <= _currentDrawId, "ClaimableDraw/drawid-out-of-bounds");
+
+    return uint8(_drawId % CARDINALITY);
+  }
+
+  /**
     * @notice Internal function to set a new authorized draw manager.
     * @dev    Internal function to set the ClaimableDrawPrizeStrategy, which should be called when a new prize strategy is deployed.
     * @param _newDrawManager  New draw manager address
@@ -214,11 +226,8 @@ contract ClaimableDraw is OwnableUpgradeable {
   function _setDrawManager(address _newDrawManager) internal returns(address) {
     require(_newDrawManager != address(0), "ClaimableDraw/draw-manager-not-zero-address");
     require(_newDrawManager != address(drawManager), "ClaimableDraw/existing-draw-manager-address");
-
     emit DrawManagerSet(_newDrawManager);
-    
     drawManager = _newDrawManager;
-
     return _newDrawManager;
   }
 
@@ -231,13 +240,29 @@ contract ClaimableDraw is OwnableUpgradeable {
   function _setDrawCalculator(IDrawCalculator _newCalculator) internal returns(IDrawCalculator) {
     require(address(_newCalculator) != address(0), "ClaimableDraw/calculator-not-zero-address");
     require(_newCalculator != currentCalculator, "ClaimableDraw/existing-calculator-address");
-
     emit DrawCalculatorSet(_newCalculator);
-    
     currentCalculator = _newCalculator;
-
     return _newCalculator;
   }
+
+  /**
+    * @notice Create a new claimable draw.
+    * @dev Create a new claimable draw, updates currentDrawId and adds the draw to the draws array.
+    * @param _randomNumber  Randomly generated draw number
+    * @param _timestamp     Epoch timestamp of the draw
+    * @param _prize         Draw's captured award (i.e. prize) amount
+    * @return New draw id
+  */
+  function _createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) internal returns (uint256) {
+    uint256 _nextDrawId = nextDrawId;
+    IDrawCalculator _currentCalculator = currentCalculator;
+    Draw memory _draw = Draw({randomNumber: _randomNumber, prize: _prize, timestamp: _timestamp, calculator: _currentCalculator});
+    uint256 _drawIndex = _nextDrawId % CARDINALITY;
+    draws[_drawIndex] = _draw;
+    nextDrawId = _nextDrawId + 1;
+    emit DrawSet(_nextDrawId, _drawIndex, _randomNumber, _timestamp, _prize, _currentCalculator);
+    return _nextDrawId;
+  } 
 
   /**
     * @notice Claim a user's award by passing in the calculated drawIds, drawCalculators and pickIndices. 
@@ -257,19 +282,16 @@ contract ClaimableDraw is OwnableUpgradeable {
   ) internal returns (uint256) {
     uint256 drawCalculatorsLength = _drawCalculators.length;
     require(drawCalculatorsLength == _drawIds.length, "ClaimableDraw/invalid-calculator-array");
-    bytes32 userDrawClaimHistory = claimedDraws[_user]; //sload
-    uint256 _currentDrawId = currentDrawId; // sload
-    uint256 payout;
     uint256 totalPayout;
+    uint256 drawCollectionPayout;
 
     for (uint256 calcIndex = 0; calcIndex < drawCalculatorsLength; calcIndex++) {
       IDrawCalculator _drawCalculator = _drawCalculators[calcIndex];
-      (payout, userDrawClaimHistory) = _calculateAllDraws(_user, _drawIds[calcIndex], _drawCalculator, _data[calcIndex], _currentDrawId, userDrawClaimHistory);
-      totalPayout += payout;
+      drawCollectionPayout = _calculate(_user, _drawIds[calcIndex], _drawCalculator, _data[calcIndex]);
+      totalPayout += drawCollectionPayout;
     }
 
-    claimedDraws[_user] = userDrawClaimHistory; //sstore
-    emit ClaimedDraw(_user, userDrawClaimHistory, totalPayout);
+    emit ClaimedDraw(_user, totalPayout);
 
     return totalPayout;
   }
@@ -280,113 +302,94 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @param _drawIds         Array of draws for target draw calculator
     * @param _drawCalculator  Address of draw calculator to determine award payout
     * @param _data            Pick indices for target draw
-    * @param _currentDrawId   ID of draw being calculated
-    * @param _claimedDraws    User's claimed draw history
-    * @return totalPayout Total claim payout
-    * @return userDrawClaimHistory Updated userDrawClaimHistory
+    * @return Total draw collection payout
   */
-  function _calculateAllDraws(
+  function _calculate(
     address _user, 
     uint256[] calldata _drawIds, 
     IDrawCalculator _drawCalculator, 
-    bytes calldata _data, 
-    uint256 _currentDrawId, 
-    bytes32 _claimedDraws
-  ) internal returns (uint256 totalPayout, bytes32 userDrawClaimHistory) {
+    bytes calldata _data
+  ) internal returns (uint256) {
+    uint256 drawCollectionPayout;
+    uint96[CARDINALITY] memory _userPayoutHistory = userPayoutHistory[_user];
+
+    (drawCollectionPayout, _userPayoutHistory) = _calculateDrawCollectionPayout(_user, _userPayoutHistory, _drawIds, _drawCalculator, _data);
+    userPayoutHistory[_user] = _userPayoutHistory;
+
+    return drawCollectionPayout;
+  }
+
+  /**
+    * @dev Calculates user payout for a list of draws linked to single draw calculator.
+    * @param _user              Address of user
+    * @param _userPayoutHistory  User draw claim payout history
+    * @param _drawIds           Array of draws for target draw calculator
+    * @param _drawCalculator    Address of draw calculator to determine award payout
+    * @param _data              Pick indices for target draw
+    * @return totalPayout Total claim payout
+  */
+  function _calculateDrawCollectionPayout(
+    address _user,
+    uint96[CARDINALITY] memory _userPayoutHistory, 
+    uint256[] calldata _drawIds, 
+    IDrawCalculator _drawCalculator, 
+    bytes calldata _data
+  ) internal returns (uint256 totalPayout, uint96[CARDINALITY] memory userPayoutHistory) {
+    uint96[] memory prizesAwardable;
     uint256[] memory prizes = new uint256[](_drawIds.length);
     uint32[] memory timestamps = new uint32[](_drawIds.length);
     uint256[] memory randomNumbers = new uint256[](_drawIds.length);
-    userDrawClaimHistory = _claimedDraws;
+    userPayoutHistory = _userPayoutHistory;
 
+    (randomNumbers, timestamps, prizes) = _createDrawClaimsInput(_drawIds, _drawCalculator, randomNumbers, timestamps, prizes);
+    prizesAwardable = _drawCalculator.calculate(_user, randomNumbers, timestamps, prizes, _data);
+    require(_drawIds.length == prizesAwardable.length, "ClaimableDraw/invalid-prizes-awardable");
+
+    uint96 prize;
+    for (uint256 prizeIndex = 0; prizeIndex < prizesAwardable.length; prizeIndex++) {
+      prize = prizesAwardable[prizeIndex];
+      (prize, userPayoutHistory) = _validateDrawPayout(userPayoutHistory, (_drawIds[prizeIndex] % CARDINALITY), prize);
+      totalPayout += prize;
+    }
+  }
+
+  function _createDrawClaimsInput(
+    uint256[] calldata _drawIds, 
+    IDrawCalculator _drawCalculator,
+    uint256[] memory _randomNumbers,
+    uint32[] memory _timestamps,
+    uint256[] memory _prizes
+  ) internal view returns(uint256[] memory, uint32[] memory, uint256[] memory) {
+    uint256 _currentDrawId = nextDrawId - 1; // sload
     for (uint256 drawIndex = 0; drawIndex < _drawIds.length; drawIndex++) {
-      Draw memory _draw = draws[_drawIds[drawIndex]];
-      require(_draw.calculator == _drawCalculator, "ClaimableDraw/calculator-address-invalid");
-      prizes[drawIndex] = _draw.prize;
-      timestamps[drawIndex] = uint32(_draw.timestamp);
-      randomNumbers[drawIndex] = _draw.randomNumber;
-      userDrawClaimHistory = _updateUsersDrawClaimStatus(userDrawClaimHistory, _drawIds[drawIndex], _currentDrawId);
+      Draw memory _draw = draws[_drawIdToClaimIndex(_drawIds[drawIndex], _currentDrawId)];
+      require(_draw.calculator == _drawCalculator && address(_draw.calculator) != address(0), "ClaimableDraw/calculator-address-invalid");
+      _randomNumbers[drawIndex] = _draw.randomNumber; 
+      _timestamps[drawIndex] = uint32(_draw.timestamp);
+      _prizes[drawIndex] = _draw.prize;
     }
 
-    totalPayout += _drawCalculator.calculate(_user, randomNumbers, timestamps, prizes, _data);
+    return (_randomNumbers, _timestamps, _prizes);
   }
 
   /**
-    * @notice Create a new claimable draw.
-    * @dev Create a new claimable draw, updates currentDrawId and adds the draw to the draws array.
-    * @param _randomNumber  Randomly generated draw number
-    * @param _timestamp     Epoch timestamp of the draw
-    * @param _prize         Draw's captured award (i.e. prize) amount
-    * @return New draw id
+    * @notice Calculates payout for individual draw.
+    * @param _userPayoutHistory User draw claim payout history
+    * @param _drawIndex         Draw index in user claimed draw payout history
+    * @param _payout            Draw payout amount
+    * @return Difference between previous draw payout and the current draw payout 
+    * @return Updated user draw claim payout history
   */
-  function _createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) internal returns (uint256) {
-    uint256 drawsLength =  draws.length;
-    IDrawCalculator _currentCalculator = currentCalculator;
-    Draw memory _draw = Draw({randomNumber: _randomNumber, prize: _prize, timestamp: _timestamp, calculator: _currentCalculator});
-    currentDrawId = drawsLength;
-    draws.push(_draw);
-    emit DrawSet(drawsLength, _randomNumber, _timestamp, _prize, _currentCalculator);
-    
-    return drawsLength;
-  } 
-
-  /**
-    * @notice Update the draw claim history for target draw id.
-    * @dev Update the draw claim history for target draw id.
-    * @param _userDrawClaimHistory  Current user claimed draws
-    * @param _drawId                ID of draw to update 
-    * @param _currentDrawId         Current draw id (i.e. last draw id)
-    * @return Updated userDrawClaimHistory
-  */
-  function _updateUsersDrawClaimStatus(bytes32 _userDrawClaimHistory, uint256 _drawId, uint256 _currentDrawId) internal view returns (bytes32) {
-    uint8 drawIndex = _drawIdToClaimIndex(_drawId, _currentDrawId);
-    bool isClaimed = _readUsersDrawClaimStatusFromClaimedHistory(_userDrawClaimHistory, drawIndex);
-
-    require(!isClaimed, "ClaimableDraw/user-previously-claimed");
-
-    return _writeUsersDrawClaimStatusFromClaimedHistory(_userDrawClaimHistory, drawIndex);
-  }
-
-  /**
-    * @notice Calculates the claim index using the draw id.
-    * @dev Calculates the claim index, while accounting for a draws expiration status. 
-    * @param drawId          Draw id used for calculation
-    * @param _currentDrawId  The current draw id
-    * @return Absolute draw index in draws ring buffer
-  */
-  function _drawIdToClaimIndex(uint256 drawId, uint256 _currentDrawId) internal pure returns (uint8) { 
-    require(drawId + 256 > _currentDrawId, "ClaimableDraw/claim-expired");
-    require(drawId <= _currentDrawId, "ClaimableDraw/drawid-out-of-bounds");
-
-    // How many indices in the past the given draw is
-    uint256 deltaIndex = _currentDrawId - drawId;
-
-    // Find absolute draw index by using currentDraw index and delta
-    return uint8(_currentDrawId - deltaIndex);
-  }
-
-
-   /**
-    * @dev Read the last user claimed status of a target draw.
-    *
-    * @param _userClaimedDraws  User claim draw history (256 bit word)
-    * @param _drawIndex         The index within that word (0 to 7)
-    * @return User's draw claim status
-  */
-  function _readUsersDrawClaimStatusFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) internal pure returns (bool) {
-    uint256 mask = (uint256(1)) << (_drawIndex);
-    return ((uint256(_userClaimedDraws) & mask) >> (_drawIndex)) != 0;    
-  }
-
-  /**
-    * @dev Updates a 256 bit word with a 32 bit representation of a block number at a particular index
-    *
-    * @param _userClaimedDraws  User claim draw history (256 bit word)
-    * @param _drawIndex         The index within that word (0 to 7)
-    * @return Updated User's draw claim history
-  */
-  function _writeUsersDrawClaimStatusFromClaimedHistory(bytes32 _userClaimedDraws, uint8 _drawIndex) internal pure returns (bytes32) { 
-    uint256 mask =  (uint256(1)) << (_drawIndex);
-    return bytes32(uint256(_userClaimedDraws) | mask); 
+  function _validateDrawPayout(
+    uint96[CARDINALITY] memory _userPayoutHistory, 
+    uint256 _drawIndex, 
+    uint96 _payout
+  ) internal pure returns (uint96, uint96[CARDINALITY] memory) {
+    uint96 pastPayout = _userPayoutHistory[_drawIndex];
+    require(_payout > pastPayout, "ClaimableDraw/payout-below-threshold");
+    uint96 payoutDiff = _payout - pastPayout;
+    _userPayoutHistory[_drawIndex] = payoutDiff;
+    return (payoutDiff, _userPayoutHistory);
   }
 
 }
