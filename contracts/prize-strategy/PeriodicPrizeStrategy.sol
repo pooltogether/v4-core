@@ -15,7 +15,7 @@ import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 import "../token/TokenListener.sol";
 import "../token/TokenControllerInterface.sol";
 import "../token/ControlledToken.sol";
-import "../../interfaces/TicketInterface.sol"; // NOTE: Updated from default TicketInterface 
+import "../interfaces/TicketInterface.sol"; // NOTE: Updated from default TicketInterface 
 import "../prize-pool/PrizePool.sol";
 import "../Constants.sol";
 

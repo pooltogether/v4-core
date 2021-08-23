@@ -1,7 +1,7 @@
 pragma solidity 0.8.6;
 
 import "../ClaimableDrawPrizeStrategy.sol";
-import "../import/test/PeriodicPrizeStrategyDistributorInterface.sol";
+import "../test/PeriodicPrizeStrategyDistributorInterface.sol";
 
 /* solium-disable security/no-block-members */
 contract ClaimableDrawPrizeStrategyHarness is ClaimableDrawPrizeStrategy {

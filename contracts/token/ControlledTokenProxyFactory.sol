@@ -3,7 +3,7 @@
 pragma solidity 0.8.6;
 
 import "./ControlledToken.sol";
-import "../../external/openzeppelin/ProxyFactory.sol";
+import "../external/openzeppelin/ProxyFactory.sol";
 
 /// @title Controlled ERC20 Token Factory
 /// @notice Minimal proxy pattern for creating new Controlled ERC20 Tokens

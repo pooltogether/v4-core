@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.6;
 
-import "../import/token/ControlledTokenProxyFactory.sol";
+import "../token/ControlledTokenProxyFactory.sol";
 import "../TicketProxyFactory.sol";
 
 /* solium-disable security/no-block-members */

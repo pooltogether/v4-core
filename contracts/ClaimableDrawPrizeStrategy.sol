@@ -2,8 +2,8 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "./import/prize-strategy/PrizeSplit.sol";
-import "./import/prize-strategy/PeriodicPrizeStrategy.sol";
+import "./prize-strategy/PrizeSplit.sol";
+import "./prize-strategy/PeriodicPrizeStrategy.sol";
 import "./ClaimableDraw.sol";
 import "./interfaces/TicketInterface.sol";
 

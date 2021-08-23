@@ -4,8 +4,8 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./ClaimableDrawPrizeStrategyBuilder.sol";
-import "../import/registry/RegistryInterface.sol";
-import "../import/prize-pool/compound/CompoundPrizePoolProxyFactory.sol";
+import "../registry/RegistryInterface.sol";
+import "../prize-pool/compound/CompoundPrizePoolProxyFactory.sol";
 
 contract PoolClaimableDrawPrizeStrategyBuilder {
   using SafeCastUpgradeable for uint256;
