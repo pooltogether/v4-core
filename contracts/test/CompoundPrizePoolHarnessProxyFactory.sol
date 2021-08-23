@@ -1,6 +1,6 @@
 pragma solidity 0.8.6;
 
-import "../import/test/CompoundPrizePoolHarness.sol";
+import "../test/CompoundPrizePoolHarness.sol";
 import "../external/openzeppelin/ProxyFactory.sol";
 
 /// @title Compound Prize Pool Proxy Factory
