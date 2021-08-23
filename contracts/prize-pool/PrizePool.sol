@@ -3,7 +3,6 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
@@ -504,7 +503,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
       catch(bytes memory error){
         emit ErrorAwardingExternalERC721(error);
       }
-      
+
     }
 
     emit AwardedExternalERC721(to, externalToken, tokenIds);
@@ -642,7 +641,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
     if (oldBalance < newBalance) {
       emit CreditMinted(user, controlledToken, newBalance - oldBalance);
-    } 
+    }
     else if (newBalance < oldBalance) {
       emit CreditBurned(user, controlledToken, oldBalance - newBalance);
     }
@@ -789,7 +788,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @param index The index to add the controlledToken
   function _addControlledToken(ControlledTokenInterface _controlledToken, uint256 index) internal {
     require(_controlledToken.controller() == this, "PrizePool/token-ctrlr-mismatch");
-    
+
     _tokens[index] = _controlledToken;
     emit ControlledTokenAdded(_controlledToken);
   }
@@ -830,13 +829,13 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
   /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
   /// @param compLike The COMP-like token held by the prize pool that should be delegated
-  /// @param to The address to delegate to 
+  /// @param to The address to delegate to
   function compLikeDelegate(ICompLike compLike, address to) external onlyOwner {
     if (compLike.balanceOf(address(this)) > 0) {
       compLike.delegate(to);
     }
   }
-  
+
   /// @notice Required for ERC721 safe token transfers from smart contracts.
   /// @param operator The address that acts on behalf of the owner
   /// @param from The current owner of the NFT
@@ -850,9 +849,9 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @return The current total of all tokens
   function _tokenTotalSupply() internal view returns (uint256) {
     uint256 total = reserveTotalSupply;
-    ControlledTokenInterface[] memory tokens = _tokens; // SLOAD  
+    ControlledTokenInterface[] memory tokens = _tokens; // SLOAD
     uint256 tokensLength = tokens.length;
-    
+
     for(uint256 i = 0; i < tokensLength; i++){
       total = total + IERC20Upgradeable(tokens[i]).totalSupply();
     }
@@ -880,7 +879,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     }
     return false;
   }
-  
+
   /// @dev Checks if a specific token is controlled by the Prize Pool
   /// @param controlledToken The address of the token to check
   /// @return True if the token is a controlled token, false otherwise
