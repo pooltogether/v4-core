@@ -7,7 +7,7 @@ contract BeforeAwardListenerStub is BeforeAwardListener {
 
   event Awarded();
 
-  function beforePrizePoolAwarded(uint256 randomNumber, uint256 prizePeriodStartedAt) external override {
+  function beforePrizePoolAwarded(uint256 randomNumber, uint256 prizePeriodStartedAt, uint256 prize) external override {
     emit Awarded();
   }
 }

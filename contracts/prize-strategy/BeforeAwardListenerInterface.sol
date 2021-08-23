@@ -7,5 +7,5 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeab
 /// @notice The interface for the Periodic Prize Strategy before award listener.  This listener will be called immediately before the award is distributed.
 interface BeforeAwardListenerInterface is IERC165Upgradeable {
   /// @notice Called immediately before the award is distributed
-  function beforePrizePoolAwarded(uint256 randomNumber, uint256 prizePeriodStartedAt) external;
+  function beforePrizePoolAwarded(uint256 randomNumber, uint256 prizePeriodStartedAt, uint256 prize) external;
 }

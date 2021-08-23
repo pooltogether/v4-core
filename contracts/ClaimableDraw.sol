@@ -1,12 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
+
 import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./interfaces/IDrawCalculator.sol";
 
 contract ClaimableDraw is OwnableUpgradeable {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
+
 
   uint16 public constant CARDINALITY = 8;
+
+  /**
+    * @notice Ticket address.
+    * @dev    Ticket address used to transfer claimable payout
+  */
+  IERC20Upgradeable public ticket;
 
   /**
     * @notice The next draw id.
@@ -15,10 +26,10 @@ contract ClaimableDraw is OwnableUpgradeable {
   uint256 public nextDrawId;
 
   /**
-    * @notice External account/contract authorized to create new draws.
-    * @dev    ClaimableDrawPrizeStrategy authorized to create a new draw when capturing the award balance.
+    * @notice Address authorized to create new draws.
+    * @dev    DrawStategist authorized to create new draws.
   */
-  address public drawManager;
+  address public drawStrategist;
 
   /**
     * @notice A historical list of all draws. The index position is used as the Draw ID.
@@ -70,10 +81,18 @@ contract ClaimableDraw is OwnableUpgradeable {
 
   /**
     * @notice Emit when a new draw has been generated.
-    * @param drawManager Address of the ClaimableDrawPrizeStrategy authorized to create a new draw
+    * @param drawStrategist Address of the DrawStategist authorized to create new draws.
   */
-  event DrawManagerSet (
-    address indexed drawManager
+  event DrawStrategistSet (
+    address indexed drawStrategist
+  );
+  
+  /**
+    * @notice Emit when a new ticket has been set.
+    * @param ticket Address of the new ticket.
+  */
+  event TicketSet (
+    IERC20Upgradeable indexed ticket
   );
 
   /**
@@ -96,10 +115,10 @@ contract ClaimableDraw is OwnableUpgradeable {
 
   /**
     * @notice Authorizes caller to create new draw.
-    * @dev    Authorizes the calling ClaimableDrawPrizeStrategy to create a new draw during the capture award stage.
+    * @dev    Authorizes the calling DrawStategist to create a new draw.
   */
-  modifier onlyDrawManager() {
-    require(msg.sender == drawManager, "ClaimableDraw/unauthorized-draw-manager");
+  modifier onlyDrawStrategist() {
+    require(msg.sender == drawStrategist, "ClaimableDraw/unauthorized-draw-strategist");
     _;
   }
 
@@ -108,17 +127,19 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice Initialize claimable draw smart contract.
     *
-    * @param _drawManager  Address of draw manager
+    * @param _drawStrategist  Address of draw manager
     * @param _calculator  Address of draw calculator
   */
   function initialize (
-    address _drawManager,
-    IDrawCalculator _calculator
+    address _drawStrategist,
+    IDrawCalculator _calculator,
+    IERC20Upgradeable _ticket
   ) external initializer {
     __Ownable_init();
 
-    _setDrawManager(_drawManager);
+    _setDrawStrategist(_drawStrategist);
     _setDrawCalculator(_calculator);
+    _setTicket(_ticket);
   }
 
   /* ============ External Functions ============ */
@@ -159,11 +180,11 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice External function to set a new authorized draw manager.
     * @dev    External function to set the ClaimableDrawPrizeStrategy, which should be called when a new prize strategy is deployed.
-    * @param _newDrawManager  New draw manager address
+    * @param _newDrawStrategist  New draw strategiest address
     * @return New draw manager address
   */
-  function setDrawManager(address _newDrawManager) external onlyOwner returns(address) {
-    return _setDrawManager(_newDrawManager);
+  function setDrawStrategist(address _newDrawStrategist) external onlyOwner returns(address) {
+    return _setDrawStrategist(_newDrawStrategist);
   }
 
   /**
@@ -177,6 +198,16 @@ contract ClaimableDraw is OwnableUpgradeable {
   }
 
   /**
+    * @notice External function to set the token.
+    * @dev    External function to set the token used for awarding claim payouts.
+    * @param _newTicket  Ticket address
+    * @return New ticket address
+  */
+  function setTicket(IERC20Upgradeable _newTicket) external onlyOwner returns(IERC20Upgradeable) {
+    return _setTicket(_newTicket);
+  }
+
+  /**
     * @notice Creates a new draw via a request from the draw manager.
     *
     * @param _randomNumber  Randomly generated draw number
@@ -184,7 +215,7 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @param _prize         Award captured when creating a new draw 
     * @return New draw id
   */
-  function createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) public onlyDrawManager returns (uint256) {
+  function createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) public onlyDrawStrategist returns (uint256) {
     return _createDraw(_randomNumber, _timestamp, _prize);
   }
 
@@ -198,7 +229,9 @@ contract ClaimableDraw is OwnableUpgradeable {
     * @return Total claim payout
   */
   function claim(address _user, uint256[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256) {
-    return _claim(_user, _drawIds, _drawCalculators, _data);
+    uint256 payout = _claim(_user, _drawIds, _drawCalculators, _data);
+    ticket.safeTransfer(_user, payout);
+    return payout;
   }
 
   /* ============ Internal Functions ============ */
@@ -220,15 +253,15 @@ contract ClaimableDraw is OwnableUpgradeable {
   /**
     * @notice Internal function to set a new authorized draw manager.
     * @dev    Internal function to set the ClaimableDrawPrizeStrategy, which should be called when a new prize strategy is deployed.
-    * @param _newDrawManager  New draw manager address
+    * @param _newDrawStrategist  New draw strategist address
     * @return  New draw manager address
   */
-  function _setDrawManager(address _newDrawManager) internal returns(address) {
-    require(_newDrawManager != address(0), "ClaimableDraw/draw-manager-not-zero-address");
-    require(_newDrawManager != address(drawManager), "ClaimableDraw/existing-draw-manager-address");
-    emit DrawManagerSet(_newDrawManager);
-    drawManager = _newDrawManager;
-    return _newDrawManager;
+  function _setDrawStrategist(address _newDrawStrategist) internal returns(address) {
+    require(_newDrawStrategist != address(0), "ClaimableDraw/draw-manager-not-zero-address");
+    require(_newDrawStrategist != address(drawStrategist), "ClaimableDraw/existing-draw-strategist-address");
+    emit DrawStrategistSet(_newDrawStrategist);
+    drawStrategist = _newDrawStrategist;
+    return _newDrawStrategist;
   }
 
   /**
@@ -243,6 +276,20 @@ contract ClaimableDraw is OwnableUpgradeable {
     emit DrawCalculatorSet(_newCalculator);
     currentCalculator = _newCalculator;
     return _newCalculator;
+  }
+  
+  /**
+    * @notice Internal function to set new token.
+    * @dev    Internal function to set new token used for awarding claim payouts.
+    * @param _newTicket  Ticket address
+    * @return New ticket address
+  */
+  function _setTicket(IERC20Upgradeable _newTicket) internal returns(IERC20Upgradeable) {
+    require(address(_newTicket) != address(0), "ClaimableDraw/ticket-not-zero-address");
+    require(_newTicket != ticket, "ClaimableDraw/existing-ticket-address");
+    emit TicketSet(_newTicket);
+    ticket = _newTicket;
+    return _newTicket;
   }
 
   /**

@@ -209,7 +209,7 @@ abstract contract PeriodicPrizeStrategy is Initializable,
     emit PrizePoolOpened(_msgSender(), prizePeriodStartedAt);
   }
 
-  function _distribute(uint256 randomNumber) internal virtual;
+  function _distribute(uint256 randomNumber) internal virtual returns (uint256);
 
   /// @notice Calculates and returns the currently accrued prize
   /// @return The current prize size
@@ -415,10 +415,10 @@ abstract contract PeriodicPrizeStrategy is Initializable,
     uint256 randomNumber = rng.randomNumber(rngRequest.id);
     delete rngRequest;
 
+    uint256 prize = _distribute(randomNumber);
     if (address(beforeAwardListener) != address(0)) {
-      beforeAwardListener.beforePrizePoolAwarded(randomNumber, prizePeriodStartedAt);
+      beforeAwardListener.beforePrizePoolAwarded(randomNumber, prizePeriodStartedAt, prize);
     }
-    _distribute(randomNumber);
     if (address(periodicPrizeStrategyListener) != address(0)) {
       periodicPrizeStrategyListener.afterPrizePoolAwarded(randomNumber, prizePeriodStartedAt);
     }

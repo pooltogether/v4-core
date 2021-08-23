@@ -26,8 +26,10 @@ contract PeriodicPrizeStrategyHarness is PeriodicPrizeStrategy {
     rngRequest.lockBlock = lockBlock;
   }
 
-  function _distribute(uint256 randomNumber) internal override {
+  function _distribute(uint256 randomNumber) internal override returns (uint256) {
     distributor.distribute(randomNumber);
+
+    return 0;
   }
 
   function forceBeforeAwardListener(BeforeAwardListenerInterface listener) external {

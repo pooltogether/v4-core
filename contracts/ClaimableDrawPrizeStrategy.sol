@@ -128,10 +128,13 @@ contract ClaimableDrawPrizeStrategy is Initializable,
     *
     * @param randomNumber Randomly generated number
   */
-  function _distribute(uint256 randomNumber) internal override virtual {
+  function _distribute(uint256 randomNumber) internal override virtual returns (uint256) {
     uint256 prize = prizePool.captureAwardBalance();
-    prize = _distributePrizeSplits(prize);
-    claimableDraw.createDraw(randomNumber, uint32(block.timestamp), prize);
+    // TODO: UPDATE THE LOGIC TO RETURN THE TOTAL PRIZE DISTRIBUTED TO CLAIMABLE DRAW
+    // Right now it assumes 100% of the prize is sent to the ClaimableDraw but this is NOT guaranteed
+    // to be true and thus we need to extract the correct prize amount.
+    _distributePrizeSplits(prize);
+    return prize;
   }
 
   /**
