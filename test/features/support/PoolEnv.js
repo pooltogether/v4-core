@@ -119,7 +119,7 @@ function PoolEnv() {
     let prizeStrategy = await this.prizeStrategy(wallet);
     let ticketAddress = await prizeStrategy.ticket();
     return await hardhat.ethers.getContractAt(
-      'contracts/import/token/ControlledToken.sol:ControlledToken',
+      'contracts/token/ControlledToken.sol:ControlledToken',
       ticketAddress,
       wallet,
     );
@@ -129,7 +129,7 @@ function PoolEnv() {
     let prizePool = await this.prizeStrategy(wallet);
     let sponsorshipAddress = await prizePool.sponsorship();
     return await hardhat.ethers.getContractAt(
-      'contracts/import/token/ControlledToken.sol:ControlledToken',
+      'contracts/token/ControlledToken.sol:ControlledToken',
       sponsorshipAddress,
       wallet,
     );

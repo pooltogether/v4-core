@@ -18,7 +18,7 @@ const invalidExternalToken = '0x0000000000000000000000000000000000000002';
 
 let overrides = { gasLimit: 9500000 };
 
-describe('PeriodicPrizeStrategy', () => {
+describe('ClaimableDrawPrizeStrategy', () => {
   let wallet, wallet2, wallet3, wallet4, wallet5;
 
   let externalERC20Award, externalERC721Award;
@@ -41,7 +41,7 @@ describe('PeriodicPrizeStrategy', () => {
 
     IERC20 = await hre.artifacts.readArtifact('IERC20Upgradeable');
     TokenListenerInterface = await hre.artifacts.readArtifact(
-      'contracts/import/token/TokenListenerInterface.sol:TokenListenerInterface',
+      'contracts/token/TokenListenerInterface.sol:TokenListenerInterface',
     );
 
     debug(`using wallet ${wallet.address}`);
@@ -61,7 +61,7 @@ describe('PeriodicPrizeStrategy', () => {
     token = await deployMockContract(wallet, IERC20.abi, overrides);
 
     const PrizePool = await hre.artifacts.readArtifact(
-      'contracts/import/prize-pool/PrizePool.sol:PrizePool',
+      'contracts/prize-pool/PrizePool.sol:PrizePool',
     );
     prizePool = await deployMockContract(wallet, PrizePool.abi, overrides);
 
@@ -69,7 +69,7 @@ describe('PeriodicPrizeStrategy', () => {
     ticket = await deployMockContract(wallet, Ticket.abi, overrides);
 
     const ControlledToken = await hre.artifacts.readArtifact(
-      'contracts/import/token/ControlledToken.sol:ControlledToken',
+      'contracts/token/ControlledToken.sol:ControlledToken',
     );
     sponsorship = await deployMockContract(wallet, ControlledToken.abi, overrides);
 
@@ -93,7 +93,7 @@ describe('PeriodicPrizeStrategy', () => {
     );
 
     const PeriodicPrizeStrategyListenerInterface = await hre.artifacts.readArtifact(
-      'contracts/import/prize-strategy/PeriodicPrizeStrategyListenerInterface.sol:PeriodicPrizeStrategyListenerInterface',
+      'contracts/prize-strategy/PeriodicPrizeStrategyListenerInterface.sol:PeriodicPrizeStrategyListenerInterface',
     );
     periodicPrizeStrategyListener = await deployMockContract(
       wallet,
@@ -146,7 +146,6 @@ describe('PeriodicPrizeStrategy', () => {
 
     debug('initialized!');
     await externalERC20Award.mock.totalSupply.returns(0);
-    await prizeStrategy.addExternalErc20Award(externalERC20Award.address);
   });
 
   describe('initialize()', () => {
@@ -166,8 +165,7 @@ describe('PeriodicPrizeStrategy', () => {
         prizePool.address,
         ticket.address,
         sponsorship.address,
-        rng.address,
-        [],
+        rng.address
       );
 
       await expect(initalizeResult2)
@@ -178,8 +176,7 @@ describe('PeriodicPrizeStrategy', () => {
           prizePool.address,
           ticket.address,
           sponsorship.address,
-          rng.address,
-          [],
+          rng.address
         );
     });
 
@@ -398,204 +395,6 @@ describe('PeriodicPrizeStrategy', () => {
     });
   });
 
-  describe('getExternalErc20Awards()', () => {
-    it('should allow anyone to retrieve the list of external ERC20 tokens attached to the prize', async () => {
-      expect(await prizeStrategy.connect(wallet2).getExternalErc20Awards()).to.deep.equal([
-        externalERC20Award.address,
-      ]);
-    });
-  });
-
-  describe('addExternalErc20Award()', () => {
-    it('should allow the owner to add external ERC20 tokens to the prize', async () => {
-      const externalAward = await deployMockContract(wallet2, IERC20.abi, overrides);
-      await externalAward.mock.totalSupply.returns(0);
-      await prizePool.mock.canAwardExternal.withArgs(externalAward.address).returns(true);
-
-      await expect(prizeStrategy.addExternalErc20Award(externalAward.address))
-        .to.emit(prizeStrategy, 'ExternalErc20AwardAdded')
-        .withArgs(externalAward.address);
-    });
-
-    it('should disallow unapproved external ERC20 prize tokens', async () => {
-      const invalidExternalErc20 = await deployMockContract(wallet2, IERC20.abi, overrides);
-      await invalidExternalErc20.mock.totalSupply.returns(0);
-      await prizePool.mock.canAwardExternal.withArgs(invalidExternalErc20.address).returns(false);
-      await expect(
-        prizeStrategy.addExternalErc20Award(invalidExternalErc20.address),
-      ).to.be.revertedWith('PeriodicPrizeStrategy/cannot-award-external');
-    });
-
-    it('should disallow added EOA accounts', async () => {
-      await expect(prizeStrategy.addExternalErc20Award(invalidExternalToken)).to.be.revertedWith(
-        'PeriodicPrizeStrategy/erc20-null',
-      );
-    });
-
-    it('should disallow contracts that are not erc20s', async () => {
-      await prizePool.mock.canAwardExternal.withArgs(prizeStrategy.address).returns(true);
-      await expect(prizeStrategy.addExternalErc20Award(prizeStrategy.address)).to.be.revertedWith(
-        'PeriodicPrizeStrategy/erc20-invalid',
-      );
-    });
-
-    it('should allow the listeners to add external erc20s', async () => {
-      const externalAward = await deployMockContract(wallet2, IERC20.abi, overrides);
-      await externalAward.mock.totalSupply.returns(0);
-      await prizePool.mock.canAwardExternal.withArgs(externalAward.address).returns(true);
-
-      const BeforeAwardListener = await hre.artifacts.readArtifact(
-        'contracts/import/prize-strategy/BeforeAwardListener.sol:BeforeAwardListener',
-      );
-      const beforeAwardListener = await deployMockContract(
-        wallet,
-        BeforeAwardListener.abi,
-        overrides,
-      );
-      await prizeStrategy.forceBeforeAwardListener(beforeAwardListener.address);
-
-      await expect(
-        beforeAwardListener.call(prizeStrategy, 'addExternalErc20Award', externalAward.address),
-      )
-        .to.emit(prizeStrategy, 'ExternalErc20AwardAdded')
-        .withArgs(externalAward.address);
-    });
-  });
-
-  describe('removeExternalErc20Award()', () => {
-    it('should only allow the owner to remove external ERC20 tokens from the prize', async () => {
-      await expect(prizeStrategy.removeExternalErc20Award(externalERC20Award.address, SENTINEL))
-        .to.emit(prizeStrategy, 'ExternalErc20AwardRemoved')
-        .withArgs(externalERC20Award.address);
-    });
-    it('should revert when removing non-existant external ERC20 tokens from the prize', async () => {
-      await expect(
-        prizeStrategy.removeExternalErc20Award(invalidExternalToken, SENTINEL),
-      ).to.be.revertedWith('Invalid prevAddress');
-    });
-    it('should not allow anyone else to remove external ERC20 tokens from the prize', async () => {
-      await expect(
-        prizeStrategy
-          .connect(wallet2)
-          .removeExternalErc20Award(externalERC20Award.address, SENTINEL),
-      ).to.be.revertedWith('Ownable: caller is not the owner');
-    });
-  });
-
-  describe('getExternalErc721Awards()', () => {
-    it.skip('should allow anyone to retrieve the list of external ERC721 tokens attached to the prize', async () => {
-      await externalERC721Award.mock.ownerOf.withArgs(1).returns(prizePool.address);
-      await prizeStrategy.addExternalErc721Award(externalERC721Award.address, [1]);
-
-      expect(await prizeStrategy.connect(wallet2).getExternalErc721Awards()).to.deep.equal([
-        externalERC721Award.address,
-      ]);
-
-      expect(
-        await prizeStrategy
-          .connect(wallet2)
-          .getExternalErc721AwardTokenIds(externalERC721Award.address),
-      ).to.deep.equal([One]);
-    });
-  });
-
-  describe('addExternalErc20Awards()', () => {
-    it('should allow the owner to add external ERC20 tokens to the prize', async () => {
-      const externalAward = await deployMockContract(wallet2, IERC20.abi, overrides);
-      const externalAward2 = await deployMockContract(wallet2, IERC20.abi, overrides);
-      await externalAward.mock.totalSupply.returns(0);
-      await externalAward2.mock.totalSupply.returns(0);
-      await prizePool.mock.canAwardExternal.withArgs(externalAward.address).returns(true);
-      await prizePool.mock.canAwardExternal.withArgs(externalAward2.address).returns(true);
-      await expect(
-        prizeStrategy.addExternalErc20Awards([externalAward.address, externalAward2.address]),
-      )
-        .to.emit(prizeStrategy, 'ExternalErc20AwardAdded')
-        .withArgs(externalAward.address);
-    });
-
-    it('should not allow anyone else to add', async () => {
-      await expect(
-        prizeStrategy.connect(wallet2).addExternalErc20Awards([externalERC20Award.address]),
-      ).to.be.revertedWith('PeriodicPrizeStrategy/only-owner-or-listener');
-    });
-  });
-
-  describe('addExternalErc721Award()', () => {
-    it('should allow the owner to add external ERC721 tokens to the prize', async () => {
-      await externalERC721Award.mock.ownerOf.withArgs(1).returns(prizePool.address);
-      await expect(prizeStrategy.addExternalErc721Award(externalERC721Award.address, [1]))
-        .to.emit(prizeStrategy, 'ExternalErc721AwardAdded')
-        .withArgs(externalERC721Award.address, [1]);
-    });
-
-    it('should allow adding multiple erc721s to the prize', async () => {
-      await externalERC721Award.mock.ownerOf.withArgs(1).returns(prizePool.address);
-      await externalERC721Award.mock.ownerOf.withArgs(2).returns(prizePool.address);
-      await expect(prizeStrategy.addExternalErc721Award(externalERC721Award.address, [1]))
-        .to.emit(prizeStrategy, 'ExternalErc721AwardAdded')
-        .withArgs(externalERC721Award.address, [1]);
-      await expect(prizeStrategy.addExternalErc721Award(externalERC721Award.address, [2]))
-        .to.emit(prizeStrategy, 'ExternalErc721AwardAdded')
-        .withArgs(externalERC721Award.address, [2]);
-    });
-
-    it('should disallow unapproved external ERC721 prize tokens', async () => {
-      await prizePool.mock.canAwardExternal.withArgs(invalidExternalToken).returns(false);
-      await expect(
-        prizeStrategy.addExternalErc721Award(invalidExternalToken, [1]),
-      ).to.be.revertedWith('PeriodicPrizeStrategy/cannot-award-external');
-    });
-
-    it('should disallow ERC721 tokens that are not held by the Prize Pool', async () => {
-      await externalERC721Award.mock.ownerOf.withArgs(1).returns(wallet.address);
-      await expect(
-        prizeStrategy.addExternalErc721Award(externalERC721Award.address, [1]),
-      ).to.be.revertedWith('PeriodicPrizeStrategy/unavailable-token');
-    });
-
-    it('should disallow anyone but the owner or listener', async () => {
-      await expect(
-        prizeStrategy.connect(wallet2).addExternalErc721Award(externalERC721Award.address, [1]),
-      ).to.be.revertedWith('PeriodicPrizeStrategy/only-owner-or-listener');
-    });
-
-    it('should not allow someone to add a token twice', async () => {
-      await externalERC721Award.mock.ownerOf.withArgs(1).returns(prizePool.address);
-      await expect(
-        prizeStrategy.addExternalErc721Award(externalERC721Award.address, [1, 1]),
-      ).to.be.revertedWith('PeriodicPrizeStrategy/erc721-duplicate');
-    });
-
-    it('should not allow someone to add a non-ERC721 contract', async () => {
-      await prizePool.mock.canAwardExternal.withArgs(prizePool.address).returns(true);
-      await expect(prizeStrategy.addExternalErc721Award(prizePool.address, [1])).to.be.revertedWith(
-        'PeriodicPrizeStrategy/erc721-invalid',
-      );
-    });
-  });
-
-  describe('removeExternalErc721Award()', () => {
-    it('should only allow the owner to remove external ERC721 tokens from the prize', async () => {
-      await externalERC721Award.mock.ownerOf.withArgs(1).returns(prizePool.address);
-      await prizeStrategy.addExternalErc721Award(externalERC721Award.address, [1]);
-      await expect(prizeStrategy.removeExternalErc721Award(externalERC721Award.address, SENTINEL))
-        .to.emit(prizeStrategy, 'ExternalErc721AwardRemoved')
-        .withArgs(externalERC721Award.address);
-    });
-    it('should revert when removing non-existant external ERC721 tokens from the prize', async () => {
-      await expect(
-        prizeStrategy.removeExternalErc721Award(invalidExternalToken, SENTINEL),
-      ).to.be.revertedWith('Invalid prevAddress');
-    });
-    it('should not allow anyone else to remove external ERC721 tokens from the prize', async () => {
-      await expect(
-        prizeStrategy
-          .connect(wallet2)
-          .removeExternalErc721Award(externalERC721Award.address, SENTINEL),
-      ).to.be.revertedWith('Ownable: caller is not the owner');
-    });
-  });
 
   describe('canStartAward()', () => {
     it('should determine if a prize is able to be awarded', async () => {

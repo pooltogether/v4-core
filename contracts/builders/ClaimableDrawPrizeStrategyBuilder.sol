@@ -24,7 +24,6 @@ contract ClaimableDrawPrizeStrategyBuilder {
     uint256 ticketCreditLimitMantissa;
     uint256 ticketCreditRateMantissa;
     ClaimableDrawPrizeStrategy.PrizeSplitConfig[] prizeSplits;
-    bool splitExternalErc20Awards;
   }
 
   ClaimableDrawProxyFactory public claimableDrawProxyFactory;

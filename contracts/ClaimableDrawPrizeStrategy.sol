@@ -65,15 +65,13 @@ contract ClaimableDrawPrizeStrategy is Initializable,
     ClaimableDraw _claimableDraw
   ) external initializer returns (bool) {
     __Ownable_init();
-    IERC20Upgradeable[] memory _externalErc20Awards;
     PeriodicPrizeStrategy.initialize(
       _prizePeriodStart,
       _prizePeriodSeconds,
       _prizePool,
       TicketInterface(address(_ticket)),
       _sponsorship,
-      _rng,
-      _externalErc20Awards
+      _rng
     );
 
     claimableDraw = _claimableDraw;
