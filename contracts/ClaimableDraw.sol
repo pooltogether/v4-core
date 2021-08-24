@@ -188,24 +188,24 @@ contract ClaimableDraw is AssetManager, DrawManager {
 
   /**
     * @notice Transfer ERC20 tokens to this contract.
-    * @dev This function is only callable by the asset manager.
+    * @dev This function is only callable by the owner or asset manager.
     * @param _erc20Token ERC20 token to transfer.
     * @param _amount Amount of tokens to transfer.
     * @return true if operation is successful.
   */
-  function depositERC20(IERC20Upgradeable _erc20Token, uint256 _amount) external onlyAssetManager returns (bool) {
+  function depositERC20(IERC20Upgradeable _erc20Token, uint256 _amount) external onlyOwnerOrAssetManager returns (bool) {
     return _transferERC20(_erc20Token, msg.sender, address(this), _amount);
   }
 
   /**
     * @notice Transfer ERC20 tokens out of this contract.
-    * @dev This function is only callable by the asset manager.
+    * @dev This function is only callable by the owner asset manager.
     * @param _erc20Token ERC20 token to transfer.
     * @param _to Recipient of the tokens.
     * @param _amount Amount of tokens to transfer.
     * @return true if operation is successful.
   */
-  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyAssetManager returns (bool) {
+  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyOwnerOrAssetManager returns (bool) {
     return _transferERC20(_erc20Token, address(this), _to, _amount);
   }
 

@@ -1,3 +1,4 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect, assert } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, constants, Contract, ContractFactory, BigNumber } from 'ethers';
@@ -30,9 +31,9 @@ async function userClaimWithMock(
 }
 
 describe('ClaimableDraw', () => {
-    let wallet1: any;
-    let wallet2: any;
-    let assetManager: any;
+    let wallet1: SignerWithAddress;
+    let wallet2: SignerWithAddress;
+    let assetManager: SignerWithAddress;
     let dai: Contract;
     let claimableDraw: Contract;
     let drawCalculator: MockContract;
@@ -552,9 +553,9 @@ describe('ClaimableDraw', () => {
                 .withArgs(assetManager.address, claimableDraw.address, depositAmount, dai.address);
         });
 
-        it('should fail to deposit ERC20 tokens if not assetManager', async () => {
-            await expect(claimableDraw.depositERC20(dai.address, depositAmount)).to.be.revertedWith(
-                'AssetManager/caller-not-asset-manager',
+        it('should fail to deposit ERC20 tokens if not owner or assetManager', async () => {
+            await expect(claimableDraw.connect(wallet2).depositERC20(dai.address, depositAmount)).to.be.revertedWith(
+                'AssetManager/caller-not-owner-or-asset-manager',
             );
         });
 
@@ -588,10 +589,10 @@ describe('ClaimableDraw', () => {
                 .withArgs(claimableDraw.address, wallet1.address, withdrawAmount, dai.address);
         });
 
-        it('should fail to withdraw ERC20 tokens if not assetManager', async () => {
+        it('should fail to withdraw ERC20 tokens if not owner or assetManager', async () => {
             await expect(
-                claimableDraw.withdrawERC20(dai.address, wallet1.address, withdrawAmount),
-            ).to.be.revertedWith('AssetManager/caller-not-asset-manager');
+                claimableDraw.connect(wallet2).withdrawERC20(dai.address, wallet1.address, withdrawAmount),
+            ).to.be.revertedWith('AssetManager/caller-not-owner-or-asset-manager');
         });
 
         it('should fail to withdraw ERC20 tokens if token address is address zero', async () => {

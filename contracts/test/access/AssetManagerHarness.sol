@@ -13,7 +13,7 @@ import "../../access/AssetManager.sol";
  * The asset manager account needs to be set using {setAssetManager}.
  *
  * This module is used through inheritance. It will make available the modifier
- * `onlyAssetManager`, which can be applied to your functions to restrict their use to
+ * `onlyOwnerOrAssetManager`, which can be applied to your functions to restrict their use to
  * the asset manager.
  */
 contract AssetManagerHarness is AssetManager {
@@ -21,7 +21,13 @@ contract AssetManagerHarness is AssetManager {
         __Ownable_init();
     }
 
-    function permissionedCall() public onlyAssetManager returns (string memory) {
-        return "isAssetManager";
+    function permissionedCall() public onlyOwnerOrAssetManager returns (string memory) {
+        if (assetManager() == _msgSender()) {
+            return "isAssetManager";
+        }
+
+        if (owner() == _msgSender()) {
+            return "isOwner";
+        }
     }
 }

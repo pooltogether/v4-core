@@ -14,8 +14,8 @@ import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
  * The asset manager account needs to be set using {setAssetManager}.
  *
  * This module is used through inheritance. It will make available the modifier
- * `onlyAssetManager`, which can be applied to your functions to restrict their use to
- * the asset manager.
+ * `onlyOwnerOrAssetManager`, which can be applied to your functions to restrict their use to
+ * the owner or asset manager.
  */
 abstract contract AssetManager is ContextUpgradeable, OwnableUpgradeable {
     address private _assetManager;
@@ -39,8 +39,8 @@ abstract contract AssetManager is ContextUpgradeable, OwnableUpgradeable {
     /**
      * @dev Throws if called by any account other than the owner or asset manager.
      */
-    modifier onlyAssetManager() {
-        require(assetManager() == _msgSender(), "AssetManager/caller-not-asset-manager");
+    modifier onlyOwnerOrAssetManager() {
+        require(assetManager() == _msgSender() || owner() == _msgSender(), "AssetManager/caller-not-owner-or-asset-manager");
         _;
     }
 
