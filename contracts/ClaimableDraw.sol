@@ -6,10 +6,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "./access/AssetManager.sol";
-import "./access/DrawManager.sol";
+import "./access/DrawStrategist.sol";
 import "./interfaces/IDrawCalculator.sol";
 
-contract ClaimableDraw is AssetManager, DrawManager {
+contract ClaimableDraw is AssetManager, DrawStrategist {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   uint16 public constant CARDINALITY = 8;
@@ -103,16 +103,16 @@ contract ClaimableDraw is AssetManager, DrawManager {
   /**
     * @notice Initialize claimable draw smart contract.
     *
-    * @param _drawManager Draw manager address.
+    * @param _drawStrategist Draw strategist address.
     * @param _calculator Draw calculator address.
   */
   function initialize (
-    address _drawManager,
+    address _drawStrategist,
     IDrawCalculator _calculator
   ) external initializer {
     __Ownable_init();
 
-    setDrawManager(_drawManager);
+    setDrawStrategist(_drawStrategist);
     _setDrawCalculator(_calculator);
   }
 
@@ -162,14 +162,14 @@ contract ClaimableDraw is AssetManager, DrawManager {
   }
 
   /**
-    * @notice Creates a new draw via a request from the draw manager.
+    * @notice Creates a new draw via a request from the draw strategist.
     *
     * @param _randomNumber  Randomly generated draw number
     * @param _timestamp     Epoch timestamp of the draw
     * @param _prize         Award captured when creating a new draw
     * @return New draw id
   */
-  function createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) public onlyDrawManager returns (uint256) {
+  function createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) public onlyDrawStrategist returns (uint256) {
     return _createDraw(_randomNumber, _timestamp, _prize);
   }
 

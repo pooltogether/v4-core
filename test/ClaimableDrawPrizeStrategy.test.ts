@@ -754,26 +754,26 @@ describe('PeriodicPrizeStrategy', () => {
   });
 
   describe('setClaimableDraw()', () => {
-    it('should fail to set draw manager from unauthorized wallet', async () => {
+    it('should fail to set draw strategist from unauthorized wallet', async () => {
       const prizeStrategyUnauthorized = await prizeStrategy.connect(wallet2);
       await expect(prizeStrategyUnauthorized.setClaimableDraw(wallet2.address)).to.be.revertedWith(
         'Ownable: caller is not the owner',
       );
     });
 
-    it('should fail to set draw manager with zero address', async () => {
+    it('should fail to set draw strategist with zero address', async () => {
       await expect(prizeStrategy.setClaimableDraw(constants.AddressZero)).to.be.revertedWith(
         'ClaimableDraw/claimable-draw-not-zero-address',
       );
     });
 
-    it('should fail to set draw manager with existing draw manager', async () => {
+    it('should fail to set draw strategist with existing draw strategist', async () => {
       await expect(prizeStrategy.setClaimableDraw(claimableDraw.address)).to.be.revertedWith(
         'ClaimableDraw/existing-claimable-draw-address',
       );
     });
 
-    it('should succeed to set new draw manager', async () => {
+    it('should succeed to set new draw strategist', async () => {
       await expect(prizeStrategy.setClaimableDraw(wallet2.address))
         .to.emit(prizeStrategy, 'ClaimableDrawSet')
         .withArgs(wallet2.address);

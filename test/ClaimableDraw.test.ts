@@ -1,4 +1,3 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect, assert } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, constants, Contract, ContractFactory, BigNumber } from 'ethers';
@@ -31,9 +30,9 @@ async function userClaimWithMock(
 }
 
 describe('ClaimableDraw', () => {
-    let wallet1: SignerWithAddress;
-    let wallet2: SignerWithAddress;
-    let assetManager: SignerWithAddress;
+    let wallet1: any;
+    let wallet2: any;
+    let assetManager: any;
     let dai: Contract;
     let claimableDraw: Contract;
     let drawCalculator: MockContract;
@@ -57,7 +56,7 @@ describe('ClaimableDraw', () => {
         );
         claimableDraw = await claimableDrawFactory.deploy();
 
-        await claimableDraw.initialize(wallet1.address, drawCalculator.address); // Sets initial draw manager
+        await claimableDraw.initialize(wallet1.address, drawCalculator.address); // Sets initial draw strategist
         await claimableDraw.createDraw(
             DRAW_SAMPLE_CONFIG.randomNumber,
             DRAW_SAMPLE_CONFIG.timestamp,
@@ -259,29 +258,29 @@ describe('ClaimableDraw', () => {
         });
     });
 
-    describe('setDrawManager()', () => {
-        it('should fail to set draw manager from unauthorized wallet', async () => {
-            const claimableDrawUnauthorized = await claimableDraw.connect(wallet2);
+    describe('setDrawStrategist()', () => {
+        it('should fail to set draw strategist from unauthorized wallet', async () => {
+            const claimableDrawUnauthorized = claimableDraw.connect(wallet2);
             await expect(
-                claimableDrawUnauthorized.setDrawManager(wallet2.address),
+                claimableDrawUnauthorized.setDrawStrategist(wallet2.address),
             ).to.be.revertedWith('Ownable: caller is not the owner');
         });
 
-        it('should fail to set draw manager with zero address', async () => {
-            await expect(claimableDraw.setDrawManager(AddressZero)).to.be.revertedWith(
-                'ClaimableDraw/draw-manager-not-zero-address',
+        it('should fail to set draw strategist with zero address', async () => {
+            await expect(claimableDraw.setDrawStrategist(AddressZero)).to.be.revertedWith(
+                'ClaimableDraw/draw-strategist-not-zero-address',
             );
         });
 
-        it('should fail to set draw manager with existing draw manager', async () => {
-            await expect(claimableDraw.setDrawManager(wallet1.address)).to.be.revertedWith(
-                'ClaimableDraw/existing-draw-manager-address',
+        it('should fail to set draw strategist with existing draw strategist', async () => {
+            await expect(claimableDraw.setDrawStrategist(wallet1.address)).to.be.revertedWith(
+                'ClaimableDraw/existing-draw-strategist-address',
             );
         });
 
-        it('should succeed to set new draw manager', async () => {
-            await expect(claimableDraw.setDrawManager(wallet2.address))
-                .to.emit(claimableDraw, 'DrawManagerSet')
+        it('should succeed to set new draw strategist', async () => {
+            await expect(claimableDraw.setDrawStrategist(wallet2.address))
+                .to.emit(claimableDraw, 'DrawStrategistSet')
                 .withArgs(wallet2.address);
         });
     });
@@ -314,7 +313,7 @@ describe('ClaimableDraw', () => {
     });
 
     describe('createDraw()', () => {
-        it('should fail to create a new draw when called from non-draw-manager', async () => {
+        it('should fail to create a new draw when called from non-draw-strategist', async () => {
             const claimableDrawWallet2 = claimableDraw.connect(wallet2);
             await expect(
                 claimableDrawWallet2.createDraw(
@@ -322,7 +321,7 @@ describe('ClaimableDraw', () => {
                     DRAW_SAMPLE_CONFIG.timestamp,
                     DRAW_SAMPLE_CONFIG.prize,
                 ),
-            ).to.be.revertedWith('ClaimableDraw/unauthorized-draw-manager');
+            ).to.be.revertedWith('ClaimableDraw/unauthorized-draw-strategist');
         });
 
         it('should create a new draw and emit DrawSet', async () => {
@@ -364,7 +363,7 @@ describe('ClaimableDraw', () => {
                 'ClaimableDrawHarness',
             );
             claimableDraw = await claimableDrawFactory.deploy();
-            await claimableDraw.initialize(wallet1.address, drawCalculator.address); // Sets initial draw manager
+            await claimableDraw.initialize(wallet1.address, drawCalculator.address); // Sets initial draw strategist
         });
 
         it('should fail to claim with incorrect amount of draw calculators', async () => {
