@@ -57,8 +57,8 @@ contract ClaimableDrawPrizeStrategyBuilder {
   ) external returns (ClaimableDrawPrizeStrategy) {
     ClaimableDrawPrizeStrategy cdprz = claimableDrawPrizeStrategyProxyFactory.create();
 
-    // Internal function to avoid stack to deep error. 
-    initializeClaimableDraw(prizePool, cdprz, prizeStrategyConfig, calculatorDrawSettings, decimals);
+    // Internal function to avoid stack to deep error.
+    _initializeClaimableDraw(prizePool, cdprz, prizeStrategyConfig, calculatorDrawSettings, decimals);
 
     cdprz.setPrizeSplits(prizeStrategyConfig.prizeSplits);
     cdprz.transferOwnership(owner);
@@ -67,10 +67,10 @@ contract ClaimableDrawPrizeStrategyBuilder {
     return cdprz;
   }
 
-  function initializeClaimableDraw(
+  function _initializeClaimableDraw(
     PrizePool prizePool,
-    ClaimableDrawPrizeStrategy cdprz, 
-    ClaimableDrawBuilderConfig memory prizeStrategyConfig, 
+    ClaimableDrawPrizeStrategy cdprz,
+    ClaimableDrawBuilderConfig memory prizeStrategyConfig,
     TsunamiDrawCalculator.DrawSettings memory calculatorDrawSettings,
     uint8 decimals
   ) internal {

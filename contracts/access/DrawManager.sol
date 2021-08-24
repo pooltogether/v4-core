@@ -40,7 +40,7 @@ abstract contract DrawManager is ContextUpgradeable, OwnableUpgradeable {
      * @dev Throws if called by any account other than the draw manager.
      */
     modifier onlyDrawManager() {
-        require(drawManager() == _msgSender(), "drawManager/caller-not-draw-manager");
+        require(drawManager() == _msgSender(), "DrawManager/caller-not-draw-manager");
         _;
     }
 
@@ -51,7 +51,7 @@ abstract contract DrawManager is ContextUpgradeable, OwnableUpgradeable {
      * @return Boolean to indicate if the operation was successful or not.
      */
     function setDrawManager(address _newDrawManager) public virtual onlyOwner returns (bool) {
-        require(_newDrawManager != address(0), "drawManager/drawManager-not-zero-address");
+        require(_newDrawManager != address(0), "DrawManager/drawManager-not-zero-address");
 
         address _previousDrawManager = _drawManager;
         _drawManager = _newDrawManager;

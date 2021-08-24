@@ -40,7 +40,7 @@ abstract contract AssetManager is ContextUpgradeable, OwnableUpgradeable {
      * @dev Throws if called by any account other than the owner or asset manager.
      */
     modifier onlyAssetManager() {
-        require(assetManager() == _msgSender(), "assetManager/caller-not-asset-manager");
+        require(assetManager() == _msgSender(), "AssetManager/caller-not-asset-manager");
         _;
     }
 
@@ -51,7 +51,7 @@ abstract contract AssetManager is ContextUpgradeable, OwnableUpgradeable {
      * @return Boolean to indicate if the operation was successful or not.
      */
     function setAssetManager(address _newAssetManager) public virtual onlyOwner returns (bool) {
-        require(_newAssetManager != address(0), "assetManager/assetManager-not-zero-address");
+        require(_newAssetManager != address(0), "AssetManager/assetManager-not-zero-address");
 
         address _previousAssetManager = _assetManager;
         _assetManager = _newAssetManager;

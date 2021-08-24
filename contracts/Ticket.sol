@@ -7,8 +7,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
 import "./interfaces/TicketInterface.sol";
@@ -160,7 +158,6 @@ contract Ticket is ControlledToken, TicketInterface {
     uint256[] memory totalSupplies = new uint256[](length);
 
     for(uint256 i = 0; i < length; i++){
-      // console.log("getTotalSupplies: %s ", _targets[i]);
       totalSupplies[i] = totalSupplyTwab.getBalanceAt(_targets[i], uint32(block.timestamp));
     }
 
