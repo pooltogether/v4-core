@@ -43,7 +43,7 @@ describe('DrawHistory', () => {
 
   describe('_saveRNGRequestWithDraw()', () => {
     it('should succeed to create a new using supplied random number and current block timestamp', async () => {
-      setTime(hre.ethers.provider, 1756581197)
+      setTime(hre.ethers.provider, 1756581197, false)
       await expect(
         await drawBeacon.saveRNGRequestWithDraw(
           1234567890,

@@ -239,7 +239,7 @@ describe('DrawBeaconBase', () => {
       expect(await drawBeacon.isRngTimedOut()).to.be.true;
 
       await expect(drawBeacon.cancelAward())
-        .to.emit(drawBeacon, 'PrizePoolAwardCancelled')
+        .to.emit(drawBeacon, 'DrawBeaconAwardCancelled')
         .withArgs(wallet.address, 11, 1);
     });
   });
@@ -344,12 +344,12 @@ describe('DrawBeaconBase', () => {
     });
   });
 
-  describe('setPeriodicPrizeStrategyListener()', () => {
+  describe('setDrawBeaconListener()', () => {
     it('should allow the owner to change the listener', async () => {
       await expect(
-        drawBeacon.setPeriodicPrizeStrategyListener(periodicPrizeStrategyListener.address),
+        drawBeacon.setDrawBeaconListener(periodicPrizeStrategyListener.address),
       )
-        .to.emit(drawBeacon, 'PeriodicPrizeStrategyListenerSet')
+        .to.emit(drawBeacon, 'DrawBeaconListenerSet')
         .withArgs(periodicPrizeStrategyListener.address);
     });
 
@@ -357,19 +357,19 @@ describe('DrawBeaconBase', () => {
       await expect(
         drawBeacon
           .connect(wallet2)
-          .setPeriodicPrizeStrategyListener(periodicPrizeStrategyListener.address),
+          .setDrawBeaconListener(periodicPrizeStrategyListener.address),
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should not allow setting an EOA as a listener', async () => {
       await expect(
-        drawBeacon.setPeriodicPrizeStrategyListener(wallet2.address),
-      ).to.be.revertedWith('DrawBeaconBase/prizeStrategyListener-invalid');
+        drawBeacon.setDrawBeaconListener(wallet2.address),
+      ).to.be.revertedWith('DrawBeaconBase/drawBeaconListener-invalid');
     });
 
     it('should allow setting the listener to null', async () => {
-      await expect(drawBeacon.setPeriodicPrizeStrategyListener(ethers.constants.AddressZero))
-        .to.emit(drawBeacon, 'PeriodicPrizeStrategyListenerSet')
+      await expect(drawBeacon.setDrawBeaconListener(ethers.constants.AddressZero))
+        .to.emit(drawBeacon, 'DrawBeaconListenerSet')
         .withArgs(ethers.constants.AddressZero);
     });
   });
@@ -382,7 +382,7 @@ describe('DrawBeaconBase', () => {
       //   .withArgs('48849787646992769944319009300540211125598274780817112954146168253338351566848')
       //   .returns();
 
-      await drawBeacon.setPeriodicPrizeStrategyListener(periodicPrizeStrategyListener.address);
+      await drawBeacon.setDrawBeaconListener(periodicPrizeStrategyListener.address);
       await periodicPrizeStrategyListener.mock.afterPrizePoolAwarded
         .withArgs(
           '48849787646992769944319009300540211125598274780817112954146168253338351566848',

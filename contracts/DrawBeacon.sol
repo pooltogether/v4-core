@@ -12,6 +12,8 @@ contract DrawBeacon is Initializable,
                        DrawHistory,
                        DrawBeaconBase {
 
+  /* ============ Initialize ============ */
+  
   /**
     * @notice Initialize the DrawBeacon smart contract.
     * @param _drawManager Draw manager address
@@ -39,6 +41,8 @@ contract DrawBeacon is Initializable,
 
     return true;
   }
+
+  /* ============ Internal Functions ============ */
 
   /**
     * @notice Create a new draw connected to a RNG request.

@@ -33,26 +33,26 @@ abstract contract DrawBeaconBase is Initializable,
 
   uint256 internal constant ETHEREUM_BLOCK_TIME_ESTIMATE_MANTISSA = 13.4 ether;
 
-  event PrizePoolOpened(
+  event DrawBeaconOpened(
     address indexed operator,
     uint256 indexed prizePeriodStartedAt
   );
 
   event RngRequestFailed();
 
-  event PrizePoolAwardStarted(
+  event DrawBeaconAwardStarted(
     address indexed operator,
     uint32 indexed rngRequestId,
     uint32 rngLockBlock
   );
 
-  event PrizePoolAwardCancelled(
+  event DrawBeaconAwardCancelled(
     address indexed operator,
     uint32 indexed rngRequestId,
     uint32 rngLockBlock
   );
 
-  event PrizePoolAwarded(
+  event DrawBeaconAwarded(
     address indexed operator,
     uint256 randomNumber
   );
@@ -73,8 +73,8 @@ abstract contract DrawBeaconBase is Initializable,
     BeforeAwardListenerInterface indexed beforeAwardListener
   );
 
-  event PeriodicPrizeStrategyListenerSet(
-    PeriodicPrizeStrategyListenerInterface indexed periodicPrizeStrategyListener
+  event DrawBeaconListenerSet(
+    PeriodicPrizeStrategyListenerInterface indexed drawBeaconListener
   );
 
   event Initialized(
@@ -110,7 +110,7 @@ abstract contract DrawBeaconBase is Initializable,
   BeforeAwardListenerInterface public beforeAwardListener;
 
   /// @notice A listener that is called after the prize is awarded
-  PeriodicPrizeStrategyListenerInterface public periodicPrizeStrategyListener;
+  PeriodicPrizeStrategyListenerInterface public drawBeaconListener;
 
   /// @notice Initializes a new strategy
   /// @param _prizePeriodStart The starting timestamp of the prize period.
@@ -140,7 +140,7 @@ abstract contract DrawBeaconBase is Initializable,
       _rng
     );
     
-    emit PrizePoolOpened(_msgSender(), prizePeriodStartedAt);
+    emit DrawBeaconOpened(_msgSender(), prizePeriodStartedAt);
   }
 
   function _saveRNGRequestWithDraw(uint256 randomNumber) internal virtual returns (uint256);
@@ -223,7 +223,7 @@ abstract contract DrawBeaconBase is Initializable,
     rngRequest.lockBlock = lockBlock;
     rngRequest.requestedAt = _currentTime().toUint32();
 
-    emit PrizePoolAwardStarted(_msgSender(), requestId, lockBlock);
+    emit DrawBeaconAwardStarted(_msgSender(), requestId, lockBlock);
   }
 
   /// @notice Can be called by anyone to unlock the tickets if the RNG has timed out.
@@ -233,7 +233,7 @@ abstract contract DrawBeaconBase is Initializable,
     uint32 lockBlock = rngRequest.lockBlock;
     delete rngRequest;
     emit RngRequestFailed();
-    emit PrizePoolAwardCancelled(msg.sender, requestId, lockBlock);
+    emit DrawBeaconAwardCancelled(msg.sender, requestId, lockBlock);
   }
 
   /// @notice Completes the award process and awards the winners.  The random number must have been requested and is now available.
@@ -245,15 +245,15 @@ abstract contract DrawBeaconBase is Initializable,
       beforeAwardListener.beforePrizePoolAwarded(randomNumber, prizePeriodStartedAt);
     }
     _saveRNGRequestWithDraw(randomNumber);
-    if (address(periodicPrizeStrategyListener) != address(0)) {
-      periodicPrizeStrategyListener.afterPrizePoolAwarded(randomNumber, prizePeriodStartedAt);
+    if (address(drawBeaconListener) != address(0)) {
+      drawBeaconListener.afterPrizePoolAwarded(randomNumber, prizePeriodStartedAt);
     }
 
     // to avoid clock drift, we should calculate the start time based on the previous period start time.
     prizePeriodStartedAt = _calculateNextPrizePeriodStartTime(_currentTime());
 
-    emit PrizePoolAwarded(_msgSender(), randomNumber);
-    emit PrizePoolOpened(_msgSender(), prizePeriodStartedAt);
+    emit DrawBeaconAwarded(_msgSender(), randomNumber);
+    emit DrawBeaconOpened(_msgSender(), prizePeriodStartedAt);
   }
 
   /// @notice Allows the owner to set a listener that is triggered immediately before the award is distributed
@@ -271,16 +271,16 @@ abstract contract DrawBeaconBase is Initializable,
   }
 
   /// @notice Allows the owner to set a listener for prize strategy callbacks.
-  /// @param _periodicPrizeStrategyListener The address of the listener contract
-  function setPeriodicPrizeStrategyListener(PeriodicPrizeStrategyListenerInterface _periodicPrizeStrategyListener) external onlyOwner requireAwardNotInProgress {
+  /// @param _drawBeaconListener The address of the listener contract
+  function setDrawBeaconListener(PeriodicPrizeStrategyListenerInterface _drawBeaconListener) external onlyOwner requireAwardNotInProgress {
     require(
-      address(0) == address(_periodicPrizeStrategyListener) || address(_periodicPrizeStrategyListener).supportsInterface(PeriodicPrizeStrategyListenerLibrary.ERC165_INTERFACE_ID_PERIODIC_PRIZE_STRATEGY_LISTENER),
-      "DrawBeaconBase/prizeStrategyListener-invalid"
+      address(0) == address(_drawBeaconListener) || address(_drawBeaconListener).supportsInterface(PeriodicPrizeStrategyListenerLibrary.ERC165_INTERFACE_ID_PERIODIC_PRIZE_STRATEGY_LISTENER),
+      "DrawBeaconBase/drawBeaconListener-invalid"
     );
 
-    periodicPrizeStrategyListener = _periodicPrizeStrategyListener;
+    drawBeaconListener = _drawBeaconListener;
 
-    emit PeriodicPrizeStrategyListenerSet(_periodicPrizeStrategyListener);
+    emit DrawBeaconListenerSet(_drawBeaconListener);
   }
 
   function _calculateNextPrizePeriodStartTime(uint256 currentTime) internal view returns (uint256) {
@@ -384,7 +384,7 @@ abstract contract DrawBeaconBase is Initializable,
 
   modifier onlyOwnerOrListener() {
     require(_msgSender() == owner() ||
-            _msgSender() == address(periodicPrizeStrategyListener) ||
+            _msgSender() == address(drawBeaconListener) ||
             _msgSender() == address(beforeAwardListener),
             "DrawBeaconBase/only-owner-or-listener");
     _;
