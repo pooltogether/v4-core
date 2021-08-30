@@ -35,7 +35,7 @@ const config: HardhatUserConfig = {
       default: 0,
     },
     testnetCDai: {
-      // 1: '0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643',
+      1: '0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643',
       4: '0x6d7f0754ffeb405d23c51ce938289d4835be3b14',
       42: '0xf0d0eb522cfa50b716b3b1604c4f0fa6f04376ad'
     }
