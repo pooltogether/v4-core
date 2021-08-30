@@ -147,8 +147,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
     uint256 numberOfMatches = 0;
     for(uint256 matchIndex = 0; matchIndex < _masks.length; matchIndex++) {
-      if((uint256(_randomNumberThisPick) & _masks[matchIndex]) == (uint256(_winningRandomNumber) & _masks[matchIndex])) {
-        numberOfMatches++;
+      uint256 mask = _masks[matchIndex];
+      assembly{
+        if eq(and(_winningRandomNumber, mask), and(_randomNumberThisPick, mask)) {
+          numberOfMatches := add(numberOfMatches, 1)
+        }
       }
     }
     return _masks.length - numberOfMatches;
@@ -171,7 +174,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     
     return masks;
   }
-
 
   ///@notice Calculates the expected prize fraction per DrawSettings and prizeDistributionIndex
   ///@param _drawSettings DrawSettings struct for Draw
