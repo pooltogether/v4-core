@@ -92,7 +92,7 @@ module.exports = async (hardhat) => {
 
   await deploy1820(signer);
 
-  // let cDaiAddress = testnetCDai
+  let cDaiAddress = testnetCDai;
   if (isTestEnvironment) {
     cyan('\nDeploying RNGService...');
     const rngServiceMockResult = await deploy('RNGServiceMock', {
