@@ -59,7 +59,7 @@ describe('Ticket', () => {
   beforeEach(async () => {
     [wallet1, wallet2] = await getSigners();
 
-    const TokenControllerInterface = await hre.artifacts.readArtifact('contracts/import/token/TokenControllerInterface.sol:TokenControllerInterface');
+    const TokenControllerInterface = await hre.artifacts.readArtifact('contracts/token/TokenControllerInterface.sol:TokenControllerInterface');
     controller = await deployMockContract(wallet1 as Signer, TokenControllerInterface.abi);
 
     await controller.mock.beforeTokenTransfer.returns();
@@ -133,7 +133,7 @@ describe('Ticket', () => {
       expect(await ticket.totalSupply()).to.equal(mintBalance.mul(2));
     });
   });
-  
+
   describe('flash loan attack', () => {
     let flashTimestamp: number
     let mintTimestamp: number
@@ -142,7 +142,7 @@ describe('Ticket', () => {
       await ticket.flashLoan(wallet1.address, toWei('100000'))
       flashTimestamp = (await provider.getBlock('latest')).timestamp
       await increaseTime(10)
-      
+
       await ticket.mint(wallet1.address, toWei('100'))
       mintTimestamp = (await provider.getBlock('latest')).timestamp
 
@@ -204,7 +204,7 @@ describe('Ticket', () => {
       expect(await ticket.transferTo(wallet1.address, wallet2.address, transferAmount))
         .to.emit(ticket, 'Transfer')
         .withArgs(wallet1.address, wallet2.address, transferAmount);
-      
+
       await increaseTime(10)
 
       expect(
@@ -353,7 +353,7 @@ describe('Ticket', () => {
       // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 51}`)
       expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp + 50, timestamp + 51)).to.equal(toWei('1000'))
     })
-    
+
     context('with two twabs', () => {
       const transferAmount = toWei('500');
       let timestamp2: number
@@ -436,12 +436,12 @@ describe('Ticket', () => {
     it('should get user balances', async () => {
       const mintAmount = toWei('2000');
       const transferAmount = toWei('500');
-      
+
       await ticket.mint(wallet1.address, mintAmount);
       const mintTimestamp = (await getBlock('latest')).timestamp;
-      
+
       await increaseTime(10)
-      
+
       await ticket.transfer(wallet2.address, transferAmount);
       const transferTimestamp = (await getBlock('latest')).timestamp;
 
@@ -495,7 +495,7 @@ describe('Ticket', () => {
     it('should get ticket total supplies', async () => {
       const mintAmount = toWei('2000');
       const burnAmount = toWei('500');
-      
+
       await ticket.mint(wallet1.address, mintAmount);
       const mintTimestamp = (await getBlock('latest')).timestamp;
       debug(`mintTimestamp: ${mintTimestamp}`)

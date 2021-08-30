@@ -41,7 +41,7 @@ describe('PeriodicPrizeStrategy', () => {
 
     IERC20 = await hre.artifacts.readArtifact('IERC20Upgradeable');
     TokenListenerInterface = await hre.artifacts.readArtifact(
-      'contracts/import/token/TokenListenerInterface.sol:TokenListenerInterface',
+      'contracts/token/TokenListenerInterface.sol:TokenListenerInterface',
     );
 
     debug(`using wallet ${wallet.address}`);
@@ -61,7 +61,7 @@ describe('PeriodicPrizeStrategy', () => {
     token = await deployMockContract(wallet, IERC20.abi, overrides);
 
     const PrizePool = await hre.artifacts.readArtifact(
-      'contracts/import/prize-pool/PrizePool.sol:PrizePool',
+      'contracts/prize-pool/PrizePool.sol:PrizePool',
     );
     prizePool = await deployMockContract(wallet, PrizePool.abi, overrides);
 
@@ -69,7 +69,7 @@ describe('PeriodicPrizeStrategy', () => {
     ticket = await deployMockContract(wallet, Ticket.abi, overrides);
 
     const ControlledToken = await hre.artifacts.readArtifact(
-      'contracts/import/token/ControlledToken.sol:ControlledToken',
+      'contracts/token/ControlledToken.sol:ControlledToken',
     );
     sponsorship = await deployMockContract(wallet, ControlledToken.abi, overrides);
 
@@ -93,7 +93,7 @@ describe('PeriodicPrizeStrategy', () => {
     );
 
     const PeriodicPrizeStrategyListenerInterface = await hre.artifacts.readArtifact(
-      'contracts/import/prize-strategy/PeriodicPrizeStrategyListenerInterface.sol:PeriodicPrizeStrategyListenerInterface',
+      'contracts/prize-strategy/PeriodicPrizeStrategyListenerInterface.sol:PeriodicPrizeStrategyListenerInterface',
     );
     periodicPrizeStrategyListener = await deployMockContract(
       wallet,
@@ -445,7 +445,7 @@ describe('PeriodicPrizeStrategy', () => {
       await prizePool.mock.canAwardExternal.withArgs(externalAward.address).returns(true);
 
       const BeforeAwardListener = await hre.artifacts.readArtifact(
-        'contracts/import/prize-strategy/BeforeAwardListener.sol:BeforeAwardListener',
+        'contracts/prize-strategy/BeforeAwardListener.sol:BeforeAwardListener',
       );
       const beforeAwardListener = await deployMockContract(
         wallet,

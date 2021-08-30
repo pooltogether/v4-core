@@ -1,6 +1,6 @@
 const { PoolEnv } = require('./support/PoolEnv');
 
-describe('Tickets Feature', () => {
+describe.skip('Tickets Feature', () => {
   let env;
 
   beforeEach(() => {
