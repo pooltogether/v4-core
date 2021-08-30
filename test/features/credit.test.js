@@ -1,6 +1,6 @@
 const { PoolEnv } = require('./support/PoolEnv');
 
-describe('Credit Feature', () => {
+describe.skip('Credit Feature', () => {
   let env;
 
   beforeEach(() => {

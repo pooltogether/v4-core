@@ -1,6 +1,6 @@
 const { PoolEnv } = require('./support/PoolEnv');
 
-describe('Compound Withdraw Feature', () => {
+describe.skip('Compound Withdraw Feature', () => {
   let env;
 
   beforeEach(() => {
