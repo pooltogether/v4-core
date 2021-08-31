@@ -10,7 +10,7 @@ const { green, dim } = printUtils
 
 const encoder = ethers.utils.defaultAbiCoder
 
-async function findWinningNumberForUser(wallet1: Wallet, userAddress: string, matchesRequired: number, drawSettings: DrawSettings) {
+async function findWinningNumberForUser(wallet1: any, userAddress: string, matchesRequired: number, drawSettings: DrawSettings) {
     dim(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
     const drawCalculator: Contract = await deployDrawCalculator(wallet1)
     
