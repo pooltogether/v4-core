@@ -4,8 +4,6 @@ pragma solidity 0.8.6;
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/TicketInterface.sol";
 
-import "hardhat/console.sol";
-
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 ///@title TsunamiDrawCalculator is an ownable implmentation of an IDrawCalculator
@@ -122,7 +120,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
       require(_picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
       
       uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
-      console.log("distributionIndex: " , distributionIndex);
+      
       if(distributionIndex < _drawSettings.distributions.length) { // there is prize for this distributionIndex
         prizeCounts[distributionIndex]++;
       } 
@@ -149,8 +147,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   {
 
     uint256 numberOfMatches = 0;
-    console.log("_randomNumberThisPick:: ", _randomNumberThisPick);
-    console.log("winningRandomNumber:: ", _winningRandomNumber);
     for(uint256 matchIndex = 0; matchIndex < _masks.length; matchIndex++) {
       uint256 mask = _masks[matchIndex];
       assembly{
@@ -159,8 +155,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
         }
       }
     }
-    console.log("_calculateDistributionIndex returning ", _masks.length - numberOfMatches);
-
     return _masks.length - numberOfMatches;
   }
 
