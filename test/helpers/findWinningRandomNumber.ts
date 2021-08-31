@@ -4,7 +4,7 @@ import { ethers, artifacts } from 'hardhat';
 import { DrawSettings } from '../types';
 import { deployDrawCalculator } from '../TsunamiDrawCalculator.test';
 
-const printUtils = require("./helpers/printUtils")
+const printUtils = require("./printUtils")
 const { green, dim } = printUtils
 
 

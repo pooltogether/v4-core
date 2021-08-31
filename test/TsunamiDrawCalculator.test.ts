@@ -15,7 +15,7 @@ export async function deployDrawCalculator(signer: any): Promise<Contract> {
   return drawCalculator;
 }
 
-describe.only('TsunamiDrawCalculator', () => {
+describe('TsunamiDrawCalculator', () => {
     let drawCalculator: Contract; let ticket: MockContract;
     let wallet1: any;
     let wallet2: any;
