@@ -15,7 +15,7 @@ type DrawSettings = {
   bitRangeSize: BigNumber;
 };
 
-describe('TsunamiDrawCalculator', () => {
+describe.only('TsunamiDrawCalculator', () => {
     let drawCalculator: Contract; let ticket: MockContract;
     let wallet1: any;
     let wallet2: any;
@@ -100,22 +100,22 @@ describe('TsunamiDrawCalculator', () => {
     
   });
 
-  describe('finding winning random numbers with helper', () => {
-    it('find 3 winning numbers', async () => {
-      const params: DrawSettings = {
-        matchCardinality: BigNumber.from(5),
-        distributions: [
-          ethers.utils.parseEther('0.6'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-        ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
-        bitRangeSize: BigNumber.from(3),
-      };
-      const result = await findWinningNumberForUser(wallet1.address, 3, params);
-    });
-  });
+  // describe('finding winning random numbers with helper', () => {
+  //   it('find 3 winning numbers', async () => {
+  //     const params: DrawSettings = {
+  //       matchCardinality: BigNumber.from(5),
+  //       distributions: [
+  //         ethers.utils.parseEther('0.6'),
+  //         ethers.utils.parseEther('0.1'),
+  //         ethers.utils.parseEther('0.1'),
+  //         ethers.utils.parseEther('0.1'),
+  //       ],
+  //       pickCost: BigNumber.from(utils.parseEther("1")),
+  //       bitRangeSize: BigNumber.from(3),
+  //     };
+  //     const result = await findWinningNumberForUser(wallet1.address, 3, params);
+  //   });
+  // });
 
   describe('admin functions', () => {
     it('onlyOwner can setPrizeSettings', async () => {
@@ -157,143 +157,61 @@ describe('TsunamiDrawCalculator', () => {
     });
   });
 
-  describe('findBitMatchesAtIndex()', () => {
-    //function findBitMatchesAtIndex(uint256 word1, uint256 word2, uint256 indexOffset, uint8 _bitRangeSize, uint8 _maskValue) external returns(bool)
-    it('should match the value at 0 index over 4 bits', async () => {
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '63',
-        '63',
-        '0',
-        '4',
-        '15',
-      );
-      expect(result).to.equal(true);
-    });
-    it('should not match the value at 0 index over 8 bits', async () => {
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '64',
-        '63',
-        '0',
-        '8',
-        '255',
-      );
-      expect(result).to.equal(false);
-    });
 
-    it('should match the value at 0 index over 7 bits', async () => {
-      //63: 0 1111 11
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '63',
-        '63',
-        '0',
-        '7',
-        '127',
-      );
-      expect(result).to.equal(true);
-    });
+  describe.only('calculateDistributionIndex()', () => {
+    it('calculates distribution index 0', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+      };
 
-    it('should match the value at 1 index over 4 bits', async () => {
+      const bitMasks = await drawCalculator.createBitMasks(drawSettings);
+      const winningRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70"
+      const userRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70"
+      const prizeDistributionIndex: BigNumber= await drawCalculator.calculateDistributionIndex(userRandomNumber, winningRandomNumber, bitMasks)
+
+      expect(prizeDistributionIndex).to.eq(BigNumber.from(0))
+    })
+
+    it.only('calculates distribution index 1', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(2),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+      };
       // 252: 1111 1100
       // 255  1111 1111
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '252',
-        '255',
-        '1',
-        '4',
-        '15',
-      );
-      expect(result).to.equal(true);
-    });
-    it('should NOT match the value at 0 index over 4 bits', async () => {
-      // 252: 1111 1100
-      // 255  1111 1111
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '252',
-        '255',
-        '0',
-        '4',
-        '15',
-      );
-      expect(result).to.equal(false);
-    });
-    it('should match the value at 1 index over 2 bits', async () => {
-      // 252: 1111 11 00
-      // 255  1111 11 11
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '252',
-        '255',
-        '1',
-        '2',
-        '3',
-      );
-      expect(result).to.equal(true);
-    });
 
-    it('should match the value at 0 index over 6 bits', async () => {
+      const bitMasks = await drawCalculator.createBitMasks(drawSettings);
+      expect(bitMasks.length).to.eq(2) // same as length of matchCardinality
+      expect(bitMasks[0]).to.eq(BigNumber.from(15))
+      
+      const prizeDistributionIndex: BigNumber= await drawCalculator.calculateDistributionIndex(252, 255, bitMasks)
+
+      expect(prizeDistributionIndex).to.eq(BigNumber.from(1))
+    })
+  })
+
+  describe("createBitMasks()", () => {
+    it("creates bit masks", async () => {
       // 61676: 001111 000011 101100
       // 61612: 001111 000010 101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '0',
-        '6',
-        '63',
-      );
-      expect(result).to.equal(true);
-    });
-
-    it('should NOT match the value at 1 index over 6 bits', async () => {
-      // 61676: 001111 000011 101100
-      // 61612: 001111 000010 101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '1',
-        '6',
-        '63',
-      );
-      expect(result).to.equal(false);
-    });
-
-    it('should match the value at 2 index over 6 bits', async () => {
-      // 61676: 001111 000011 101100
-      // 61612: 001111 000010 101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '2',
-        '6',
-        '63',
-      );
-      expect(result).to.equal(true);
-    });
-
-    it('should NOT match the value at 0 index over 8 bits', async () => {
-      // 61676: 11110000 11101100
-      // 61612: 11110000 10101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '0',
-        '8',
-        '255',
-      );
-      expect(result).to.equal(false);
-    });
-
-    it('should match the value at 1 index over 8 bits', async () => {
-      // 61676: 11110000 11101100
-      // 61612: 11110000 10101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '1',
-        '8',
-        '255',
-      );
-      expect(result).to.equal(true);
-    });
-  });
+    
+    })
+  })
 
   describe('calculate()', () => {
     it('should calculate and win grand prize', async () => {
@@ -310,6 +228,8 @@ describe('TsunamiDrawCalculator', () => {
 
       await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
+      console.log("winningRandomNumber ", winningRandomNumber);
+      console.log("user address", wallet1.address);
       const prizesAwardable = await drawCalculator.calculate(
         wallet1.address,
         [winningRandomNumber],

@@ -4,6 +4,8 @@ pragma solidity 0.8.6;
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/TicketInterface.sol";
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 ///@title TsunamiDrawCalculator is an ownable implmentation of an IDrawCalculator
@@ -111,7 +113,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     
     uint256 totalUserPicks = _balance / _drawSettings.pickCost;
     uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
-    uint256[] memory masks =  createBitMasks(_drawSettings);
+    uint256[] memory masks =  _createBitMasks(_drawSettings);
 
     // for each pick find number of matching numbers and calculate prioze distribution index
     for(uint256 index  = 0; index < _picks.length; index++){
@@ -119,7 +121,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
       require(_picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
       
-      uint256 distributionIndex =  calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
+      uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
+      console.log("distributionIndex: " , distributionIndex);
       if(distributionIndex < _drawSettings.distributions.length) { // there is prize for this distributionIndex
         prizeCounts[distributionIndex]++;
       } 
@@ -141,11 +144,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param _winningRandomNumber The winning number for this draw
   ///@param _masks The pre-calculate bitmasks for the drawSettings
   ///@return The position within the prize distribution array (0 = top prize, 1 = runner-up prize, etc)
-  function calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks)
-    internal pure returns (uint256) 
+  function _calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks)
+    internal view returns (uint256) 
   {
 
     uint256 numberOfMatches = 0;
+    console.log("_randomNumberThisPick:: ", _randomNumberThisPick);
+    console.log("winningRandomNumber:: ", _winningRandomNumber);
     for(uint256 matchIndex = 0; matchIndex < _masks.length; matchIndex++) {
       uint256 mask = _masks[matchIndex];
       assembly{
@@ -154,13 +159,15 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
         }
       }
     }
+    console.log("_calculateDistributionIndex returning ", _masks.length - numberOfMatches);
+
     return _masks.length - numberOfMatches;
   }
 
 
   ///@notice helper function to create bitmasks equal to the matchCardinality
   ///@return An array of bitmasks
-  function createBitMasks(DrawSettings memory _drawSettings) 
+  function _createBitMasks(DrawSettings memory _drawSettings) 
     internal pure returns (uint256[] memory)
   {
     uint256[] memory masks = new uint256[](_drawSettings.matchCardinality);
