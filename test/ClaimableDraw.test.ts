@@ -268,20 +268,20 @@ describe('ClaimableDraw', () => {
 
         it('should fail to set draw strategist with zero address', async () => {
             await expect(claimableDraw.setDrawStrategist(AddressZero)).to.be.revertedWith(
-                'ClaimableDraw/draw-strategist-not-zero-address',
+                'DrawStrategist/drawStrategist-not-zero-address',
             );
         });
 
         it('should fail to set draw strategist with existing draw strategist', async () => {
             await expect(claimableDraw.setDrawStrategist(wallet1.address)).to.be.revertedWith(
-                'ClaimableDraw/existing-draw-strategist-address',
+                'DrawStrategist/existing-drawStrategist-address',
             );
         });
 
         it('should succeed to set new draw strategist', async () => {
             await expect(claimableDraw.setDrawStrategist(wallet2.address))
-                .to.emit(claimableDraw, 'DrawStrategistSet')
-                .withArgs(wallet2.address);
+                .to.emit(claimableDraw, 'DrawStrategistTransferred')
+                .withArgs(wallet1.address, wallet2.address);
         });
     });
 
@@ -321,7 +321,7 @@ describe('ClaimableDraw', () => {
                     DRAW_SAMPLE_CONFIG.timestamp,
                     DRAW_SAMPLE_CONFIG.prize,
                 ),
-            ).to.be.revertedWith('ClaimableDraw/unauthorized-draw-strategist');
+            ).to.be.revertedWith('DrawStrategist/caller-not-drawStrategist');
         });
 
         it('should create a new draw and emit DrawSet', async () => {
@@ -543,7 +543,7 @@ describe('ClaimableDraw', () => {
         });
 
         it('should deposit ERC20 tokens', async () => {
-            await claimableDraw.setAssetManager(assetManager.address);
+            await claimableDraw.setManager(assetManager.address);
 
             expect(
                 await claimableDraw.connect(assetManager).depositERC20(dai.address, depositAmount),
@@ -554,12 +554,12 @@ describe('ClaimableDraw', () => {
 
         it('should fail to deposit ERC20 tokens if not owner or assetManager', async () => {
             await expect(claimableDraw.connect(wallet2).depositERC20(dai.address, depositAmount)).to.be.revertedWith(
-                'AssetManager/caller-not-owner-or-asset-manager',
+                'Manager/caller-not-manager-or-owner',
             );
         });
 
         it('should fail to deposit ERC20 tokens if token address is address zero', async () => {
-            await claimableDraw.setAssetManager(assetManager.address);
+            await claimableDraw.setManager(assetManager.address);
 
             await expect(
                 claimableDraw.connect(assetManager).depositERC20(AddressZero, depositAmount),
@@ -577,7 +577,7 @@ describe('ClaimableDraw', () => {
         });
 
         it('should withdraw ERC20 tokens', async () => {
-            await claimableDraw.setAssetManager(assetManager.address);
+            await claimableDraw.setManager(assetManager.address);
 
             expect(
                 await claimableDraw
@@ -591,11 +591,11 @@ describe('ClaimableDraw', () => {
         it('should fail to withdraw ERC20 tokens if not owner or assetManager', async () => {
             await expect(
                 claimableDraw.connect(wallet2).withdrawERC20(dai.address, wallet1.address, withdrawAmount),
-            ).to.be.revertedWith('AssetManager/caller-not-owner-or-asset-manager');
+            ).to.be.revertedWith('Manager/caller-not-manager-or-owner');
         });
 
         it('should fail to withdraw ERC20 tokens if token address is address zero', async () => {
-            await claimableDraw.setAssetManager(assetManager.address);
+            await claimableDraw.setManager(assetManager.address);
 
             await expect(
                 claimableDraw

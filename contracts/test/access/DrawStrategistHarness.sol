@@ -21,7 +21,7 @@ contract DrawStrategistHarness is DrawStrategist {
         __Ownable_init();
     }
 
-    function permissionedCall() public onlyDrawStrategist returns (string memory) {
+    function permissionedCall() public view onlyDrawStrategist returns (string memory) {
         return "isDrawStrategist";
     }
 }

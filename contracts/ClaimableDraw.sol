@@ -4,12 +4,12 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
-import "./access/AssetManager.sol";
 import "./access/DrawStrategist.sol";
 import "./interfaces/IDrawCalculator.sol";
 
-contract ClaimableDraw is AssetManager, DrawStrategist {
+contract ClaimableDraw is OwnerOrManager, DrawStrategist {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   uint16 public constant CARDINALITY = 8;
@@ -193,7 +193,7 @@ contract ClaimableDraw is AssetManager, DrawStrategist {
     * @param _amount Amount of tokens to transfer.
     * @return true if operation is successful.
   */
-  function depositERC20(IERC20Upgradeable _erc20Token, uint256 _amount) external onlyOwnerOrAssetManager returns (bool) {
+  function depositERC20(IERC20Upgradeable _erc20Token, uint256 _amount) external onlyManagerOrOwner returns (bool) {
     return _transferERC20(_erc20Token, msg.sender, address(this), _amount);
   }
 
@@ -205,7 +205,7 @@ contract ClaimableDraw is AssetManager, DrawStrategist {
     * @param _amount Amount of tokens to transfer.
     * @return true if operation is successful.
   */
-  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyOwnerOrAssetManager returns (bool) {
+  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyManagerOrOwner returns (bool) {
     return _transferERC20(_erc20Token, address(this), _to, _amount);
   }
 

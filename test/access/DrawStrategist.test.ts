@@ -39,7 +39,7 @@ describe('drawStrategist()', () => {
     it('should fail to call permissionedCall function', async () => {
         await expect(
             drawStrategistContract.connect(contractOwner).permissionedCall(),
-        ).to.be.revertedWith('DrawStrategist/caller-not-draw-strategist');
+        ).to.be.revertedWith('DrawStrategist/caller-not-drawStrategist');
     });
 
     it('should succeed to call permissionedCall function', async () => {

@@ -40,7 +40,7 @@ abstract contract DrawStrategist is ContextUpgradeable, OwnableUpgradeable {
      * @dev Throws if called by any account other than the draw strategist.
      */
     modifier onlyDrawStrategist() {
-        require(drawStrategist() == _msgSender(), "DrawStrategist/caller-not-draw-strategist");
+        require(drawStrategist() == _msgSender(), "DrawStrategist/caller-not-drawStrategist");
         _;
     }
 
@@ -51,9 +51,11 @@ abstract contract DrawStrategist is ContextUpgradeable, OwnableUpgradeable {
      * @return Boolean to indicate if the operation was successful or not.
      */
     function setDrawStrategist(address _newDrawStrategist) public virtual onlyOwner returns (bool) {
-        require(_newDrawStrategist != address(0), "DrawStrategist/drawStrategist-not-zero-address");
-
         address _previousDrawStrategist = _drawStrategist;
+
+        require(_newDrawStrategist != address(0), "DrawStrategist/drawStrategist-not-zero-address");
+        require(_newDrawStrategist != _previousDrawStrategist, "DrawStrategist/existing-drawStrategist-address");
+
         _drawStrategist = _newDrawStrategist;
 
         emit DrawStrategistTransferred(_previousDrawStrategist, _newDrawStrategist);
