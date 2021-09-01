@@ -7,7 +7,7 @@ library DrawLib{
     struct Draw {
         uint256 winningRandomNumber;
         uint32 timestamp;
-        uint224 drawId;
+        uint32 drawId;
     }
 
     ///@notice Draw settings struct
