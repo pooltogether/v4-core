@@ -258,33 +258,6 @@ describe('ClaimableDraw', () => {
         });
     });
 
-    describe('setDrawStrategist()', () => {
-        it('should fail to set draw strategist from unauthorized wallet', async () => {
-            const claimableDrawUnauthorized = claimableDraw.connect(wallet2);
-            await expect(
-                claimableDrawUnauthorized.setDrawStrategist(wallet2.address),
-            ).to.be.revertedWith('Ownable: caller is not the owner');
-        });
-
-        it('should fail to set draw strategist with zero address', async () => {
-            await expect(claimableDraw.setDrawStrategist(AddressZero)).to.be.revertedWith(
-                'DrawStrategist/drawStrategist-not-zero-address',
-            );
-        });
-
-        it('should fail to set draw strategist with existing draw strategist', async () => {
-            await expect(claimableDraw.setDrawStrategist(wallet1.address)).to.be.revertedWith(
-                'DrawStrategist/existing-drawStrategist-address',
-            );
-        });
-
-        it('should succeed to set new draw strategist', async () => {
-            await expect(claimableDraw.setDrawStrategist(wallet2.address))
-                .to.emit(claimableDraw, 'DrawStrategistTransferred')
-                .withArgs(wallet1.address, wallet2.address);
-        });
-    });
-
     describe('setDrawCalculator()', () => {
         it('should fail to set draw calculator from unauthorized wallet', async () => {
             const claimableDrawUnauthorized = claimableDraw.connect(wallet2);
@@ -321,7 +294,7 @@ describe('ClaimableDraw', () => {
                     DRAW_SAMPLE_CONFIG.timestamp,
                     DRAW_SAMPLE_CONFIG.prize,
                 ),
-            ).to.be.revertedWith('DrawStrategist/caller-not-drawStrategist');
+            ).to.be.revertedWith('Manager/caller-not-manager-or-owner');
         });
 
         it('should create a new draw and emit DrawSet', async () => {

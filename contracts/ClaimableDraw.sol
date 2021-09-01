@@ -6,10 +6,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
-import "./access/DrawStrategist.sol";
 import "./interfaces/IDrawCalculator.sol";
 
-contract ClaimableDraw is OwnerOrManager, DrawStrategist {
+contract ClaimableDraw is OwnerOrManager {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   uint16 public constant CARDINALITY = 8;
@@ -103,16 +102,16 @@ contract ClaimableDraw is OwnerOrManager, DrawStrategist {
   /**
     * @notice Initialize claimable draw smart contract.
     *
-    * @param _drawStrategist Draw strategist address.
+    * @param _drawCalculatorManager Address of the draw calculator factory
     * @param _calculator Draw calculator address.
   */
   function initialize (
-    address _drawStrategist,
+    address _drawCalculatorManager,
     IDrawCalculator _calculator
   ) external initializer {
     __Ownable_init();
 
-    setDrawStrategist(_drawStrategist);
+    _setManager(_drawCalculatorManager);
     _setDrawCalculator(_calculator);
   }
 
@@ -169,7 +168,7 @@ contract ClaimableDraw is OwnerOrManager, DrawStrategist {
     * @param _prize         Award captured when creating a new draw
     * @return New draw id
   */
-  function createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) public onlyDrawStrategist returns (uint256) {
+  function createDraw(uint256 _randomNumber, uint32 _timestamp, uint256 _prize) public onlyManagerOrOwner returns (uint256) {
     return _createDraw(_randomNumber, _timestamp, _prize);
   }
 
