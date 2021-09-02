@@ -104,7 +104,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   /**
     * @notice External function to create a new draw.
     * @dev    External function to create a new draw from an authorized manager or owner.
-    * @param draw  Draw struct
+    * @param draw Draw struct
     * @return New draw id
   */
   function pushDraw(DrawLib.Draw memory draw) external override onlyManagerOrOwner returns (uint32) {

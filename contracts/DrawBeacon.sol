@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 pragma solidity 0.8.6;
-
+import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
@@ -21,7 +21,6 @@ import "./prize-strategy/PeriodicPrizeStrategyListenerInterface.sol";
 import "./prize-strategy/PeriodicPrizeStrategyListenerLibrary.sol";
 import "./prize-strategy/BeforeAwardListener.sol";
 
-/* solium-disable security/no-block-members */
 abstract contract DrawBeacon is IDrawBeacon,
                                 Initializable,
                                 OwnableUpgradeable {
@@ -45,10 +44,10 @@ abstract contract DrawBeacon is IDrawBeacon,
   uint32 public rngRequestTimeout;
 
   /// @notice Seconds between RNG request
-  uint256 public prizePeriodSeconds;
+  uint256 public rngRequestPeriodSeconds;
   
   /// @notice Epoch timestamp when RNG request can start
-  uint256 public prizePeriodStartedAt;
+  uint256 public rngRequestPeriodStartedAt;
 
   /// @notice A listener that is called before the prize is awarded
   BeforeAwardListenerInterface public beforeAwardListener;
@@ -74,11 +73,11 @@ abstract contract DrawBeacon is IDrawBeacon,
   /**
     * @notice Emit when a RNG request has opened.
     * @param operator              User address responsible for opening RNG request  
-    * @param prizePeriodStartedAt  Epoch timestamp
+    * @param rngRequestPeriodStartedAt  Epoch timestamp
   */
   event DrawBeaconOpened(
     address indexed operator,
-    uint256 indexed prizePeriodStartedAt
+    uint256 indexed rngRequestPeriodStartedAt
   );
 
   /**
@@ -137,11 +136,11 @@ abstract contract DrawBeacon is IDrawBeacon,
   );
 
   /**
-    * @notice Emit when the prizePeriodSeconds is set.
-    * @param prizePeriodSeconds Time between RNG request
+    * @notice Emit when the rngRequestPeriodSeconds is set.
+    * @param rngRequestPeriodSeconds Time between RNG request
   */
-  event PrizePeriodSecondsUpdated(
-    uint256 prizePeriodSeconds
+  event RngRequestPeriodSecondsUpdated(
+    uint256 rngRequestPeriodSeconds
   );
 
   /**
@@ -163,19 +162,23 @@ abstract contract DrawBeacon is IDrawBeacon,
   /**
     * @notice Emit when the DrawBeacon is initialized.
     * @param drawHistory Address of drawHistory
-    * @param prizePeriodStart Timestamp when prize period starts
-    * @param prizePeriodSeconds Minimum seconds between prize period
+    * @param rngRequestPeriodStart Timestamp when RNG request period starts
+    * @param rngRequestPeriodSeconds Minimum seconds between RNG request period
     * @param rng Address of RNG service
   */
   event Initialized(
     DrawHistory indexed drawHistory,
-    uint256 prizePeriodStart,
-    uint256 prizePeriodSeconds,
+    uint256 rngRequestPeriodStart,
+    uint256 rngRequestPeriodSeconds,
     RNGInterface rng
   );
 
   /* ============ Structs ============ */
 
+  /**
+    * @notice Emit when the drawBeaconListener is set.
+    * @param drawBeaconListener Address of drawgBeaconListener
+  */
   struct RngRequest {
     uint32 id;
     uint32 lockBlock;
@@ -188,24 +191,24 @@ abstract contract DrawBeacon is IDrawBeacon,
     require(_msgSender() == owner() ||
             _msgSender() == address(drawBeaconListener) ||
             _msgSender() == address(beforeAwardListener),
-            "DrawBeaconBase/only-owner-or-listener");
+            "DrawBeacon/only-owner-or-listener");
     _;
   }
 
   modifier requireAwardNotInProgress() {
-    _requireAwardNotInProgress();
+    _requireRngRequestNotInProgress();
     _;
   }
 
   modifier requireCanStartRNGRequest() {
-    require(_isPrizePeriodOver(), "DrawBeaconBase/prize-period-not-over");
-    require(!isRngRequested(), "DrawBeaconBase/rng-already-requested");
+    require(_isRngRequestPeriodOver(), "DrawBeacon/prize-period-not-over");
+    require(!isRngRequested(), "DrawBeacon/rng-already-requested");
     _;
   }
 
   modifier requireCanCompleteRngRequest() {
-    require(isRngRequested(), "DrawBeaconBase/rng-not-requested");
-    require(isRngCompleted(), "DrawBeaconBase/rng-not-complete");
+    require(isRngRequested(), "DrawBeacon/rng-not-requested");
+    require(isRngCompleted(), "DrawBeacon/rng-not-complete");
     _;
   }
 
@@ -214,38 +217,38 @@ abstract contract DrawBeacon is IDrawBeacon,
   /**
     * @notice Initialize the DrawBeacon smart contract.
     * @param _drawHistory DrawHistory address
-    * @param _prizePeriodStart The starting timestamp of the prize period.
-    * @param _prizePeriodSeconds The duration of the prize period in seconds
+    * @param _rngRequestPeriodStart The starting timestamp of the RNG request period.
+    * @param _rngRequestPeriodSeconds The duration of the RNG request period in seconds
     * @param _rng The RNG service to use
   */
   function initialize (
     DrawHistory _drawHistory,
-    uint256 _prizePeriodStart,
-    uint256 _prizePeriodSeconds,
+    uint256 _rngRequestPeriodStart,
+    uint256 _rngRequestPeriodSeconds,
     RNGInterface _rng
   ) public initializer {
-    require(address(_rng) != address(0), "DrawBeaconBase/rng-not-zero");
+    require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;
     _setDrawHistory(_drawHistory);
-    _setPrizePeriodSeconds(_prizePeriodSeconds);
 
     __Ownable_init();
     Constants.REGISTRY.setInterfaceImplementer(address(this), Constants.TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
 
-    prizePeriodSeconds = _prizePeriodSeconds;
-    prizePeriodStartedAt = _prizePeriodStart;
+    _setRngRequestPeriodSeconds(_rngRequestPeriodSeconds);
+    rngRequestPeriodStartedAt = _rngRequestPeriodStart;
+    
 
     // 30 min timeout
     _setRngRequestTimeout(1800);
 
     emit Initialized(
       _drawHistory,
-      _prizePeriodStart,
-      _prizePeriodSeconds,
+      _rngRequestPeriodStart,
+      _rngRequestPeriodSeconds,
       _rng
     );
     
-    emit DrawBeaconOpened(_msgSender(), prizePeriodStartedAt);
+    emit DrawBeaconOpened(_msgSender(), _rngRequestPeriodStart);
   }
 
   /* ============ Public Functions ============ */
@@ -257,16 +260,16 @@ abstract contract DrawBeacon is IDrawBeacon,
    */
   function estimateRemainingBlocksToPrize(uint256 secondsPerBlockMantissa) public view returns (uint256) {
     return FixedPoint.divideUintByMantissa(
-      _prizePeriodRemainingSeconds(),
+      _rngRequestPeriodRemainingSeconds(),
       secondsPerBlockMantissa
     );
   }
 
   /**
-    * @notice Can be called by anyone to unlock the tickets if the RNG has timed out.
+    * @notice Can be called by anyone to cancel the RNG request if the RNG has timed out.
    */
-  function cancelAward() public {
-    require(isRngTimedOut(), "DrawBeaconBase/rng-not-timedout");
+  function cancelRngRequest() public {
+    require(isRngTimedOut(), "DrawBeacon/rng-not-timedout");
     uint32 requestId = rngRequest.id;
     uint32 lockBlock = rngRequest.lockBlock;
     delete rngRequest;
@@ -310,37 +313,36 @@ abstract contract DrawBeacon is IDrawBeacon,
     * @param newDrawHistory  DrawHistory address
     * @return DrawHistory
   */
-  function setDrawHistory(DrawHistory newDrawHistory) external onlyOwner returns (DrawHistory) {
+  function setDrawHistory(DrawHistory newDrawHistory) external override onlyOwner returns (DrawHistory) {
     return _setDrawHistory(newDrawHistory);
   }
 
   /**
-    * @notice Returns the number of seconds remaining until the prize can be awarded.
-    * @return The number of seconds remaining until the prize can be awarded.
+    * @notice Returns the number of seconds remaining until the rng request can be complete.
+    * @return The number of seconds remaining until the rng request can be complete.
    */
-  function prizePeriodRemainingSeconds() external view returns (uint256) {
-    return _prizePeriodRemainingSeconds();
+  function rngRequestPeriodRemainingSeconds() external view returns (uint256) {
+    return _rngRequestPeriodRemainingSeconds();
   }
 
   /**
-    * @notice Returns whether the prize period is over
-    * @return True if the prize period is over, false otherwise
+    * @notice Returns whether the RNG request period is over
+    * @return True if the RNG request period is over, false otherwise
    */
-  function isPrizePeriodOver() external view returns (bool) {
-    return _isPrizePeriodOver();
+  function isRngRequestPeriodOver() external view returns (bool) {
+    return _isRngRequestPeriodOver();
   }
 
   /**
-    * @notice Returns the timestamp at which the prize period ends
-    * @return The timestamp at which the prize period ends.
+    * @notice Returns the timestamp at which the RNG request period ends
+    * @return The timestamp at which the RNG request period ends.
    */
-  function prizePeriodEndAt() external view returns (uint256) {
-    // current prize started at is non-inclusive, so add one
-    return _prizePeriodEndAt();
+  function rngRequestPeriodEndAt() external view returns (uint256) {
+    return _rngRequestPeriodEndAt();
   }
 
   /**
-    * @notice Starts the award process by starting random number request.  The prize period must have ended.
+    * @notice Starts the award process by starting random number request.  The RNG request period must have ended.
     * @dev The RNG-Request-Fee is expected to be held within this contract before calling this function
    */
   function startRNGRequest() external requireCanStartRNGRequest {
@@ -359,7 +361,7 @@ abstract contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Completes the RNG request and creates a new draw.
-    * @dev    Completes the RNG request, creates a new draw on the DrawHistory and reset prize period start.
+    * @dev    Completes the RNG request, creates a new draw on the DrawHistory and reset RNG request period start.
     *
    */
   function completeRNGRequest() external requireCanCompleteRngRequest {
@@ -367,18 +369,18 @@ abstract contract DrawBeacon is IDrawBeacon,
     delete rngRequest;
 
     if (address(beforeAwardListener) != address(0)) {
-      beforeAwardListener.beforePrizePoolAwarded(randomNumber, prizePeriodStartedAt);
+      beforeAwardListener.beforePrizePoolAwarded(randomNumber, rngRequestPeriodStartedAt);
     }
     _saveRNGRequestWithDraw(randomNumber);
     if (address(drawBeaconListener) != address(0)) {
-      drawBeaconListener.afterPrizePoolAwarded(randomNumber, prizePeriodStartedAt);
+      drawBeaconListener.afterPrizePoolAwarded(randomNumber, rngRequestPeriodStartedAt);
     }
 
     // to avoid clock drift, we should calculate the start time based on the previous period start time.
-    prizePeriodStartedAt = _calculateNextPrizePeriodStartTime(_currentTime());
+    rngRequestPeriodStartedAt = _calculateNextRngRequestPeriodStartTime(_currentTime());
 
     emit DrawBeaconRNGRequestCompleted(_msgSender(), randomNumber);
-    emit DrawBeaconOpened(_msgSender(), prizePeriodStartedAt);
+    emit DrawBeaconOpened(_msgSender(), rngRequestPeriodStartedAt);
   }
 
   /**
@@ -389,7 +391,7 @@ abstract contract DrawBeacon is IDrawBeacon,
   function setBeforeAwardListener(BeforeAwardListenerInterface _beforeAwardListener) external onlyOwner requireAwardNotInProgress {
     require(
       address(0) == address(_beforeAwardListener) || address(_beforeAwardListener).supportsInterface(BeforeAwardListenerLibrary.ERC165_INTERFACE_ID_BEFORE_AWARD_LISTENER),
-      "DrawBeaconBase/beforeAwardListener-invalid"
+      "DrawBeacon/beforeAwardListener-invalid"
     );
 
     beforeAwardListener = _beforeAwardListener;
@@ -404,7 +406,7 @@ abstract contract DrawBeacon is IDrawBeacon,
   function setDrawBeaconListener(PeriodicPrizeStrategyListenerInterface _drawBeaconListener) external onlyOwner requireAwardNotInProgress {
     require(
       address(0) == address(_drawBeaconListener) || address(_drawBeaconListener).supportsInterface(PeriodicPrizeStrategyListenerLibrary.ERC165_INTERFACE_ID_PERIODIC_PRIZE_STRATEGY_LISTENER),
-      "DrawBeaconBase/drawBeaconListener-invalid"
+      "DrawBeacon/drawBeaconListener-invalid"
     );
 
     drawBeaconListener = _drawBeaconListener;
@@ -413,12 +415,12 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Calculates when the next prize period will start.
+    * @notice Calculates when the next RNG request period will start.
     * @param currentTime The timestamp to use as the current time
-    * @return The timestamp at which the next prize period would start
+    * @return The timestamp at which the next RNG request period would start
    */
-  function calculateNextPrizePeriodStartTime(uint256 currentTime) external view returns (uint256) {
-    return _calculateNextPrizePeriodStartTime(currentTime);
+  function calculateNextRngRequestPeriodStartTime(uint256 currentTime) external view returns (uint256) {
+    return _calculateNextRngRequestPeriodStartTime(currentTime);
   }
 
   /**
@@ -426,7 +428,7 @@ abstract contract DrawBeacon is IDrawBeacon,
     * @return True if an award can be started, false otherwise.
    */
   function canStartRNGRequest() external view returns (bool) {
-    return _isPrizePeriodOver() && !isRngRequested();
+    return _isRngRequestPeriodOver() && !isRngRequested();
   }
 
   /**
@@ -458,13 +460,13 @@ abstract contract DrawBeacon is IDrawBeacon,
     * @param rngService The address of the new RNG service interface
    */
   function setRngService(RNGInterface rngService) external onlyOwner requireAwardNotInProgress {
-    require(!isRngRequested(), "DrawBeaconBase/rng-in-flight");
+    require(!isRngRequested(), "DrawBeacon/rng-in-flight");
     rng = rngService;
     emit RngServiceUpdated(rngService);
   }
 
   /**
-    * @notice Allows the owner to set the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
+    * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngRequestTimeout The RNG request timeout in seconds.
    */
   function setRngRequestTimeout(uint32 _rngRequestTimeout) external onlyOwner requireAwardNotInProgress {
@@ -472,48 +474,49 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Allows the owner to set the prize period in seconds.
-    * @param _prizePeriodSeconds The new prize period in seconds.  Must be greater than zero.
+    * @notice Allows the owner to set the RNG request period in seconds.
+    * @param rngRequestPeriodSeconds The new RNG request period in seconds.  Must be greater than zero.
    */
-  function setPrizePeriodSeconds(uint256 _prizePeriodSeconds) external onlyOwner requireAwardNotInProgress {
-    _setPrizePeriodSeconds(_prizePeriodSeconds);
+  function setRngRequestPeriodSeconds(uint256 rngRequestPeriodSeconds) external onlyOwner requireAwardNotInProgress {
+    _setRngRequestPeriodSeconds(rngRequestPeriodSeconds);
   }
 
   /* ============ Internal Functions ============ */
 
   /**
-    * @notice Calculates when the next prize period will start
+    * @notice Calculates when the next RNG request period will start
     * @param currentTime The timestamp to use as the current time
-    * @return The timestamp at which the next prize period would start
+    * @return The timestamp at which the next RNG request period would start
    */
-  function _calculateNextPrizePeriodStartTime(uint256 currentTime) internal view returns (uint256) {
-    uint256 elapsedPeriods = (currentTime - prizePeriodStartedAt) / (prizePeriodSeconds);
-    return prizePeriodStartedAt + (elapsedPeriods * prizePeriodSeconds);
+  function _calculateNextRngRequestPeriodStartTime(uint256 currentTime) internal view returns (uint256) {
+    uint256 _rngRequestPeriodStartedAt = rngRequestPeriodStartedAt; // single sload
+    uint256 _rngRequestPeriodSeconds = rngRequestPeriodSeconds; // single sload
+    uint256 elapsedPeriods = (currentTime - _rngRequestPeriodStartedAt) / (_rngRequestPeriodSeconds);
+    return _rngRequestPeriodStartedAt + (elapsedPeriods * _rngRequestPeriodSeconds);
   }
 
   /**
-    * @notice Returns whether the prize period is over.
-    * @return True if the prize period is over, false otherwise
+    * @notice Returns whether the RNG request period is over.
+    * @return True if the RNG request period is over, false otherwise
    */
-  function _isPrizePeriodOver() internal view returns (bool) {
-    return _currentTime() >= _prizePeriodEndAt();
+  function _isRngRequestPeriodOver() internal view returns (bool) {
+    return _currentTime() >= _rngRequestPeriodEndAt();
   }
 
   /**
-    * @notice Returns the timestamp at which the prize period ends
-    * @return The timestamp at which the prize period ends.
+    * @notice Returns the timestamp at which the RNG request period ends
+    * @return The timestamp at which the RNG request period ends
    */
-  function _prizePeriodEndAt() internal view returns (uint256) {
-    // current prize started at is non-inclusive, so add one
-    return prizePeriodStartedAt + prizePeriodSeconds;
+  function _rngRequestPeriodEndAt() internal view returns (uint256) {
+    return rngRequestPeriodStartedAt + rngRequestPeriodSeconds;
   }
 
   /**
     * @notice Returns the number of seconds remaining until the prize can be awarded.
     * @return The number of seconds remaining until the prize can be awarded.
    */
-  function _prizePeriodRemainingSeconds() internal view returns (uint256) {
-    uint256 endAt = _prizePeriodEndAt();
+  function _rngRequestPeriodRemainingSeconds() internal view returns (uint256) {
+    uint256 endAt = _rngRequestPeriodEndAt();
     uint256 time = _currentTime();
     if (time > endAt) {
       return 0;
@@ -524,9 +527,9 @@ abstract contract DrawBeacon is IDrawBeacon,
   /**
     * @notice Check to see award is in progress.
    */
-  function _requireAwardNotInProgress() internal view {
+  function _requireRngRequestNotInProgress() internal view {
     uint256 currentBlock = block.number;
-    require(rngRequest.lockBlock == 0 || currentBlock < rngRequest.lockBlock, "DrawBeaconBase/rng-in-flight");
+    require(rngRequest.lockBlock == 0 || currentBlock < rngRequest.lockBlock, "DrawBeacon/rng-in-flight");
   }
 
   /**
@@ -556,14 +559,14 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Sets the prize period in seconds.
-    * @param _prizePeriodSeconds The new prize period in seconds.  Must be greater than zero.
+    * @notice Sets the RNG request period in seconds.
+    * @param _rngRequestPeriodSeconds The new RNG request period in seconds.  Must be greater than zero.
    */
-  function _setPrizePeriodSeconds(uint256 _prizePeriodSeconds) internal {
-    require(_prizePeriodSeconds > 0, "DrawBeaconBase/prize-period-greater-than-zero");
-    prizePeriodSeconds = _prizePeriodSeconds;
+  function _setRngRequestPeriodSeconds(uint256 _rngRequestPeriodSeconds) internal {
+    require(_rngRequestPeriodSeconds > 0, "DrawBeacon/rng-request-period-greater-than-zero");
+    rngRequestPeriodSeconds = _rngRequestPeriodSeconds;
 
-    emit PrizePeriodSecondsUpdated(prizePeriodSeconds);
+    emit RngRequestPeriodSecondsUpdated(_rngRequestPeriodSeconds);
   }
   
   /**
@@ -571,9 +574,9 @@ abstract contract DrawBeacon is IDrawBeacon,
     * @param _rngRequestTimeout The RNG request timeout in seconds.
    */
   function _setRngRequestTimeout(uint32 _rngRequestTimeout) internal {
-    require(_rngRequestTimeout > 60, "DrawBeaconBase/rng-timeout-gt-60-secs");
+    require(_rngRequestTimeout > 60, "DrawBeacon/rng-timeout-gt-60-secs");
     rngRequestTimeout = _rngRequestTimeout;
-    emit RngRequestTimeoutSet(rngRequestTimeout);
+    emit RngRequestTimeoutSet(_rngRequestTimeout);
   }
 
   /**

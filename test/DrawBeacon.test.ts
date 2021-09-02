@@ -19,11 +19,11 @@ describe('DrawBeacon', () => {
   let rngFeeToken: MockContract;
   let periodicPrizeStrategyListener: MockContract;
 
-  let prizePeriodStart = now();
-  let prizePeriodSeconds = 1000;
+  let rngRequestPeriodStart = now();
+  let rngRequestPeriodSeconds = 1000;
 
-  const halfTime = prizePeriodSeconds / 2;
-  const overTime = prizePeriodSeconds + 1;
+  const halfTime = rngRequestPeriodSeconds / 2;
+  const overTime = rngRequestPeriodSeconds + 1;
 
   let IERC20;
 
@@ -67,8 +67,8 @@ describe('DrawBeacon', () => {
     debug('initializing drawBeacon...');
     await drawBeacon.initialize(
       drawHistory.address,
-      prizePeriodStart,
-      prizePeriodSeconds,
+      rngRequestPeriodStart,
+      rngRequestPeriodSeconds,
       rng.address,
     );
 
@@ -88,8 +88,8 @@ describe('DrawBeacon', () => {
       let drawBeacon2 = await DrawBeaconHarness.deploy();
       const initalizeResult2 = drawBeacon2.initialize(
         drawHistory.address,
-        prizePeriodStart,
-        prizePeriodSeconds,
+        rngRequestPeriodStart,
+        rngRequestPeriodSeconds,
         rng.address,
       );
 
@@ -97,22 +97,22 @@ describe('DrawBeacon', () => {
         .to.emit(drawBeacon2, 'Initialized')
         .withArgs(
           drawHistory.address,
-          prizePeriodStart,
-          prizePeriodSeconds,
+          rngRequestPeriodStart,
+          rngRequestPeriodSeconds,
           rng.address,
         );
     });
 
     it('should set the params', async () => {
-      expect(await drawBeacon.prizePeriodSeconds()).to.equal(prizePeriodSeconds);
+      expect(await drawBeacon.rngRequestPeriodSeconds()).to.equal(rngRequestPeriodSeconds);
       expect(await drawBeacon.rng()).to.equal(rng.address);
     });
 
     it('should reject invalid params', async () => {
       const _initArgs = [
         drawHistory.address,
-        prizePeriodStart,
-        prizePeriodSeconds,
+        rngRequestPeriodStart,
+        rngRequestPeriodSeconds,
         rng.address,
       ];
       let initArgs;
@@ -130,49 +130,49 @@ describe('DrawBeacon', () => {
       initArgs = _initArgs.slice();
       initArgs[2] = 0;
       await expect(drawBeacon2.initialize(...initArgs)).to.be.revertedWith(
-        'DrawBeaconBase/prize-period-greater-than-zero',
+        'DrawBeacon/rng-request-period-greater-than-zero',
       );
       initArgs = _initArgs.slice();
       initArgs[3] = AddressZero;
       await expect(drawBeacon2.initialize(...initArgs)).to.be.revertedWith(
-        'DrawBeaconBase/rng-not-zero',
+        'DrawBeacon/rng-not-zero',
       );
     });
   });
 
   describe('estimateRemainingBlocksToPrize()', () => {
     it('should estimate using the constant', async () => {
-      const ppr = await drawBeacon.prizePeriodRemainingSeconds();
+      const ppr = await drawBeacon.rngRequestPeriodRemainingSeconds();
       const blocks = parseInt('' + ppr.toNumber() / 14);
       expect(await drawBeacon.estimateRemainingBlocksToPrize(toWei('14'))).to.equal(blocks);
     });
   });
 
-  describe('prizePeriodRemainingSeconds()', () => {
+  describe('rngRequestPeriodRemainingSeconds()', () => {
     it('should calculate the remaining seconds of the prize period', async () => {
-      const startTime = await drawBeacon.prizePeriodStartedAt();
+      const startTime = await drawBeacon.rngRequestPeriodStartedAt();
 
       // Half-time
       await drawBeacon.setCurrentTime(startTime.add(halfTime));
-      expect(await drawBeacon.prizePeriodRemainingSeconds()).to.equal(halfTime);
+      expect(await drawBeacon.rngRequestPeriodRemainingSeconds()).to.equal(halfTime);
 
       // Over-time
       await drawBeacon.setCurrentTime(startTime.add(overTime));
-      expect(await drawBeacon.prizePeriodRemainingSeconds()).to.equal(0);
+      expect(await drawBeacon.rngRequestPeriodRemainingSeconds()).to.equal(0);
     });
   });
 
-  describe('isPrizePeriodOver()', () => {
+  describe('isRngRequestPeriodOver()', () => {
     it('should determine if the prize-period is over', async () => {
-      const startTime = await drawBeacon.prizePeriodStartedAt();
+      const startTime = await drawBeacon.rngRequestPeriodStartedAt();
 
       // Half-time
       await drawBeacon.setCurrentTime(startTime.add(halfTime));
-      expect(await drawBeacon.isPrizePeriodOver()).to.equal(false);
+      expect(await drawBeacon.isRngRequestPeriodOver()).to.equal(false);
 
       // Over-time
       await drawBeacon.setCurrentTime(startTime.add(overTime));
-      expect(await drawBeacon.isPrizePeriodOver()).to.equal(true);
+      expect(await drawBeacon.isRngRequestPeriodOver()).to.equal(true);
     });
   });
 
@@ -194,19 +194,19 @@ describe('DrawBeacon', () => {
       await rngFeeToken.mock.allowance.returns(0);
       await rngFeeToken.mock.approve.withArgs(rng.address, toWei('1')).returns(true);
       await rng.mock.requestRandomNumber.returns('11', '1');
-      await drawBeacon.setCurrentTime(await drawBeacon.prizePeriodEndAt());
+      await drawBeacon.setCurrentTime(await drawBeacon.rngRequestPeriodEndAt());
       await drawBeacon.startRNGRequest();
 
       await expect(drawBeacon.setRngService(wallet2.address)).to.be.revertedWith(
-        'DrawBeaconBase/rng-in-flight',
+        'DrawBeacon/rng-in-flight',
       );
     });
   });
 
-  describe('cancelAward()', () => {
+  describe('cancelRngRequest()', () => {
     it('should not allow anyone to cancel if the rng has not timed out', async () => {
-      await expect(drawBeacon.cancelAward()).to.be.revertedWith(
-        'DrawBeaconBase/rng-not-timedout',
+      await expect(drawBeacon.cancelRngRequest()).to.be.revertedWith(
+        'DrawBeacon/rng-not-timedout',
       );
     });
 
@@ -214,13 +214,13 @@ describe('DrawBeacon', () => {
       await rngFeeToken.mock.allowance.returns(0);
       await rngFeeToken.mock.approve.withArgs(rng.address, toWei('1')).returns(true);
       await rng.mock.requestRandomNumber.returns('11', '1');
-      await drawBeacon.setCurrentTime(await drawBeacon.prizePeriodEndAt());
+      await drawBeacon.setCurrentTime(await drawBeacon.rngRequestPeriodEndAt());
 
       await drawBeacon.startRNGRequest();
 
       // set it beyond request timeout
       await drawBeacon.setCurrentTime(
-        (await drawBeacon.prizePeriodEndAt())
+        (await drawBeacon.rngRequestPeriodEndAt())
           .add(await drawBeacon.rngRequestTimeout())
           .add(1),
       );
@@ -228,7 +228,7 @@ describe('DrawBeacon', () => {
       // should be timed out
       expect(await drawBeacon.isRngTimedOut()).to.be.true;
 
-      await expect(drawBeacon.cancelAward())
+      await expect(drawBeacon.cancelRngRequest())
         .to.emit(drawBeacon, 'DrawBeaconRNGRequestCancelled')
         .withArgs(wallet.address, 11, 1);
     });
@@ -236,7 +236,7 @@ describe('DrawBeacon', () => {
 
   describe('canStartRNGRequest()', () => {
     it('should determine if a prize is able to be awarded', async () => {
-      const startTime = await drawBeacon.prizePeriodStartedAt();
+      const startTime = await drawBeacon.rngRequestPeriodStartedAt();
 
       // Prize-period not over, RNG not requested
       await drawBeacon.setCurrentTime(startTime.add(10));
@@ -249,12 +249,12 @@ describe('DrawBeacon', () => {
       expect(await drawBeacon.canStartRNGRequest()).to.equal(false);
 
       // Prize-period over, RNG requested
-      await drawBeacon.setCurrentTime(startTime.add(prizePeriodSeconds));
+      await drawBeacon.setCurrentTime(startTime.add(rngRequestPeriodSeconds));
       await drawBeacon.setRngRequest(1, 100);
       expect(await drawBeacon.canStartRNGRequest()).to.equal(false);
 
       // Prize-period over, RNG not requested
-      await drawBeacon.setCurrentTime(startTime.add(prizePeriodSeconds));
+      await drawBeacon.setCurrentTime(startTime.add(rngRequestPeriodSeconds));
       await drawBeacon.setRngRequest(0, 0);
       expect(await drawBeacon.canStartRNGRequest()).to.equal(true);
     });
@@ -323,7 +323,7 @@ describe('DrawBeacon', () => {
 
     it('should not allow setting an EOA as a listener', async () => {
       await expect(drawBeacon.setBeforeAwardListener(wallet2.address)).to.be.revertedWith(
-        'DrawBeaconBase/beforeAwardListener-invalid',
+        'DrawBeacon/beforeAwardListener-invalid',
       );
     });
 
@@ -354,7 +354,7 @@ describe('DrawBeacon', () => {
     it('should not allow setting an EOA as a listener', async () => {
       await expect(
         drawBeacon.setDrawBeaconListener(wallet2.address),
-      ).to.be.revertedWith('DrawBeaconBase/drawBeaconListener-invalid');
+      ).to.be.revertedWith('DrawBeacon/drawBeaconListener-invalid');
     });
 
     it('should allow setting the listener to address zero', async () => {
@@ -390,12 +390,12 @@ describe('DrawBeacon', () => {
       await periodicPrizeStrategyListener.mock.afterPrizePoolAwarded
         .withArgs(
           '48849787646992769944319009300540211125598274780817112954146168253338351566848',
-          await drawBeacon.prizePeriodStartedAt(),
+          await drawBeacon.rngRequestPeriodStartedAt(),
         )
         .returns();
 
       // ensure prize period is over
-      await drawBeacon.setCurrentTime(await drawBeacon.prizePeriodEndAt());
+      await drawBeacon.setCurrentTime(await drawBeacon.rngRequestPeriodEndAt());
 
       // allow an rng request
       await rngFeeToken.mock.allowance.returns(0);
@@ -415,7 +415,7 @@ describe('DrawBeacon', () => {
 
       debug('Completing rng request...');
 
-      let startedAt = await drawBeacon.prizePeriodStartedAt();
+      let startedAt = await drawBeacon.rngRequestPeriodStartedAt();
 
       // complete the rng request
       const currentTimestamp = (await ethers.provider.getBlock('latest')).timestamp
@@ -428,52 +428,52 @@ describe('DrawBeacon', () => {
           '0x6c00000000000000000000000000000000000000000000000000000000000000',
         );
 
-      expect(await drawBeacon.prizePeriodStartedAt()).to.equal(
-        startedAt.add(prizePeriodSeconds),
+      expect(await drawBeacon.rngRequestPeriodStartedAt()).to.equal(
+        startedAt.add(rngRequestPeriodSeconds),
       );
     });
   });
 
-  describe('calculateNextPrizePeriodStartTime()', () => {
+  describe('calculateNextRngRequestPeriodStartTime()', () => {
     it('should always sync to the last period start time', async () => {
-      let startedAt = await drawBeacon.prizePeriodStartedAt();
+      let startedAt = await drawBeacon.rngRequestPeriodStartedAt();
       expect(
-        await drawBeacon.calculateNextPrizePeriodStartTime(
-          startedAt.add(prizePeriodSeconds * 14),
+        await drawBeacon.calculateNextRngRequestPeriodStartTime(
+          startedAt.add(rngRequestPeriodSeconds * 14),
         ),
-      ).to.equal(startedAt.add(prizePeriodSeconds * 14));
+      ).to.equal(startedAt.add(rngRequestPeriodSeconds * 14));
     });
 
     it('should return the current if it is within', async () => {
-      let startedAt = await drawBeacon.prizePeriodStartedAt();
+      let startedAt = await drawBeacon.rngRequestPeriodStartedAt();
       expect(
-        await drawBeacon.calculateNextPrizePeriodStartTime(
-          startedAt.add(prizePeriodSeconds / 2),
+        await drawBeacon.calculateNextRngRequestPeriodStartTime(
+          startedAt.add(rngRequestPeriodSeconds / 2),
         ),
       ).to.equal(startedAt);
     });
 
     it('should return the next if it is after', async () => {
-      let startedAt = await drawBeacon.prizePeriodStartedAt();
+      let startedAt = await drawBeacon.rngRequestPeriodStartedAt();
       expect(
-        await drawBeacon.calculateNextPrizePeriodStartTime(
-          startedAt.add(parseInt('' + prizePeriodSeconds * 1.5)),
+        await drawBeacon.calculateNextRngRequestPeriodStartTime(
+          startedAt.add(parseInt('' + rngRequestPeriodSeconds * 1.5)),
         ),
-      ).to.equal(startedAt.add(prizePeriodSeconds));
+      ).to.equal(startedAt.add(rngRequestPeriodSeconds));
     });
   });
 
-  describe('setPrizePeriodSeconds()', () => {
+  describe('setRngRequestPeriodSeconds()', () => {
     it('should allow the owner to set the prize period', async () => {
-      await expect(drawBeacon.setPrizePeriodSeconds(99))
-        .to.emit(drawBeacon, 'PrizePeriodSecondsUpdated')
+      await expect(drawBeacon.setRngRequestPeriodSeconds(99))
+        .to.emit(drawBeacon, 'RngRequestPeriodSecondsUpdated')
         .withArgs(99);
 
-      expect(await drawBeacon.prizePeriodSeconds()).to.equal(99);
+      expect(await drawBeacon.rngRequestPeriodSeconds()).to.equal(99);
     });
 
     it('should not allow non-owners to set the prize period', async () => {
-      await expect(drawBeacon.connect(wallet2).setPrizePeriodSeconds(99)).to.be.revertedWith(
+      await expect(drawBeacon.connect(wallet2).setRngRequestPeriodSeconds(99)).to.be.revertedWith(
         'Ownable: caller is not the owner',
       );
     });
@@ -483,7 +483,7 @@ describe('DrawBeacon', () => {
     let drawBeaconBase2: Contract;
 
     beforeEach(async () => {
-      prizePeriodStart = 10000;
+      rngRequestPeriodStart = 10000;
 
       debug('deploying secondary drawBeacon...');
       const DrawBeaconHarness = await ethers.getContractFactory(
@@ -496,8 +496,8 @@ describe('DrawBeacon', () => {
       debug('initializing secondary drawBeacon...');
       await drawBeaconBase2.initialize(
         drawHistory.address,
-        prizePeriodStart,
-        prizePeriodSeconds,
+        rngRequestPeriodStart,
+        rngRequestPeriodSeconds,
         rng.address,
       );
 
@@ -508,7 +508,7 @@ describe('DrawBeacon', () => {
       it('should prevent starting an award', async () => {
         await drawBeaconBase2.setCurrentTime(100);
         await expect(drawBeaconBase2.startRNGRequest()).to.be.revertedWith(
-          'DrawBeaconBase/prize-period-not-over',
+          'DrawBeacon/prize-period-not-over',
         );
       });
     });
@@ -517,7 +517,7 @@ describe('DrawBeacon', () => {
       it('should prevent completing an award', async () => {
         await drawBeaconBase2.setCurrentTime(100);
         await expect(drawBeaconBase2.startRNGRequest()).to.be.revertedWith(
-          'DrawBeaconBase/prize-period-not-over',
+          'DrawBeacon/prize-period-not-over',
         );
       });
     });
