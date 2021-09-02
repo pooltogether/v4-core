@@ -20,10 +20,29 @@ contract Ticket is ControlledToken, TicketInterface {
   /// @notice The minimum length of time a twab should exist.
   /// @dev Once the twab ttl expires, its storage slot is recycled.
   uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
+  /// @notice The maximum number of twab entries
+  uint16 public constant MAX_CARDINALITY = 65535;
 
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeCastUpgradeable for uint256;
-  using TwabLibrary for TwabLibrary.Account;
+
+  /// @notice A struct containing details for an Account
+  /// @param balance The current balance for an Account
+  /// @param nextTwabIndex The next available index to store a new twab
+  /// @param cardinality The number of recorded twabs (plus one!)
+  struct AccountDetails {
+    uint224 balance;
+    uint16 nextTwabIndex;
+    uint16 cardinality;
+  }
+
+  /// @notice Combines account details with their twab history
+  /// @param details The account details
+  /// @param twabs The history of twabs for this account
+  struct Account {
+    AccountDetails details;
+    TwabLibrary.Twab[MAX_CARDINALITY] twabs;
+  }
 
   /// @notice Emitted when ticket is initialized.
   /// @param name Ticket name (eg: PoolTogether Dai Ticket (Compound)).
@@ -52,13 +71,13 @@ contract Ticket is ControlledToken, TicketInterface {
   );
 
   /// @notice Record of token holders TWABs for each account.
-  mapping (address => TwabLibrary.Account) internal userTwabs;
+  mapping (address => Account) internal userTwabs;
 
   /// @notice ERC20 ticket token decimals.
   uint8 private _decimals;
 
   /// @notice Record of tickets total supply and most recent TWAB index.
-  TwabLibrary.Account internal totalSupplyTwab;
+  Account internal totalSupplyTwab;
 
   /// @notice Initializes Ticket with passed parameters.
   /// @param _name ERC20 ticket token name.
@@ -85,7 +104,7 @@ contract Ticket is ControlledToken, TicketInterface {
   /// @notice Gets a users twap context.  This is a struct with their balance, next twab index, and cardinality.
   /// @param _user The user for whom to fetch the TWAB context
   /// @return The TWAB context, which includes { balance, nextTwabIndex, cardinality }
-  function getAccountDetails(address _user) external view returns (TwabLibrary.AccountDetails memory) {
+  function getAccountDetails(address _user) external view returns (AccountDetails memory) {
     return userTwabs[_user].details;
   }
 
@@ -101,14 +120,21 @@ contract Ticket is ControlledToken, TicketInterface {
   /// @param _user Address of the user whose TWAB is being fetched.
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function getBalanceAt(address _user, uint256 _target) external override view returns (uint256) {
-    return _getBalanceAt(_user, _target);
+    Account storage account = userTwabs[_user];
+    return _getBalanceAt(account.twabs, account.details, _target);
   }
 
   /// @notice Retrieves `_user` TWAB balance.
-  /// @param _user Address of the user whose TWAB is being fetched.
   /// @param _target Timestamp at which the reserved TWAB should be for.
-  function _getBalanceAt(address _user, uint256 _target) internal view returns (uint256) {
-    return userTwabs[_user].getBalanceAt(uint32(_target), uint32(block.timestamp));
+  function _getBalanceAt(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target) internal view returns (uint256) {
+    return TwabLibrary.getBalanceAt(
+      _details.cardinality,
+      _details.nextTwabIndex,
+      _twabs,
+      _details.balance,
+      uint32(_target),
+      uint32(block.timestamp)
+    );
   }
 
   /// @notice Calculates the average balance held by a user for a given time frame.
@@ -117,16 +143,24 @@ contract Ticket is ControlledToken, TicketInterface {
   /// @param _endTime The end time of the time frame.
   /// @return The average balance that the user held during the time frame.
   function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
-    return _getAverageBalanceBetween(_user, uint32(_startTime), uint32(_endTime));
+    Account storage account = userTwabs[_user];
+    return _getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime));
   }
 
   /// @notice Calculates the average balance held by a user for a given time frame.
-  /// @param _user The user whose balance is checked
   /// @param _startTime The start time of the time frame.
   /// @param _endTime The end time of the time frame.
   /// @return The average balance that the user held during the time frame.
-  function _getAverageBalanceBetween(address _user, uint32 _startTime, uint32 _endTime) internal view returns (uint256) {
-    return userTwabs[_user].getAverageBalanceBetween(_startTime, _endTime, uint32(block.timestamp));
+  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime) internal view returns (uint256) {
+    return TwabLibrary.getAverageBalanceBetween(
+      _details.cardinality,
+      _details.nextTwabIndex,
+      _twabs,
+      _details.balance,
+      _startTime,
+      _endTime,
+      uint32(block.timestamp)
+    );
   }
 
   /// @notice Retrieves `_user` TWAB balances.
@@ -137,10 +171,11 @@ contract Ticket is ControlledToken, TicketInterface {
     uint256 length = _targets.length;
     uint256[] memory balances = new uint256[](length);
 
-    TwabLibrary.Account storage twabContext = userTwabs[_user];
+    Account storage twabContext = userTwabs[_user];
+    AccountDetails memory details = twabContext.details;
 
-    for(uint256 i = 0; i < length; i++){
-      balances[i] = twabContext.getBalanceAt(_targets[i], uint32(block.timestamp));
+    for(uint256 i = 0; i < length; i++) {
+      balances[i] = _getBalanceAt(twabContext.twabs, details, _targets[i]);
     }
 
     return balances;
@@ -149,7 +184,7 @@ contract Ticket is ControlledToken, TicketInterface {
   /// @notice Retrieves ticket TWAB `totalSupply`.
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function getTotalSupply(uint32 _target) override external view returns (uint256) {
-    return totalSupplyTwab.getBalanceAt(_target, uint32(block.timestamp));
+    return _getBalanceAt(totalSupplyTwab.twabs, totalSupplyTwab.details, _target);
   }
 
   /// @notice Retrieves ticket TWAB `totalSupplies`.
@@ -159,9 +194,10 @@ contract Ticket is ControlledToken, TicketInterface {
     uint256 length = _targets.length;
     uint256[] memory totalSupplies = new uint256[](length);
 
-    for(uint256 i = 0; i < length; i++){
-      // console.log("getTotalSupplies: %s ", _targets[i]);
-      totalSupplies[i] = totalSupplyTwab.getBalanceAt(_targets[i], uint32(block.timestamp));
+    AccountDetails memory details = totalSupplyTwab.details;
+
+    for(uint256 i = 0; i < length; i++) {
+      totalSupplies[i] = _getBalanceAt(totalSupplyTwab.twabs, details, _targets[i]);
     }
 
     return totalSupplies;
@@ -213,11 +249,11 @@ contract Ticket is ControlledToken, TicketInterface {
     _beforeTokenTransfer(_sender, _recipient, _amount);
 
     if (_sender != _recipient) {
-      (TwabLibrary.Twab memory senderTwab, bool senderIsNew) = userTwabs[_sender].decreaseBalance(amount, "ERC20: transfer amount exceeds balance", time, TWAB_TIME_TO_LIVE);
+      (TwabLibrary.Twab memory senderTwab, bool senderIsNew) = decreaseBalance(userTwabs[_sender], amount, "ERC20: transfer amount exceeds balance");
       if (senderIsNew) {
         emit NewUserTwab(_sender, senderTwab);
       }
-      (TwabLibrary.Twab memory recipientTwab, bool recipientIsNew) = userTwabs[_recipient].increaseBalance(amount, time, TWAB_TIME_TO_LIVE);
+      (TwabLibrary.Twab memory recipientTwab, bool recipientIsNew) = increaseBalance(userTwabs[_recipient], amount);
       if (recipientIsNew) {
         emit NewUserTwab(_recipient, recipientTwab);
       }
@@ -240,11 +276,11 @@ contract Ticket is ControlledToken, TicketInterface {
 
     _beforeTokenTransfer(address(0), _to, _amount);
 
-    (TwabLibrary.Twab memory totalSupply, bool tsIsNew) = totalSupplyTwab.increaseBalance(amount, time, TWAB_TIME_TO_LIVE);
+    (TwabLibrary.Twab memory totalSupply, bool tsIsNew) = increaseBalance(totalSupplyTwab, amount);
     if (tsIsNew) {
       emit NewTotalSupplyTwab(totalSupply);
     }
-    (TwabLibrary.Twab memory userTwab, bool userIsNew) = userTwabs[_to].increaseBalance(amount, time, TWAB_TIME_TO_LIVE);
+    (TwabLibrary.Twab memory userTwab, bool userIsNew) = increaseBalance(userTwabs[_to], amount);
     if (userIsNew) {
       emit NewUserTwab(_to, userTwab);
     }
@@ -267,21 +303,19 @@ contract Ticket is ControlledToken, TicketInterface {
 
     _beforeTokenTransfer(_from, address(0), _amount);
 
-    (TwabLibrary.Twab memory tsTwab, bool tsIsNew) = totalSupplyTwab.decreaseBalance(
+    (TwabLibrary.Twab memory tsTwab, bool tsIsNew) = decreaseBalance(
+      totalSupplyTwab,
       amount,
-      "ERC20: burn amount exceeds balance",
-      time,
-      TWAB_TIME_TO_LIVE
+      "ERC20: burn amount exceeds balance"
     );
     if (tsIsNew) {
       emit NewTotalSupplyTwab(tsTwab);
     }
 
-    (TwabLibrary.Twab memory userTwab, bool userIsNew) = userTwabs[_from].decreaseBalance(
+    (TwabLibrary.Twab memory userTwab, bool userIsNew) = decreaseBalance(
+      userTwabs[_from],
       amount,
-      "ERC20: burn amount exceeds balance",
-      time,
-      TWAB_TIME_TO_LIVE
+      "ERC20: burn amount exceeds balance"
     );
     if (userIsNew) {
       emit NewUserTwab(_from, userTwab);
@@ -291,4 +325,62 @@ contract Ticket is ControlledToken, TicketInterface {
 
     _afterTokenTransfer(_from, address(0), _amount);
   }
+
+  /// @notice Increases an account's balance and records a new twab.
+  /// @param _account The account whose balance will be increased
+  /// @param _amount The amount to increase the balance by
+  /// @return twab The user's latest TWAB
+  /// @return isNew Whether the TWAB is new
+  function increaseBalance(
+    Account storage _account,
+    uint256 _amount
+  ) internal returns (TwabLibrary.Twab memory twab, bool isNew) {
+    uint16 nextTwabIndex;
+    uint16 cardinality;
+    AccountDetails memory details = _account.details;
+    (nextTwabIndex, cardinality, twab, isNew) = TwabLibrary.update(
+      details.balance,
+      details.nextTwabIndex,
+      details.cardinality,
+      _account.twabs,
+      uint32(block.timestamp),
+      TWAB_TIME_TO_LIVE
+    );
+    _account.details = AccountDetails({
+      balance: (details.balance + _amount).toUint224(),
+      nextTwabIndex: nextTwabIndex,
+      cardinality: cardinality
+    });
+  }
+
+  /// @notice Decreases an account's balance and records a new twab.
+  /// @param _account The account whose balance will be decreased
+  /// @param _amount The amount to decrease the balance by
+  /// @param _message The revert message in the event of insufficient balance
+  /// @return twab The user's latest TWAB
+  /// @return isNew Whether the TWAB is new
+  function decreaseBalance(
+    Account storage _account,
+    uint256 _amount,
+    string memory _message
+  ) internal returns (TwabLibrary.Twab memory twab, bool isNew) {
+    uint16 nextTwabIndex;
+    uint16 cardinality;
+    AccountDetails memory details = _account.details;
+    require(details.balance >= _amount, _message);
+    (nextTwabIndex, cardinality, twab, isNew) = TwabLibrary.update(
+      details.balance,
+      details.nextTwabIndex,
+      details.cardinality,
+      _account.twabs,
+      uint32(block.timestamp),
+      TWAB_TIME_TO_LIVE
+    );
+    _account.details = AccountDetails({
+      balance: (details.balance - _amount).toUint224(),
+      nextTwabIndex: nextTwabIndex,
+      cardinality: cardinality
+    });
+  }
+
 }
