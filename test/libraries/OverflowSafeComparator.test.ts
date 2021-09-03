@@ -2,6 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
+import { advanceBlock } from '../helpers/increaseTime'
 
 const { getSigners, provider } = ethers;
 
@@ -16,7 +17,7 @@ describe('overflowSafeComparator', () => {
   beforeEach(async () => {
     [wallet1, wallet2] = await getSigners();
 
-    currentTimestamp = (await provider.getBlock('latest')).timestamp;
+    currentTimestamp = 1620084438 // 5/3/2021 - 23:27:18
 
     const overflowSafeComparatorFactory: ContractFactory = await ethers.getContractFactory(
       'OverflowSafeComparatorHarness',

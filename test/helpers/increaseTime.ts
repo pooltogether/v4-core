@@ -1,6 +1,6 @@
 import { providers } from 'ethers';
 
-async function advanceBlock(provider: providers.JsonRpcProvider) {
+export async function advanceBlock(provider: providers.JsonRpcProvider) {
   return provider.send("evm_mine", []);
 }
 
