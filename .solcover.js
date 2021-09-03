@@ -7,7 +7,13 @@ module.exports = {
   },
   skipFiles: [
     'external',
-    // "import",
+    'prize-pool',
+    'prize-strategy',
+    'registry',
+    'reserve',
+    'utils',
     'test',
+    'token',
+    'yield-source',
   ],
 };
