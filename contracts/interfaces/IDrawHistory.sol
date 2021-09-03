@@ -4,6 +4,7 @@ pragma solidity 0.8.6;
 import "../libraries/DrawLib.sol";
 
 interface IDrawHistory {
+  function drawIdToDrawIndex(uint32 drawId) external view returns(uint32);
   function getDraws(uint32[] calldata drawIds) external view returns (DrawLib.Draw[] memory);
   function getDraw(uint32 drawId) external view returns (DrawLib.Draw memory);
   function pushDraw(DrawLib.Draw calldata draw) external returns(uint32);

@@ -70,7 +70,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     * @param drawId Draw id
     * @return Draw index
   */
-  function drawIdToDrawIndex(uint32 drawId) external view returns(uint32) {
+  function drawIdToDrawIndex(uint32 drawId) external view override returns(uint32) {
     return _drawIdToDrawIndex(drawId);
   }
 

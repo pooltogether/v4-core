@@ -238,38 +238,26 @@ abstract contract DrawBeacon is IDrawBeacon,
   /* ============ Public Functions ============ */
 
   /**
-    * @notice Estimates the remaining blocks until the prize given a number of seconds per block
-    * @param secondsPerBlockMantissa The number of seconds per block to use for the calculation.  Should be a fixed point 18 number like Ether.
-    * @return The estimated number of blocks remaining until the prize can be awarded.
+    * @notice Returns whether the random number request has completed.
+    * @return True if a random number request has completed, false otherwise.
    */
-  function estimateRemainingBlocksToPrize(uint256 secondsPerBlockMantissa) public view returns (uint256) {
-    return FixedPoint.divideUintByMantissa(
-      _drawPeriodRemainingSeconds(),
-      secondsPerBlockMantissa
-    );
+  function isRngCompleted() public view override returns (bool) {
+    return rng.isRequestComplete(rngRequest.id);
   }
 
   /**
     * @notice Returns whether a random number has been requested
     * @return True if a random number has been requested, false otherwise.
    */
-  function isRngRequested() public view returns (bool) {
+  function isRngRequested() public view override returns (bool) {
     return rngRequest.id != 0;
-  }
-
-  /**
-    * @notice Returns whether the random number request has completed.
-    * @return True if a random number request has completed, false otherwise.
-   */
-  function isRngCompleted() public view returns (bool) {
-    return rng.isRequestComplete(rngRequest.id);
   }
 
   /**
     * @notice Returns whether the random number request has timed out.
     * @return True if a random number request has timed out, false otherwise.
    */
-  function isRngTimedOut() public view returns (bool) {
+  function isRngTimedOut() public view override returns (bool) {
     if (rngRequest.requestedAt == 0) {
       return false;
     } else {
@@ -278,6 +266,114 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /* ============ External Functions ============ */
+
+  /**
+    * @notice Returns whether an award process can be started.
+    * @return True if an award can be started, false otherwise.
+   */
+  function canStartRNGRequest() external view override returns (bool) {
+    return _isDrawPeriodOver() && !isRngRequested();
+  }
+
+  /**
+    * @notice Returns whether an award process can be completed.
+    * @return True if an award can be completed, false otherwise.
+   */
+  function canCompleteRNGRequest() external view override returns (bool) {
+    return isRngRequested() && isRngCompleted();
+  }
+
+
+  /**
+    * @notice Calculates when the next draw period will start.
+    * @param currentTime The timestamp to use as the current time
+    * @return The timestamp at which the next draw period would start
+   */
+  function calculateNextDrawPeriodStartTime(uint256 currentTime) external view override returns (uint256) {
+    return _calculateNextDrawPeriodStartTime(currentTime);
+  }
+
+  /**
+    * @notice Can be called by anyone to cancel the RNG request if the RNG has timed out.
+   */
+  function cancelDraw() external override {
+    require(isRngTimedOut(), "DrawBeacon/rng-not-timedout");
+    uint32 requestId = rngRequest.id;
+    uint32 lockBlock = rngRequest.lockBlock;
+    delete rngRequest;
+    emit RngRequestFailed();
+    emit DrawBeaconRNGRequestCancelled(msg.sender, requestId, lockBlock);
+  }
+
+  /**
+    * @notice Completes the RNG request and creates a new draw.
+    * @dev    Completes the RNG request, creates a new draw on the DrawHistory and reset draw period start.
+    *
+   */
+  function completeDraw() external override requireCanCompleteRngRequest {
+    uint256 randomNumber = rng.randomNumber(rngRequest.id);
+    delete rngRequest;
+
+    _saveRNGRequestWithDraw(randomNumber);
+
+    // to avoid clock drift, we should calculate the start time based on the previous period start time.
+    drawPeriodStartedAt = _calculateNextDrawPeriodStartTime(_currentTime());
+
+    emit DrawBeaconRNGRequestCompleted(_msgSender(), randomNumber);
+    emit DrawBeaconOpened(_msgSender(), drawPeriodStartedAt);
+  }
+
+  /**
+    * @notice Returns the number of seconds remaining until the rng request can be complete.
+    * @return The number of seconds remaining until the rng request can be complete.
+   */
+  function drawPeriodRemainingSeconds() external view override returns (uint256) {
+    return _drawPeriodRemainingSeconds();
+  }
+
+  /**
+    * @notice Returns the timestamp at which the draw period ends
+    * @return The timestamp at which the draw period ends.
+   */
+  function drawPeriodEndAt() external view override returns (uint256) {
+    return _drawPeriodEndAt();
+  }
+
+  /**
+    * @notice Estimates the remaining blocks until the prize given a number of seconds per block
+    * @param secondsPerBlockMantissa The number of seconds per block to use for the calculation.  Should be a fixed point 18 number like Ether.
+    * @return The estimated number of blocks remaining until the prize can be awarded.
+   */
+  function estimateRemainingBlocksToPrize(uint256 secondsPerBlockMantissa) external view override returns (uint256) {
+    return FixedPoint.divideUintByMantissa(
+      _drawPeriodRemainingSeconds(),
+      secondsPerBlockMantissa
+    );
+  }
+
+  /**
+    * @notice Returns the block number that the current RNG request has been locked to.
+    * @return The block number that the RNG request is locked to
+   */
+  function getLastRngLockBlock() external view override returns (uint32) {
+    return rngRequest.lockBlock;
+  }
+
+  /**
+    * @notice Returns the current RNG Request ID.
+    * @return The current Request ID
+   */
+  function getLastRngRequestId() external view override returns (uint32) {
+    return rngRequest.id;
+  }
+
+  /**
+    * @notice Returns whether the draw period is over
+    * @return True if the draw period is over, false otherwise
+   */
+  function isDrawPeriodOver() external view override returns (bool) {
+    return _isDrawPeriodOver();
+  }
 
   /**
     * @notice External function to set DrawHistory.
@@ -290,34 +386,10 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Returns the number of seconds remaining until the rng request can be complete.
-    * @return The number of seconds remaining until the rng request can be complete.
-   */
-  function drawPeriodRemainingSeconds() external view returns (uint256) {
-    return _drawPeriodRemainingSeconds();
-  }
-
-  /**
-    * @notice Returns whether the draw period is over
-    * @return True if the draw period is over, false otherwise
-   */
-  function isDrawPeriodOver() external view returns (bool) {
-    return _isDrawPeriodOver();
-  }
-
-  /**
-    * @notice Returns the timestamp at which the draw period ends
-    * @return The timestamp at which the draw period ends.
-   */
-  function drawPeriodEndAt() external view returns (uint256) {
-    return _drawPeriodEndAt();
-  }
-
-  /**
     * @notice Starts the award process by starting random number request.  The draw period must have ended.
     * @dev The RNG-Request-Fee is expected to be held within this contract before calling this function
    */
-  function startDraw() external requireCanStartDraw {
+  function startDraw() external override requireCanStartDraw {
     (address feeToken, uint256 requestFee) = rng.getRequestFee();
     if (feeToken != address(0) && requestFee > 0) {
       IERC20Upgradeable(feeToken).safeApprove(address(rng), requestFee);
@@ -332,100 +404,29 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Can be called by anyone to cancel the RNG request if the RNG has timed out.
+    * @notice Allows the owner to set the draw period in seconds.
+    * @param drawPeriodSeconds The new draw period in seconds.  Must be greater than zero.
    */
-  function cancelDraw() external {
-    require(isRngTimedOut(), "DrawBeacon/rng-not-timedout");
-    uint32 requestId = rngRequest.id;
-    uint32 lockBlock = rngRequest.lockBlock;
-    delete rngRequest;
-    emit RngRequestFailed();
-    emit DrawBeaconRNGRequestCancelled(msg.sender, requestId, lockBlock);
+  function setDrawPeriodSeconds(uint256 drawPeriodSeconds) external override onlyOwner requireAwardNotInProgress {
+    _setDrawPeriodSeconds(drawPeriodSeconds);
   }
-
+  
   /**
-    * @notice Completes the RNG request and creates a new draw.
-    * @dev    Completes the RNG request, creates a new draw on the DrawHistory and reset draw period start.
-    *
+    * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
+    * @param _rngRequestTimeout The RNG request timeout in seconds.
    */
-  function completeDraw() external requireCanCompleteRngRequest {
-    uint256 randomNumber = rng.randomNumber(rngRequest.id);
-    delete rngRequest;
-
-    _saveRNGRequestWithDraw(randomNumber);
-
-    // to avoid clock drift, we should calculate the start time based on the previous period start time.
-    drawPeriodStartedAt = _calculateNextDrawPeriodStartTime(_currentTime());
-
-    emit DrawBeaconRNGRequestCompleted(_msgSender(), randomNumber);
-    emit DrawBeaconOpened(_msgSender(), drawPeriodStartedAt);
-  }
-
-  /**
-    * @notice Calculates when the next draw period will start.
-    * @param currentTime The timestamp to use as the current time
-    * @return The timestamp at which the next draw period would start
-   */
-  function calculateNextDrawPeriodStartTime(uint256 currentTime) external view returns (uint256) {
-    return _calculateNextDrawPeriodStartTime(currentTime);
-  }
-
-  /**
-    * @notice Returns whether an award process can be started.
-    * @return True if an award can be started, false otherwise.
-   */
-  function canStartRNGRequest() external view returns (bool) {
-    return _isDrawPeriodOver() && !isRngRequested();
-  }
-
-  /**
-    * @notice Returns whether an award process can be completed.
-    * @return True if an award can be completed, false otherwise.
-   */
-  function canCompleteRNGRequest() external view returns (bool) {
-    return isRngRequested() && isRngCompleted();
-  }
-
-  /**
-    * @notice Returns the block number that the current RNG request has been locked to.
-    * @return The block number that the RNG request is locked to
-   */
-  function getLastRngLockBlock() external view returns (uint32) {
-    return rngRequest.lockBlock;
-  }
-
-  /**
-    * @notice Returns the current RNG Request ID.
-    * @return The current Request ID
-   */
-  function getLastRngRequestId() external view returns (uint32) {
-    return rngRequest.id;
+  function setRngRequestTimeout(uint32 _rngRequestTimeout) external override onlyOwner requireAwardNotInProgress {
+    _setRngRequestTimeout(_rngRequestTimeout);
   }
 
   /**
     * @notice Sets the RNG service that the Prize Strategy is connected to
     * @param rngService The address of the new RNG service interface
    */
-  function setRngService(RNGInterface rngService) external onlyOwner requireAwardNotInProgress {
+  function setRngService(RNGInterface rngService) external override onlyOwner requireAwardNotInProgress {
     require(!isRngRequested(), "DrawBeacon/rng-in-flight");
     rng = rngService;
     emit RngServiceUpdated(rngService);
-  }
-
-  /**
-    * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
-    * @param _rngRequestTimeout The RNG request timeout in seconds.
-   */
-  function setRngRequestTimeout(uint32 _rngRequestTimeout) external onlyOwner requireAwardNotInProgress {
-    _setRngRequestTimeout(_rngRequestTimeout);
-  }
-
-  /**
-    * @notice Allows the owner to set the draw period in seconds.
-    * @param drawPeriodSeconds The new draw period in seconds.  Must be greater than zero.
-   */
-  function setDrawPeriodSeconds(uint256 drawPeriodSeconds) external onlyOwner requireAwardNotInProgress {
-    _setDrawPeriodSeconds(drawPeriodSeconds);
   }
 
   /* ============ Internal Functions ============ */
@@ -443,11 +444,11 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Returns whether the draw period is over.
-    * @return True if the draw period is over, false otherwise
+    * @notice returns the current time.  Used for testing.
+    * @return The current time (block.timestamp)
    */
-  function _isDrawPeriodOver() internal view returns (bool) {
-    return _currentTime() >= _drawPeriodEndAt();
+  function _currentTime() internal virtual view returns (uint256) {
+    return block.timestamp;
   }
 
   /**
@@ -472,22 +473,19 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /**
+    * @notice Returns whether the draw period is over.
+    * @return True if the draw period is over, false otherwise
+   */
+  function _isDrawPeriodOver() internal view returns (bool) {
+    return _currentTime() >= _drawPeriodEndAt();
+  }
+
+  /**
     * @notice Check to see award is in progress.
    */
   function _requireDrawNotInProgress() internal view {
     uint256 currentBlock = block.number;
     require(rngRequest.lockBlock == 0 || currentBlock < rngRequest.lockBlock, "DrawBeacon/rng-in-flight");
-  }
-
-  /**
-    * @notice Create a new draw using the RNG request result.
-    * @dev    Create a new draw in the connected DrawHistory contract using the RNG request result.
-    * @param randomNumber Randomly generated number
-  */
-  function _saveRNGRequestWithDraw(uint256 randomNumber) internal {
-    DrawLib.Draw memory _draw = DrawLib.Draw({drawId: nextDrawId, timestamp: uint32(block.timestamp), winningRandomNumber: randomNumber});
-    drawHistory.pushDraw(_draw);
-    nextDrawId += 1;
   }
 
   /**
@@ -527,11 +525,14 @@ abstract contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice returns the current time.  Used for testing.
-    * @return The current time (block.timestamp)
-   */
-  function _currentTime() internal virtual view returns (uint256) {
-    return block.timestamp;
+    * @notice Create a new draw using the RNG request result.
+    * @dev    Create a new draw in the connected DrawHistory contract using the RNG request result.
+    * @param randomNumber Randomly generated number
+  */
+  function _saveRNGRequestWithDraw(uint256 randomNumber) internal {
+    DrawLib.Draw memory _draw = DrawLib.Draw({drawId: nextDrawId, timestamp: uint32(block.timestamp), winningRandomNumber: randomNumber});
+    drawHistory.pushDraw(_draw);
+    nextDrawId += 1;
   }
 
 }
