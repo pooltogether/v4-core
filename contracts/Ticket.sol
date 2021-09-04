@@ -44,6 +44,11 @@ contract Ticket is ControlledToken, TicketInterface {
     TwabLibrary.Twab[MAX_CARDINALITY] twabs;
   }
 
+  event Delegated(
+    address indexed user,
+    address indexed delegate
+  );
+
   /// @notice Emitted when ticket is initialized.
   /// @param name Ticket name (eg: PoolTogether Dai Ticket (Compound)).
   /// @param symbol Ticket symbol (eg: PcDAI).
@@ -57,9 +62,11 @@ contract Ticket is ControlledToken, TicketInterface {
   );
 
   /// @notice Emitted when a new TWAB has been recorded.
-  /// @param user Ticket holder address.
+  /// @param ticketHolder The Ticket holder address.
+  /// @param user The recipient of the ticket power (may be the same as the ticketHolder)
   /// @param newTwab Updated TWAB of a ticket holder after a successful TWAB recording.
   event NewUserTwab(
+    address indexed ticketHolder,
     address indexed user,
     TwabLibrary.Twab newTwab
   );
@@ -78,6 +85,12 @@ contract Ticket is ControlledToken, TicketInterface {
 
   /// @notice Record of tickets total supply and most recent TWAB index.
   Account internal totalSupplyTwab;
+
+  /// @notice Mapping of delegates.  Each address can delegate their ticket power to another.
+  mapping(address => address) delegates;
+
+  /// @notice Each address's balance
+  mapping(address => uint256) balances;
 
   /// @notice Initializes Ticket with passed parameters.
   /// @param _name ERC20 ticket token name.
@@ -203,10 +216,14 @@ contract Ticket is ControlledToken, TicketInterface {
     return totalSupplies;
   }
 
+  function delegateOf(address _user) external view returns (address) {
+    return delegates[_user];
+  }
+
   /// @notice Returns the ERC20 ticket token balance of a ticket holder.
   /// @return uint256 `_user` ticket token balance.
   function _balanceOf(address _user) internal view returns (uint256) {
-    return userTwabs[_user].details.balance;
+    return balances[_user];
   }
 
   /// @notice Returns the ERC20 ticket token decimals.
@@ -228,6 +245,27 @@ contract Ticket is ControlledToken, TicketInterface {
     return totalSupplyTwab.details.balance;
   }
 
+  function delegate(address to) external virtual {
+    uint224 balance = uint224(_balanceOf(msg.sender));
+    address currentDelegate = delegates[msg.sender];
+
+    if (currentDelegate != address(0)) {
+      _decreaseUserTwab(msg.sender, currentDelegate, balance);
+    } else {
+      _decreaseUserTwab(msg.sender, msg.sender, balance);
+    }
+
+    if (to != address(0)) {
+      _increaseUserTwab(msg.sender, to, balance);
+    } else {
+      _increaseUserTwab(msg.sender, msg.sender, balance);
+    }
+
+    delegates[msg.sender] = to;
+
+    emit Delegated(msg.sender, to);
+  }
+
   /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
   /// @dev `_sender` cannot be the zero address.
   /// @dev `_recipient` cannot be the zero address.
@@ -243,20 +281,36 @@ contract Ticket is ControlledToken, TicketInterface {
     require(_sender != address(0), "ERC20: transfer from the zero address");
     require(_recipient != address(0), "ERC20: transfer to the zero address");
 
-    uint32 time = uint32(block.timestamp);
     uint224 amount = uint224(_amount);
 
     _beforeTokenTransfer(_sender, _recipient, _amount);
 
     if (_sender != _recipient) {
-      (TwabLibrary.Twab memory senderTwab, bool senderIsNew) = decreaseBalance(userTwabs[_sender], amount, "ERC20: transfer amount exceeds balance");
-      if (senderIsNew) {
-        emit NewUserTwab(_sender, senderTwab);
+
+      // standard balance update
+      uint256 senderBalance = balances[_sender];
+      require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+      unchecked {
+          balances[_sender] = senderBalance - amount;
       }
-      (TwabLibrary.Twab memory recipientTwab, bool recipientIsNew) = increaseBalance(userTwabs[_recipient], amount);
-      if (recipientIsNew) {
-        emit NewUserTwab(_recipient, recipientTwab);
+      balances[_recipient] += amount;
+
+      // history update
+      address senderDelegate = delegates[_sender];
+      if (senderDelegate != address(0)) {
+        _decreaseUserTwab(_sender, senderDelegate, _amount);
+      } else {
+        _decreaseUserTwab(_sender, _sender, _amount);
       }
+
+      // history update
+      address recipientDelegate = delegates[_recipient];
+      if (recipientDelegate != address(0)) {
+        _increaseUserTwab(_recipient, recipientDelegate, amount);
+      } else {
+        _increaseUserTwab(_recipient, _recipient, amount);
+      }
+
     }
 
     emit Transfer(_sender, _recipient, _amount);
@@ -272,17 +326,21 @@ contract Ticket is ControlledToken, TicketInterface {
     require(_to != address(0), "ERC20: mint to the zero address");
 
     uint224 amount = _amount.toUint224();
-    uint32 time = uint32(block.timestamp);
 
     _beforeTokenTransfer(address(0), _to, _amount);
 
-    (TwabLibrary.Twab memory totalSupply, bool tsIsNew) = increaseBalance(totalSupplyTwab, amount);
+    balances[_to] += amount;
+
+    (TwabLibrary.Twab memory totalSupply, bool tsIsNew) = increaseTwab(totalSupplyTwab, amount);
     if (tsIsNew) {
       emit NewTotalSupplyTwab(totalSupply);
     }
-    (TwabLibrary.Twab memory userTwab, bool userIsNew) = increaseBalance(userTwabs[_to], amount);
-    if (userIsNew) {
-      emit NewUserTwab(_to, userTwab);
+
+    address toDelegate = delegates[_to];
+    if (toDelegate != address(0)) {
+      _increaseUserTwab(_to, toDelegate, amount);
+    } else {
+      _increaseUserTwab(_to, _to, amount);
     }
 
     emit Transfer(address(0), _to, _amount);
@@ -299,11 +357,10 @@ contract Ticket is ControlledToken, TicketInterface {
     require(_from != address(0), "ERC20: burn from the zero address");
 
     uint224 amount = _amount.toUint224();
-    uint32 time = uint32(block.timestamp);
 
     _beforeTokenTransfer(_from, address(0), _amount);
 
-    (TwabLibrary.Twab memory tsTwab, bool tsIsNew) = decreaseBalance(
+    (TwabLibrary.Twab memory tsTwab, bool tsIsNew) = decreaseTwab(
       totalSupplyTwab,
       amount,
       "ERC20: burn amount exceeds balance"
@@ -312,13 +369,17 @@ contract Ticket is ControlledToken, TicketInterface {
       emit NewTotalSupplyTwab(tsTwab);
     }
 
-    (TwabLibrary.Twab memory userTwab, bool userIsNew) = decreaseBalance(
-      userTwabs[_from],
-      amount,
-      "ERC20: burn amount exceeds balance"
-    );
-    if (userIsNew) {
-      emit NewUserTwab(_from, userTwab);
+    uint256 accountBalance = balances[_from];
+    require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+    unchecked {
+        balances[_from] = accountBalance - amount;
+    }
+
+    address fromDelegate = delegates[_from];
+    if (fromDelegate != address(0)) {
+      _decreaseUserTwab(_from, fromDelegate, amount);
+    } else {
+      _decreaseUserTwab(_from, _from, amount);
     }
 
     emit Transfer(_from, address(0), _amount);
@@ -326,12 +387,40 @@ contract Ticket is ControlledToken, TicketInterface {
     _afterTokenTransfer(_from, address(0), _amount);
   }
 
+  function _increaseUserTwab(
+    address _holder,
+    address _user,
+    uint256 _amount
+  ) internal {
+    Account storage _account = userTwabs[_user];
+    // console.log("_increaseUserTwab ", _user);
+    (TwabLibrary.Twab memory twab, bool isNew) = increaseTwab(_account, _amount);
+    if (isNew) {
+      // console.log("!!! new twab: ", twab.timestamp);
+      emit NewUserTwab(_holder, _user, twab);
+    }
+  }
+
+  function _decreaseUserTwab(
+    address _holder,
+    address _user,
+    uint256 _amount
+  ) internal {
+    Account storage _account = userTwabs[_user];
+    // console.log("_decreaseUserTwab ", _user);
+    (TwabLibrary.Twab memory twab, bool isNew) = decreaseTwab(_account, _amount, "ERC20: burn amount exceeds balance");
+    if (isNew) {
+      // console.log("!!! new twab: ", twab.timestamp);
+      emit NewUserTwab(_holder, _user, twab);
+    }
+  }
+
   /// @notice Increases an account's balance and records a new twab.
   /// @param _account The account whose balance will be increased
   /// @param _amount The amount to increase the balance by
   /// @return twab The user's latest TWAB
   /// @return isNew Whether the TWAB is new
-  function increaseBalance(
+  function increaseTwab(
     Account storage _account,
     uint256 _amount
   ) internal returns (TwabLibrary.Twab memory twab, bool isNew) {
@@ -359,7 +448,7 @@ contract Ticket is ControlledToken, TicketInterface {
   /// @param _message The revert message in the event of insufficient balance
   /// @return twab The user's latest TWAB
   /// @return isNew Whether the TWAB is new
-  function decreaseBalance(
+  function decreaseTwab(
     Account storage _account,
     uint256 _amount,
     string memory _message
