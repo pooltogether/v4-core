@@ -4,6 +4,7 @@ import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { constants, Contract } from 'ethers';
 import { expect } from 'chai';
+import { deploy1820 } from 'deploy-eip-1820'
 
 const debug = require('debug')('ptv3:PoolEnv');
 const now = () => (new Date().getTime() / 1000) | 0;
@@ -16,6 +17,7 @@ describe('DrawBeacon', () => {
   let drawBeacon: Contract;
   let drawBeacon2: Contract;
   let rng: MockContract;
+  let registry: any;
   let rngFeeToken: MockContract;
 
   let rngRequestPeriodStart = now();
@@ -34,6 +36,9 @@ describe('DrawBeacon', () => {
     IERC20 = await artifacts.readArtifact('IERC20Upgradeable');
 
     debug(`using wallet ${wallet.address}`);
+
+    debug('deploying registry...')
+    registry = await deploy1820(wallet)
 
     debug(`deploy draw history...`);
     const DrawHistoryFactory = await ethers.getContractFactory('DrawHistory', wallet);

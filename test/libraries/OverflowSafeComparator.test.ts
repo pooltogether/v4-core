@@ -5,7 +5,7 @@ import { ethers } from 'hardhat';
 
 const { getSigners } = ethers;
 
-describe.skip('overflowSafeComparator', () => {
+describe('overflowSafeComparator', () => {
   let overflowSafeComparator: Contract;
 
   let wallet1: SignerWithAddress;
