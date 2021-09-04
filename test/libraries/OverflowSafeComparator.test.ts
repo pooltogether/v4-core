@@ -2,11 +2,10 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
-import { advanceBlock } from '../helpers/increaseTime'
 
-const { getSigners, provider } = ethers;
+const { getSigners } = ethers;
 
-describe('overflowSafeComparator', () => {
+describe.skip('overflowSafeComparator', () => {
   let overflowSafeComparator: Contract;
 
   let wallet1: SignerWithAddress;
