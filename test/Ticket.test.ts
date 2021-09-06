@@ -19,11 +19,6 @@ const { parseEther: toWei } = utils;
 
 const increaseTime = (time: number) => increaseTimeHelper(provider, time);
 
-type BinarySearchResult = {
-  amount: BigNumber;
-  timestamp: number;
-};
-
 async function printTwabs(ticketContract: Contract, wallet: SignerWithAddress, debugLog: any = debug) {
   const context = await ticketContract.getAccountDetails(wallet.address)
   debugLog(`Twab Context for ${wallet.address}: { balance: ${ethers.utils.formatEther(context.balance)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
@@ -37,7 +32,7 @@ async function printTwabs(ticketContract: Contract, wallet: SignerWithAddress, d
 }
 
 describe('Ticket', () => {
-  let controller: MockContract;
+  let prizePool: MockContract;
   let ticket: Contract;
 
   let wallet1: SignerWithAddress;
@@ -52,7 +47,7 @@ describe('Ticket', () => {
 
   const initializeTicket = async (
     decimals: number = ticketDecimals,
-    controllerAddress: string = controller.address,
+    controllerAddress: string = prizePool.address,
   ) => {
     await ticket.initialize(ticketName, ticketSymbol, decimals, controllerAddress);
   };
@@ -60,13 +55,13 @@ describe('Ticket', () => {
   beforeEach(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
 
-    const TokenControllerInterface = await hre.artifacts.readArtifact('contracts/token/TokenControllerInterface.sol:TokenControllerInterface');
-    controller = await deployMockContract(wallet1 as Signer, TokenControllerInterface.abi);
-
-    await controller.mock.beforeTokenTransfer.returns();
-
     const ticketFactory: ContractFactory = await ethers.getContractFactory('TicketHarness');
     ticket = await ticketFactory.deploy();
+
+    const PrizePool = await hre.artifacts.readArtifact(
+      'contracts/prize-pool/PrizePool.sol:PrizePool',
+    );
+    prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
 
     if (!isInitializeTest) {
       await initializeTicket();

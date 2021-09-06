@@ -18,7 +18,7 @@ contract ControlledTokenBuilder {
     string name;
     string symbol;
     uint8 decimals;
-    TokenControllerInterface controller;
+    address controller;
   }
 
   constructor (

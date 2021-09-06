@@ -58,7 +58,7 @@ contract Ticket is ControlledToken, TicketInterface {
     string name,
     string symbol,
     uint8 decimals,
-    TokenControllerInterface controller
+    address controller
   );
 
   /// @notice Emitted when a new TWAB has been recorded.
@@ -100,7 +100,7 @@ contract Ticket is ControlledToken, TicketInterface {
     string calldata _name,
     string calldata _symbol,
     uint8 decimals_,
-    TokenControllerInterface _controller
+    address _controller
   ) public virtual override initializer {
     __ERC20_init(_name, _symbol);
     __ERC20Permit_init("PoolTogether Ticket");
@@ -108,7 +108,8 @@ contract Ticket is ControlledToken, TicketInterface {
     require(decimals_ > 0, "Ticket/decimals-gt-zero");
     _decimals = decimals_;
 
-    require(address(_controller) != address(0), "Ticket/controller-not-zero-address");
+    require(_controller != address(0), "Ticket/controller-not-zero-address");
+
     ControlledToken.initialize(_name, _symbol, _decimals, _controller);
 
     emit TicketInitialized(_name, _symbol, decimals_, _controller);

@@ -13,19 +13,19 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 import "../external/compound/ICompLike.sol";
+
+import "../ClaimableDrawPrizeStrategy.sol";
 import "../registry/RegistryInterface.sol";
 import "../reserve/ReserveInterface.sol";
-import "../token/TokenListenerInterface.sol";
-import "../token/TokenListenerLibrary.sol";
 import "../token/ControlledToken.sol";
-import "../token/TokenControllerInterface.sol";
 import "../utils/MappedSinglyLinkedList.sol";
 import "./PrizePoolInterface.sol";
 
-/// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.  Users deposit and withdraw from this contract to participate in Prize Pool.
+/// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.
+///       Users deposit and withdraw from this contract to participate in Prize Pool.
 /// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
 /// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
-abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, ReentrancyGuardUpgradeable, TokenControllerInterface, IERC721ReceiverUpgradeable {
+abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, ReentrancyGuardUpgradeable, IERC721ReceiverUpgradeable {
   using SafeCastUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeERC20Upgradeable for IERC721Upgradeable;
@@ -160,7 +160,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   ControlledTokenInterface[] internal _tokens;
 
   /// @dev The Prize Strategy that this Prize Pool is bound to.
-  TokenListenerInterface public prizeStrategy;
+  address public prizeStrategy;
 
   /// @dev The maximum possible exit fee fraction as a fixed point 18 number.
   /// For example, if the maxExitFeeMantissa is "0.1 ether", then the maximum exit fee for a withdrawal of 100 Dai will be 10 Dai
@@ -310,32 +310,6 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     return exitFee;
   }
 
-  /// @notice Updates the Prize Strategy when tokens are transferred between holders.
-  /// @param from The address the tokens are being transferred from (0 if minting)
-  /// @param to The address the tokens are being transferred to (0 if burning)
-  /// @param amount The amount of tokens being trasferred
-  function beforeTokenTransfer(address from, address to, uint256 amount) external override onlyControlledToken(msg.sender) {
-    if (from != address(0)) {
-      uint256 fromBeforeBalance = IERC20Upgradeable(msg.sender).balanceOf(from);
-      // first accrue credit for their old balance
-      uint256 newCreditBalance = _calculateCreditBalance(from, msg.sender, fromBeforeBalance, 0);
-
-      if (from != to) {
-        // if they are sending funds to someone else, we need to limit their accrued credit to their new balance
-        newCreditBalance = _applyCreditLimit(msg.sender, fromBeforeBalance - amount, newCreditBalance);
-      }
-
-      _updateCreditBalance(from, msg.sender, newCreditBalance);
-    }
-    if (to != address(0) && to != from) {
-      _accrueCredit(to, msg.sender, IERC20Upgradeable(msg.sender).balanceOf(to), 0);
-    }
-    // if we aren't minting
-    if (from != address(0) && address(prizeStrategy) != address(0)) {
-      prizeStrategy.beforeTokenTransfer(from, to, amount, msg.sender);
-    }
-  }
-
   /// @notice Returns the balance that is available to award.
   /// @dev captureAwardBalance() should be called first
   /// @return The total amount of assets to be awarded for the current prize
@@ -472,9 +446,6 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @param controlledToken The token that is going to be minted
   /// @param referrer The user who referred the minting
   function _mint(address to, uint256 amount, address controlledToken, address referrer) internal {
-    if (address(prizeStrategy) != address(0)) {
-      prizeStrategy.beforeTokenMint(to, amount, controlledToken, referrer);
-    }
     ControlledToken(controlledToken).controllerMint(to, amount);
   }
 
@@ -504,7 +475,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
       catch(bytes memory error){
         emit ErrorAwardingExternalERC721(error);
       }
-      
+
     }
 
     emit AwardedExternalERC721(to, externalToken, tokenIds);
@@ -642,7 +613,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
     if (oldBalance < newBalance) {
       emit CreditMinted(user, controlledToken, newBalance - oldBalance);
-    } 
+    }
     else if (newBalance < oldBalance) {
       emit CreditBurned(user, controlledToken, oldBalance - newBalance);
     }
@@ -788,26 +759,24 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @param _controlledToken The controlled token to add.
   /// @param index The index to add the controlledToken
   function _addControlledToken(ControlledTokenInterface _controlledToken, uint256 index) internal {
-    require(_controlledToken.controller() == this, "PrizePool/token-ctrlr-mismatch");
-    
     _tokens[index] = _controlledToken;
     emit ControlledTokenAdded(_controlledToken);
   }
 
   /// @notice Sets the prize strategy of the prize pool.  Only callable by the owner.
   /// @param _prizeStrategy The new prize strategy
-  function setPrizeStrategy(TokenListenerInterface _prizeStrategy) external override onlyOwner {
+  function setPrizeStrategy(address _prizeStrategy) external override onlyOwner {
     _setPrizeStrategy(_prizeStrategy);
   }
 
   /// @notice Sets the prize strategy of the prize pool.  Only callable by the owner.
   /// @param _prizeStrategy The new prize strategy
-  function _setPrizeStrategy(TokenListenerInterface _prizeStrategy) internal {
-    require(address(_prizeStrategy) != address(0), "PrizePool/prizeStrategy-not-zero");
-    require(address(_prizeStrategy).supportsInterface(TokenListenerLibrary.ERC165_INTERFACE_ID_TOKEN_LISTENER), "PrizePool/prizeStrategy-invalid");
+  function _setPrizeStrategy(address _prizeStrategy) internal {
+    require(_prizeStrategy != address(0), "PrizePool/prizeStrategy-not-zero");
+
     prizeStrategy = _prizeStrategy;
 
-    emit PrizeStrategySet(address(_prizeStrategy));
+    emit PrizeStrategySet(_prizeStrategy);
   }
 
   /// @notice An array of the Tokens controlled by the Prize Pool (ie. Tickets, Sponsorship)
@@ -830,13 +799,13 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
   /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
   /// @param compLike The COMP-like token held by the prize pool that should be delegated
-  /// @param to The address to delegate to 
+  /// @param to The address to delegate to
   function compLikeDelegate(ICompLike compLike, address to) external onlyOwner {
     if (compLike.balanceOf(address(this)) > 0) {
       compLike.delegate(to);
     }
   }
-  
+
   /// @notice Required for ERC721 safe token transfers from smart contracts.
   /// @param operator The address that acts on behalf of the owner
   /// @param from The current owner of the NFT
@@ -850,9 +819,9 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @return The current total of all tokens
   function _tokenTotalSupply() internal view returns (uint256) {
     uint256 total = reserveTotalSupply;
-    ControlledTokenInterface[] memory tokens = _tokens; // SLOAD  
+    ControlledTokenInterface[] memory tokens = _tokens; // SLOAD
     uint256 tokensLength = tokens.length;
-    
+
     for(uint256 i = 0; i < tokensLength; i++){
       total = total + IERC20Upgradeable(tokens[i]).totalSupply();
     }
@@ -880,7 +849,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     }
     return false;
   }
-  
+
   /// @dev Checks if a specific token is controlled by the Prize Pool
   /// @param controlledToken The address of the token to check
   /// @return True if the token is a controlled token, false otherwise
@@ -921,7 +890,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
   /// @dev Function modifier to ensure caller is the prize-strategy
   modifier onlyPrizeStrategy() {
-    require(_msgSender() == address(prizeStrategy), "PrizePool/only-prizeStrategy");
+    require(_msgSender() == prizeStrategy, "PrizePool/only-prizeStrategy");
     _;
   }
 
