@@ -68,7 +68,7 @@ describe('ClaimableDraw', () => {
         .to.equal(1)
     });
 
-    it('should convert a draw id to a draw index after reaching cardinality', async () => {
+    it('should convert a draw id to a draw index when reaching cardinality', async () => {
       const drawIdToClaimIndex = await claimableDraw.drawIdToClaimIndex(13, 17);
       expect(drawIdToClaimIndex)
         .to.equal(5)

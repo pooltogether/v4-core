@@ -27,6 +27,7 @@
   "dependencies": {
     "@openzeppelin/contracts-upgradeable": "4.2.0",
     "@pooltogether/fixed-point": "1.0.0",
+    "@pooltogether/owner-manager-contracts": "^0.0.1-beta.3",
     "@pooltogether/pooltogether-contracts": "3.4.4",
     "@pooltogether/pooltogether-rng-contracts": "1.2.0",
     "deploy-eip-1820": "1.0.0"

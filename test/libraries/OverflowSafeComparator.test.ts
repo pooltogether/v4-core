@@ -7,15 +7,9 @@ const { getSigners, provider } = ethers;
 
 describe('overflowSafeComparator', () => {
   let overflowSafeComparator: Contract;
-
-  let wallet1: SignerWithAddress;
-  let wallet2: SignerWithAddress;
-
   let currentTimestamp: number;
 
   beforeEach(async () => {
-    [wallet1, wallet2] = await getSigners();
-
     currentTimestamp = (await provider.getBlock('latest')).timestamp;
 
     const overflowSafeComparatorFactory: ContractFactory = await ethers.getContractFactory(
@@ -26,8 +20,8 @@ describe('overflowSafeComparator', () => {
 
   describe('lt()', () => {
     it('should compare timestamp a to timestamp b if no overflow', async () => {
-      const timestampA = currentTimestamp - Math.floor(Math.random() * 1000);
-      const timestampB = currentTimestamp - Math.floor(Math.random() * 100);
+      const timestampA = currentTimestamp - 1000;
+      const timestampB = currentTimestamp - 100;
 
       expect(
         await overflowSafeComparator.ltHarness(timestampA, timestampB, currentTimestamp),
@@ -35,7 +29,7 @@ describe('overflowSafeComparator', () => {
     });
 
     it('should return false if timestamp a is equal to timestamp b', async () => {
-      const timestampA = currentTimestamp - Math.floor(Math.random() * 1000);
+      const timestampA = currentTimestamp - 1000;
       const timestampB = timestampA;
 
       expect(
@@ -44,8 +38,8 @@ describe('overflowSafeComparator', () => {
     });
 
     it('should compare timestamp a to timestamp b if b has overflowed', async () => {
-      const timestampA = currentTimestamp - Math.floor(Math.random() * 1000);
-      const timestampB = currentTimestamp + Math.floor(Math.random() * 1000);
+      const timestampA = currentTimestamp - 1000;
+      const timestampB = currentTimestamp + 1000
 
       expect(
         await overflowSafeComparator.ltHarness(timestampA, timestampB, currentTimestamp),
@@ -53,8 +47,8 @@ describe('overflowSafeComparator', () => {
     });
 
     it('should compare timestamp a to timestamp b if a has overflowed', async () => {
-      const timestampA = currentTimestamp + Math.floor(Math.random() * 1000);
-      const timestampB = currentTimestamp - Math.floor(Math.random() * 1000);
+      const timestampA = currentTimestamp + 1000;
+      const timestampB = currentTimestamp - 1000
 
       expect(
         await overflowSafeComparator.ltHarness(timestampA, timestampB, currentTimestamp),
@@ -62,7 +56,7 @@ describe('overflowSafeComparator', () => {
     });
 
     it('should return false if timestamps have overflowed and timestamp a is equal to timestamp b', async () => {
-      const timestampA = currentTimestamp + Math.floor(Math.random() * 1000);
+      const timestampA = currentTimestamp + 1000;
       const timestampB = timestampA;
 
       expect(
@@ -73,8 +67,8 @@ describe('overflowSafeComparator', () => {
 
   describe('lte()', () => {
     it('should compare timestamp a to timestamp b if no overflow', async () => {
-      const timestampA = currentTimestamp - Math.floor(Math.random() * 1000);
-      const timestampB = currentTimestamp - Math.floor(Math.random() * 100);
+      const timestampA = currentTimestamp - 1000;
+      const timestampB = currentTimestamp - 100;
 
       expect(
         await overflowSafeComparator.lteHarness(timestampA, timestampB, currentTimestamp),
@@ -82,7 +76,7 @@ describe('overflowSafeComparator', () => {
     });
 
     it('should return true if timestamp a is equal to timestamp b', async () => {
-      const timestampA = currentTimestamp - Math.floor(Math.random() * 1000);
+      const timestampA = currentTimestamp - 1000;
       const timestampB = timestampA;
 
       expect(
@@ -91,8 +85,8 @@ describe('overflowSafeComparator', () => {
     });
 
     it('should compare timestamp a to timestamp b if b has overflowed', async () => {
-      const timestampA = currentTimestamp - Math.floor(Math.random() * 1000);
-      const timestampB = currentTimestamp + Math.floor(Math.random() * 1000);
+      const timestampA = currentTimestamp - 1000;
+      const timestampB = currentTimestamp + 1000;
 
       expect(
         await overflowSafeComparator.lteHarness(timestampA, timestampB, currentTimestamp),
@@ -100,8 +94,8 @@ describe('overflowSafeComparator', () => {
     });
 
     it('should compare timestamp a to timestamp b if a has overflowed', async () => {
-      const timestampA = currentTimestamp + Math.floor(Math.random() * 1000);
-      const timestampB = currentTimestamp - Math.floor(Math.random() * 1000);
+      const timestampA = currentTimestamp + 1000;
+      const timestampB = currentTimestamp - 1000;
 
       expect(
         await overflowSafeComparator.lteHarness(timestampA, timestampB, currentTimestamp),
@@ -109,7 +103,7 @@ describe('overflowSafeComparator', () => {
     });
 
     it('should return true if timestamps have overflowed and timestamp a is equal to timestamp b', async () => {
-      const timestampA = currentTimestamp + Math.floor(Math.random() * 1000);
+      const timestampA = currentTimestamp + 1000;
       const timestampB = timestampA;
 
       expect(
