@@ -33,6 +33,7 @@ describe('ClaimableDraw', () => {
   let wallet1: any;
   let wallet2: any;
   let wallet3: any;
+  let dai: Contract;
   let claimableDraw: Contract;
   let drawCalculator: MockContract;
   let drawHistory: MockContract;
@@ -60,6 +61,11 @@ describe('ClaimableDraw', () => {
     claimableDraw = await claimableDrawFactory.deploy();
 
     await claimableDraw.initialize(wallet1.address, drawHistory.address);
+
+    const erc20MintableFactory: ContractFactory = await ethers.getContractFactory(
+      'ERC20Mintable',
+    );
+    dai = await erc20MintableFactory.deploy('Dai Stablecoin', 'DAI');
   });
 
   describe('drawIdToClaimIndex()', () => {
@@ -199,8 +205,8 @@ describe('ClaimableDraw', () => {
 
       await claimableDraw.setManager(wallet2.address)
       await expect(claimableDraw.connect(wallet2).setDrawHistory(wallet2.address))
-      .to.emit(claimableDraw, 'DrawHistorySet')
-      .withArgs(wallet2.address);
+        .to.emit(claimableDraw, 'DrawHistorySet')
+        .withArgs(wallet2.address);
     });
   });
 
@@ -322,6 +328,44 @@ describe('ClaimableDraw', () => {
 
       // TODO: Fix a deep equal to remove extra expect statements
       // expect(await claimableDraw.userDrawPayouts(wallet1.address)).to.equal(payoutExpectation); // FAILS
+    });
+  });
+
+  describe('withdrawERC20()', () => {
+    let withdrawAmount: BigNumber;
+
+    beforeEach(async () => {
+      withdrawAmount = toWei('100');
+
+      await dai.mint(claimableDraw.address, toWei('1000'));
+    });
+
+    it('should withdraw ERC20 tokens', async () => {
+      await claimableDraw.setManager(assetManager.address);
+
+      expect(
+        await claimableDraw
+          .connect(assetManager)
+          .withdrawERC20(dai.address, wallet1.address, withdrawAmount),
+      )
+        .to.emit(claimableDraw, 'ERC20Withdrawn')
+        .withArgs(dai.address, wallet1.address, withdrawAmount);
+    });
+
+    it('should fail to withdraw ERC20 tokens if not owner or assetManager', async () => {
+      await expect(
+        claimableDraw.connect(wallet2).withdrawERC20(dai.address, wallet1.address, withdrawAmount),
+      ).to.be.revertedWith('Manager/caller-not-manager-or-owner');
+    });
+
+    it('should fail to withdraw ERC20 tokens if token address is address zero', async () => {
+      await claimableDraw.setManager(assetManager.address);
+
+      await expect(
+        claimableDraw
+          .connect(assetManager)
+          .withdrawERC20(AddressZero, wallet1.address, withdrawAmount),
+      ).to.be.revertedWith('ClaimableDraw/ERC20-not-zero-address');
     });
   });
 });
