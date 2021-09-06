@@ -3,109 +3,125 @@ pragma solidity 0.8.6;
 
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/TicketInterface.sol";
+import "./libraries/DrawLib.sol";
+import "./ClaimableDraw.sol";
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
-///@title TsunamiDrawCalculator is an ownable implmentation of an IDrawCalculator
-contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
+///@title TsunamiDrawCalculator is an implmentation of an IDrawCalculator
+contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   
   ///@notice Ticket associated with DrawCalculator
   TicketInterface ticket;
 
-  ///@notice storage of the DrawSettings associated with this Draw Calculator. NOTE: mapping? store elsewhere?
-  DrawSettings public drawSettings;
+  ///@notice ClaimableDraw associated with DrawCalculator
+  ClaimableDraw public claimableDraw;
 
-  /* ============ Structs ============ */
-
-  ///@notice Draw settings struct
-  ///@param bitRangeSize Decimal representation of bitRangeSize
-  ///@param matchCardinality The bitRangeSize's to consider in the 256 random numbers. Must be > 1 and < 256/bitRangeSize
-  ///@param pickCost Amount of ticket balance required per pick
-  ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether. ordering: index0: grandPrize, index1: runnerUp, etc.
-  struct DrawSettings {
-    uint8 bitRangeSize;
-    uint16 matchCardinality;
-    uint224 pickCost;
-    uint128[] distributions;
-  }
+  ///@notice storage of the DrawSettings associated with a drawId
+  mapping(uint32 => DrawLib.DrawSettings) drawSettings;
 
   /* ============ Events ============ */
 
   ///@notice Emitted when the DrawParams are set/updated
-  event DrawSettingsSet(DrawSettings _drawSettings);
+  event DrawSettingsSet(uint32 indexed drawId, DrawLib.DrawSettings _drawSettings);
 
   ///@notice Emitted when the contract is initialized
   event Initialized(TicketInterface indexed _ticket);
 
+  ///@notice Emitted when the claimableDraw is set/updated
+  event ClaimableDrawSet(ClaimableDraw indexed _claimableDraw);
 
   /* ============ External Functions ============ */
 
   ///@notice Initializer sets the initial parameters
   ///@param _ticket Ticket associated with this DrawCalculator
-  ///@param _drawSettings Initial DrawSettings
-  function initialize(TicketInterface _ticket, DrawSettings calldata _drawSettings) public initializer {
+  ///@param _drawSettingsManager Address of the DrawSettingsManager. Can be different from the contract owner.
+  ///@param _claimableDraw ClaimableDraw associated with this DrawCalculator
+  function initialize(TicketInterface _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw)
+    public initializer
+  {
+    require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
     __Ownable_init();
+    setManager(_drawSettingsManager);
+    _setClaimableDraw(_claimableDraw);
     ticket = _ticket;
-
-    _setDrawSettings(_drawSettings);
     emit Initialized(_ticket);
-  }
-
-  ///@notice Calculates the expected prize fraction per DrawSettings and prizeDistributionIndex
-  ///@param _drawSettings DrawSettings struct for Draw
-  ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
-  ///@return returns the fraction of the total prize
-  function calculatePrizeDistributionFraction(DrawSettings calldata _drawSettings, uint256 _prizeDistributionIndex) external view returns(uint256){
-    return _calculatePrizeDistributionFraction(_drawSettings, _prizeDistributionIndex);
-  }
-
-  ///@notice Set the DrawCalculators DrawSettings
-  ///@dev Distributions must be expressed with Ether decimals (1e18)
-  ///@param _drawSettings DrawSettings struct to set
-  function setDrawSettings(DrawSettings calldata _drawSettings) external onlyOwner {
-    _setDrawSettings(_drawSettings);
   }
 
   ///@notice Calulates the prize amount for a user for Multiple Draws. Typically called by a ClaimableDraw.
   ///@param _user User for which to calcualte prize amount
-  ///@param _winningRandomNumbers the winning random numbers for the Draws
-  ///@param _timestamps the timestamps at which the Draws occurred
-  ///@param _prizes The prizes at those Draws
+  ///@param _draws draw array for which to calculate prize amounts for
   ///@param _pickIndicesForDraws The encoded pick indices for all Draws. Expected to be just indices of winning claims. Populated values must be less than totalUserPicks.
-  ///@return An array of prizes awardable
-  function calculate(address _user, uint256[] calldata _winningRandomNumbers, uint32[] calldata _timestamps, uint256[] calldata _prizes, bytes calldata _pickIndicesForDraws)
-    external override view returns (uint96[] memory){
-
-    require(_winningRandomNumbers.length == _timestamps.length && _timestamps.length == _prizes.length, "DrawCalc/invalid-calculate-input-lengths");
-
-    uint96[] memory prizesAwardable = new uint96[](_prizes.length);
+  ///@return An array of amount of prizes awardable
+  function calculate(address _user, DrawLib.Draw[] calldata _draws, bytes calldata _pickIndicesForDraws)
+    external override view returns (uint96[] memory)
+  {
 
     uint256[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint256 [][]));
-    require(pickIndices.length == _timestamps.length, "DrawCalc/invalid-pick-indices-length");
+    require(pickIndices.length == _draws.length, "DrawCalc/invalid-pick-indices-length");
+
+    //now unpack Draw struct
+    uint32[] memory _timestamps = new uint32[](_draws.length);
+    uint256[] memory _winningRandomNumbers = new uint256[](_draws.length);
+    
+    for(uint256 i = 0; i < _draws.length; i++){
+      _timestamps[i] = _draws[i].timestamp;
+      _winningRandomNumbers[i] = _draws[i].winningRandomNumber;
+    }
+    require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
+
 
     uint256[] memory userBalances = ticket.getBalancesAt(_user, _timestamps); // CALL
-    bytes32 userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
+    bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
-    DrawSettings memory _drawSettings = drawSettings; //sload
+    return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices);
+  }
 
-    // calculate for each Draw passed
-    for (uint256 index = 0; index < _winningRandomNumbers.length; index++) {
-      prizesAwardable[index] = _calculate(_winningRandomNumbers[index], _prizes[index], userBalances[index], userRandomNumber, pickIndices[index], _drawSettings);
-    }
-    return prizesAwardable;
+  ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
+  ///@param _drawId The id of the Draw
+  ///@param _drawSettings The DrawSettings to set
+  function setDrawSettings(uint32 _drawId, DrawLib.DrawSettings calldata _drawSettings) external onlyManagerOrOwner 
+  {
+    _setDrawSettings(_drawId, _drawSettings);
+  }
+
+  ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
+  ///@param _claimableDraw The address of the ClaimableDraw to update with the updated DrawSettings
+  function setClaimableDraw(ClaimableDraw _claimableDraw) external onlyManagerOrOwner returns(ClaimableDraw)
+  {
+    return _setClaimableDraw(_claimableDraw);
   }
 
   /* ============ Internal Functions ============ */
 
+  ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
+  ///@param _userBalances Balances of the user at each Draw
+  ///@param _userRandomNumber Random number of the user to consider over draws
+  ///@param _winningRandomNumbers Winning random numbers for each Draw
+  ///@param _pickIndicesForDraws Pick indices for each Draw
+  function _calculatePrizesAwardable(uint256[] memory _userBalances, bytes32 _userRandomNumber, uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws)
+   internal view returns (uint96[] memory)
+   {
+
+    uint96[] memory prizesAwardable = new uint96[](_userBalances.length);
+    
+    // calculate for each Draw passed
+    for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
+      DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
+      prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], _userBalances[drawIndex], _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
+    }
+    return prizesAwardable;
+  }
+
   ///@notice calculates the prize amount per Draw per users pick
   ///@param _winningRandomNumber The Draw's winningRandomNumber
-  ///@param _prize The Draw's prize amount
   ///@param _balance The users's balance for that Draw
   ///@param _userRandomNumber the users randomNumber for that draw
   ///@param _picks The users picks for that draw
   ///@param _drawSettings Params with the associated draw
   ///@return prize (if any) per Draw claim
-  function _calculate(uint256 _winningRandomNumber, uint256 _prize, uint256 _balance, bytes32 _userRandomNumber, uint256[] memory _picks, DrawSettings memory _drawSettings)
+  function _calculate(uint256 _winningRandomNumber, uint256 _balance, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.DrawSettings memory _drawSettings)
     internal view returns (uint96)
   {
     
@@ -134,7 +150,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
       }
     }
     // return the absolute amount of prize awardable
-    return uint96((prizeFraction * _prize) / 1 ether); // div by 1 ether as prize distributions are base 1e18
+    return uint96((prizeFraction * _drawSettings.prize) / 1e18); // div by 1 ether as prize distributions are base 1e18
   }
 
   ///@notice Calculates the distribution index given the random numbers and masks
@@ -143,7 +159,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param _masks The pre-calculate bitmasks for the drawSettings
   ///@return The position within the prize distribution array (0 = top prize, 1 = runner-up prize, etc)
   function _calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks)
-    internal view returns (uint256) 
+    internal pure returns (uint256) 
   {
 
     uint256 numberOfMatches = 0;
@@ -155,13 +171,15 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
         }
       }
     }
+
     return _masks.length - numberOfMatches;
   }
 
 
   ///@notice helper function to create bitmasks equal to the matchCardinality
+  ///@param _drawSettings The DrawSettings to use to calculate the masks
   ///@return An array of bitmasks
-  function _createBitMasks(DrawSettings memory _drawSettings) 
+  function _createBitMasks(DrawLib.DrawSettings memory _drawSettings) 
     internal pure returns (uint256[] memory)
   {
     uint256[] memory masks = new uint256[](_drawSettings.matchCardinality);
@@ -180,7 +198,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
   ///@param _drawSettings DrawSettings struct for Draw
   ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
   ///@return returns the fraction of the total prize (base 1e18)
-  function _calculatePrizeDistributionFraction(DrawSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal pure returns (uint256) 
+  function _calculatePrizeDistributionFraction(DrawLib.DrawSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal view returns (uint256) 
   {
     uint256 numberOfPrizesForIndex = (2 ** uint256(_drawSettings.bitRangeSize)) ** _prizeDistributionIndex;
     uint256 prizePercentageAtIndex = _drawSettings.distributions[_prizeDistributionIndex];
@@ -189,8 +207,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
 
   ///@notice Set the DrawCalculators DrawSettings
   ///@dev Distributions must be expressed with Ether decimals (1e18)
+  ///@param drawId The id of the Draw
   ///@param _drawSettings DrawSettings struct to set
-  function _setDrawSettings(DrawSettings calldata _drawSettings) internal {
+  function _setDrawSettings(uint32 drawId, DrawLib.DrawSettings calldata _drawSettings) internal
+  {
     uint256 sumTotalDistributions = 0;
     uint256 distributionsLength = _drawSettings.distributions.length;
 
@@ -198,13 +218,27 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnableUpgradeable {
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.pickCost > 0, "DrawCalc/pick-cost-gt-0");
 
+    // ensure that the distributions are not gt 100%
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
     }
 
     require(sumTotalDistributions <= 1 ether, "DrawCalc/distributions-gt-100%");
-    drawSettings = _drawSettings; //sstore
-    emit DrawSettingsSet(_drawSettings);
+
+    claimableDraw.setDrawCalculator(drawId, IDrawCalculator(address(this)));
+
+    drawSettings[drawId] = _drawSettings; //sstore
+    emit DrawSettingsSet(drawId, _drawSettings);
+  }
+
+  ///@notice Internal function to set the Claimable Draw address
+  ///@param _claimableDraw The address of the Claimable Draw contract to set
+  function _setClaimableDraw(ClaimableDraw _claimableDraw) internal returns(ClaimableDraw)
+  {
+    require(address(_claimableDraw) != address(0), "DrawCalc/claimable-draw-not-zero-address");
+    claimableDraw = _claimableDraw;
+    emit ClaimableDrawSet(_claimableDraw);
+    return _claimableDraw; 
   }
 
 }

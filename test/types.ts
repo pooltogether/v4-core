@@ -5,4 +5,7 @@ export type DrawSettings = {
     pickCost: BigNumber;
     distributions: BigNumber[];
     bitRangeSize: BigNumber;
+    prize: BigNumber;
 };
+
+export type Draw = {drawId: BigNumber, winningRandomNumber: BigNumber, timestamp: BigNumber}   
