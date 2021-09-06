@@ -4,8 +4,6 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 import "./OverflowSafeComparator.sol";
 
 /// @title Time-Weighted Average Balance Library
@@ -356,8 +354,6 @@ library TwabLibrary {
     uint32 _time,
     uint32 _ttl
   ) internal view returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality) {
-    // console.log("_nextTwabIndex: ", _nextTwabIndex);
-    // console.log("_cardinality: ", _cardinality);
     uint16 cardinality = _cardinality > 0 ? _cardinality : 1;
 /*
     TTL: 100
@@ -387,7 +383,7 @@ library TwabLibrary {
 
     Twab memory secondOldestTwab;
     // if there are two or more records (cardinality is always one greater than # of records)
-    if (cardinality > 1) {
+    if (cardinality > 2) {
       // get the second oldest twab
       secondOldestTwab = _twabs[wrapCardinality(uint32(_nextTwabIndex) + 1, cardinality)];
     }
@@ -398,9 +394,6 @@ library TwabLibrary {
     }
 
     nextAvailableTwabIndex = wrapCardinality(uint32(_nextTwabIndex) + 1, nextCardinality);
-
-    // console.log("nextAvailableTwabIndex: ", nextAvailableTwabIndex);
-    // console.log("nextCardinality: ", nextCardinality);
   }
 
   function nextTwabWithExpiry(
