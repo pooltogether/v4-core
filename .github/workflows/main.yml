@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: 15.x
       - name: yarn, compile, hint, coverage
-        continue-on-error: false
+        continue-on-error: true
         run: |
           yarn
           yarn compile
