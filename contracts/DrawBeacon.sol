@@ -216,7 +216,6 @@ abstract contract DrawBeacon is IDrawBeacon,
     _setDrawHistory(_drawHistory);
 
     __Ownable_init();
-    Constants.REGISTRY.setInterfaceImplementer(address(this), Constants.TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
 
     _setDrawPeriodSeconds(_drawPeriodSeconds);
     drawPeriodStartedAt = _rngRequestPeriodStart;

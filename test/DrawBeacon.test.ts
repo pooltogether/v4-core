@@ -37,9 +37,6 @@ describe('DrawBeacon', () => {
 
     debug(`using wallet ${wallet.address}`);
 
-    debug('deploying registry...')
-    registry = await deploy1820(wallet)
-
     debug(`deploy draw history...`);
     const DrawHistoryFactory = await ethers.getContractFactory('DrawHistory', wallet);
     drawHistory = await DrawHistoryFactory.deploy();
