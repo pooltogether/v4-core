@@ -14,11 +14,9 @@ import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 import "../external/compound/ICompLike.sol";
 
-import "../ClaimableDrawPrizeStrategy.sol";
 import "../registry/RegistryInterface.sol";
 import "../reserve/ReserveInterface.sol";
 import "../token/ControlledToken.sol";
-import "../utils/MappedSinglyLinkedList.sol";
 import "./PrizePoolInterface.sol";
 
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.
@@ -29,7 +27,6 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   using SafeCastUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeERC20Upgradeable for IERC721Upgradeable;
-  using MappedSinglyLinkedList for MappedSinglyLinkedList.Mapping;
   using ERC165CheckerUpgradeable for address;
 
   /// @dev Emitted when an instance is initialized

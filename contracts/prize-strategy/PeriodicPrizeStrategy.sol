@@ -13,6 +13,7 @@ import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 import "../token/ControlledToken.sol";
+import "../utils/MappedSinglyLinkedList.sol";
 import "../interfaces/TicketInterface.sol"; // NOTE: Updated from default TicketInterface
 import "../prize-pool/PrizePool.sol";
 import "../Constants.sol";

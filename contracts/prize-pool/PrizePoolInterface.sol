@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.6;
 
-import "../ClaimableDrawPrizeStrategy.sol";
 import "../token/ControlledTokenInterface.sol";
 
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.

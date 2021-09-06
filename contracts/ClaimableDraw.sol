@@ -2,13 +2,15 @@
 pragma solidity 0.8.6;
 
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
-
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/IDrawHistory.sol";
 
 import "./libraries/DrawLib.sol";
 
 contract ClaimableDraw is OwnerOrManager {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
 
   ///@notice The cardinality of the users payout/claim history
   uint16 public constant PAYOUT_CARDINALITY = 8;
@@ -138,7 +140,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param _data             The draw pick indices (uint256[][]) passed as a formatted bytes correlating to the draw ids
     * @return Total claim payout
   */
-  function claim(address _user, uint8[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256) {
+  function claim(address _user, uint32[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256) {
     return _claim(_user, _drawIds, _drawCalculators, _data);
   }
 
@@ -213,7 +215,7 @@ contract ClaimableDraw is OwnerOrManager {
   */
   function _claim(
     address _user, 
-    uint8[][] calldata _drawIds, 
+    uint32[][] calldata _drawIds, 
     IDrawCalculator[] calldata _drawCalculators, 
     bytes[] calldata _data
   ) internal returns (uint256) {
@@ -244,7 +246,7 @@ contract ClaimableDraw is OwnerOrManager {
   */
   function _calculate(
     address _user, 
-    uint8[] calldata _drawIds, 
+    uint32[] calldata _drawIds, 
     IDrawCalculator _drawCalculator, 
     bytes calldata _data
   ) internal returns (uint256) {
@@ -270,7 +272,7 @@ contract ClaimableDraw is OwnerOrManager {
   function _calculateDrawCollectionPayout(
     address _user,
     uint96[PAYOUT_CARDINALITY] memory _userPayoutHistory, 
-    uint8[] calldata _drawIds, 
+    uint32[] calldata _drawIds, 
     IDrawCalculator _drawCalculator, 
     bytes calldata _data
   ) internal returns (uint256 totalPayout, uint96[PAYOUT_CARDINALITY] memory userPayoutHistory) {

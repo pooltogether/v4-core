@@ -14,7 +14,7 @@ contract ClaimableDrawHarness is ClaimableDraw {
   function calculateDrawCollectionPayout(
     address _user,
     uint96[PAYOUT_CARDINALITY] memory _userClaimedDraws, 
-    uint8[] calldata _drawIds, 
+    uint32[] calldata _drawIds, 
     IDrawCalculator _drawCalculator, 
     bytes calldata _data
   ) external returns (uint256 totalPayout, uint96[PAYOUT_CARDINALITY] memory userClaimedDraws) {
@@ -24,7 +24,7 @@ contract ClaimableDrawHarness is ClaimableDraw {
 
   function validateDrawPayout(
     uint96[PAYOUT_CARDINALITY] memory _userClaimedDraws, 
-    uint8 _drawId, 
+    uint32 _drawId, 
     uint96 _payout
   ) external view returns (uint96, uint96[PAYOUT_CARDINALITY] memory) {
     return _validateDrawPayout(_userClaimedDraws, _drawId, _payout);

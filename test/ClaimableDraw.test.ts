@@ -341,11 +341,11 @@ describe('ClaimableDraw', () => {
     });
 
     it('should withdraw ERC20 tokens', async () => {
-      await claimableDraw.setManager(assetManager.address);
+      await claimableDraw.setManager(wallet2.address);
 
       expect(
         await claimableDraw
-          .connect(assetManager)
+          .connect(wallet2)
           .withdrawERC20(dai.address, wallet1.address, withdrawAmount),
       )
         .to.emit(claimableDraw, 'ERC20Withdrawn')
@@ -359,12 +359,12 @@ describe('ClaimableDraw', () => {
     });
 
     it('should fail to withdraw ERC20 tokens if token address is address zero', async () => {
-      await claimableDraw.setManager(assetManager.address);
+      await claimableDraw.setManager(wallet2.address);
 
       await expect(
         claimableDraw
-          .connect(assetManager)
-          .withdrawERC20(AddressZero, wallet1.address, withdrawAmount),
+          .connect(wallet2)
+          .withdrawERC20(constants.AddressZero, wallet1.address, withdrawAmount),
       ).to.be.revertedWith('ClaimableDraw/ERC20-not-zero-address');
     });
   });
