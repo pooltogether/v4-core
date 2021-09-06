@@ -57,6 +57,18 @@ contract ClaimableDraw is OwnerOrManager {
     IDrawHistory indexed drawHistory
   );
 
+  /**
+    * @notice Emitted when ERC20 tokens are withdrawn from the claimable draw.
+    * @param token ERC20 token transferred.
+    * @param to Address that received funds.
+    * @param amount Amount of tokens transferred.
+  */
+  event ERC20Withdrawn(
+    IERC20Upgradeable indexed token,
+    address indexed to,
+    uint256 amount
+  );
+
 
   /* ============ Initialize ============ */
 
@@ -128,6 +140,22 @@ contract ClaimableDraw is OwnerOrManager {
   */
   function claim(address _user, uint8[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256) {
     return _claim(_user, _drawIds, _drawCalculators, _data);
+  }
+
+  /**
+    * @notice Transfer ERC20 tokens out of this contract.
+    * @dev This function is only callable by the owner asset manager.
+    * @param _erc20Token ERC20 token to transfer.
+    * @param _to Recipient of the tokens.
+    * @param _amount Amount of tokens to transfer.
+    * @return true if operation is successful.
+  */
+  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyManagerOrOwner returns (bool) {
+    require(address(_to) != address(0), "ClaimableDraw/ERC20-not-zero-address");
+    require(address(_erc20Token) != address(0), "ClaimableDraw/ERC20-not-zero-address");
+    _erc20Token.safeTransfer(_to, _amount);
+    emit ERC20Withdrawn(_erc20Token, _to, _amount);
+    return true;
   }
 
   /* ============ Internal Functions ============ */
