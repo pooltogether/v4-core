@@ -55,8 +55,4 @@ contract ClaimableDrawHarness is ClaimableDraw {
     return true;
   }
 
-  function transferERC20(IERC20Upgradeable _erc20Token, address _from, address _to, uint256 _amount) external returns (bool) {
-    _transferERC20(_erc20Token, _from, _to, _amount);
-  }
-
 }

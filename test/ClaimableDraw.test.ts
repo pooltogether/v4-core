@@ -505,41 +505,6 @@ describe('ClaimableDraw', () => {
         });
     });
 
-    describe('depositERC20()', () => {
-        let depositAmount: BigNumber;
-
-        beforeEach(async () => {
-            depositAmount = toWei('100');
-
-            await dai.mint(assetManager.address, toWei('1000'));
-            await dai.connect(assetManager).approve(claimableDraw.address, depositAmount);
-        });
-
-        it('should deposit ERC20 tokens', async () => {
-            await claimableDraw.setManager(assetManager.address);
-
-            expect(
-                await claimableDraw.connect(assetManager).depositERC20(dai.address, depositAmount),
-            )
-                .to.emit(claimableDraw, 'TransferredERC20')
-                .withArgs(assetManager.address, claimableDraw.address, depositAmount, dai.address);
-        });
-
-        it('should fail to deposit ERC20 tokens if not owner or assetManager', async () => {
-            await expect(claimableDraw.connect(wallet2).depositERC20(dai.address, depositAmount)).to.be.revertedWith(
-                'Manager/caller-not-manager-or-owner',
-            );
-        });
-
-        it('should fail to deposit ERC20 tokens if token address is address zero', async () => {
-            await claimableDraw.setManager(assetManager.address);
-
-            await expect(
-                claimableDraw.connect(assetManager).depositERC20(AddressZero, depositAmount),
-            ).to.be.revertedWith('ClaimableDraw/ERC20-not-zero-address');
-        });
-    });
-
     describe('withdrawERC20()', () => {
         let withdrawAmount: BigNumber;
 
@@ -557,8 +522,8 @@ describe('ClaimableDraw', () => {
                     .connect(assetManager)
                     .withdrawERC20(dai.address, wallet1.address, withdrawAmount),
             )
-                .to.emit(claimableDraw, 'TransferredERC20')
-                .withArgs(claimableDraw.address, wallet1.address, withdrawAmount, dai.address);
+                .to.emit(claimableDraw, 'ERC20Withdrawn')
+                .withArgs(dai.address, wallet1.address, withdrawAmount);
         });
 
         it('should fail to withdraw ERC20 tokens if not owner or assetManager', async () => {
@@ -575,19 +540,6 @@ describe('ClaimableDraw', () => {
                     .connect(assetManager)
                     .withdrawERC20(AddressZero, wallet1.address, withdrawAmount),
             ).to.be.revertedWith('ClaimableDraw/ERC20-not-zero-address');
-        });
-    });
-
-    describe('transferERC20()', () => {
-        it('should fail to transfer ERC20 tokens if from and to address are the same', async () => {
-            await expect(
-                claimableDraw.transferERC20(
-                    dai.address,
-                    wallet1.address,
-                    wallet1.address,
-                    toWei('100'),
-                ),
-            ).to.be.revertedWith('ClaimableDraw/from-different-than-to-address');
         });
     });
 });
