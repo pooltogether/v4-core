@@ -81,8 +81,8 @@ abstract contract PrizeSplit is OwnableUpgradeable {
     // Add and/or update prize split configs using newPrizeSplits PrizeSplitConfig structs array.
     for (uint256 index = 0; index < newPrizeSplitsLength; index++) {
       PrizeSplitConfig memory split = newPrizeSplits[index];
-      require(split.token <= 1, "MultipleWinners/invalid-prizesplit-token");
-      require(split.target != address(0), "MultipleWinners/invalid-prizesplit-target");
+      require(split.token <= 1, "PrizeSplit/invalid-prizesplit-token");
+      require(split.target != address(0), "PrizeSplit/invalid-prizesplit-target");
       
       if (_prizeSplits.length <= index) {
         _prizeSplits.push(split);
@@ -108,7 +108,7 @@ abstract contract PrizeSplit is OwnableUpgradeable {
 
     // Total prize split do not exceed 100%
     uint256 totalPercentage = _totalPrizeSplitPercentageAmount();
-    require(totalPercentage <= 1000, "MultipleWinners/invalid-prizesplit-percentage-total");
+    require(totalPercentage <= 1000, "PrizeSplit/invalid-prizesplit-percentage-total");
   }
 
   /**
@@ -118,16 +118,16 @@ abstract contract PrizeSplit is OwnableUpgradeable {
     * @param prizeSplitIndex Index position of PrizeSplitConfig to update
   */
   function setPrizeSplit(PrizeSplitConfig memory prizeStrategySplit, uint8 prizeSplitIndex) external onlyOwner {
-    require(prizeSplitIndex < _prizeSplits.length, "MultipleWinners/nonexistent-prizesplit");
-    require(prizeStrategySplit.token <= 1, "MultipleWinners/invalid-prizesplit-token");
-    require(prizeStrategySplit.target != address(0), "MultipleWinners/invalid-prizesplit-target");
+    require(prizeSplitIndex < _prizeSplits.length, "PrizeSplit/nonexistent-prizesplit");
+    require(prizeStrategySplit.token <= 1, "PrizeSplit/invalid-prizesplit-token");
+    require(prizeStrategySplit.target != address(0), "PrizeSplit/invalid-prizesplit-target");
     
     // Update the prize split config
     _prizeSplits[prizeSplitIndex] = prizeStrategySplit;
 
     // Total prize split do not exceed 100%
     uint256 totalPercentage = _totalPrizeSplitPercentageAmount();
-    require(totalPercentage <= 1000, "MultipleWinners/invalid-prizesplit-percentage-total");
+    require(totalPercentage <= 1000, "PrizeSplit/invalid-prizesplit-percentage-total");
 
     // Emit updated prize split config
     emit PrizeSplitSet(prizeStrategySplit.target, prizeStrategySplit.percentage, prizeStrategySplit.token, prizeSplitIndex);
