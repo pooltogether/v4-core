@@ -1,6 +1,5 @@
 const { deploy1820 } = require('deploy-eip-1820');
 const chalk = require('chalk');
-const { red } = require('chalk');
 
 function dim() {
   if (!process.env.HIDE_DEPLOY_LOG) {

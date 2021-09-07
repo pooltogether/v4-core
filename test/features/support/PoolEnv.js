@@ -66,13 +66,13 @@ function PoolEnv() {
 
     await token.approve(prizePool.address, amount, this.overrides);
 
-    debug(`Depositing... (${wallet.address}, ${amount}, ${ticket.address}, ${ethers.constants.AddressZero})`);
+    debug(`Depositing... (${wallet.address}, ${amount}, ${ticket.address}, ${AddressZero})`);
 
     await prizePool.depositTo(
       wallet.address,
       amount,
       ticket.address,
-      ethers.constants.AddressZero,
+      AddressZero,
       this.overrides,
     );
 
