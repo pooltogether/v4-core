@@ -8,30 +8,36 @@ import "./prize-strategy/PrizeSplit.sol";
 
 contract PrizeSplitStrategy is Initializable, PrizeSplit {
 
+  /* ============ Variables ============ */
+
   /**
     * @notice Linked PrizePool smart contract responsible for awarding tokens.
   */
   PrizePool public prizePool;
 
-   /**
-    * @notice Emit when a strategy captures award amount from PrizePool
-    * @param totalPrizeCaptured  Total prize captured
+  /* ============ Events ============ */
+
+  /**
+    * @notice Emit when a strategy captures award amount from PrizePool.
+    * @param totalPrizeCaptured  Total prize captured from PrizePool
   */
   event Distribute(
     uint256 totalPrizeCaptured
   );
 
   /**
-    * @notice Emit when a prize split is awarded
-    * @param user          User address
+    * @notice Emit when an individual prize split is awarded.
+    * @param user          User address being awarded
     * @param prizeAwarded  Token prize amount
-    * @param token         Token minted address
+    * @param token         Token awarded address
   */
   event PrizeSplitAwarded(
     address indexed user, 
     uint256 prizeAwarded,
     address indexed token 
   );
+
+  /* ============ Initialize ============ */
 
   /**
     * @notice Initialize the PrizeSplitStrategy smart contract.
@@ -45,13 +51,15 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     prizePool = _prizePool;
   }
 
-  /* ============ Public Functions ============ */
+  /* ============ External Functions ============ */
+
   /**
     * @notice Capture the award balance and distribute to prize splits.
     * @dev    Capture the award balance and award tokens using the linked PrizePool.
-    * @return Total prize amount using the prizePool.captureAwardBalance()
+    * @return Total prize amount captured via prizePool.captureAwardBalance()
   */
   function distribute() external returns (uint256) {
+    // The prize splits must be configured before distributing captured award.
     require(_prizeSplits.length > 0, "PrizeSplitStrategy/prize-split-unavailable");
 
     // Ensure 100% of the captured award balance is distributed.
