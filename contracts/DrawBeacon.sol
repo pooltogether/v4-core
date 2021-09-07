@@ -21,9 +21,9 @@ import "./prize-strategy/PeriodicPrizeStrategyListenerInterface.sol";
 import "./prize-strategy/PeriodicPrizeStrategyListenerLibrary.sol";
 import "./prize-strategy/BeforeAwardListener.sol";
 
-abstract contract DrawBeacon is IDrawBeacon,
-                                Initializable,
-                                OwnableUpgradeable {
+contract DrawBeacon is IDrawBeacon,
+                       Initializable,
+                       OwnableUpgradeable {
 
   using SafeCastUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -145,13 +145,11 @@ abstract contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Emit when the DrawBeacon is initialized.
-    * @param drawHistory Address of drawHistory
     * @param rngRequestPeriodStart Timestamp when draw period starts
     * @param drawPeriodSeconds Minimum seconds between draw period
     * @param rng Address of RNG service
   */
   event Initialized(
-    DrawHistory indexed drawHistory,
     uint256 rngRequestPeriodStart,
     uint256 drawPeriodSeconds,
     RNGInterface rng
@@ -161,7 +159,7 @@ abstract contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Emit when the drawBeaconListener is set.
-    * @param drawBeaconListener Address of drawgBeaconListener
+    * @param drawBeaconListener Address of drawBeaconListener
   */
   struct RngRequest {
     uint32 id;
@@ -200,20 +198,17 @@ abstract contract DrawBeacon is IDrawBeacon,
   
   /**
     * @notice Initialize the DrawBeacon smart contract.
-    * @param _drawHistory DrawHistory address
     * @param _rngRequestPeriodStart The starting timestamp of the draw period.
     * @param _drawPeriodSeconds The duration of the draw period in seconds
     * @param _rng The RNG service to use
   */
   function initialize (
-    DrawHistory _drawHistory,
     uint256 _rngRequestPeriodStart,
     uint256 _drawPeriodSeconds,
     RNGInterface _rng
   ) public initializer {
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;
-    _setDrawHistory(_drawHistory);
 
     __Ownable_init();
 
@@ -225,7 +220,6 @@ abstract contract DrawBeacon is IDrawBeacon,
     _setRngRequestTimeout(1800);
 
     emit Initialized(
-      _drawHistory,
       _rngRequestPeriodStart,
       _drawPeriodSeconds,
       _rng

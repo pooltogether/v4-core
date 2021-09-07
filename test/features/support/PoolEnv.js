@@ -1,162 +1,58 @@
-// features/support/world.js
-const chalk = require('chalk');
-const hardhat = require('hardhat');
-const ethers = require('ethers');
-
+const chalk = require('chalk')
+const hardhat = require('hardhat')
 const { expect } = require('chai');
 const { call } = require('../../helpers/call');
-const { deployTestPool } = require('../../../js/deployTestPool');
-const { AddressZero } = require('ethers').constants;
 require('../../helpers/chaiMatchers');
 
-const debug = require('debug')('ptv3:PoolEnv');
+const { ethers, deployments } = hardhat
+
+const { AddressZero } = ethers.constants;
+
+const debug = require('debug')('pt:PoolEnv.js');
 
 const toWei = (val) => ethers.utils.parseEther('' + val);
 const fromWei = (val) => ethers.utils.formatEther('' + val);
 
-function PoolEnv() {
+function PoolEnv() {  
   this.overrides = { gasLimit: 9500000 };
 
-  this.createPool = async function ({
-    prizePeriodStart = 0,
-    prizePeriodSeconds,
-    creditLimit,
-    creditRate,
-    maxExitFeeMantissa = toWei('0.5'),
-    externalERC20Awards = [],
-    poolType,
-  }) {
-    this.wallets = await hardhat.ethers.getSigners();
-
-    debug({
-      wallet0: this.wallets[0].address,
-      wallet1: this.wallets[1].address,
-      wallet2: this.wallets[2].address,
-      wallet3: this.wallets[3].address,
-      wallet4: this.wallets[4].address,
-    });
-
-    if (!poolType) {
-      poolType = 'compound';
-    }
-
-    debug(`Fetched ${this.wallets.length} wallets`);
-    console.log(`Creating pool with prize period ${prizePeriodSeconds}...`);
-    this.env = await deployTestPool({
-      wallet: this.wallets[0],
-      prizePeriodStart,
-      prizePeriodSeconds,
-      maxExitFeeMantissa,
-      creditLimit: toWei(creditLimit),
-      creditRate: toWei(creditRate),
-      externalERC20Awards: [],
-      poolType,
-      overrides: this.overrides,
-    });
-
-    // const externalAwardAddresses = []
-    // this.externalERC20Awards = {}
-
-    // const ERC20Mintable = await hre.ethers.getContractFactory("ERC20Mintable", this.wallets[0], this.overrides)
-    // const ERC721Mintable = await hre.ethers.getContractFactory("ERC721Mintable", this.wallets[0], this.overrides)
-
-    // for (var i = 0; i < externalERC20Awards.length; i++) {
-    //   this.externalERC20Awards[externalERC20Awards[i]] = await ERC20Mintable.deploy(`External ERC20 Token ${i+1}`, `ETKN${i+1}`)
-    //   const address = this.externalERC20Awards[externalERC20Awards[i]].address;
-    //   await this.env.prizeStrategy.addExternalErc20Award(address)
-    //   externalAwardAddresses.push(address)
-    // }
-    // this.externalErc721Award = await ERC721Mintable.deploy()
-    // debug(`PrizePool created with address ${this.env.prizePool.address}`)
-    // debug(`PeriodicPrizePool created with address ${this.env.prizeStrategy.address}`)
-
-    await this.setCurrentTime(prizePeriodStart);
-
-    debug(`Done create Pool`);
-  };
-  // this.useMultipleWinnersPrizeStrategy = async function ({ winnerCount }) {
-  //   await this.env.prizeStrategy.setNumberOfWinners(winnerCount)
-  //   debug(`Changed number of winners to ${winnerCount}`)
-  // }
-
-  this.setCurrentTime = async function (time) {
-    let wallet = await this.wallet(0);
-    let prizeStrategy = await this.prizeStrategy(wallet);
-    let prizePool = await this.prizePool(wallet);
-    await prizeStrategy.setCurrentTime(time, this.overrides);
-    await prizePool.setCurrentTime(time, this.overrides);
-  };
-
-  this.setReserveRate = async function ({ rate }) {
-    await this.env.reserve.setRateMantissa(toWei(rate), this.overrides);
-  };
-
-  this.prizeStrategy = async function (wallet) {
-    let prizeStrategy = await hardhat.ethers.getContractAt(
-      'ClaimableDrawPrizeStrategyHarness',
-      this.env.prizeStrategy.address,
-      wallet,
-    );
-    this._prizeStrategy = prizeStrategy;
-    return prizeStrategy;
-  };
-
-  this.prizePool = async function (wallet) {
-    let prizePool = this.env.prizePool.connect(wallet);
-    this._prizePool = prizePool;
-    return prizePool;
-  };
-
-  this.token = async function (wallet) {
-    return this.env.token.connect(wallet);
-  };
-
-  // this.governanceToken = async function (wallet) {
-  //   return this.env.governanceToken.connect(wallet)
-  // }
-
-  this.ticket = async function (wallet) {
-    let prizeStrategy = await this.prizeStrategy(wallet);
-    let ticketAddress = await prizeStrategy.ticket();
-    return await hardhat.ethers.getContractAt(
-      'contracts/import/token/ControlledToken.sol:ControlledToken',
-      ticketAddress,
-      wallet,
-    );
-  };
-
-  this.sponsorship = async function (wallet) {
-    let prizePool = await this.prizeStrategy(wallet);
-    let sponsorshipAddress = await prizePool.sponsorship();
-    return await hardhat.ethers.getContractAt(
-      'contracts/import/token/ControlledToken.sol:ControlledToken',
-      sponsorshipAddress,
-      wallet,
-    );
-  };
+  this.ready = async function () {
+    await deployments.fixture()
+    this.wallets = await ethers.getSigners()
+  }
 
   this.wallet = async function (id) {
     let wallet = this.wallets[id];
     return wallet;
   };
 
-  this.debugBalances = async function () {
-    const prizePoolAssetBalance = await this.env.token.balanceOf(this._prizePool.address);
+  this.yieldSource = async () => await ethers.getContract('MockYieldSource')
 
-    debug(`prizePool Asset Balance: ${prizePoolAssetBalance}...`);
-    debug('----------------------------');
-  };
+  this.token = async function (wallet) {
+    const yieldSource = await this.yieldSource()
+    const tokenAddress = await yieldSource.depositToken()
+    return (await ethers.getContractAt('ERC20Mintable', tokenAddress)).connect(wallet)
+  }
 
-  this.accrueExternalAwardAmount = async function ({ externalAward, amount }) {
-    await this.externalERC20Awards[externalAward].mint(this.env.prizePool.address, toWei(amount));
-  };
+  this.ticket = async (wallet) => (await ethers.getContract('Ticket')).connect(wallet)
 
-  this.buyTickets = async function ({ user, tickets, referrer }) {
+  this.prizePool = async (wallet) => (await ethers.getContract('YieldSourcePrizePool')).connect(wallet)
+
+  this.drawBeacon = async () => await ethers.getContract('DrawBeacon')
+
+  this.drawHistory = async () => await ethers.getContract('DrawHistory')
+
+  this.drawCalculator = async () => await ethers.getContract('TsunamiDrawCalculator')
+
+  this.claimableDraw = async (wallet) => (await ethers.getContract('ClaimableDraw')).connect(wallet)
+
+  this.rng = async () => await ethers.getContract('RNGServiceStub')
+
+  this.buyTickets = async function ({ user, tickets }) {
     debug(`Buying tickets...`);
     let wallet = await this.wallet(user);
 
     debug('wallet is ', wallet.address);
-
     let token = await this.token(wallet);
     let ticket = await this.ticket(wallet);
     let prizePool = await this.prizePool(wallet);
@@ -170,39 +66,17 @@ function PoolEnv() {
 
     await token.approve(prizePool.address, amount, this.overrides);
 
-    let referrerAddress = AddressZero;
-    if (referrer) {
-      referrerAddress = (await this.wallet(referrer)).address;
-    }
-
-    debug(`Depositing... (${wallet.address}, ${amount}, ${ticket.address}, ${referrerAddress})`);
+    debug(`Depositing... (${wallet.address}, ${amount}, ${ticket.address}, ${ethers.constants.AddressZero})`);
 
     await prizePool.depositTo(
       wallet.address,
       amount,
       ticket.address,
-      referrerAddress,
+      ethers.constants.AddressZero,
       this.overrides,
     );
 
     debug(`Bought tickets`);
-  };
-
-  this.transferCompoundTokensToPrizePool = async function ({ user, tokens }) {
-    let wallet = await this.wallet(user);
-    let amount = toWei(tokens);
-    let doubleAmount = toWei(tokens).mul(2);
-    await this.env.token.mint(wallet.address, doubleAmount);
-
-    await this.env.token.connect(wallet).approve(this.env.cToken.address, amount);
-    await this.env.cToken.connect(wallet).mint(amount);
-    let cTokenBalance = await this.env.cToken.balanceOf(wallet.address);
-    await this.env.cToken.connect(wallet).transfer(this.env.prizePool.address, cTokenBalance);
-
-    await this.env.token.connect(wallet).approve(this.env.cTokenYieldSource.address, amount);
-    await this.env.cTokenYieldSource
-      .connect(wallet)
-      .supplyTokenTo(amount, this.env.prizePool.address);
   };
 
   this.expectUserToHaveTickets = async function ({ user, tickets }) {
@@ -211,7 +85,90 @@ function PoolEnv() {
     let amount = toWei(tickets);
     expect(await ticket.balanceOf(wallet.address)).to.equalish(amount, '100000000000000000000');
   };
+  
+  this.expectUserToHaveTokens = async function ({ user, tokens }) {
+    const wallet = await this.wallet(user);
+    const token = await this.token(wallet);
+    const amount = toWei(tokens);
+    const balance = await token.balanceOf(wallet.address)
+    debug(`expectUserToHaveTokens: ${balance.toString()}`)
+    expect(balance).to.equal(amount);
+  };
 
+  this.claim = async function ({ user, drawId, picks, prize }) {
+    const wallet = await this.wallet(user);
+    const claimableDraw = await this.claimableDraw(wallet)
+    const token = await this.token(wallet)
+    await token.mint(claimableDraw.address, toWei(prize || 10))
+    const encoder = ethers.utils.defaultAbiCoder
+    const pickIndices = encoder.encode(['uint256[][]'], [[picks]]);
+    await claimableDraw.claim(wallet.address, [[drawId]], [(await this.drawCalculator()).address], [pickIndices])
+  }
+
+  this.withdrawInstantly = async function ({ user, tickets }) {
+    debug(`withdrawInstantly: user ${user}, tickets: ${tickets}`);
+    let wallet = await this.wallet(user);
+    let ticket = await this.ticket(wallet);
+    let withdrawalAmount;
+    if (!tickets) {
+      withdrawalAmount = await ticket.balanceOf(wallet.address);
+    } else {
+      withdrawalAmount = toWei(tickets);
+    }
+    debug(`Withdrawing ${withdrawalAmount}...`)
+    let prizePool = await this.prizePool(wallet);
+    await prizePool.withdrawInstantlyFrom(
+      wallet.address,
+      withdrawalAmount,
+      ticket.address,
+      withdrawalAmount,
+    );
+    debug('done withdraw instantly');
+  };
+
+  this.poolAccrues = async function ({ tickets }) {
+    debug(`poolAccrues(${tickets})...`);
+    const yieldSource = await this.yieldSource()
+    await yieldSource.yield(toWei(tickets));
+  };
+
+  this.draw = async function ({ randomNumber }) {
+    const drawBeacon = await this.drawBeacon()
+    const remainingTime = await drawBeacon.drawPeriodRemainingSeconds()
+    await ethers.provider.send('evm_increaseTime', [remainingTime.toNumber()])
+    await drawBeacon.startDraw()
+    const rng = await this.rng()
+    await rng.setRandomNumber(randomNumber)
+    await drawBeacon.completeDraw()
+  };
+
+  this.expectDrawRandomNumber = async function({ drawId, randomNumber }) {
+    const drawHistory = await this.drawHistory()
+    const draw = await drawHistory.getDraw(drawId)
+    debug(`expectDrawRandomNumber draw: `, draw)
+    expect(draw.winningRandomNumber).to.equal(randomNumber)
+  }
+
+  this.setDrawSettings = async function ({
+    drawId,
+    bitRangeSize,
+    matchCardinality,
+    pickCost,
+    distributions,
+    prize
+  }) {
+    const drawCalculator = await this.drawCalculator()
+    const drawSettings = {
+      bitRangeSize,
+      matchCardinality,
+      pickCost,
+      distributions,
+      prize,
+    }
+    await drawCalculator.setDrawSettings(drawId, drawSettings)
+  }
+
+  /*
   this.expectUserToHaveTokens = async function ({ user, tokens }) {
     let wallet = await this.wallet(user);
     let token = await this.token(wallet);
@@ -342,6 +299,7 @@ function PoolEnv() {
     let wallet = await this.wallet(user);
     expect(await this.externalErc721Award.ownerOf(tokenId)).to.equal(wallet.address);
   };
+  */
 }
 
 module.exports = {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity 0.8.6;
+pragma solidity >=0.6.0;
 
 import "../token/ControlledTokenInterface.sol";
 
@@ -8,7 +8,7 @@ import "../token/ControlledTokenInterface.sol";
 ///       Users deposit and withdraw from this contract to participate in Prize Pool.
 /// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
 /// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
-interface PrizePoolInterface {
+interface IPrizePool {
 
   /// @dev Returns the address of a token in the _tokens array.
   /// @return Address of token
@@ -39,7 +39,6 @@ interface PrizePoolInterface {
     address controlledToken,
     uint256 maximumExitFee
   ) external returns (uint256);
-
 
   function withdrawReserve(address to) external returns (uint256);
 

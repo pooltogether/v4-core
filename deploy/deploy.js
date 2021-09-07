@@ -1,5 +1,6 @@
 const { deploy1820 } = require('deploy-eip-1820');
 const chalk = require('chalk');
+const { red } = require('chalk');
 
 function dim() {
   if (!process.env.HIDE_DEPLOY_LOG) {
@@ -83,269 +84,135 @@ module.exports = async (hardhat) => {
   dim('PoolTogether Pool Contracts - Deploy Script');
   dim('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
 
-  dim(`network: ${chainName(chainId)} (${isTestEnvironment ? 'local' : 'remote'})`);
-  dim(`deployer: ${deployer}`);
-  if (!admin) {
-    admin = signer._address;
-  }
-  dim('admin:', admin);
+  dim(`Network: ${chainName(chainId)} (${isTestEnvironment ? 'local' : 'remote'})`);
+  dim(`Deployer: ${deployer}`);
 
   await deploy1820(signer);
 
-  // let cDaiAddress = testnetCDai
-  if (isTestEnvironment) {
-    cyan('\nDeploying RNGService...');
-    const rngServiceMockResult = await deploy('RNGServiceMock', {
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-    rng = rngServiceMockResult.address;
+  cyan(`\nDeploying RNGServiceStub...`)
+  const rngServiceResult = await deploy('RNGServiceStub', {
+    from: deployer
+  })
+  displayResult('RNGServiceStub', rngServiceResult)
 
-    cyan('\nDeploying Dai...');
-    const daiResult = await deploy('Dai', {
-      args: ['DAI Test Token', 'DAI'],
-      contract: 'ERC20Mintable',
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
+  yellow('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+  yellow('CAUTION: Deploying Prize Pool in a front-runnable way!')
 
-    cyan('\nDeploying cDai...');
-    // should be about 20% APR
-    let supplyRate = '8888888888888';
-    const cDaiResult = await deploy('cDai', {
-      args: [daiResult.address, supplyRate],
-      contract: 'CTokenMock',
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-    cDaiAddress = cDaiResult.address;
-
-    // Display Contract Addresses
-    dim('\nLocal Contract Deployments;\n');
-    dim('  - RNGService:       ', rng);
-    dim('  - Dai:              ', daiResult.address);
-  }
-
-  if (cDaiAddress) {
-    cyan('\nDeploy cDaiYieldSource...');
-    const cDaiYieldSourceResult = await deploy('cDaiYieldSource', {
-      args: [cDaiAddress],
-      contract: 'CTokenYieldSource',
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-    displayResult('cDaiYieldSource', cDaiYieldSourceResult);
-  }
-
-  // cyan(`\nDeploying TokenFaucetProxyFactory...`)
-  // const tokenFaucetProxyFactoryResult = await deploy("TokenFaucetProxyFactory", {
-  //   from: deployer
-  // })
-  // displayResult('TokenFaucetProxyFactory', tokenFaucetProxyFactoryResult)
-
-  cyan(`\nDeploying ReserveRegistry...`);
-  if (!reserveRegistry) {
-    // if not set by named config
-    cyan(`\nDeploying Reserve...`);
-    const reserveResult = await deploy('Reserve', {
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-    displayResult('Reserve', reserveResult);
-
-    const reserveContract = await hardhat.ethers.getContractAt(
-      'Reserve',
-      reserveResult.address,
-      signer,
-    );
-    if (admin !== deployer) {
-      await reserveContract.transferOwnership(admin);
-    }
-
-    const reserveRegistryResult = await deploy('ReserveRegistry', {
-      contract: 'Registry',
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-    displayResult('ReserveRegistry', reserveRegistryResult);
-
-    const reserveRegistryContract = await hardhat.ethers.getContractAt(
-      'Registry',
-      reserveRegistryResult.address,
-      signer,
-    );
-    // if (await reserveRegistryContract.lookup() != reserveResult.address) {
-    //   await reserveRegistryContract.register(reserveResult.address)
-    // }
-    if (admin !== deployer) {
-      await reserveRegistryContract.transferOwnership(admin);
-    }
-
-    reserveRegistry = reserveRegistryResult.address;
-  } else {
-    yellow(`Using existing reserve registry ${reserveRegistry}`);
-  }
-
-  /* ------------------------------------ */
-  // CompoundPrizePoolProxyFactory
-  /* ------------------------------------ */
-  cyan('\nDeploying CompoundPrizePoolProxyFactory...');
-  let compoundPrizePoolProxyFactoryResult;
-  if (isTestEnvironment && !harnessDisabled) {
-    compoundPrizePoolProxyFactoryResult = await deploy('CompoundPrizePoolProxyFactory', {
-      contract: 'CompoundPrizePoolHarnessProxyFactory',
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-  } else {
-    compoundPrizePoolProxyFactoryResult = await deploy('CompoundPrizePoolProxyFactory', {
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-  }
-  displayResult('CompoundPrizePoolProxyFactory', compoundPrizePoolProxyFactoryResult);
-
-  /* ==================================== */
-  //            PROXY FACTORIES
-  /* ==================================== */
-
-  /* ------------------------------------ */
-  // ControlledTokenProxyFactory
-  /* ------------------------------------ */
-  cyan('\nDeploying ControlledTokenProxyFactory...');
-  const controlledTokenProxyFactoryResult = await deploy('ControlledTokenProxyFactory', {
-    contract: 'ControlledTokenDeployerProxyFactory',
+  cyan('\nDeploying MockYieldSource...')
+  const mockYieldSourceResult = await deploy('MockYieldSource', {
     from: deployer,
-    skipIfAlreadyDeployed: true,
-  });
-  displayResult('ControlledTokenProxyFactory', controlledTokenProxyFactoryResult);
+    args: [
+      'YIELD', 'YLD'
+    ]
+  })
+  displayResult('MockYieldSource', mockYieldSourceResult)
+  
+  cyan('\nDeploying Registry...')
+  const registryResult = await deploy('Registry', {
+    from: deployer
+  })
+  displayResult('Registry', registryResult)
 
-  cyan('\nDeploying TicketProxyFactory...');
-  const ticketProxyFactoryResult = await deploy('TicketProxyFactory', {
+  cyan('\nDeploying Ticket...')
+  const ticketResult = await deploy('Ticket', {
+    from: deployer
+  })
+  displayResult('Ticket', ticketResult)
+
+  cyan('\nDeploying YieldSourcePrizePool...')
+  const yieldSourcePrizePoolResult = await deploy('YieldSourcePrizePool', {
+    from: deployer
+  })
+  displayResult('YieldSourcePrizePool', yieldSourcePrizePoolResult)
+
+  if (yieldSourcePrizePoolResult.newlyDeployed) {
+    cyan('\nInitializing YieldSourcePrizePool....')
+    const yieldSourcePrizePool = await ethers.getContract('YieldSourcePrizePool')
+    await yieldSourcePrizePool.initializeYieldSourcePrizePool(
+      registryResult.address,
+      [ticketResult.address],
+      ethers.utils.parseEther("0.5"),
+      mockYieldSourceResult.address
+    )
+    green(`Initialized!`)
+  }
+
+  if (ticketResult.newlyDeployed) {
+    cyan('\nInitializing Ticket....')
+    const ticket = await ethers.getContract('Ticket')
+    await ticket.initialize(
+      "Ticket",
+      "TICK",
+      18,
+      yieldSourcePrizePoolResult.address
+    )
+    green(`Initialized!`)
+  }
+
+  yellow('\nPrize Pool Setup Complete')
+  yellow('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+
+  cyan('\nDeploying DrawBeacon...')
+  const drawBeaconResult = await deploy('DrawBeacon', {
     from: deployer,
-    skipIfAlreadyDeployed: true,
-  });
-  displayResult('TicketProxyFactory', ticketProxyFactoryResult);
+    contract: 'CDrawBeacon',
+    args: [
+      parseInt('' + new Date().getTime() / 1000),
+      120, // 2 minute intervals
+      rngServiceResult.address
+    ]
+  })
+  displayResult('DrawBeacon', drawBeaconResult)
 
-  /* ------------------------------------ */
-  // TsunamiDrawCalculatorProxyFactory
-  /* ------------------------------------ */
-  let tsunamiDrawCalculatorProxyFactory;
-  if (isTestEnvironment && !harnessDisabled) {
-    cyan('\nDeploying TsunamiDrawCalculatorProxyFactory...');
-    tsunamiDrawCalculatorProxyFactory = await deploy('TsunamiDrawCalculatorProxyFactory', {
-      contract: 'TsunamiDrawCalculatorHarnessProxyFactory',
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-  } else {
-    cyan('\nDeploying TsunamiDrawCalculatorProxyFactory...');
-    tsunamiDrawCalculatorProxyFactory = await deploy('TsunamiDrawCalculatorProxyFactory', {
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-  }
-  displayResult('ClaimableDrawProxyFactory', tsunamiDrawCalculatorProxyFactory);
-
-  /* ------------------------------------ */
-  // ClaimableDrawProxyFactory
-  /* ------------------------------------ */
-  let claimableDrawProxyFactoryResult;
-  if (isTestEnvironment && !harnessDisabled) {
-    cyan('\nDeploying StakePrizePoolHarnessProxyFactory...');
-    claimableDrawProxyFactoryResult = await deploy('ClaimableDrawProxyFactory', {
-      contract: 'ClaimableDrawHarnessProxyFactory',
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-  } else {
-    cyan('\nDeploying StakePrizePoolProxyFactory...');
-    claimableDrawProxyFactoryResult = await deploy('ClaimableDrawProxyFactory', {
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    });
-  }
-  displayResult('ClaimableDrawProxyFactory', claimableDrawProxyFactoryResult);
-
-  /* ------------------------------------ */
-  // ClaimableDrawPrizeStrategyProxyFactory
-  /* ------------------------------------ */
-  let claimableDrawPrizeStrategyProxyFactoryResult;
-  cyan('\nDeploying ClaimableDrawPrizeStrategyProxyFactory...');
-  if (isTestEnvironment && !harnessDisabled) {
-    claimableDrawPrizeStrategyProxyFactoryResult = await deploy(
-      'ClaimableDrawPrizeStrategyProxyFactory',
-      {
-        contract: 'ClaimableDrawPrizeStrategyHarnessProxyFactory',
-        from: deployer,
-        skipIfAlreadyDeployed: true,
-      },
-    );
-  } else {
-    claimableDrawPrizeStrategyProxyFactoryResult = await deploy(
-      'ClaimableDrawPrizeStrategyProxyFactory',
-      {
-        from: deployer,
-        skipIfAlreadyDeployed: true,
-      },
-    );
-  }
-  displayResult(
-    'ClaimableDrawPrizeStrategyProxyFactory',
-    claimableDrawPrizeStrategyProxyFactoryResult,
-  );
-
-  /* ==================================== */
-  //                BUILDERS
-  /* ==================================== */
-
-  /* ------------------------------------ */
-  // ControlledTokenBuilder
-  /* ------------------------------------ */
-  cyan('\nDeploying ControlledTokenBuilder...');
-  const controlledTokenBuilderResult = await deploy('ControlledTokenBuilder', {
-    args: [controlledTokenProxyFactoryResult.address, ticketProxyFactoryResult.address],
+  cyan('\nDeploying DrawHistory...')
+  const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
-    skipIfAlreadyDeployed: true,
-  });
-  displayResult('ControlledTokenBuilder', controlledTokenBuilderResult);
+    contract: 'CDrawHistory',
+    args: [
+      drawBeaconResult.address
+    ]
+  })
+  displayResult('DrawHistory', drawHistoryResult)
 
-  /* ------------------------------------ */
-  // ClaimableDrawPrizeStrategyBuilder
-  /* ------------------------------------ */
-  cyan('\nDeploying ClaimableDrawPrizeStrategyBuilder...');
-  const claimableDrawPrizeStrategtBuilderResult = await deploy(
-    'ClaimableDrawPrizeStrategyBuilder',
-    {
-      args: [
-        claimableDrawProxyFactoryResult.address,
-        claimableDrawPrizeStrategyProxyFactoryResult.address,
-        tsunamiDrawCalculatorProxyFactory.address,
-        controlledTokenBuilderResult.address,
-      ],
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    },
-  );
-  displayResult('ClaimableDrawPrizeStrategyBuilder', claimableDrawPrizeStrategtBuilderResult);
+  if (drawHistoryResult.newlyDeployed) {
+    const drawBeacon = await ethers.getContract('DrawBeacon')
+    cyan('\nSetting DrawHistory on DrawBeacon...')
+    await drawBeacon.setDrawHistory(drawHistoryResult.address)
+    green('Set!')
+  }
 
-  /* ------------------------------------ */
-  // PoolClaimableDrawPrizeStrategyBuilder
-  /* ------------------------------------ */
-  cyan('\nDeploying PoolClaimableDrawPrizeStrategyBuilder...');
-  const poolClaimableDrawPrizeStrategyBuilder = await deploy(
-    'PoolClaimableDrawPrizeStrategyBuilder',
-    {
-      args: [
-        reserveRegistry,
-        compoundPrizePoolProxyFactoryResult.address,
-        claimableDrawPrizeStrategtBuilderResult.address,
-      ],
-      from: deployer,
-      skipIfAlreadyDeployed: true,
-    },
-  );
-  displayResult('PoolClaimableDrawPrizeStrategyBuilder', poolClaimableDrawPrizeStrategyBuilder);
+  cyan('\nDeploying TsunamiDrawCalculator...')
+  const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
+    from: deployer
+  })
+  displayResult('TsunamiDrawCalculator', drawCalculatorResult)
+
+  cyan('\nDeploying ClaimableDraw...')
+  const claimableDrawResult = await deploy('ClaimableDraw', {
+    from: deployer
+  })
+  displayResult('ClaimableDraw', claimableDrawResult)
+
+  if (claimableDrawResult.newlyDeployed) {
+    cyan('\nInitializing ClaimableDraw...')
+    const claimableDraw = await ethers.getContract('ClaimableDraw')
+    await claimableDraw.initialize(
+      drawCalculatorResult.address,
+      drawHistoryResult.address
+    )
+    green(`Initialized!`)
+  }
+
+  if (drawCalculatorResult.newlyDeployed) {
+    cyan('\nInitializing TsunamiDrawCalculator...')
+    const drawCalculator = await ethers.getContract('TsunamiDrawCalculator')
+    await drawCalculator.initialize(
+      ticketResult.address,
+      deployer,
+      claimableDrawResult.address
+    )
+    green(`Initialized!`)
+  }
 
   dim('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
   green('Contract Deployments Complete!');
