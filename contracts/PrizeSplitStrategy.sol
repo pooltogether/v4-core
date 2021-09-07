@@ -2,14 +2,11 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "./prize-pool/PrizePool.sol";
 import "./prize-strategy/PrizeSplit.sol";
 
 contract PrizeSplitStrategy is Initializable, PrizeSplit {
-  using SafeERC20Upgradeable for IERC20Upgradeable;
 
   /**
     * @notice Linked PrizePool smart contract responsible for awarding tokens.
@@ -60,7 +57,8 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     // Ensure 100% of the captured award balance is distributed.
     uint256 totalPercentage = _totalPrizeSplitPercentageAmount();
     require(totalPercentage == 1000, "PrizeSplitStrategy/invalid-prizesplit-percentage-total");
-
+    
+    // Capture the PrizePool award balance and distribute via PrizeSplits 
     uint256 prize = prizePool.captureAwardBalance();
     _distributePrizeSplits(prize);
     emit Distribute(prize);
