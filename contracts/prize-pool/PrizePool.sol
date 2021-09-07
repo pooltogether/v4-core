@@ -224,6 +224,14 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   function balance() external returns (uint256) {
     return _balance();
   }
+  
+  /// @dev Returns the address of a token in the _tokens array.
+  /// @return Address of token
+  function tokenAtIndex(uint256 tokenIndex) external override view returns (ControlledTokenInterface) {
+    ControlledTokenInterface[] memory __tokens = _tokens;
+    require(tokenIndex < __tokens.length, "PrizePool/invalid-token-index");
+    return __tokens[tokenIndex];
+  }
 
   /// @dev Checks with the Prize Pool if a specific token type may be awarded as an external prize
   /// @param _externalToken The address of the token to check

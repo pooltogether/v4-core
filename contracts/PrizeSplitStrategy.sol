@@ -3,7 +3,7 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./prize-pool/PrizePool.sol";
+import "./prize-pool/PrizePoolInterface.sol";
 import "./prize-strategy/PrizeSplit.sol";
 
 contract PrizeSplitStrategy is Initializable, PrizeSplit {
@@ -13,7 +13,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
   /**
     * @notice Linked PrizePool smart contract responsible for awarding tokens.
   */
-  PrizePool public prizePool;
+  PrizePoolInterface public prizePool;
 
   /* ============ Events ============ */
 
@@ -21,7 +21,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     * @notice Emit when a strategy captures award amount from PrizePool.
     * @param totalPrizeCaptured  Total prize captured from PrizePool
   */
-  event Distribute(
+  event Distributed(
     uint256 totalPrizeCaptured
   );
 
@@ -44,7 +44,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     * @param _prizePool PrizePool contract address
   */
   function initialize (
-    PrizePool _prizePool
+    PrizePoolInterface _prizePool
   ) external initializer {
     __Ownable_init();
     require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero");
@@ -59,17 +59,9 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     * @return Total prize amount captured via prizePool.captureAwardBalance()
   */
   function distribute() external returns (uint256) {
-    // The prize splits must be configured before distributing captured award.
-    require(_prizeSplits.length > 0, "PrizeSplitStrategy/prize-split-unavailable");
-
-    // Ensure 100% of the captured award balance is distributed.
-    uint256 totalPercentage = _totalPrizeSplitPercentageAmount();
-    require(totalPercentage == 1000, "PrizeSplitStrategy/invalid-prizesplit-percentage-total");
-    
-    // Capture the PrizePool award balance and distribute via PrizeSplits 
     uint256 prize = prizePool.captureAwardBalance();
     _distributePrizeSplits(prize);
-    emit Distribute(prize);
+    emit Distributed(prize);
     return prize;
   }
 
@@ -83,11 +75,9 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     * @param tokenIndex Index (0 or 1) of a token in the prizePool.tokens mapping
   */
   function _awardPrizeSplitAmount(address user, uint256 amount, uint8 tokenIndex) override internal {
-    ControlledTokenInterface[] memory _controlledTokens = prizePool.tokens();
-    require(tokenIndex <= _controlledTokens.length, "PrizeSplitStrategy/invalid-token-index");
-    ControlledTokenInterface _token = _controlledTokens[tokenIndex];
-    emit PrizeSplitAwarded(user, amount, address(_token));
+    ControlledTokenInterface _token = prizePool.tokenAtIndex(tokenIndex);
     prizePool.award(user, amount, address(_token));
+    emit PrizeSplitAwarded(user, amount, address(_token));
   }
 
 }

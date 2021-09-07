@@ -7,7 +7,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { Contract, ContractFactory, constants } from 'ethers';
 
 const { getSigners } = ethers;
-const { AddressZero } = constants;
 const debug = require('debug')('ptv4:PrizeSplitStrategy');
 const toWei = (val: string | number) => ethers.utils.parseEther('' + val)
 
@@ -42,30 +41,14 @@ describe('PrizeSplitStrategy', () => {
     debug('mocking ticket and prizePool...');
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
-    await prizePool.mock.tokens.returns([ticket.address, ticket.address])
+    await prizePool.mock.tokenAtIndex.withArgs(0).returns(ticket.address)
+    await prizePool.mock.tokenAtIndex.withArgs(1).returns(ticket.address)
 
     debug('initialize prizeSplitStrategy...');
     await prizeSplitStrategy.initialize(prizePool.address);
   });
 
   describe('distribute()', () => {
-    it('should fail to capture award balance when prize split is unset', async () => {
-      await expect(prizeSplitStrategy.distribute())
-        .to.be.revertedWith('PrizeSplitStrategy/prize-split-unavailable')
-    });
-
-    it('should fail to capture award balance when prize split is below 100%', async () => {
-      await prizeSplitStrategy.setPrizeSplits([
-        {
-          target: wallet2.address,
-          percentage: 500,
-          token: 1,
-        },
-      ])
-      await expect(prizeSplitStrategy.distribute())
-        .to.be.revertedWith('PrizeSplitStrategy/invalid-prizesplit-percentage-total')
-    });
-
     it('should award 100% of the captured balance to the PrizeReserve', async () => {
       await prizeSplitStrategy.setPrizeSplits([
         {
@@ -74,13 +57,14 @@ describe('PrizeSplitStrategy', () => {
           token: 1,
         },
       ])
+
       await prizePool.mock.captureAwardBalance.returns(toWei('100'))
       await prizePool.mock.award.withArgs(wallet2.address, toWei('100'), ticket.address).returns()
       // Distribute Award
       const distribute = await prizeSplitStrategy.distribute()
       // Verify Contract Events
       await expect(distribute)
-        .to.emit(prizeSplitStrategy, 'Distribute')
+        .to.emit(prizeSplitStrategy, 'Distributed')
         .withArgs(toWei('100'))
       await expect(distribute)
         .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
@@ -109,7 +93,7 @@ describe('PrizeSplitStrategy', () => {
       const distribute = await prizeSplitStrategy.distribute()
       // Verify Contract Events
       await expect(distribute)
-        .to.emit(prizeSplitStrategy, 'Distribute')
+        .to.emit(prizeSplitStrategy, 'Distributed')
         .withArgs(toWei('100'))
       await expect(distribute)
         .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
@@ -118,8 +102,5 @@ describe('PrizeSplitStrategy', () => {
         .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
         .withArgs(wallet3.address, toWei('50'), ticket.address)
     });
-
   })
-
-
 })

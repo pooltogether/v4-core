@@ -10,6 +10,10 @@ import "../token/ControlledTokenInterface.sol";
 /// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
 interface PrizePoolInterface {
 
+  /// @dev Returns the address of a token in the _tokens array.
+  /// @return Address of token
+  function tokenAtIndex(uint256 tokenIndex) external returns (ControlledTokenInterface);
+
   /// @notice Deposit assets into the Prize Pool in exchange for tokens
   /// @param to The address receiving the newly minted tokens
   /// @param amount The amount of assets to deposit
