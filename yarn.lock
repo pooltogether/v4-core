@@ -1148,10 +1148,10 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-rng-contracts/-/pooltogether-rng-contracts-1.0.0.tgz#191d155dc960559cce06b7ec3b0f9ed2caed0f46"
   integrity sha512-jQub/+qPLQwTFtbBCvvyIEqxJDEBEV/hgLKnuocBg2/GySWtHLz67WCy17bNn1hZw8nWIt8Ih8h+7iT2UJhtmQ==
 
-"@pooltogether/pooltogether-rng-contracts@1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-rng-contracts/-/pooltogether-rng-contracts-1.2.0.tgz#f7a6989cb5578c56f72c6f21bcc5c5a5c5ede3a8"
-  integrity sha512-oLbYjSbXsR2P+r/wYGxmfPSvWFHikT0D9ykOlPQ/Kq63gecgfskUTDUoEVvp0ryK2f8MtFNb81RdqEQLQOcyDw==
+"@pooltogether/pooltogether-rng-contracts@1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-rng-contracts/-/pooltogether-rng-contracts-1.4.0.tgz#310b9667a1123cfcce718aa6d8eba7c434a53c75"
+  integrity sha512-dNgDpDsCMxUxaz8u6OfpjSBtMOdcp8QkLC3cwJ6E++4ux0qY2ON+ZqJEHIC3q4ZVJ4Xf6FikMJF0a8SVNtl8Zw==
 
 "@pooltogether/uniform-random-number@1.0.0-beta.1":
   version "1.0.0-beta.1"
@@ -1167,6 +1167,11 @@
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@pooltogether/yield-source-interface/-/yield-source-interface-1.0.1.tgz#ce446e5e5f83ff55663f686cef4e7984a7e8d230"
   integrity sha512-ykfmKpTZ38V5hmoupAvVygnlvezflHjHa/Dqp4J2LrF8NWUfcrrx8jF1a6hvT+UYBsVyFBGyWU9gL0NZO+tzmw==
+
+"@pooltogether/yield-source-interface@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@pooltogether/yield-source-interface/-/yield-source-interface-1.0.2.tgz#59630684e0e55310577e9bf07fd778b60676c8ec"
+  integrity sha512-dt/lkK+0erPHi9FpVaYLA2+PiWJb7sODB/2J/LyrENtAe2Miob03005ijLY3zHb4NtQUEGDDPM0uX51jniex7A==
 
 "@resolver-engine/core@^0.3.3":
   version "0.3.3"
@@ -5566,6 +5571,11 @@ hardhat-abi-exporter@2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/hardhat-abi-exporter/-/hardhat-abi-exporter-2.1.2.tgz#7f0aa1fc91d546ca595ca35b743e36211a71f987"
   integrity sha512-ovJr6zJ9uxHDZmqtRRfaaFA8KxVCNzfHroP44QOWZ+CAh06hSen3r4Qehw6u7Vl5xJmw7Pu7nz+7q5QvPWXTKA==
+
+hardhat-dependency-compiler@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/hardhat-dependency-compiler/-/hardhat-dependency-compiler-1.1.1.tgz#0bfe713d450a7fdad14a210b7a9b8a32e56cc744"
+  integrity sha512-2xubH8aPojhMGbILFlfL28twu6l/5Tyrj4Dpkogvycse6YegKW9GuGA3rnbPH0KP+Nv2xT626ZuR2Ys+w3ifPw==
 
 hardhat-deploy-ethers@0.3.0-beta.10:
   version "0.3.0-beta.10"

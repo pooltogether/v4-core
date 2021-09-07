@@ -27,9 +27,10 @@
   "dependencies": {
     "@openzeppelin/contracts-upgradeable": "4.2.0",
     "@pooltogether/fixed-point": "1.0.0",
-    "@pooltogether/owner-manager-contracts": "^0.0.1-beta.3",
+    "@pooltogether/owner-manager-contracts": "0.0.1-beta.3",
     "@pooltogether/pooltogether-contracts": "3.4.4",
-    "@pooltogether/pooltogether-rng-contracts": "1.2.0",
+    "@pooltogether/pooltogether-rng-contracts": "1.4.0",
+    "@pooltogether/yield-source-interface": "1.0.2",
     "deploy-eip-1820": "1.0.0"
   },
   "devDependencies": {
@@ -50,6 +51,7 @@
     "ethers": "5.4.4",
     "hardhat": "2.5.0",
     "hardhat-abi-exporter": "2.1.2",
+    "hardhat-dependency-compiler": "1.1.1",
     "hardhat-deploy": "0.7.0-beta.47",
     "hardhat-deploy-ethers": "0.3.0-beta.10",
     "hardhat-gas-reporter": "1.0.4",

@@ -6,6 +6,7 @@ import 'hardhat-deploy-ethers';
 import 'hardhat-gas-reporter';
 import 'hardhat-log-remover';
 import 'solidity-coverage';
+import 'hardhat-dependency-compiler';
 
 import { HardhatUserConfig } from 'hardhat/config';
 
@@ -66,6 +67,13 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  external: {
+    contracts: [
+      {
+        artifacts: "node_modules/@pooltogether/pooltogether-rng-contracts/build",
+      },
+    ]
+  }
 };
 
 export default config;

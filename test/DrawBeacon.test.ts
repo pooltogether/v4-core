@@ -2,7 +2,7 @@ import { ethers, artifacts } from 'hardhat';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { constants, Contract } from 'ethers';
+import { constants, Contract, ContractFactory } from 'ethers';
 import { expect } from 'chai';
 import { deploy1820 } from 'deploy-eip-1820'
 
@@ -10,9 +10,11 @@ const debug = require('debug')('ptv3:PoolEnv');
 const now = () => (new Date().getTime() / 1000) | 0;
 const toWei = (val: string | number) => ethers.utils.parseEther('' + val);
 const { AddressZero } = constants;
+
 describe('DrawBeacon', () => {
   let wallet: SignerWithAddress;
   let wallet2: SignerWithAddress;
+  let DrawBeaconFactory: ContractFactory
   let drawHistory: Contract;
   let drawBeacon: Contract;
   let drawBeacon2: Contract;
@@ -52,15 +54,15 @@ describe('DrawBeacon', () => {
     await rng.mock.getRequestFee.returns(rngFeeToken.address, toWei('1'));
 
     debug('deploying drawBeacon...');
-    const DrawBeaconFactory = await ethers.getContractFactory('DrawBeaconHarness', wallet);
+    DrawBeaconFactory = await ethers.getContractFactory('DrawBeaconHarness', wallet);
     drawBeacon = await DrawBeaconFactory.deploy();
 
     debug('initializing drawBeacon...');
     await drawBeacon.initialize(
       drawHistory.address,
+      rng.address,
       rngRequestPeriodStart,
       drawPeriodSeconds,
-      rng.address,
     );
 
     debug('set draw history manager as draw beacon');
@@ -71,26 +73,21 @@ describe('DrawBeacon', () => {
   describe('initialize()', () => {
     it('should emit an Initialized event', async () => {
       debug('deploying another drawBeacon...');
-      const DrawBeaconHarness = await ethers.getContractFactory(
-        'DrawBeaconHarness',
-        wallet
-      );
-
-      let drawBeacon2 = await DrawBeaconHarness.deploy();
+      let drawBeacon2 = await DrawBeaconFactory.deploy();
       const initalizeResult2 = drawBeacon2.initialize(
         drawHistory.address,
-        rngRequestPeriodStart,
-        drawPeriodSeconds,
         rng.address,
+        rngRequestPeriodStart,
+        drawPeriodSeconds
       );
 
       await expect(initalizeResult2)
         .to.emit(drawBeacon2, 'Initialized')
         .withArgs(
           drawHistory.address,
-          rngRequestPeriodStart,
-          drawPeriodSeconds,
           rng.address,
+          rngRequestPeriodStart,
+          drawPeriodSeconds
         );
     });
 
@@ -99,37 +96,33 @@ describe('DrawBeacon', () => {
       expect(await drawBeacon.rng()).to.equal(rng.address);
     });
 
-    it('should reject invalid params', async () => {
-      const _initArgs = [
-        drawHistory.address,
-        rngRequestPeriodStart,
-        drawPeriodSeconds,
-        rng.address,
-      ];
-      let initArgs;
-
+    it('should reject rng request period', async () => {
       debug('deploying secondary drawBeacon...');
-      const DrawBeaconHarness = await ethers.getContractFactory(
-        'DrawBeaconHarness',
-        wallet,
-      );
-
-      drawBeacon2 = await DrawBeaconHarness.deploy();
-
-      debug('testing initialization of secondary drawBeacon...');
-
-      initArgs = _initArgs.slice();
-      initArgs[2] = 0;
-      await expect(drawBeacon2.initialize(...initArgs)).to.be.revertedWith(
+      drawBeacon2 = await DrawBeaconFactory.deploy();
+      await expect(drawBeacon2.initialize(
+        drawHistory.address,
+        rng.address,
+        0,
+        drawPeriodSeconds
+      )).to.be.revertedWith(
         'DrawBeacon/rng-request-period-greater-than-zero',
       );
-      initArgs = _initArgs.slice();
-      initArgs[3] = AddressZero;
-      await expect(drawBeacon2.initialize(...initArgs)).to.be.revertedWith(
+    })
+
+    it('should reject invalid rng', async () => {
+      debug('deploying secondary drawBeacon...');
+      drawBeacon2 = await DrawBeaconFactory.deploy();
+      await expect(drawBeacon2.initialize(
+        drawHistory.address,
+        AddressZero,
+        rngRequestPeriodStart,
+        drawPeriodSeconds
+      )).to.be.revertedWith(
         'DrawBeacon/rng-not-zero',
       );
     });
   });
+
 
   describe('estimateRemainingBlocksToPrize()', () => {
     it('should estimate using the constant', async () => {
@@ -403,19 +396,14 @@ describe('DrawBeacon', () => {
       rngRequestPeriodStart = 10000;
 
       debug('deploying secondary drawBeacon...');
-      const DrawBeaconHarness = await ethers.getContractFactory(
-        'DrawBeaconHarness',
-        wallet
-      );
-
-      drawBeaconBase2 = await DrawBeaconHarness.deploy();
+      drawBeaconBase2 = await DrawBeaconFactory.deploy();
 
       debug('initializing secondary drawBeacon...');
       await drawBeaconBase2.initialize(
         drawHistory.address,
-        rngRequestPeriodStart,
-        drawPeriodSeconds,
         rng.address,
+        rngRequestPeriodStart,
+        drawPeriodSeconds
       );
 
       debug('initialized!');

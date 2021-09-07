@@ -3,7 +3,7 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./prize-pool/PrizePoolInterface.sol";
+import "./interfaces/IPrizePool.sol";
 import "./prize-strategy/PrizeSplit.sol";
 
 contract PrizeSplitStrategy is Initializable, PrizeSplit {
@@ -13,7 +13,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
   /**
     * @notice Linked PrizePool smart contract responsible for awarding tokens.
   */
-  PrizePoolInterface public prizePool;
+  IPrizePool public prizePool;
 
   /* ============ Events ============ */
 
@@ -44,7 +44,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     * @param _prizePool PrizePool contract address
   */
   function initialize (
-    PrizePoolInterface _prizePool
+    IPrizePool _prizePool
   ) external initializer {
     __Ownable_init();
     require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero");
