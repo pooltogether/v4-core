@@ -3,7 +3,7 @@ const ethers = require('ethers')
 
 const toWei = (val) => ethers.utils.parseEther('' + val);
 
-describe('Beacon', () => {
+describe('Oracle jobs', () => {
   let env;
 
   beforeEach(async () => {
@@ -11,12 +11,12 @@ describe('Beacon', () => {
     await env.ready()
   });
 
-  it('should allow a user to trigger the beacon', async () => {
+  it('should be able to trigger the beacon', async () => {
     await env.draw({ randomNumber: 1 })
     await env.expectDrawRandomNumber({ drawId: 0, randomNumber: 1 })
   });
 
-  it('should allow the oracle to push new draw settings', async () => {
+  it('should be able to push new draw settings', async () => {
     await env.poolAccrues({ tickets: 10 })
     await env.draw({ randomNumber: 1 })
     bitRangeSize = 2
