@@ -154,30 +154,35 @@ module.exports = async (hardhat) => {
 
   cyan('\nDeploying DrawBeacon...')
   const drawBeaconResult = await deploy('DrawBeacon', {
-    from: deployer,
-    contract: 'CDrawBeacon',
-    args: [
-      parseInt('' + new Date().getTime() / 1000),
-      120, // 2 minute intervals
-      rngServiceResult.address
-    ]
+    from: deployer
   })
   displayResult('DrawBeacon', drawBeaconResult)
 
   cyan('\nDeploying DrawHistory...')
   const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
-    contract: 'CDrawHistory',
     args: [
-      drawBeaconResult.address
+      
     ]
   })
   displayResult('DrawHistory', drawHistoryResult)
 
-  if (drawHistoryResult.newlyDeployed) {
+  if (drawBeaconResult.newlyDeployed) {
+    cyan('\nInitializing DrawBeacon')
     const drawBeacon = await ethers.getContract('DrawBeacon')
-    cyan('\nSetting DrawHistory on DrawBeacon...')
-    await drawBeacon.setDrawHistory(drawHistoryResult.address)
+    await drawBeacon.initialize(
+      drawHistoryResult.address,
+      rngServiceResult.address,
+      parseInt('' + new Date().getTime() / 1000),
+      120 // 2 minute intervals
+    )
+    green(`initialized!`)
+  }
+  
+  if (drawHistoryResult.newlyDeployed) {
+    const drawHistory = await ethers.getContract('DrawHistory')
+    cyan('\nInitialzing DrawHistory...')
+    await drawHistory.initialize(drawBeaconResult.address)
     green('Set!')
   }
 

@@ -13,8 +13,8 @@ import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 import "./Constants.sol";
-import "./DrawHistory.sol";
 import "./interfaces/IDrawBeacon.sol";
+import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./prize-pool/PrizePool.sol";
 import "./prize-strategy/PeriodicPrizeStrategyListenerInterface.sol";
@@ -45,7 +45,7 @@ contract DrawBeacon is IDrawBeacon,
 
   /// @notice Seconds between draw period request
   uint256 public drawPeriodSeconds;
-  
+
   /// @notice Epoch timestamp when RNG request can start
   uint256 public drawPeriodStartedAt;
 
@@ -59,7 +59,7 @@ contract DrawBeacon is IDrawBeacon,
   uint32 public nextDrawId;
 
   /// @notice DrawHistory contract interface
-  DrawHistory public drawHistory;
+  IDrawHistory public drawHistory;
 
   /* ============ Events ============ */
 
@@ -68,7 +68,7 @@ contract DrawBeacon is IDrawBeacon,
     * @param previousDrawHistory  The previous DrawHistory address
     * @param newDrawHistory       The new DrawHistory address
   */
-  event DrawHistoryTransferred(DrawHistory indexed previousDrawHistory, DrawHistory indexed newDrawHistory);
+  event DrawHistoryTransferred(IDrawHistory indexed previousDrawHistory, IDrawHistory indexed newDrawHistory);
 
   /**
     * @notice Emit when a RNG request has opened.
@@ -145,14 +145,16 @@ contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Emit when the DrawBeacon is initialized.
+    * @param drawHistory Address of the draw history to push draws to
+    * @param rng Address of RNG service
     * @param rngRequestPeriodStart Timestamp when draw period starts
     * @param drawPeriodSeconds Minimum seconds between draw period
-    * @param rng Address of RNG service
   */
   event Initialized(
+    IDrawHistory indexed drawHistory,
+    RNGInterface indexed rng,
     uint256 rngRequestPeriodStart,
-    uint256 drawPeriodSeconds,
-    RNGInterface rng
+    uint256 drawPeriodSeconds
   );
 
   /* ============ Structs ============ */
@@ -195,18 +197,21 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /* ============ Initialize ============ */
-  
+
   /**
     * @notice Initialize the DrawBeacon smart contract.
+    * @param _rng The RNG service to use
+    * @param _drawHistory The address of the draw history to push draws to
     * @param _rngRequestPeriodStart The starting timestamp of the draw period.
     * @param _drawPeriodSeconds The duration of the draw period in seconds
-    * @param _rng The RNG service to use
   */
   function initialize (
+    IDrawHistory _drawHistory,
+    RNGInterface _rng,
     uint256 _rngRequestPeriodStart,
-    uint256 _drawPeriodSeconds,
-    RNGInterface _rng
+    uint256 _drawPeriodSeconds
   ) public initializer {
+    require(_rngRequestPeriodStart > 0, "DrawBeacon/rng-request-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;
 
@@ -214,17 +219,19 @@ contract DrawBeacon is IDrawBeacon,
 
     _setDrawPeriodSeconds(_drawPeriodSeconds);
     drawPeriodStartedAt = _rngRequestPeriodStart;
-    
+
+    _setDrawHistory(_drawHistory);
 
     // 30 min timeout
     _setRngRequestTimeout(1800);
 
     emit Initialized(
+      _drawHistory,
+      _rng,
       _rngRequestPeriodStart,
-      _drawPeriodSeconds,
-      _rng
+      _drawPeriodSeconds
     );
-    
+
     emit DrawBeaconOpened(_msgSender(), _rngRequestPeriodStart);
   }
 
@@ -371,10 +378,10 @@ contract DrawBeacon is IDrawBeacon,
   /**
     * @notice External function to set DrawHistory.
     * @dev    External function to set DrawHistory from an authorized manager.
-    * @param newDrawHistory  DrawHistory address
+    * @param newDrawHistory DrawHistory address
     * @return DrawHistory
   */
-  function setDrawHistory(DrawHistory newDrawHistory) external override onlyOwner returns (DrawHistory) {
+  function setDrawHistory(IDrawHistory newDrawHistory) external override onlyOwner returns (IDrawHistory) {
     return _setDrawHistory(newDrawHistory);
   }
 
@@ -487,8 +494,8 @@ contract DrawBeacon is IDrawBeacon,
     * @param _newDrawHistory  DrawHistory address
     * @return DrawHistory
   */
-  function _setDrawHistory(DrawHistory _newDrawHistory) internal returns (DrawHistory) {
-    DrawHistory _previousDrawHistory = drawHistory;
+  function _setDrawHistory(IDrawHistory _newDrawHistory) internal returns (IDrawHistory) {
+    IDrawHistory _previousDrawHistory = drawHistory;
     require(address(_newDrawHistory) != address(0), "DrawBeacon/draw-history-not-zero-address");
     require(address(_newDrawHistory) != address(_previousDrawHistory), "DrawBeacon/existing-draw-history-address");
     drawHistory = _newDrawHistory;

@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
-import "../DrawHistory.sol";
+import "./IDrawHistory.sol";
 import "../libraries/DrawLib.sol";
 
 interface IDrawBeacon {
@@ -24,5 +24,5 @@ interface IDrawBeacon {
   function setRngRequestTimeout(uint32 _rngRequestTimeout) external;
   function setRngService(RNGInterface rngService) external;
   function startDraw() external virtual;
-  function setDrawHistory(DrawHistory newDrawHistory) external virtual returns (DrawHistory);
+  function setDrawHistory(IDrawHistory newDrawHistory) external virtual returns (IDrawHistory);
 }
