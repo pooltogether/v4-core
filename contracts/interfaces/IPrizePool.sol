@@ -18,12 +18,10 @@ interface IPrizePool {
   /// @param to The address receiving the newly minted tokens
   /// @param amount The amount of assets to deposit
   /// @param controlledToken The address of the type of token the user is minting
-  /// @param referrer The referrer of the deposit
   function depositTo(
     address to,
     uint256 amount,
-    address controlledToken,
-    address referrer
+    address controlledToken
   )
     external;
 

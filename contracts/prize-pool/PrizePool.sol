@@ -44,8 +44,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     address indexed operator,
     address indexed to,
     address indexed token,
-    uint256 amount,
-    address referrer
+    uint256 amount
   );
 
   /// @dev Event emitted when interest is awarded to a winner
@@ -168,12 +167,10 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @param to The address receiving the newly minted tokens
   /// @param amount The amount of assets to deposit
   /// @param controlledToken The address of the type of token the user is minting
-  /// @param referrer The referrer of the deposit
   function depositTo(
     address to,
     uint256 amount,
-    address controlledToken,
-    address referrer
+    address controlledToken
   )
     external override
     nonReentrant
@@ -182,12 +179,12 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   {
     address operator = _msgSender();
 
-    _mint(to, amount, controlledToken, referrer);
+    _mint(to, amount, controlledToken);
 
     _token().safeTransferFrom(operator, address(this), amount);
     _supply(amount);
 
-    emit Deposited(operator, to, controlledToken, amount, referrer);
+    emit Deposited(operator, to, controlledToken, amount);
   }
 
   /// @notice Withdraw assets from the Prize Pool instantly.  A fairness fee may be charged for an early exit.
@@ -246,92 +243,91 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
 
   /// @notice Called by the prize strategy to award prizes.
   /// @dev The amount awarded must be less than the awardBalance()
-  /// @param to The address of the winner that receives the award
-  /// @param amount The amount of assets to be awarded
-  /// @param controlledToken The address of the asset token being awarded
+  /// @param _to The address of the winner that receives the award
+  /// @param _amount The amount of assets to be awarded
+  /// @param _controlledToken The address of the asset token being awarded
   function award(
-    address to,
-    uint256 amount,
-    address controlledToken
+    address _to,
+    uint256 _amount,
+    address _controlledToken
   )
     external override
     onlyPrizeStrategy
-    onlyControlledToken(controlledToken)
+    onlyControlledToken(_controlledToken)
   {
-    if (amount == 0) {
+    if (_amount == 0) {
       return;
     }
 
-    require(amount <= _currentAwardBalance, "PrizePool/award-exceeds-avail");
-    _currentAwardBalance = _currentAwardBalance - amount;
+    require(_amount <= _currentAwardBalance, "PrizePool/award-exceeds-avail");
+    _currentAwardBalance = _currentAwardBalance - _amount;
 
-    _mint(to, amount, controlledToken, address(0));
+    _mint(_to, _amount, _controlledToken);
 
-    emit Awarded(to, controlledToken, amount);
+    emit Awarded(_to, _controlledToken, _amount);
   }
 
   /// @notice Called by the Prize-Strategy to transfer out external ERC20 tokens
   /// @dev Used to transfer out tokens held by the Prize Pool.  Could be liquidated, or anything.
-  /// @param to The address of the winner that receives the award
-  /// @param amount The amount of external assets to be awarded
-  /// @param externalToken The address of the external asset token being awarded
+  /// @param _to The address of the winner that receives the award
+  /// @param _amount The amount of external assets to be awarded
+  /// @param _externalToken The address of the external asset token being awarded
   function transferExternalERC20(
-    address to,
-    address externalToken,
-    uint256 amount
+    address _to,
+    address _externalToken,
+    uint256 _amount
   )
     external override
     onlyPrizeStrategy
   {
-    if (_transferOut(to, externalToken, amount)) {
-      emit TransferredExternalERC20(to, externalToken, amount);
+    if (_transferOut(_to, _externalToken, _amount)) {
+      emit TransferredExternalERC20(_to, _externalToken, _amount);
     }
   }
 
   /// @notice Called by the Prize-Strategy to award external ERC20 prizes
   /// @dev Used to award any arbitrary tokens held by the Prize Pool
-  /// @param to The address of the winner that receives the award
-  /// @param amount The amount of external assets to be awarded
-  /// @param externalToken The address of the external asset token being awarded
+  /// @param _to The address of the winner that receives the award
+  /// @param _amount The amount of external assets to be awarded
+  /// @param _externalToken The address of the external asset token being awarded
   function awardExternalERC20(
-    address to,
-    address externalToken,
-    uint256 amount
+    address _to,
+    address _externalToken,
+    uint256 _amount
   )
     external override
     onlyPrizeStrategy
   {
-    if (_transferOut(to, externalToken, amount)) {
-      emit AwardedExternalERC20(to, externalToken, amount);
+    if (_transferOut(_to, _externalToken, _amount)) {
+      emit AwardedExternalERC20(_to, _externalToken, _amount);
     }
   }
 
   function _transferOut(
-    address to,
-    address externalToken,
-    uint256 amount
+    address _to,
+    address _externalToken,
+    uint256 _amount
   )
     internal
     returns (bool)
   {
-    require(_canAwardExternal(externalToken), "PrizePool/invalid-external-token");
+    require(_canAwardExternal(_externalToken), "PrizePool/invalid-external-token");
 
-    if (amount == 0) {
+    if (_amount == 0) {
       return false;
     }
 
-    IERC20Upgradeable(externalToken).safeTransfer(to, amount);
+    IERC20Upgradeable(_externalToken).safeTransfer(_to, _amount);
 
     return true;
   }
 
   /// @notice Called to mint controlled tokens.  Ensures that token listener callbacks are fired.
-  /// @param to The user who is receiving the tokens
-  /// @param amount The amount of tokens they are receiving
-  /// @param controlledToken The token that is going to be minted
-  /// @param referrer The user who referred the minting
-  function _mint(address to, uint256 amount, address controlledToken, address referrer) internal {
-    IControlledToken(controlledToken).controllerMint(to, amount);
+  /// @param _to The user who is receiving the tokens
+  /// @param _amount The amount of tokens they are receiving
+  /// @param _controlledToken The token that is going to be minted
+  function _mint(address _to, uint256 _amount, IControlledToken _controlledToken) internal {
+    _controlledToken.controllerMint(_to, _amount);
   }
 
   /// @notice Called by the prize strategy to award external ERC721 prizes
@@ -379,9 +375,12 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
 
   /// @notice Adds a new controlled token
   /// @param _controlledToken The controlled token to add.
-  /// @param index The index to add the controlledToken
-  function _addControlledToken(IControlledToken _controlledToken, uint256 index) internal {
-    _tokens[index] = _controlledToken;
+  /// @param _index The index to add the controlledToken
+  function _addControlledToken(IControlledToken _controlledToken, uint256 _index) internal {
+    require(address(_controlledToken) != address(0), "PrizePool/controlledToken-not-zero-address");
+
+    _tokens[_index] = _controlledToken;
+
     emit ControlledTokenAdded(_controlledToken);
   }
 
@@ -420,20 +419,20 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   }
 
   /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
-  /// @param compLike The COMP-like token held by the prize pool that should be delegated
-  /// @param to The address to delegate to
-  function compLikeDelegate(ICompLike compLike, address to) external onlyOwner {
-    if (compLike.balanceOf(address(this)) > 0) {
-      compLike.delegate(to);
+  /// @param _compLike The COMP-like token held by the prize pool that should be delegated
+  /// @param _to The address to delegate to
+  function compLikeDelegate(ICompLike _compLike, address _to) external onlyOwner {
+    if (_compLike.balanceOf(address(this)) > 0) {
+      _compLike.delegate(_to);
     }
   }
 
   /// @notice Required for ERC721 safe token transfers from smart contracts.
-  /// @param operator The address that acts on behalf of the owner
-  /// @param from The current owner of the NFT
-  /// @param tokenId The NFT to transfer
-  /// @param data Additional data with no specified format, sent in call to `_to`.
-  function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external override returns (bytes4){
+  /// @param _operator The address that acts on behalf of the owner
+  /// @param _from The current owner of the NFT
+  /// @param _tokenId The NFT to transfer
+  /// @param _data Additional data with no specified format, sent in call to `_to`.
+  function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external override returns (bytes4){
     return IERC721ReceiverUpgradeable.onERC721Received.selector;
   }
 
