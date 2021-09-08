@@ -5,7 +5,7 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
-import "./ControlledTokenInterface.sol";
+import "./interfaces/ControlledTokenInterface.sol";
 
 /// @title Controlled ERC20 Token
 /// @notice ERC20 Tokens with a controller for minting & burning

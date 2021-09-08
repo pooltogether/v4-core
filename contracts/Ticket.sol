@@ -12,7 +12,7 @@ import "hardhat/console.sol";
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
 import "./interfaces/TicketInterface.sol";
-import "./token/ControlledToken.sol";
+import "./ControlledToken.sol";
 
 /// @title An ERC20 token that allows you to see user's past balances, and average balance held between timestamps.
 /// @author PoolTogether Inc.

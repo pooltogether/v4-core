@@ -12,11 +12,10 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpg
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
+import "../ControlledToken.sol";
 import "../external/compound/ICompLike.sol";
-
 import "../registry/RegistryInterface.sol";
 import "../reserve/ReserveInterface.sol";
-import "../token/ControlledToken.sol";
 import "../interfaces/IPrizePool.sol";
 
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.

@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.6;
 
-import "../token/ControlledTokenInterface.sol";
+import "../interfaces/ControlledTokenInterface.sol";
 
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.
 ///       Users deposit and withdraw from this contract to participate in Prize Pool.
