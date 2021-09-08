@@ -11,12 +11,12 @@ import "hardhat/console.sol";
 
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
-import "./interfaces/TicketInterface.sol";
+import "./interfaces/ITicket.sol";
 import "./ControlledToken.sol";
 
 /// @title An ERC20 token that allows you to see user's past balances, and average balance held between timestamps.
 /// @author PoolTogether Inc.
-contract Ticket is ControlledToken, TicketInterface {
+contract Ticket is ControlledToken, ITicket {
   /// @notice The minimum length of time a twab should exist.
   /// @dev Once the twab ttl expires, its storage slot is recycled.
   uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;

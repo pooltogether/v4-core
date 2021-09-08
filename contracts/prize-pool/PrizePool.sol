@@ -32,7 +32,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
 
   /// @dev Event emitted when controlled token is added
   event ControlledTokenAdded(
-    ControlledTokenInterface indexed token
+    IControlledToken indexed token
   );
 
   event AwardCaptured(
@@ -136,7 +136,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   string constant public VERSION = "3.4.0";
 
   /// @dev An array of all the controlled tokens
-  ControlledTokenInterface[] internal _tokens;
+  IControlledToken[] internal _tokens;
 
   /// @dev The Prize Strategy that this Prize Pool is bound to.
   address public prizeStrategy;
@@ -161,17 +161,17 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @param _controlledTokens Array of ControlledTokens that are controlled by this Prize Pool.
   /// @param _maxExitFeeMantissa The maximum exit fee size
   function initialize (
-    ControlledTokenInterface[] memory _controlledTokens,
+    IControlledToken[] memory _controlledTokens,
     uint256 _maxExitFeeMantissa
   )
     public
     initializer
   {
     uint256 controlledTokensLength = _controlledTokens.length;
-    _tokens = new ControlledTokenInterface[](controlledTokensLength);
+    _tokens = new IControlledToken[](controlledTokensLength);
 
     for (uint256 i = 0; i < controlledTokensLength; i++) {
-      ControlledTokenInterface controlledToken = _controlledTokens[i];
+      IControlledToken controlledToken = _controlledTokens[i];
       _addControlledToken(controlledToken, i);
     }
     __Ownable_init();
@@ -202,8 +202,8 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   
   /// @dev Returns the address of a token in the _tokens array.
   /// @return Address of token
-  function tokenAtIndex(uint256 tokenIndex) external override view returns (ControlledTokenInterface) {
-    ControlledTokenInterface[] memory __tokens = _tokens;
+  function tokenAtIndex(uint256 tokenIndex) external override view returns (IControlledToken) {
+    IControlledToken[] memory __tokens = _tokens;
     require(tokenIndex < __tokens.length, "PrizePool/invalid-token-index");
     return __tokens[tokenIndex];
   }
@@ -265,7 +265,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     _burnCredit(from, controlledToken, burnedCredit);
 
     // burn the tickets
-    ControlledTokenInterface(controlledToken).controllerBurnFrom(_msgSender(), from, amount);
+    IControlledToken(controlledToken).controllerBurnFrom(_msgSender(), from, amount);
 
     // redeem the tickets less the fee
     uint256 amountLessFee = amount - exitFee;
@@ -406,7 +406,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @param controlledToken The token that is going to be minted
   /// @param referrer The user who referred the minting
   function _mint(address to, uint256 amount, address controlledToken, address referrer) internal {
-    ControlledTokenInterface(controlledToken).controllerMint(to, amount);
+    IControlledToken(controlledToken).controllerMint(to, amount);
   }
 
   /// @notice Called by the prize strategy to award external ERC721 prizes
@@ -703,7 +703,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @notice Adds a new controlled token
   /// @param _controlledToken The controlled token to add.
   /// @param index The index to add the controlledToken
-  function _addControlledToken(ControlledTokenInterface _controlledToken, uint256 index) internal {
+  function _addControlledToken(IControlledToken _controlledToken, uint256 index) internal {
     _tokens[index] = _controlledToken;
     emit ControlledTokenAdded(_controlledToken);
   }
@@ -726,7 +726,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
 
   /// @notice An array of the Tokens controlled by the Prize Pool (ie. Tickets, Sponsorship)
   /// @return An array of controlled token addresses
-  function tokens() external override view returns (ControlledTokenInterface[] memory) {
+  function tokens() external override view returns (IControlledToken[] memory) {
     return _tokens;
   }
 
@@ -764,7 +764,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @return The current total of all tokens
   function _tokenTotalSupply() internal view returns (uint256) {
     uint256 total;
-    ControlledTokenInterface[] memory tokens = _tokens; // SLOAD
+    IControlledToken[] memory tokens = _tokens; // SLOAD
     uint256 tokensLength = tokens.length;
 
     for(uint256 i = 0; i < tokensLength; i++){
@@ -785,8 +785,8 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @dev Checks if a specific token is controlled by the Prize Pool
   /// @param controlledToken The address of the token to check
   /// @return True if the token is a controlled token, false otherwise
-  function _isControlled(ControlledTokenInterface controlledToken) internal view returns (bool) {
-    ControlledTokenInterface[] memory tokens = _tokens; // SLOAD
+  function _isControlled(IControlledToken controlledToken) internal view returns (bool) {
+    IControlledToken[] memory tokens = _tokens; // SLOAD
     uint256 tokensLength = tokens.length;
 
     for(uint256 i = 0; i < tokensLength; i++) {
@@ -798,7 +798,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @dev Checks if a specific token is controlled by the Prize Pool
   /// @param controlledToken The address of the token to check
   /// @return True if the token is a controlled token, false otherwise
-  function isControlled(ControlledTokenInterface controlledToken) external view returns (bool) {
+  function isControlled(IControlledToken controlledToken) external view returns (bool) {
     return _isControlled(controlledToken);
   }
 
@@ -829,7 +829,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @dev Function modifier to ensure usage of tokens controlled by the Prize Pool
   /// @param controlledToken The address of the token to check
   modifier onlyControlledToken(address controlledToken) {
-    require(_isControlled(ControlledTokenInterface(controlledToken)), "PrizePool/unknown-token");
+    require(_isControlled(IControlledToken(controlledToken)), "PrizePool/unknown-token");
     _;
   }
 

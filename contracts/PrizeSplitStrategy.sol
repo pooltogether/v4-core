@@ -75,7 +75,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     * @param tokenIndex Index (0 or 1) of a token in the prizePool.tokens mapping
   */
   function _awardPrizeSplitAmount(address user, uint256 amount, uint8 tokenIndex) override internal {
-    ControlledTokenInterface _token = prizePool.tokenAtIndex(tokenIndex);
+    IControlledToken _token = prizePool.tokenAtIndex(tokenIndex);
     prizePool.award(user, amount, address(_token));
     emit PrizeSplitAwarded(user, amount, address(_token));
   }

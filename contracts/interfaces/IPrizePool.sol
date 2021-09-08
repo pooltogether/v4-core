@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.6;
 
-import "../interfaces/ControlledTokenInterface.sol";
+import "../interfaces/IControlledToken.sol";
 
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.
 ///       Users deposit and withdraw from this contract to participate in Prize Pool.
@@ -12,7 +12,7 @@ interface IPrizePool {
 
   /// @dev Returns the address of a token in the _tokens array.
   /// @return Address of token
-  function tokenAtIndex(uint256 tokenIndex) external returns (ControlledTokenInterface);
+  function tokenAtIndex(uint256 tokenIndex) external returns (IControlledToken);
 
   /// @notice Deposit assets into the Prize Pool in exchange for tokens
   /// @param to The address receiving the newly minted tokens
@@ -172,7 +172,7 @@ interface IPrizePool {
 
   /// @notice An array of the Tokens controlled by the Prize Pool (ie. Tickets, Sponsorship)
   /// @return An array of controlled token addresses
-  function tokens() external view returns (ControlledTokenInterface[] memory);
+  function tokens() external view returns (IControlledToken[] memory);
 
   /// @notice The total of all controlled tokens
   /// @return The current total of all tokens

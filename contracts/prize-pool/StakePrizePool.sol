@@ -17,7 +17,7 @@ contract StakePrizePool is PrizePool {
   /// @param _maxExitFeeMantissa The maximum exit fee size, relative to the withdrawal amount
   /// @param _stakeToken Address of the stake token
   function initialize (
-    ControlledTokenInterface[] memory _controlledTokens,
+    IControlledToken[] memory _controlledTokens,
     uint256 _maxExitFeeMantissa,
     IERC20Upgradeable _stakeToken
   )
