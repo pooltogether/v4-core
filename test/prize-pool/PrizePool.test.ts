@@ -46,7 +46,7 @@ describe('PrizePool', function () {
     token: Contract = depositToken,
     pool: Contract = prizePool,
   ) => {
-    await yieldSourceStub.mock.supply.withArgs(amount).returns();
+    await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, pool.address).returns();
 
     await token.approve(pool.address, amount);
     await token.mint(walletAddress, amount);
@@ -83,7 +83,7 @@ describe('PrizePool', function () {
 
     const YieldSourceStub = await artifacts.readArtifact('YieldSourceStub');
     yieldSourceStub = await deployMockContract(contractsOwner as Signer, YieldSourceStub.abi);
-    await yieldSourceStub.mock.token.returns(depositToken.address);
+    await yieldSourceStub.mock.depositToken.returns(depositToken.address);
 
     const ReserveInterface = await artifacts.readArtifact('ReserveInterface');
     reserve = await deployMockContract(contractsOwner as Signer, ReserveInterface.abi);
@@ -175,7 +175,9 @@ describe('PrizePool', function () {
       it('should handle when the balance is less than the collateral', async () => {
         await depositTokenIntoPrizePool(contractsOwner.address, toWei('100'));
 
-        await yieldSourceStub.mock.balance.returns(toWei('99.9999'));
+        await yieldSourceStub.mock.balanceOfToken
+          .withArgs(prizePool.address)
+          .returns(toWei('99.9999'));
 
         await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
         expect(await prizePool.awardBalance()).to.equal(toWei('0'));
@@ -184,13 +186,15 @@ describe('PrizePool', function () {
       it('should handle the situ when the total accrued interest is less than the captured total', async () => {
         await depositTokenIntoPrizePool(contractsOwner.address, toWei('100'));
 
-        await yieldSourceStub.mock.balance.returns(toWei('110'));
+        await yieldSourceStub.mock.balanceOfToken.withArgs(prizePool.address).returns(toWei('110'));
         await reserve.mock.reserveRateMantissa.returns('0');
 
         // first capture the 10 tokens
         await prizePool.captureAwardBalance();
 
-        await yieldSourceStub.mock.balance.returns(toWei('109.999'));
+        await yieldSourceStub.mock.balanceOfToken
+          .withArgs(prizePool.address)
+          .returns(toWei('109.999'));
 
         // now try to capture again
         await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'AwardCaptured');
@@ -199,7 +203,7 @@ describe('PrizePool', function () {
       it('should track the yield less the total token supply', async () => {
         await depositTokenIntoPrizePool(contractsOwner.address, toWei('100'));
 
-        await yieldSourceStub.mock.balance.returns(toWei('110'));
+        await yieldSourceStub.mock.balanceOfToken.withArgs(prizePool.address).returns(toWei('110'));
         await reserve.mock.reserveRateMantissa.returns('0');
 
         await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
@@ -213,7 +217,9 @@ describe('PrizePool', function () {
 
         await reserve.mock.reserveRateMantissa.returns(toWei('0.01'));
 
-        await yieldSourceStub.mock.balance.returns(toWei('1100'));
+        await yieldSourceStub.mock.balanceOfToken
+          .withArgs(prizePool.address)
+          .returns(toWei('1100'));
 
         let tx = prizePool.captureAwardBalance();
 
@@ -243,12 +249,14 @@ describe('PrizePool', function () {
         await depositTokenIntoPrizePool(contractsOwner.address, toWei('1000'));
 
         await reserve.mock.reserveRateMantissa.returns(toWei('0.01'));
-        await yieldSourceStub.mock.balance.returns(toWei('1100'));
+        await yieldSourceStub.mock.balanceOfToken
+          .withArgs(prizePool.address)
+          .returns(toWei('1100'));
 
         // capture the reserve of 1 token
         await prizePool.captureAwardBalance();
 
-        await yieldSourceStub.mock.redeem.withArgs(toWei('1')).returns(toWei('0.8'));
+        await yieldSourceStub.mock.redeemToken.withArgs(toWei('1')).returns(toWei('0.8'));
 
         await reserve.call(prizePool, 'withdrawReserve', contractsOwner.address);
 
@@ -262,7 +270,7 @@ describe('PrizePool', function () {
 
         await depositTokenIntoPrizePool(contractsOwner.address, amount);
 
-        await yieldSourceStub.mock.redeem.withArgs(amount).returns(amount);
+        await yieldSourceStub.mock.redeemToken.withArgs(amount).returns(amount);
 
         await expect(
           prizePool.withdrawInstantlyFrom(contractsOwner.address, amount, ticket.address),
@@ -276,7 +284,7 @@ describe('PrizePool', function () {
       it('should return zero if no deposits have been made', async () => {
         const balance = toWei('11');
 
-        await yieldSourceStub.mock.balance.returns(balance);
+        await yieldSourceStub.mock.balanceOfToken.withArgs(prizePool.address).returns(balance);
 
         expect((await call(prizePool, 'balance')).toString()).to.equal(balance);
       });
@@ -390,7 +398,9 @@ describe('PrizePool', function () {
 
       it('should include the reserve', async () => {
         await sponsorship.mock.totalSupply.returns(toWei('50'));
-        await yieldSourceStub.mock.balance.returns(toWei('110'));
+        await yieldSourceStub.mock.balanceOfToken
+          .withArgs(multiTokenPrizePool.address)
+          .returns(toWei('110'));
         await reserve.mock.reserveRateMantissa.returns(toWei('0.1'));
 
         await depositTokenIntoPrizePool(
@@ -403,7 +413,9 @@ describe('PrizePool', function () {
         // first capture the 10 tokens as 9 prize and 1 reserve
         await multiTokenPrizePool.captureAwardBalance();
 
-        await yieldSourceStub.mock.balance.returns(toWei('110'));
+        await yieldSourceStub.mock.balanceOfToken
+          .withArgs(multiTokenPrizePool.address)
+          .returns(toWei('110'));
 
         // now try to capture again
         expect(await multiTokenPrizePool.accountedBalance()).to.equal(toWei('101'));

@@ -44,18 +44,18 @@ contract PrizePoolHarness is PrizePool {
   }
 
   function _token() internal override view returns (IERC20Upgradeable) {
-    return stubYieldSource.token();
+    return IERC20Upgradeable(stubYieldSource.depositToken());
   }
 
   function _balance() internal override returns (uint256) {
-    return stubYieldSource.balance();
+    return stubYieldSource.balanceOfToken(address(this));
   }
 
   function _supply(uint256 mintAmount) internal override {
-    return stubYieldSource.supply(mintAmount);
+    return stubYieldSource.supplyTokenTo(mintAmount, address(this));
   }
 
   function _redeem(uint256 redeemAmount) internal override returns (uint256) {
-    return stubYieldSource.redeem(redeemAmount);
+    return stubYieldSource.redeemToken(redeemAmount);
   }
 }
