@@ -21,21 +21,18 @@ contract YieldSourcePrizePool is PrizePool {
 
   /// @notice Initializes the Prize Pool and Yield Service with the required contract connections
   /// @param _controlledTokens Array of addresses for the Ticket and Sponsorship Tokens controlled by the Prize Pool
-  /// @param _maxExitFeeMantissa The maximum exit fee size, relative to the withdrawal amount
   /// @param _yieldSource Address of the yield source
   function initializeYieldSourcePrizePool (
     IControlledToken[] memory _controlledTokens,
-    uint256 _maxExitFeeMantissa,
     IYieldSource _yieldSource
   )
     public
     initializer
   {
-    require(address(_yieldSource) != address(0), "YieldSourcePrizePool/yield-source-not-zero");
-    PrizePool.initialize(
-      _controlledTokens,
-      _maxExitFeeMantissa
-    );
+    require(address(_yieldSource) != address(0), "YieldSourcePrizePool/yield-source-not-zero-address");
+
+    PrizePool.initialize(_controlledTokens);
+
     yieldSource = _yieldSource;
 
     // A hack to determine whether it's an actual yield source
