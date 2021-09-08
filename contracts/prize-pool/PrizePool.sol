@@ -782,7 +782,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     uint256 _liquidityCap = liquidityCap;
     if(_liquidityCap == maxInt) return true;
     uint256 tokenTotalSupply = _tokenTotalSupply();
-    return (tokenTotalSupply + _amount <= liquidityCap);
+    return (tokenTotalSupply + _amount <= _liquidityCap);
   }
 
   /// @dev Checks if a specific token is controlled by the Prize Pool
