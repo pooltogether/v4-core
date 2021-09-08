@@ -19,7 +19,6 @@ describe('DrawBeacon', () => {
   let drawBeacon: Contract;
   let drawBeacon2: Contract;
   let rng: MockContract;
-  let registry: any;
   let rngFeeToken: MockContract;
 
   let rngRequestPeriodStart = now();

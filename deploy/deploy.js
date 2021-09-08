@@ -72,7 +72,7 @@ module.exports = async (hardhat) => {
 
   const harnessDisabled = !!process.env.DISABLE_HARNESS;
 
-  let { deployer, rng, admin, reserveRegistry, testnetCDai } = await getNamedAccounts();
+  let { deployer, rng, admin, testnetCDai } = await getNamedAccounts();
   const chainId = parseInt(await getChainId(), 10);
   // 31337 is unit testing, 1337 is for coverage
   const isTestEnvironment = chainId === 31337 || chainId === 1337;
@@ -88,134 +88,111 @@ module.exports = async (hardhat) => {
 
   await deploy1820(signer);
 
-  cyan(`\nDeploying RNGServiceStub...`)
+  cyan(`\nDeploying RNGServiceStub...`);
   const rngServiceResult = await deploy('RNGServiceStub', {
-    from: deployer
-  })
-  displayResult('RNGServiceStub', rngServiceResult)
+    from: deployer,
+  });
+  displayResult('RNGServiceStub', rngServiceResult);
 
-  yellow('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-  yellow('CAUTION: Deploying Prize Pool in a front-runnable way!')
+  yellow('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+  yellow('CAUTION: Deploying Prize Pool in a front-runnable way!');
 
-  cyan('\nDeploying MockYieldSource...')
+  cyan('\nDeploying MockYieldSource...');
   const mockYieldSourceResult = await deploy('MockYieldSource', {
     from: deployer,
-    args: [
-      'YIELD', 'YLD'
-    ]
-  })
-  displayResult('MockYieldSource', mockYieldSourceResult)
-  
-  cyan('\nDeploying Registry...')
-  const registryResult = await deploy('Registry', {
-    from: deployer
-  })
-  displayResult('Registry', registryResult)
+    args: ['YIELD', 'YLD'],
+  });
+  displayResult('MockYieldSource', mockYieldSourceResult);
 
-  cyan('\nDeploying Ticket...')
+  cyan('\nDeploying Ticket...');
   const ticketResult = await deploy('Ticket', {
-    from: deployer
-  })
-  displayResult('Ticket', ticketResult)
+    from: deployer,
+  });
+  displayResult('Ticket', ticketResult);
 
-  cyan('\nDeploying YieldSourcePrizePool...')
+  cyan('\nDeploying YieldSourcePrizePool...');
   const yieldSourcePrizePoolResult = await deploy('YieldSourcePrizePool', {
-    from: deployer
-  })
-  displayResult('YieldSourcePrizePool', yieldSourcePrizePoolResult)
+    from: deployer,
+  });
+  displayResult('YieldSourcePrizePool', yieldSourcePrizePoolResult);
 
   if (yieldSourcePrizePoolResult.newlyDeployed) {
-    cyan('\nInitializing YieldSourcePrizePool....')
-    const yieldSourcePrizePool = await ethers.getContract('YieldSourcePrizePool')
+    cyan('\nInitializing YieldSourcePrizePool....');
+    const yieldSourcePrizePool = await ethers.getContract('YieldSourcePrizePool');
     await yieldSourcePrizePool.initializeYieldSourcePrizePool(
-      registryResult.address,
       [ticketResult.address],
-      ethers.utils.parseEther("0.5"),
-      mockYieldSourceResult.address
-    )
-    green(`Initialized!`)
+      ethers.utils.parseEther('0.5'),
+      mockYieldSourceResult.address,
+    );
+    green(`Initialized!`);
   }
 
   if (ticketResult.newlyDeployed) {
-    cyan('\nInitializing Ticket....')
-    const ticket = await ethers.getContract('Ticket')
-    await ticket.initialize(
-      "Ticket",
-      "TICK",
-      18,
-      yieldSourcePrizePoolResult.address
-    )
-    green(`Initialized!`)
+    cyan('\nInitializing Ticket....');
+    const ticket = await ethers.getContract('Ticket');
+    await ticket.initialize('Ticket', 'TICK', 18, yieldSourcePrizePoolResult.address);
+    green(`Initialized!`);
   }
 
-  yellow('\nPrize Pool Setup Complete')
-  yellow('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+  yellow('\nPrize Pool Setup Complete');
+  yellow('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
-  cyan('\nDeploying DrawBeacon...')
+  cyan('\nDeploying DrawBeacon...');
   const drawBeaconResult = await deploy('DrawBeacon', {
-    from: deployer
-  })
-  displayResult('DrawBeacon', drawBeaconResult)
+    from: deployer,
+  });
+  displayResult('DrawBeacon', drawBeaconResult);
 
-  cyan('\nDeploying DrawHistory...')
+  cyan('\nDeploying DrawHistory...');
   const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
-    args: [
-      
-    ]
-  })
-  displayResult('DrawHistory', drawHistoryResult)
+    args: [],
+  });
+  displayResult('DrawHistory', drawHistoryResult);
 
   if (drawBeaconResult.newlyDeployed) {
-    cyan('\nInitializing DrawBeacon')
-    const drawBeacon = await ethers.getContract('DrawBeacon')
+    cyan('\nInitializing DrawBeacon');
+    const drawBeacon = await ethers.getContract('DrawBeacon');
     await drawBeacon.initialize(
       drawHistoryResult.address,
       rngServiceResult.address,
       parseInt('' + new Date().getTime() / 1000),
-      120 // 2 minute intervals
-    )
-    green(`initialized!`)
+      120, // 2 minute intervals
+    );
+    green(`initialized!`);
   }
-  
+
   if (drawHistoryResult.newlyDeployed) {
-    const drawHistory = await ethers.getContract('DrawHistory')
-    cyan('\nInitialzing DrawHistory...')
-    await drawHistory.initialize(drawBeaconResult.address)
-    green('Set!')
+    const drawHistory = await ethers.getContract('DrawHistory');
+    cyan('\nInitialzing DrawHistory...');
+    await drawHistory.initialize(drawBeaconResult.address);
+    green('Set!');
   }
 
-  cyan('\nDeploying TsunamiDrawCalculator...')
+  cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
-    from: deployer
-  })
-  displayResult('TsunamiDrawCalculator', drawCalculatorResult)
+    from: deployer,
+  });
+  displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 
-  cyan('\nDeploying ClaimableDraw...')
+  cyan('\nDeploying ClaimableDraw...');
   const claimableDrawResult = await deploy('ClaimableDraw', {
-    from: deployer
-  })
-  displayResult('ClaimableDraw', claimableDrawResult)
+    from: deployer,
+  });
+  displayResult('ClaimableDraw', claimableDrawResult);
 
   if (claimableDrawResult.newlyDeployed) {
-    cyan('\nInitializing ClaimableDraw...')
-    const claimableDraw = await ethers.getContract('ClaimableDraw')
-    await claimableDraw.initialize(
-      drawCalculatorResult.address,
-      drawHistoryResult.address
-    )
-    green(`Initialized!`)
+    cyan('\nInitializing ClaimableDraw...');
+    const claimableDraw = await ethers.getContract('ClaimableDraw');
+    await claimableDraw.initialize(drawCalculatorResult.address, drawHistoryResult.address);
+    green(`Initialized!`);
   }
 
   if (drawCalculatorResult.newlyDeployed) {
-    cyan('\nInitializing TsunamiDrawCalculator...')
-    const drawCalculator = await ethers.getContract('TsunamiDrawCalculator')
-    await drawCalculator.initialize(
-      ticketResult.address,
-      deployer,
-      claimableDrawResult.address
-    )
-    green(`Initialized!`)
+    cyan('\nInitializing TsunamiDrawCalculator...');
+    const drawCalculator = await ethers.getContract('TsunamiDrawCalculator');
+    await drawCalculator.initialize(ticketResult.address, deployer, claimableDrawResult.address);
+    green(`Initialized!`);
   }
 
   dim('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');

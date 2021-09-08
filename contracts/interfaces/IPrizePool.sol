@@ -40,8 +40,6 @@ interface IPrizePool {
     uint256 maximumExitFee
   ) external returns (uint256);
 
-  function withdrawReserve(address to) external returns (uint256);
-
   /// @notice Returns the balance that is available to award.
   /// @dev captureAwardBalance() should be called first
   /// @return The total amount of assets to be awarded for the current prize

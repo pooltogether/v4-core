@@ -24,7 +24,6 @@ contract YieldSourcePrizePool is PrizePool {
   /// @param _maxExitFeeMantissa The maximum exit fee size, relative to the withdrawal amount
   /// @param _yieldSource Address of the yield source
   function initializeYieldSourcePrizePool (
-    RegistryInterface _reserveRegistry,
     ControlledTokenInterface[] memory _controlledTokens,
     uint256 _maxExitFeeMantissa,
     IYieldSource _yieldSource
@@ -34,7 +33,6 @@ contract YieldSourcePrizePool is PrizePool {
   {
     require(address(_yieldSource) != address(0), "YieldSourcePrizePool/yield-source-not-zero");
     PrizePool.initialize(
-      _reserveRegistry,
       _controlledTokens,
       _maxExitFeeMantissa
     );

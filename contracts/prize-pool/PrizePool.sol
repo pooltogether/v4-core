@@ -13,8 +13,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 import "../external/compound/ICompLike.sol";
-import "../registry/RegistryInterface.sol";
-import "../reserve/ReserveInterface.sol";
 import "../interfaces/IPrizePool.sol";
 
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.
@@ -29,18 +27,12 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
 
   /// @dev Emitted when an instance is initialized
   event Initialized(
-    address reserveRegistry,
     uint256 maxExitFeeMantissa
   );
 
   /// @dev Event emitted when controlled token is added
   event ControlledTokenAdded(
     ControlledTokenInterface indexed token
-  );
-
-  /// @dev Emitted when reserve is captured.
-  event ReserveFeeCaptured(
-    uint256 amount
   );
 
   event AwardCaptured(
@@ -94,11 +86,6 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     uint256 exitFee
   );
 
-  event ReserveWithdrawal(
-    address indexed to,
-    uint256 amount
-  );
-
   /// @dev Event emitted when the Liquidity Cap is set
   event LiquidityCapSet(
     uint256 liquidityCap
@@ -148,9 +135,6 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @notice Semver Version
   string constant public VERSION = "3.4.0";
 
-  /// @dev Reserve to which reserve fees are sent
-  RegistryInterface public reserveRegistry;
-
   /// @dev An array of all the controlled tokens
   ControlledTokenInterface[] internal _tokens;
 
@@ -160,9 +144,6 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @dev The maximum possible exit fee fraction as a fixed point 18 number.
   /// For example, if the maxExitFeeMantissa is "0.1 ether", then the maximum exit fee for a withdrawal of 100 Dai will be 10 Dai
   uint256 public maxExitFeeMantissa;
-
-  /// @dev The total funds that have been allocated to the reserve
-  uint256 public reserveTotalSupply;
 
   /// @dev The total amount of funds that the prize pool can hold.
   uint256 public liquidityCap;
@@ -180,14 +161,12 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @param _controlledTokens Array of ControlledTokens that are controlled by this Prize Pool.
   /// @param _maxExitFeeMantissa The maximum exit fee size
   function initialize (
-    RegistryInterface _reserveRegistry,
     ControlledTokenInterface[] memory _controlledTokens,
     uint256 _maxExitFeeMantissa
   )
     public
     initializer
   {
-    require(address(_reserveRegistry) != address(0), "PrizePool/reserveRegistry-not-zero");
     uint256 controlledTokensLength = _controlledTokens.length;
     _tokens = new ControlledTokenInterface[](controlledTokensLength);
 
@@ -202,11 +181,9 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     uint256 liquidityCapMask = type(uint256).max;
     _setLiquidityCap(liquidityCapMask);
 
-    reserveRegistry = _reserveRegistry;
     maxExitFeeMantissa = _maxExitFeeMantissa;
 
     emit Initialized(
-      address(_reserveRegistry),
       maxExitFeeMantissa
     );
   }
@@ -321,7 +298,6 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   }
 
   /// @notice Captures any available interest as award balance.
-  /// @dev This function also captures the reserve fees.
   /// @return The total amount of assets to be awarded for the current prize
   function captureAwardBalance() external override nonReentrant returns (uint256) {
     uint256 tokenTotalSupply = _tokenTotalSupply();
@@ -332,31 +308,12 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     uint256 unaccountedPrizeBalance = (totalInterest > _currentAwardBalance) ? totalInterest - _currentAwardBalance : 0;
 
     if (unaccountedPrizeBalance > 0) {
-      uint256 reserveFee = calculateReserveFee(unaccountedPrizeBalance);
-      if (reserveFee > 0) {
-        reserveTotalSupply = reserveTotalSupply + reserveFee;
-        unaccountedPrizeBalance = unaccountedPrizeBalance - reserveFee;
-        emit ReserveFeeCaptured(reserveFee);
-      }
       _currentAwardBalance = _currentAwardBalance + unaccountedPrizeBalance;
 
       emit AwardCaptured(unaccountedPrizeBalance);
     }
 
     return _currentAwardBalance;
-  }
-
-  function withdrawReserve(address to) external override onlyReserve returns (uint256) {
-
-    uint256 amount = reserveTotalSupply;
-    reserveTotalSupply = 0;
-    uint256 redeemed = _redeem(amount);
-
-    _token().safeTransfer(address(to), redeemed);
-
-    emit ReserveWithdrawal(to, amount);
-
-    return redeemed;
   }
 
   /// @notice Called by the prize strategy to award prizes.
@@ -482,21 +439,6 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     }
 
     emit AwardedExternalERC721(to, externalToken, tokenIds);
-  }
-
-  /// @notice Calculates the reserve portion of the given amount of funds.  If there is no reserve address, the portion will be zero.
-  /// @param amount The prize amount
-  /// @return The size of the reserve portion of the prize
-  function calculateReserveFee(uint256 amount) public view returns (uint256) {
-    ReserveInterface reserve = ReserveInterface(reserveRegistry.lookup());
-    if (address(reserve) == address(0)) {
-      return 0;
-    }
-    uint256 reserveRateMantissa = reserve.reserveRateMantissa(address(this));
-    if (reserveRateMantissa == 0) {
-      return 0;
-    }
-    return FixedPoint.multiplyUintByMantissa(amount, reserveRateMantissa);
   }
 
   /// @notice Calculates the early exit fee for the given amount
@@ -821,7 +763,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @notice The total of all controlled tokens
   /// @return The current total of all tokens
   function _tokenTotalSupply() internal view returns (uint256) {
-    uint256 total = reserveTotalSupply;
+    uint256 total;
     ControlledTokenInterface[] memory tokens = _tokens; // SLOAD
     uint256 tokensLength = tokens.length;
 
@@ -900,12 +842,6 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @dev Function modifier to ensure the deposit amount does not exceed the liquidity cap (if set)
   modifier canAddLiquidity(uint256 _amount) {
     require(_canAddLiquidity(_amount), "PrizePool/exceeds-liquidity-cap");
-    _;
-  }
-
-  modifier onlyReserve() {
-    ReserveInterface reserve = ReserveInterface(reserveRegistry.lookup());
-    require(address(reserve) == msg.sender, "PrizePool/only-reserve");
     _;
   }
 }
