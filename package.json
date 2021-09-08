@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf cache/ artifacts/",
-    "compile": "hardhat --show-stack-traces --max-memory 8192 compile",
+    "compile": "mkdir -p abis && hardhat --show-stack-traces --max-memory 8192 compile",
     "coverage": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage",
     "deploy": "hardhat deploy --write true --network",
     "verify": "hardhat etherscan-verify --license MIT --solc-input --network",
