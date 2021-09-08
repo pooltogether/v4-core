@@ -16,7 +16,6 @@ describe('YieldSourcePrizePool', function () {
 
   let prizePool: Contract;
   let depositToken: Contract;
-  let reserveRegistry: MockContract;
   let yieldSource: MockContract;
   let ticket: Contract;
   let YieldSourcePrizePool: ContractFactory;

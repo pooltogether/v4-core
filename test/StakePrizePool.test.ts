@@ -18,7 +18,6 @@ describe('StakePrizePool', function () {
   let erc20token: MockContract;
   let erc721token: MockContract;
   let stakeToken: Contract;
-  let registry: MockContract;
 
   let ticket: Contract;
 
@@ -27,8 +26,7 @@ describe('StakePrizePool', function () {
   let initializeTxPromise;
 
   const initializeStakePrizePool = async (stakeTokenAddress: string) => {
-    return await prizePool['initialize(address,address[],address)'](
-      registry.address,
+    return await prizePool['initialize(address[],address)'](
       [ticket.address],
       stakeTokenAddress,
     );
@@ -47,9 +45,6 @@ describe('StakePrizePool', function () {
 
     const ERC20Mintable = await hardhat.ethers.getContractFactory('ERC20Mintable');
     stakeToken = await ERC20Mintable.deploy('name', 'SSYMBOL');
-
-    const RegistryInterface = await hardhat.artifacts.readArtifact('RegistryInterface');
-    registry = await deployMockContract(wallet as Signer, RegistryInterface.abi);
 
     debug('deploying StakePrizePool...');
     StakePrizePool = await hardhat.ethers.getContractFactory('StakePrizePool', wallet);
@@ -92,7 +87,7 @@ describe('StakePrizePool', function () {
       await prizePool.depositTo(wallet.address, amount, ticket.address);
 
       await expect(prizePool.withdrawFrom(wallet.address, amount, ticket.address))
-        .to.emit(prizePool, 'InstantWithdrawal')
+        .to.emit(prizePool, 'Withdrawal')
         .withArgs(wallet.address, wallet.address, ticket.address, amount, amount);
     });
   });

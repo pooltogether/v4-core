@@ -27,9 +27,6 @@ describe('PrizePool', function () {
 
   let yieldSourceStub: MockContract;
 
-  let reserve: MockContract;
-  let reserveRegistry: MockContract;
-
   let depositToken: Contract;
   let erc20Token: Contract;
   let erc721Token: Contract;
@@ -85,13 +82,6 @@ describe('PrizePool', function () {
     yieldSourceStub = await deployMockContract(contractsOwner as Signer, YieldSourceStub.abi);
     await yieldSourceStub.mock.depositToken.returns(depositToken.address);
 
-    const ReserveInterface = await artifacts.readArtifact('ReserveInterface');
-    reserve = await deployMockContract(contractsOwner as Signer, ReserveInterface.abi);
-
-    const RegistryInterface = await artifacts.readArtifact('RegistryInterface');
-    reserveRegistry = await deployMockContract(contractsOwner as Signer, RegistryInterface.abi);
-    await reserveRegistry.mock.lookup.returns(reserve.address);
-
     debug('deploying PrizePoolHarness...');
 
     const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
@@ -104,7 +94,7 @@ describe('PrizePool', function () {
 
   describe('initialize()', () => {
     it('should fire the events', async () => {
-      let tx = prizePool.initializeAll(reserve.address, [ticket.address], yieldSourceStub.address);
+      let tx = prizePool.initializeAll([ticket.address], yieldSourceStub.address);
 
       await expect(tx).to.emit(prizePool, 'ControlledTokenAdded').withArgs(ticket.address);
 
@@ -117,7 +107,6 @@ describe('PrizePool', function () {
   describe('with a mocked prize pool', () => {
     beforeEach(async () => {
       await prizePool.initializeAll(
-        reserveRegistry.address,
         [ticket.address],
         yieldSourceStub.address,
       );
@@ -128,11 +117,10 @@ describe('PrizePool', function () {
     describe('initialize()', () => {
       it('should set all the vars', async () => {
         expect(await prizePool.token()).to.equal(depositToken.address);
-        expect(await prizePool.reserveRegistry()).to.equal(reserveRegistry.address);
       });
 
       it('should reject invalid params', async () => {
-        const _initArgs = [reserveRegistry.address, [ticket.address], yieldSourceStub.address];
+        const _initArgs = [[ticket.address], yieldSourceStub.address];
 
         let initArgs;
 
@@ -143,13 +131,7 @@ describe('PrizePool', function () {
         debug('testing initialization of secondary prizeStrategy...');
 
         initArgs = _initArgs.slice();
-        initArgs[0] = AddressZero;
-        await expect(prizePool2.initializeAll(...initArgs)).to.be.revertedWith(
-          'PrizePool/reserveRegistry-not-zero',
-        );
-
-        initArgs = _initArgs.slice();
-        initArgs[1] = [AddressZero];
+        initArgs[0] = [AddressZero];
         await expect(prizePool2.initializeAll(...initArgs)).to.be.revertedWith(
           'PrizePool/controlledToken-not-zero-address',
         );
@@ -179,7 +161,6 @@ describe('PrizePool', function () {
           .withArgs(prizePool.address)
           .returns(toWei('99.9999'));
 
-        await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
         expect(await prizePool.awardBalance()).to.equal(toWei('0'));
       });
 
@@ -187,7 +168,6 @@ describe('PrizePool', function () {
         await depositTokenIntoPrizePool(contractsOwner.address, toWei('100'));
 
         await yieldSourceStub.mock.balanceOfToken.withArgs(prizePool.address).returns(toWei('110'));
-        await reserve.mock.reserveRateMantissa.returns('0');
 
         // first capture the 10 tokens
         await prizePool.captureAwardBalance();
@@ -204,63 +184,9 @@ describe('PrizePool', function () {
         await depositTokenIntoPrizePool(contractsOwner.address, toWei('100'));
 
         await yieldSourceStub.mock.balanceOfToken.withArgs(prizePool.address).returns(toWei('110'));
-        await reserve.mock.reserveRateMantissa.returns('0');
 
-        await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
+        await expect(prizePool.captureAwardBalance()).to.emit(prizePool, 'AwardCaptured').withArgs(toWei('10'));
         expect(await prizePool.awardBalance()).to.equal(toWei('10'));
-      });
-
-      it('should capture the reserve fees', async () => {
-        const reserveFee = toWei('1');
-
-        await depositTokenIntoPrizePool(contractsOwner.address, toWei('1000'));
-
-        await reserve.mock.reserveRateMantissa.returns(toWei('0.01'));
-
-        await yieldSourceStub.mock.balanceOfToken
-          .withArgs(prizePool.address)
-          .returns(toWei('1100'));
-
-        let tx = prizePool.captureAwardBalance();
-
-        await expect(tx).to.emit(prizePool, 'ReserveFeeCaptured').withArgs(reserveFee);
-
-        await expect(tx).to.emit(prizePool, 'AwardCaptured').withArgs(toWei('99'));
-
-        expect(await prizePool.awardBalance()).to.equal(toWei('99'));
-        expect(await prizePool.reserveTotalSupply()).to.equal(reserveFee);
-      });
-    });
-
-    describe('calculateReserveFee()', () => {
-      it('should return zero when no reserve fee is set', async () => {
-        await reserve.mock.reserveRateMantissa.returns(toWei('0'));
-        expect(await prizePool.calculateReserveFee(toWei('1'))).to.equal(toWei('0'));
-      });
-
-      it('should calculate an accurate reserve fee on a given amount', async () => {
-        await reserve.mock.reserveRateMantissa.returns(toWei('0.5'));
-        expect(await prizePool.calculateReserveFee(toWei('1'))).to.equal(toWei('0.5'));
-      });
-    });
-
-    describe('withdrawReserve()', () => {
-      it('should allow the reserve to be withdrawn', async () => {
-        await depositTokenIntoPrizePool(contractsOwner.address, toWei('1000'));
-
-        await reserve.mock.reserveRateMantissa.returns(toWei('0.01'));
-        await yieldSourceStub.mock.balanceOfToken
-          .withArgs(prizePool.address)
-          .returns(toWei('1100'));
-
-        // capture the reserve of 1 token
-        await prizePool.captureAwardBalance();
-
-        await yieldSourceStub.mock.redeemToken.withArgs(toWei('1')).returns(toWei('0.8'));
-
-        await reserve.call(prizePool, 'withdrawReserve', contractsOwner.address);
-
-        expect(await prizePool.reserveTotalSupply()).to.equal('0');
       });
     });
 
@@ -275,7 +201,7 @@ describe('PrizePool', function () {
         await expect(
           prizePool.withdrawFrom(contractsOwner.address, amount, ticket.address),
         )
-          .to.emit(prizePool, 'InstantWithdrawal')
+          .to.emit(prizePool, 'Withdrawal')
           .withArgs(contractsOwner.address, contractsOwner.address, ticket.address, amount, amount);
       });
     });
@@ -374,7 +300,6 @@ describe('PrizePool', function () {
       await sponsorship.mock.controller.returns(multiTokenPrizePool.address);
 
       await multiTokenPrizePool.initializeAll(
-        reserveRegistry.address,
         [ticket.address, sponsorship.address],
         yieldSourceStub.address,
       );
@@ -395,38 +320,12 @@ describe('PrizePool', function () {
 
         expect(await multiTokenPrizePool.accountedBalance()).to.equal(toWei('579'));
       });
-
-      it('should include the reserve', async () => {
-        await sponsorship.mock.totalSupply.returns(toWei('50'));
-        await yieldSourceStub.mock.balanceOfToken
-          .withArgs(multiTokenPrizePool.address)
-          .returns(toWei('110'));
-        await reserve.mock.reserveRateMantissa.returns(toWei('0.1'));
-
-        await depositTokenIntoPrizePool(
-          contractsOwner.address,
-          toWei('50'),
-          depositToken,
-          multiTokenPrizePool,
-        );
-
-        // first capture the 10 tokens as 9 prize and 1 reserve
-        await multiTokenPrizePool.captureAwardBalance();
-
-        await yieldSourceStub.mock.balanceOfToken
-          .withArgs(multiTokenPrizePool.address)
-          .returns(toWei('110'));
-
-        // now try to capture again
-        expect(await multiTokenPrizePool.accountedBalance()).to.equal(toWei('101'));
-      });
     });
   });
 
   describe('awardExternalERC20()', () => {
     beforeEach(async () => {
       await prizePool.initializeAll(
-        prizeStrategyManager.address,
         [ticket.address],
         yieldSourceStub.address,
       );
@@ -473,7 +372,6 @@ describe('PrizePool', function () {
   describe('transferExternalERC20()', () => {
     beforeEach(async () => {
       await prizePool.initializeAll(
-        prizeStrategyManager.address,
         [ticket.address],
         yieldSourceStub.address,
       );
@@ -520,7 +418,6 @@ describe('PrizePool', function () {
   describe('awardExternalERC721()', () => {
     beforeEach(async () => {
       await prizePool.initializeAll(
-        prizeStrategyManager.address,
         [ticket.address],
         yieldSourceStub.address,
       );

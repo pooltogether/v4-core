@@ -121,7 +121,6 @@ module.exports = async (hardhat) => {
     const yieldSourcePrizePool = await ethers.getContract('YieldSourcePrizePool');
     await yieldSourcePrizePool.initializeYieldSourcePrizePool(
       [ticketResult.address],
-      ethers.utils.parseEther('0.5'),
       mockYieldSourceResult.address,
     );
     green(`Initialized!`);

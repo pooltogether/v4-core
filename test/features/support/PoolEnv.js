@@ -68,13 +68,7 @@ function PoolEnv() {
 
     debug(`Depositing... (${wallet.address}, ${amount}, ${ticket.address}, ${AddressZero})`);
 
-    await prizePool.depositTo(
-      wallet.address,
-      amount,
-      ticket.address,
-      AddressZero,
-      this.overrides,
-    );
+    await prizePool.depositTo(wallet.address, amount, ticket.address, this.overrides);
 
     debug(`Bought tickets`);
   };
@@ -120,8 +114,7 @@ function PoolEnv() {
     await prizePool.withdrawFrom(
       wallet.address,
       withdrawalAmount,
-      ticket.address,
-      withdrawalAmount,
+      ticket.address
     );
     debug('done withdraw instantly');
   };
