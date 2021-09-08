@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import "./interfaces/IDrawCalculator.sol";
-import "./interfaces/TicketInterface.sol";
+import "./interfaces/ITicket.sol";
 import "./libraries/DrawLib.sol";
 import "./ClaimableDraw.sol";
 
@@ -13,7 +13,7 @@ import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   
   ///@notice Ticket associated with DrawCalculator
-  TicketInterface ticket;
+  ITicket ticket;
 
   ///@notice ClaimableDraw associated with DrawCalculator
   ClaimableDraw public claimableDraw;
@@ -27,7 +27,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   event DrawSettingsSet(uint32 indexed drawId, DrawLib.DrawSettings _drawSettings);
 
   ///@notice Emitted when the contract is initialized
-  event Initialized(TicketInterface indexed _ticket);
+  event Initialized(ITicket indexed _ticket);
 
   ///@notice Emitted when the claimableDraw is set/updated
   event ClaimableDrawSet(ClaimableDraw indexed _claimableDraw);
@@ -38,7 +38,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _ticket Ticket associated with this DrawCalculator
   ///@param _drawSettingsManager Address of the DrawSettingsManager. Can be different from the contract owner.
   ///@param _claimableDraw ClaimableDraw associated with this DrawCalculator
-  function initialize(TicketInterface _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw)
+  function initialize(ITicket _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw)
     public initializer
   {
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");

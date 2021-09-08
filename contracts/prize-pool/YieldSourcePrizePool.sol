@@ -24,7 +24,7 @@ contract YieldSourcePrizePool is PrizePool {
   /// @param _maxExitFeeMantissa The maximum exit fee size, relative to the withdrawal amount
   /// @param _yieldSource Address of the yield source
   function initializeYieldSourcePrizePool (
-    ControlledTokenInterface[] memory _controlledTokens,
+    IControlledToken[] memory _controlledTokens,
     uint256 _maxExitFeeMantissa,
     IYieldSource _yieldSource
   )
