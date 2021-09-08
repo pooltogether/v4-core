@@ -1,4 +1,4 @@
-import {BigNumber} from "ethers"
+import { BigNumber } from "ethers"
 
 export type DrawSettings = {
     matchCardinality: BigNumber;
@@ -8,4 +8,4 @@ export type DrawSettings = {
     prize: BigNumber;
 };
 
-export type Draw = {drawId: BigNumber, winningRandomNumber: BigNumber, timestamp: BigNumber}   
+export type Draw = { drawId: BigNumber, winningRandomNumber: BigNumber, timestamp: BigNumber }

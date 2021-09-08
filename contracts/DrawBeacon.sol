@@ -17,9 +17,6 @@ import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./prize-pool/PrizePool.sol";
-import "./prize-strategy/PeriodicPrizeStrategyListenerInterface.sol";
-import "./prize-strategy/PeriodicPrizeStrategyListenerLibrary.sol";
-import "./prize-strategy/BeforeAwardListener.sol";
 
 contract DrawBeacon is IDrawBeacon,
                        Initializable,
@@ -48,12 +45,6 @@ contract DrawBeacon is IDrawBeacon,
 
   /// @notice Epoch timestamp when RNG request can start
   uint256 public drawPeriodStartedAt;
-
-  /// @notice A listener that is called before the prize is awarded
-  BeforeAwardListenerInterface public beforeAwardListener;
-
-  /// @notice A listener that is called after the prize is awarded
-  PeriodicPrizeStrategyListenerInterface public drawBeaconListener;
 
   /// @notice Next draw id to use when pushing a new draw on DrawHistory
   uint32 public nextDrawId;
@@ -160,8 +151,10 @@ contract DrawBeacon is IDrawBeacon,
   /* ============ Structs ============ */
 
   /**
-    * @notice Emit when the drawBeaconListener is set.
-    * @param drawBeaconListener Address of drawBeaconListener
+    * @notice RNG Request
+    * @param id RNG request ID
+    * @param lockBlock Block number that the RNG request is locked
+    * @param requestedAt Epoch when RNG is requested
   */
   struct RngRequest {
     uint32 id;
@@ -170,14 +163,6 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /* ============ Modifiers ============ */
-
-  modifier onlyOwnerOrListener() {
-    require(_msgSender() == owner() ||
-            _msgSender() == address(drawBeaconListener) ||
-            _msgSender() == address(beforeAwardListener),
-            "DrawBeacon/only-owner-or-listener");
-    _;
-  }
 
   modifier requireAwardNotInProgress() {
     _requireDrawNotInProgress();
