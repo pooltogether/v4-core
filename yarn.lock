@@ -1118,7 +1118,7 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/fixed-point/-/fixed-point-1.0.0-beta.2.tgz#d76a1e77f21833e9b680296d65526b0ffd7415d7"
   integrity sha512-aUw4R0Z2oM0AK3W4LIXyBaojTOzRRbhLDHX0egeuvxfjy4gBb6X66v81gI7Wngg/7O0y9QL/B8jWkUnAFzhTig==
 
-"@pooltogether/owner-manager-contracts@^0.0.1-beta.3":
+"@pooltogether/owner-manager-contracts@0.0.1-beta.3":
   version "0.0.1-beta.3"
   resolved "https://registry.yarnpkg.com/@pooltogether/owner-manager-contracts/-/owner-manager-contracts-0.0.1-beta.3.tgz#883a07a0a703844fea5f711b83b9b07e8914147b"
   integrity sha512-2rY7IRcsesShGkZc8n3mZE+jhpd2b7XzZOoos04mnIRQgP50wQYpwslLhgrODvuHG6ywNCilJPhF2jIZFpi3Ow==
@@ -1163,15 +1163,15 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/uniform-random-number/-/uniform-random-number-1.0.0-beta.2.tgz#fcc388269098a7303c83de6f07cdc5d46dede0e9"
   integrity sha512-xwEpcg+WXcoWtRdG9WPmE5B93YvkhBi4XCEVQ/kfkXS5tVsrhCjFHWQOuqvX2P7zMyCuI/Bq6Y84QQJnRywJhg==
 
+"@pooltogether/yield-source-interface@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@pooltogether/yield-source-interface/-/yield-source-interface-1.0.2.tgz#59630684e0e55310577e9bf07fd778b60676c8ec"
+  integrity sha512-dt/lkK+0erPHi9FpVaYLA2+PiWJb7sODB/2J/LyrENtAe2Miob03005ijLY3zHb4NtQUEGDDPM0uX51jniex7A==
+
 "@pooltogether/yield-source-interface@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@pooltogether/yield-source-interface/-/yield-source-interface-1.0.1.tgz#ce446e5e5f83ff55663f686cef4e7984a7e8d230"
   integrity sha512-ykfmKpTZ38V5hmoupAvVygnlvezflHjHa/Dqp4J2LrF8NWUfcrrx8jF1a6hvT+UYBsVyFBGyWU9gL0NZO+tzmw==
-
-"@pooltogether/yield-source-interface@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@pooltogether/yield-source-interface/-/yield-source-interface-1.0.2.tgz#59630684e0e55310577e9bf07fd778b60676c8ec"
-  integrity sha512-dt/lkK+0erPHi9FpVaYLA2+PiWJb7sODB/2J/LyrENtAe2Miob03005ijLY3zHb4NtQUEGDDPM0uX51jniex7A==
 
 "@resolver-engine/core@^0.3.3":
   version "0.3.3"
@@ -5572,7 +5572,7 @@ hardhat-abi-exporter@2.1.2:
   resolved "https://registry.yarnpkg.com/hardhat-abi-exporter/-/hardhat-abi-exporter-2.1.2.tgz#7f0aa1fc91d546ca595ca35b743e36211a71f987"
   integrity sha512-ovJr6zJ9uxHDZmqtRRfaaFA8KxVCNzfHroP44QOWZ+CAh06hSen3r4Qehw6u7Vl5xJmw7Pu7nz+7q5QvPWXTKA==
 
-hardhat-dependency-compiler@^1.1.1:
+hardhat-dependency-compiler@1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/hardhat-dependency-compiler/-/hardhat-dependency-compiler-1.1.1.tgz#0bfe713d450a7fdad14a210b7a9b8a32e56cc744"
   integrity sha512-2xubH8aPojhMGbILFlfL28twu6l/5Tyrj4Dpkogvycse6YegKW9GuGA3rnbPH0KP+Nv2xT626ZuR2Ys+w3ifPw==
