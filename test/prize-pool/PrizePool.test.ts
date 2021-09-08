@@ -2,7 +2,7 @@ import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
-import { constants, utils } from 'ethers';
+import { BigNumber, constants, Contract, utils } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
 
 import { call } from '../helpers/call';
@@ -24,38 +24,66 @@ describe('PrizePool', function () {
   let prizePool: any;
   let prizePool2: any;
   let multiTokenPrizePool: any;
-  let nft: any;
 
   let yieldSourceStub: MockContract;
 
   let reserve: MockContract;
   let reserveRegistry: MockContract;
 
-  let erc20token: MockContract;
-  let erc721token: MockContract;
+  let depositToken: Contract;
+  let erc20Token: Contract;
+  let erc721Token: Contract;
+  let erc721tokenMock: MockContract;
 
-  let ticket: MockContract;
+  let ticket: Contract;
   let sponsorship: MockContract;
 
   let compLike: MockContract;
+
+  const depositTokenIntoPrizePool = async (
+    walletAddress: string,
+    amount: BigNumber,
+    token: Contract = depositToken,
+    pool: Contract = prizePool,
+  ) => {
+    await yieldSourceStub.mock.supply.withArgs(amount).returns();
+
+    await token.approve(pool.address, amount);
+    await token.mint(walletAddress, amount);
+
+    if (token.address === depositToken.address) {
+      await pool.depositTo(walletAddress, amount, ticket.address);
+    } else {
+      await token.transfer(pool.address, amount);
+    }
+  };
+
+  const depositNftIntoPrizePool = async (walletAddress: string) => {
+    await erc721Token.mint(walletAddress, NFT_TOKEN_ID);
+    await erc721Token.transferFrom(walletAddress, prizePool.address, NFT_TOKEN_ID);
+  };
 
   beforeEach(async () => {
     [contractsOwner, wallet2, prizeStrategyManager] = await getSigners();
     debug(`using wallet ${contractsOwner.address}`);
 
     debug('mocking tokens...');
-    const IERC20 = await artifacts.readArtifact('IERC20Upgradeable');
-    erc20token = await deployMockContract(contractsOwner as Signer, IERC20.abi);
+    const ERC20MintableContract = await getContractFactory('ERC20Mintable', contractsOwner);
+    depositToken = await ERC20MintableContract.deploy('Token', 'TOKE');
+    erc20Token = await ERC20MintableContract.deploy('Token', 'TOKE');
 
     const ICompLike = await artifacts.readArtifact('ICompLike');
     compLike = await deployMockContract(contractsOwner as Signer, ICompLike.abi);
 
+    const ERC721MintableContract = await getContractFactory('ERC721Mintable', contractsOwner);
+    erc721Token = await ERC721MintableContract.deploy();
+
     const IERC721 = await artifacts.readArtifact('IERC721Upgradeable');
-    erc721token = await deployMockContract(contractsOwner as Signer, IERC721.abi);
+    erc721tokenMock = await deployMockContract(contractsOwner as Signer, IERC721.abi);
 
     const YieldSourceStub = await artifacts.readArtifact('YieldSourceStub');
     yieldSourceStub = await deployMockContract(contractsOwner as Signer, YieldSourceStub.abi);
-    await yieldSourceStub.mock.token.returns(erc20token.address);
+    await yieldSourceStub.mock.token.returns(depositToken.address);
 
     const ReserveInterface = await artifacts.readArtifact('ReserveInterface');
     reserve = await deployMockContract(contractsOwner as Signer, ReserveInterface.abi);
@@ -69,10 +97,9 @@ describe('PrizePool', function () {
     const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
     prizePool = await PrizePoolHarness.deploy();
 
-    const ControlledToken = await artifacts.readArtifact('ControlledToken');
-    ticket = await deployMockContract(contractsOwner as Signer, ControlledToken.abi);
-
-    await ticket.mock.controller.returns(prizePool.address);
+    const Ticket = await getContractFactory('Ticket');
+    ticket = await Ticket.deploy();
+    await ticket.initialize('name', 'SYMBOL', 18, prizePool.address);
   });
 
   describe('initialize()', () => {
@@ -100,7 +127,7 @@ describe('PrizePool', function () {
 
     describe('initialize()', () => {
       it('should set all the vars', async () => {
-        expect(await prizePool.token()).to.equal(erc20token.address);
+        expect(await prizePool.token()).to.equal(depositToken.address);
         expect(await prizePool.reserveRegistry()).to.equal(reserveRegistry.address);
       });
 
@@ -134,7 +161,8 @@ describe('PrizePool', function () {
         const amount = toWei('1');
         const liquidityCap = toWei('1000');
 
-        await ticket.mock.totalSupply.returns(liquidityCap);
+        await depositTokenIntoPrizePool(contractsOwner.address, liquidityCap);
+
         await prizePool.setLiquidityCap(liquidityCap);
 
         await expect(
@@ -145,7 +173,8 @@ describe('PrizePool', function () {
 
     describe('captureAwardBalance()', () => {
       it('should handle when the balance is less than the collateral', async () => {
-        await ticket.mock.totalSupply.returns(toWei('100'));
+        await depositTokenIntoPrizePool(contractsOwner.address, toWei('100'));
+
         await yieldSourceStub.mock.balance.returns(toWei('99.9999'));
 
         await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
@@ -153,9 +182,9 @@ describe('PrizePool', function () {
       });
 
       it('should handle the situ when the total accrued interest is less than the captured total', async () => {
-        await ticket.mock.totalSupply.returns(toWei('100'));
-        await yieldSourceStub.mock.balance.returns(toWei('110'));
+        await depositTokenIntoPrizePool(contractsOwner.address, toWei('100'));
 
+        await yieldSourceStub.mock.balance.returns(toWei('110'));
         await reserve.mock.reserveRateMantissa.returns('0');
 
         // first capture the 10 tokens
@@ -168,7 +197,8 @@ describe('PrizePool', function () {
       });
 
       it('should track the yield less the total token supply', async () => {
-        await ticket.mock.totalSupply.returns(toWei('100'));
+        await depositTokenIntoPrizePool(contractsOwner.address, toWei('100'));
+
         await yieldSourceStub.mock.balance.returns(toWei('110'));
         await reserve.mock.reserveRateMantissa.returns('0');
 
@@ -179,9 +209,10 @@ describe('PrizePool', function () {
       it('should capture the reserve fees', async () => {
         const reserveFee = toWei('1');
 
+        await depositTokenIntoPrizePool(contractsOwner.address, toWei('1000'));
+
         await reserve.mock.reserveRateMantissa.returns(toWei('0.01'));
 
-        await ticket.mock.totalSupply.returns(toWei('1000'));
         await yieldSourceStub.mock.balance.returns(toWei('1100'));
 
         let tx = prizePool.captureAwardBalance();
@@ -209,12 +240,10 @@ describe('PrizePool', function () {
 
     describe('withdrawReserve()', () => {
       it('should allow the reserve to be withdrawn', async () => {
+        await depositTokenIntoPrizePool(contractsOwner.address, toWei('1000'));
+
         await reserve.mock.reserveRateMantissa.returns(toWei('0.01'));
-
-        await ticket.mock.totalSupply.returns(toWei('1000'));
         await yieldSourceStub.mock.balance.returns(toWei('1100'));
-
-        await erc20token.mock.transfer.withArgs(contractsOwner.address, toWei('0.8')).returns(true);
 
         // capture the reserve of 1 token
         await prizePool.captureAwardBalance();
@@ -231,16 +260,9 @@ describe('PrizePool', function () {
       it('should allow a user to withdraw instantly', async () => {
         let amount = toWei('10');
 
-        // updateAwardBalance
-        await yieldSourceStub.mock.balance.returns('0');
-        await ticket.mock.totalSupply.returns(amount);
-        await ticket.mock.balanceOf.withArgs(contractsOwner.address).returns(amount);
+        await depositTokenIntoPrizePool(contractsOwner.address, amount);
 
-        await ticket.mock.controllerBurnFrom
-          .withArgs(contractsOwner.address, contractsOwner.address, amount)
-          .returns();
         await yieldSourceStub.mock.redeem.withArgs(amount).returns(amount);
-        await erc20token.mock.transfer.withArgs(contractsOwner.address, amount).returns(true);
 
         await expect(
           prizePool.withdrawInstantlyFrom(contractsOwner.address, amount, ticket.address),
@@ -288,8 +310,6 @@ describe('PrizePool', function () {
       it('should allow the owner to set the liquidity cap', async () => {
         const liquidityCap = toWei('1000');
 
-        await ticket.mock.totalSupply.returns('0');
-
         await expect(prizePool.setLiquidityCap(liquidityCap))
           .to.emit(prizePool, 'LiquidityCapSet')
           .withArgs(liquidityCap);
@@ -335,10 +355,14 @@ describe('PrizePool', function () {
       const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
       multiTokenPrizePool = await PrizePoolHarness.deploy();
 
+      const Ticket = await getContractFactory('Ticket');
+
+      ticket = await Ticket.deploy();
+      await ticket.initialize('name', 'SYMBOL', 18, multiTokenPrizePool.address);
+
       const ControlledToken = await artifacts.readArtifact('ControlledToken');
       sponsorship = await deployMockContract(contractsOwner as Signer, ControlledToken.abi);
 
-      await ticket.mock.controller.returns(multiTokenPrizePool.address);
       await sponsorship.mock.controller.returns(multiTokenPrizePool.address);
 
       await multiTokenPrizePool.initializeAll(
@@ -352,17 +376,29 @@ describe('PrizePool', function () {
 
     describe('accountedBalance()', () => {
       it('should return the total accounted balance for all tokens', async () => {
-        await ticket.mock.totalSupply.returns(toWei('123'));
         await sponsorship.mock.totalSupply.returns(toWei('456'));
+
+        await depositTokenIntoPrizePool(
+          contractsOwner.address,
+          toWei('123'),
+          depositToken,
+          multiTokenPrizePool,
+        );
 
         expect(await multiTokenPrizePool.accountedBalance()).to.equal(toWei('579'));
       });
 
       it('should include the reserve', async () => {
-        await ticket.mock.totalSupply.returns(toWei('50'));
         await sponsorship.mock.totalSupply.returns(toWei('50'));
         await yieldSourceStub.mock.balance.returns(toWei('110'));
         await reserve.mock.reserveRateMantissa.returns(toWei('0.1'));
+
+        await depositTokenIntoPrizePool(
+          contractsOwner.address,
+          toWei('50'),
+          depositToken,
+          multiTokenPrizePool,
+        );
 
         // first capture the 10 tokens as 9 prize and 1 reserve
         await multiTokenPrizePool.captureAwardBalance();
@@ -386,17 +422,17 @@ describe('PrizePool', function () {
     });
 
     it('should exit early when amount = 0', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20token.address).returns(true);
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20Token.address).returns(true);
 
       await expect(
         prizePool
           .connect(prizeStrategyManager)
-          .awardExternalERC20(contractsOwner.address, erc20token.address, 0),
+          .awardExternalERC20(contractsOwner.address, erc20Token.address, 0),
       ).to.not.emit(prizePool, 'AwardedExternalERC20');
     });
 
     it('should only allow the prizeStrategy to award external ERC20s', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20token.address).returns(true);
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20Token.address).returns(true);
 
       let prizePool2 = prizePool.connect(wallet2 as Signer);
 
@@ -406,16 +442,19 @@ describe('PrizePool', function () {
     });
 
     it('should allow arbitrary tokens to be transferred', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20token.address).returns(true);
-      await erc20token.mock.transfer.withArgs(contractsOwner.address, toWei('10')).returns(true);
+      const amount = toWei('10');
+
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20Token.address).returns(true);
+
+      await depositTokenIntoPrizePool(contractsOwner.address, amount, erc20Token);
 
       await expect(
         prizePool
           .connect(prizeStrategyManager)
-          .awardExternalERC20(contractsOwner.address, erc20token.address, toWei('10')),
+          .awardExternalERC20(contractsOwner.address, erc20Token.address, amount),
       )
         .to.emit(prizePool, 'AwardedExternalERC20')
-        .withArgs(contractsOwner.address, erc20token.address, toWei('10'));
+        .withArgs(contractsOwner.address, erc20Token.address, amount);
     });
   });
 
@@ -430,17 +469,17 @@ describe('PrizePool', function () {
     });
 
     it('should exit early when amount = 0', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20token.address).returns(true);
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20Token.address).returns(true);
 
       await expect(
         prizePool
           .connect(prizeStrategyManager)
-          .transferExternalERC20(contractsOwner.address, erc20token.address, 0),
+          .transferExternalERC20(contractsOwner.address, erc20Token.address, 0),
       ).to.not.emit(prizePool, 'TransferredExternalERC20');
     });
 
     it('should only allow the prizeStrategy to award external ERC20s', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20token.address).returns(true);
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20Token.address).returns(true);
 
       let prizePool2 = prizePool.connect(wallet2 as Signer);
 
@@ -452,16 +491,17 @@ describe('PrizePool', function () {
     it('should allow arbitrary tokens to be transferred', async () => {
       const amount = toWei('10');
 
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20token.address).returns(true);
-      await erc20token.mock.transfer.withArgs(contractsOwner.address, amount).returns(true);
+      await depositTokenIntoPrizePool(contractsOwner.address, amount, erc20Token);
+
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc20Token.address).returns(true);
 
       await expect(
         prizePool
           .connect(prizeStrategyManager)
-          .transferExternalERC20(contractsOwner.address, erc20token.address, amount),
+          .transferExternalERC20(contractsOwner.address, erc20Token.address, amount),
       )
         .to.emit(prizePool, 'TransferredExternalERC20')
-        .withArgs(contractsOwner.address, erc20token.address, amount);
+        .withArgs(contractsOwner.address, erc20Token.address, amount);
     });
   });
 
@@ -476,81 +516,60 @@ describe('PrizePool', function () {
     });
 
     it('should exit early when tokenIds list is empty', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc721token.address).returns(true);
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc721Token.address).returns(true);
 
       await expect(
         prizePool
           .connect(prizeStrategyManager)
-          .awardExternalERC721(contractsOwner.address, erc721token.address, []),
+          .awardExternalERC721(contractsOwner.address, erc721Token.address, []),
       ).to.not.emit(prizePool, 'AwardedExternalERC721');
     });
 
     it('should only allow the prizeStrategy to award external ERC721s', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc721token.address).returns(true);
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc721Token.address).returns(true);
 
       let prizePool2 = prizePool.connect(wallet2 as Signer);
 
       await expect(
-        prizePool2.awardExternalERC721(contractsOwner.address, erc721token.address, [NFT_TOKEN_ID]),
+        prizePool2.awardExternalERC721(contractsOwner.address, erc721Token.address, [NFT_TOKEN_ID]),
       ).to.be.revertedWith('PrizePool/only-prizeStrategy');
     });
 
     it('should allow arbitrary tokens to be transferred', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc721token.address).returns(true);
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc721Token.address).returns(true);
 
-      await erc721token.mock.transferFrom
-        .withArgs(prizePool.address, contractsOwner.address, NFT_TOKEN_ID)
-        .returns();
+      await depositNftIntoPrizePool(contractsOwner.address);
 
       await expect(
         prizePool
           .connect(prizeStrategyManager)
-          .awardExternalERC721(contractsOwner.address, erc721token.address, [NFT_TOKEN_ID]),
+          .awardExternalERC721(contractsOwner.address, erc721Token.address, [NFT_TOKEN_ID]),
       )
         .to.emit(prizePool, 'AwardedExternalERC721')
-        .withArgs(contractsOwner.address, erc721token.address, [NFT_TOKEN_ID]);
+        .withArgs(contractsOwner.address, erc721Token.address, [NFT_TOKEN_ID]);
     });
 
     it('should not DoS with faulty ERC721s', async () => {
-      await yieldSourceStub.mock.canAwardExternal.withArgs(erc721token.address).returns(true);
-      await erc721token.mock.transferFrom
+      await yieldSourceStub.mock.canAwardExternal.withArgs(erc721tokenMock.address).returns(true);
+      await erc721tokenMock.mock.transferFrom
         .withArgs(prizePool.address, contractsOwner.address, NFT_TOKEN_ID)
         .reverts();
 
       await expect(
         prizePool
           .connect(prizeStrategyManager)
-          .awardExternalERC721(contractsOwner.address, erc721token.address, [NFT_TOKEN_ID]),
+          .awardExternalERC721(contractsOwner.address, erc721tokenMock.address, [NFT_TOKEN_ID]),
       ).to.emit(prizePool, 'ErrorAwardingExternalERC721');
     });
   });
 
   describe('onERC721Received()', () => {
-    beforeEach(async () => {
-      await prizePool.initializeAll(
-        prizeStrategyManager.address,
-        [ticket.address],
-        yieldSourceStub.address,
-      );
-
-      await prizePool.setPrizeStrategy(prizeStrategyManager.address);
-
-      debug('deploying NFT test contract...');
-
-      const NFTFactory = await getContractFactory('NFT', contractsOwner);
-
-      nft = await NFTFactory.deploy();
-      await nft.initialize('NFT Token', 'NFT');
-    });
-
     it('should receive an ERC721 token when using safeTransferFrom', async () => {
-      expect(await nft.balanceOf(prizePool.address)).to.equal('0');
+      expect(await erc721Token.balanceOf(prizePool.address)).to.equal('0');
 
-      expect(await nft.simulateSafeTransferFrom(contractsOwner.address, prizePool.address, 0))
-        .to.emit(nft, 'Transfer')
-        .withArgs(contractsOwner.address, prizePool.address, 0);
+      await depositNftIntoPrizePool(contractsOwner.address);
 
-      expect(await nft.balanceOf(prizePool.address)).to.equal('1');
+      expect(await erc721Token.balanceOf(prizePool.address)).to.equal('1');
     });
   });
 });
