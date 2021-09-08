@@ -5,7 +5,6 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
-import "./TokenControllerInterface.sol";
 import "./ControlledTokenInterface.sol";
 
 /// @title Controlled ERC20 Token
@@ -17,32 +16,36 @@ contract ControlledToken is ERC20PermitUpgradeable, ControlledTokenInterface {
     string _name,
     string _symbol,
     uint8 _decimals,
-    TokenControllerInterface _controller
+    address _controller
   );
 
   /// @notice Interface to the contract responsible for controlling mint/burn
-  TokenControllerInterface public override controller;
+  address public override controller;
+
+  /// @notice ERC20 controlled token decimals.
+  uint8 private _decimals;
 
   /// @notice Initializes the Controlled Token with Token Details and the Controller
   /// @param _name The name of the Token
   /// @param _symbol The symbol for the Token
-  /// @param _decimals The number of decimals for the Token
+  /// @param decimals_ The number of decimals for the Token
   /// @param _controller Address of the Controller contract for minting & burning
   function initialize(
     string memory _name,
     string memory _symbol,
-    uint8 _decimals,
-    TokenControllerInterface _controller
+    uint8 decimals_,
+    address _controller
   )
     public
     virtual
     initializer
   {
     require(address(_controller) != address(0), "ControlledToken/controller-not-zero");
+    controller = _controller;
+
     __ERC20_init(_name, _symbol);
     __ERC20Permit_init("PoolTogether ControlledToken");
-    controller = _controller;
-    // _setupDecimals(_decimals);
+    _decimals = decimals_;
 
     emit Initialized(
       _name,
@@ -81,19 +84,16 @@ contract ControlledToken is ERC20PermitUpgradeable, ControlledTokenInterface {
     _burn(_user, _amount);
   }
 
+  /// @notice Returns the ERC20 controlled token decimals.
+  /// @dev This value should be equal to the decimals of the token used to deposit into the pool.
+  /// @return uint8 decimals.
+  function decimals() public view virtual override returns (uint8) {
+    return _decimals;
+  }
+
   /// @dev Function modifier to ensure that the caller is the controller contract
   modifier onlyController {
     require(_msgSender() == address(controller), "ControlledToken/only-controller");
     _;
-  }
-
-  /// @dev Controller hook to provide notifications & rule validations on token transfers to the controller.
-  /// This includes minting and burning.
-  /// May be overridden to provide more granular control over operator-burning
-  /// @param from Address of the account sending the tokens (address(0x0) on minting)
-  /// @param to Address of the account receiving the tokens (address(0x0) on burning)
-  /// @param amount Amount of tokens being transferred
-  function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
-    controller.beforeTokenTransfer(from, to, amount);
   }
 }

@@ -75,6 +75,15 @@ describe('TwabLibrary', () => {
         await twabLib.setTwabs(twabs)
       })
 
+      /*
+      | |   < >
+      | < | >
+      | <| >
+      < | | >
+      < | > |
+      < > | |
+      */
+
       it('should return an average of zero for pre-history requests', async () => {
         // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
         expect(await twabLib.getAverageBalanceBetween(mintAmount.sub(transferAmount), twabs.length - 1, timestamp1 - 100, timestamp1 - 50, cardinality, currentTime)).to.equal(toWei('0'));
@@ -130,8 +139,8 @@ describe('TwabLibrary', () => {
       const mintAmount = toWei('1000');
       const currentBalance = toWei('500')
 
-      let timestamp1 = 1000
-      let timestamp2 = 2000
+      let timestamp1 = 1
+      let timestamp2 = 3
       let currentTime = 3000
 
       let twabs = [
@@ -143,30 +152,29 @@ describe('TwabLibrary', () => {
         await twabLib.setTwabs(twabs)
       })
 
+      /*
+      Legend: < > = twabs start and end, | = timestamp
+
+      | < > = before first twab
+      |< > = at same time as first twab
+      < | > = between twabs
+      < |> = at same time as last twab
+      < > | = after last twab
+      */
+
       it('should return zero when request before first twab', async () => {
         // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
-        expect(await twabLib.getBalanceAt(timestamp1 - 100, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(toWei('0'));
+        expect(await twabLib.getBalanceAt(timestamp1 - 1, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(toWei('0'));
       });
 
-      it('should return zero when request is on first twab', async () => {
+      it('should return end-of-block balance when request is on first twab', async () => {
         // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
-        expect(await twabLib.getBalanceAt(timestamp1, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(toWei('0'))
-      })
-/*
-      | |   < >
-      | < | >
-      | <| >
-      < | | >
-      < | > |
-      < > | |
-*/
-      it('should return when around the first twab', async () => {
-
+        expect(await twabLib.getBalanceAt(timestamp1, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(mintAmount)
       })
 
       it('should return mint amount when between twabs', async () => {
         // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 55}`)
-        expect(await twabLib.getBalanceAt(timestamp1 + 50, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(mintAmount)
+        expect(await twabLib.getBalanceAt(timestamp1 + 1, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(mintAmount)
       })
 
       it('should return current balance when on last twab', async () => {
@@ -179,7 +187,30 @@ describe('TwabLibrary', () => {
         expect(await twabLib.getBalanceAt(timestamp2 + 50, currentBalance, twabs.length - 1, cardinality, currentTime)).to.equal(currentBalance)
       })
     })
+
+    describe('with problematic query', () => {
+
+      let account1 = { balance: 0.0, nextTwabIndex: 2, cardinality: 3}
+      let twabs1 = [
+        { amount: 0, timestamp: 1630713395 },
+        { amount: '100000000000000000000', timestamp: 1630713396 }
+      ]
   
+      beforeEach(async () => {
+        await twabLib.setTwabs(twabs1)
+      })
+
+      it('should work', async () => {
+        expect(await twabLib.getBalanceAt(
+          1630713395,
+          account1.balance,
+          account1.nextTwabIndex - 1,
+          account1.cardinality,
+          parseInt('' + (new Date().getTime() / 1000) + 1000)
+        )).to.equal(toWei('100'))
+      })
+  
+    })
   })
 
   describe('wrapCardinality()', () => {
@@ -209,29 +240,6 @@ describe('TwabLibrary', () => {
   })
 
   describe('calculateNextWithExpiry()', () => {
-
-    context('with no twabs', () => {
-      // it('should ')
-    })
-
-    const mintAmount = toWei('1000');
-    const transferAmount = toWei('500')
-    const currentBalance = toWei('500')
-
-    let timestamp1 = 1000
-    let timestamp2 = 2000
-    let currentTime = 3000
-
-    let twabs = [
-      { amount: 0, timestamp: timestamp1 }, // minted
-      { amount: (mintAmount.mul(timestamp2 - timestamp1)), timestamp: timestamp2 } // transferred
-    ]
-
-    beforeEach(async () => {
-      await twabLib.setTwabs(twabs)
-    })
-
-    
   })
 
   describe('nextTwabWithExpiry()', () => {

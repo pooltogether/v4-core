@@ -19,11 +19,6 @@ const { parseEther: toWei } = utils;
 
 const increaseTime = (time: number) => increaseTimeHelper(provider, time);
 
-type BinarySearchResult = {
-  amount: BigNumber;
-  timestamp: number;
-};
-
 async function printTwabs(ticketContract: Contract, wallet: SignerWithAddress, debugLog: any = debug) {
   const context = await ticketContract.getAccountDetails(wallet.address)
   debugLog(`Twab Context for ${wallet.address}: { balance: ${ethers.utils.formatEther(context.balance)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
@@ -37,11 +32,12 @@ async function printTwabs(ticketContract: Contract, wallet: SignerWithAddress, d
 }
 
 describe('Ticket', () => {
-  let controller: MockContract;
+  let prizePool: MockContract;
   let ticket: Contract;
 
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
+  let wallet3: SignerWithAddress;
 
   let isInitializeTest = false;
 
@@ -51,21 +47,21 @@ describe('Ticket', () => {
 
   const initializeTicket = async (
     decimals: number = ticketDecimals,
-    controllerAddress: string = controller.address,
+    controllerAddress: string = prizePool.address,
   ) => {
     await ticket.initialize(ticketName, ticketSymbol, decimals, controllerAddress);
   };
 
   beforeEach(async () => {
-    [wallet1, wallet2] = await getSigners();
-
-    const TokenControllerInterface = await hre.artifacts.readArtifact('contracts/token/TokenControllerInterface.sol:TokenControllerInterface');
-    controller = await deployMockContract(wallet1 as Signer, TokenControllerInterface.abi);
-
-    await controller.mock.beforeTokenTransfer.returns();
+    [wallet1, wallet2, wallet3] = await getSigners();
 
     const ticketFactory: ContractFactory = await ethers.getContractFactory('TicketHarness');
     ticket = await ticketFactory.deploy();
+
+    const PrizePool = await hre.artifacts.readArtifact(
+      'contracts/prize-pool/PrizePool.sol:PrizePool',
+    );
+    prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
 
     if (!isInitializeTest) {
       await initializeTicket();
@@ -448,14 +444,17 @@ describe('Ticket', () => {
       await increaseTime(10)
 
       const balances = await ticket.getBalancesAt(wallet1.address, [
+        mintTimestamp - 1,
         mintTimestamp,
         mintTimestamp + 1,
         transferTimestamp + 2,
       ]);
 
-      expect(balances[0]).to.equal(toWei('0'));
+      expect(balances[0]).to.equal('0');
+      // end of block balance is mint amount
       expect(balances[1]).to.equal(mintAmount);
-      expect(balances[2]).to.equal(mintAmount.sub(transferAmount));
+      expect(balances[2]).to.equal(mintAmount);
+      expect(balances[3]).to.equal(mintAmount.sub(transferAmount));
     });
   });
 
@@ -507,6 +506,7 @@ describe('Ticket', () => {
       debug(`burnTimestamp: ${burnTimestamp}`)
 
       const totalSupplies = await ticket.getTotalSupplies([
+        mintTimestamp - 1,
         mintTimestamp,
         mintTimestamp + 1,
         burnTimestamp + 1,
@@ -514,7 +514,55 @@ describe('Ticket', () => {
 
       expect(totalSupplies[0]).to.equal(toWei('0'));
       expect(totalSupplies[1]).to.equal(mintAmount);
-      expect(totalSupplies[2]).to.equal(mintAmount.sub(burnAmount));
+      expect(totalSupplies[2]).to.equal(mintAmount);
+      expect(totalSupplies[3]).to.equal(mintAmount.sub(burnAmount));
     });
   });
+
+  describe('delegate()', () => {
+    const debug = newDebug('pt:Ticket.test.ts:delegate()')
+
+    it('should allow a user to delegate to another', async () => {
+      await ticket.mint(wallet1.address, toWei('100'))
+
+      await ticket.delegate(wallet2.address)
+      const timestamp = (await provider.getBlock('latest')).timestamp
+
+      expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address)
+      expect(await ticket.getBalanceAt(wallet1.address, timestamp)).to.equal(toWei('0'))
+      expect(await ticket.getBalanceAt(wallet2.address, timestamp)).to.equal(toWei('100'))
+    })
+
+    it('should clear old delegates if any', async () => {
+      await ticket.mint(wallet1.address, toWei('100'))
+      const mintTimestamp = (await provider.getBlock('latest')).timestamp
+      debug(`mintTimestamp: ${mintTimestamp}`)
+      await ticket.delegate(wallet2.address)
+      const delegateTimestamp = (await provider.getBlock('latest')).timestamp
+      debug(`delegateTimestamp: ${delegateTimestamp}`)
+
+
+      await ticket.delegate(wallet3.address)
+      const secondTimestamp = (await provider.getBlock('latest')).timestamp
+
+      debug(`secondTimestamp: ${secondTimestamp}`)
+
+      debug(`WALLET 2: ${wallet2.address}`)
+      await printTwabs(ticket, wallet2, debug)
+      
+      debug(`WALLET 3: ${wallet3.address}`)
+      await printTwabs(ticket, wallet3, debug)
+
+      expect(await ticket.getBalanceAt(wallet1.address, delegateTimestamp)).to.equal(toWei('0'))
+      expect(await ticket.getBalanceAt(wallet2.address, mintTimestamp)).to.equal('0')
+      // balance at the end of the block was zero
+      expect(await ticket.getBalanceAt(wallet2.address, delegateTimestamp)).to.equal(toWei('100'))
+      
+      expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet3.address)
+      expect(await ticket.getBalanceAt(wallet1.address, secondTimestamp)).to.equal(toWei('0'))
+      expect(await ticket.getBalanceAt(wallet2.address, secondTimestamp)).to.equal(toWei('0'))
+      expect(await ticket.getBalanceAt(wallet3.address, secondTimestamp)).to.equal(toWei('100'))
+    })
+
+  })
 });

@@ -115,6 +115,6 @@ contract TwabLibraryExposed {
     uint32 _time,
     uint32 _maxLifetime
   ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, TwabLibrary.Twab memory twab, bool isNew) {
-    return twabs.nextTwabWithExpiry(_balance, _newBalance, _nextTwabIndex, _cardinality, _time, _maxLifetime);
+    return twabs.nextTwabWithExpiry(_balance, _nextTwabIndex, _cardinality, _time, _maxLifetime);
   }
 }

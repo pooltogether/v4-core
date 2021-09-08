@@ -6,9 +6,9 @@ import 'hardhat-deploy-ethers';
 import 'hardhat-gas-reporter';
 import 'hardhat-log-remover';
 import 'solidity-coverage';
-
+import 'hardhat-dependency-compiler';
+import './hardhat/tsunami-tasks.js';
 import { HardhatUserConfig } from 'hardhat/config';
-
 import networks from './hardhat.network';
 
 const optimizerEnabled = !process.env.OPTIMIZER_DISABLED;
@@ -66,6 +66,13 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  external: {
+    contracts: [
+      {
+        artifacts: "node_modules/@pooltogether/pooltogether-rng-contracts/build",
+      },
+    ]
+  }
 };
 
 export default config;

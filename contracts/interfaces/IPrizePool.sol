@@ -2,13 +2,17 @@
 
 pragma solidity 0.8.6;
 
-import "../token/TokenListenerInterface.sol";
 import "../token/ControlledTokenInterface.sol";
 
-/// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.  Users deposit and withdraw from this contract to participate in Prize Pool.
+/// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.
+///       Users deposit and withdraw from this contract to participate in Prize Pool.
 /// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
 /// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
-interface PrizePoolInterface {
+interface IPrizePool {
+
+  /// @dev Returns the address of a token in the _tokens array.
+  /// @return Address of token
+  function tokenAtIndex(uint256 tokenIndex) external returns (ControlledTokenInterface);
 
   /// @notice Deposit assets into the Prize Pool in exchange for tokens
   /// @param to The address receiving the newly minted tokens
@@ -35,7 +39,6 @@ interface PrizePoolInterface {
     address controlledToken,
     uint256 maximumExitFee
   ) external returns (uint256);
-
 
   function withdrawReserve(address to) external returns (uint256);
 
@@ -162,8 +165,8 @@ interface PrizePoolInterface {
   function setLiquidityCap(uint256 _liquidityCap) external;
 
   /// @notice Sets the prize strategy of the prize pool.  Only callable by the owner.
-  /// @param _prizeStrategy The new prize strategy.  Must implement TokenListenerInterface
-  function setPrizeStrategy(TokenListenerInterface _prizeStrategy) external;
+  /// @param _prizeStrategy The new prize strategy.  Must implement ClaimableDrawPrizeStrategy
+  function setPrizeStrategy(address _prizeStrategy) external;
 
   /// @dev Returns the address of the underlying ERC20 asset
   /// @return The address of the asset

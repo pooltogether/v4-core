@@ -2,85 +2,28 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-
-const printUtils = require("./helpers/printUtils")
-const { green, dim } = printUtils
+import { Draw, DrawSettings } from './types';
 
 const { getSigners } = ethers;
 
-type DrawSettings = {
-  matchCardinality: BigNumber;
-  pickCost: BigNumber;
-  distributions: BigNumber[];
-  bitRangeSize: BigNumber;
-};
+const newDebug = require('debug')
+
+export async function deployDrawCalculator(signer: any): Promise<Contract> {
+  const drawCalculatorFactory = await ethers.getContractFactory(
+    'TsunamiDrawCalculatorHarness',
+    signer,
+  );
+  const drawCalculator: Contract = await drawCalculatorFactory.deploy();
+  return drawCalculator;
+}
 
 describe('TsunamiDrawCalculator', () => {
-    let drawCalculator: Contract; let ticket: MockContract;
-    let wallet1: any;
-    let wallet2: any;
-    let wallet3: any;
+  let drawCalculator: Contract; let ticket: MockContract; let claimableDraw: MockContract;
+  let wallet1: any;
+  let wallet2: any;
+  let wallet3: any;
 
-    const encoder = ethers.utils.defaultAbiCoder
-
-    async function findWinningNumberForUser(userAddress: string, matchesRequired: number, drawSettings: DrawSettings) {
-        dim(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
-        const drawCalculator: Contract = await deployDrawCalculator(wallet1)
-        
-        let ticketArtifact = await artifacts.readArtifact('Ticket')
-        ticket = await deployMockContract(wallet1, ticketArtifact.abi)
-        
-        await drawCalculator.initialize(ticket.address, drawSettings)
-        
-        const timestamp = 42
-        const prizes = [utils.parseEther("1")]
-        const pickIndices = encoder.encode(["uint256[][]"], [[["1"]]])
-        const ticketBalance = utils.parseEther("10")
-
-        await ticket.mock.getBalancesAt.withArgs(userAddress, [timestamp]).returns([ticketBalance]) // (user, timestamp): balance
-
-        const distributionIndex = drawSettings.matchCardinality.toNumber() - matchesRequired
-        dim(`distributionIndex: ${distributionIndex}`)
-
-        if(drawSettings.distributions.length < distributionIndex){
-           throw new Error(`There are only ${drawSettings.distributions.length} tiers of prizes`) // there is no "winning number" in this case
-        }
-
-        // now calculate the expected prize amount for these settings
-        const fraction : BigNumber =  await drawCalculator.calculatePrizeDistributionFraction(drawSettings, distributionIndex)
-        
-        const expectedPrizeAmount : BigNumber = (prizes[0]).mul(fraction as any).div(ethers.constants.WeiPerEther) 
-
-        dim(`expectedPrizeAmount: ${utils.formatEther(expectedPrizeAmount as any)}`)
-        let winningRandomNumber
-
-        while(true){
-            winningRandomNumber = utils.solidityKeccak256(["address"], [ethers.Wallet.createRandom().address])
-            const prizesAwardable : BigNumber[] = await drawCalculator.calculate(
-                userAddress,
-                [winningRandomNumber],
-                [timestamp],
-                prizes,
-                pickIndices
-            )
-            const testEqualTo = (prize: BigNumber): boolean => prize.eq(expectedPrizeAmount)
-            if(prizesAwardable.some(testEqualTo)){
-              green(`found a winning number! ${winningRandomNumber}`)
-              break
-            }
-        }
-    
-        return winningRandomNumber
-    }
-  
-    async function deployDrawCalculator(signer: any): Promise<Contract> {
-        const drawCalculatorFactory = await ethers.getContractFactory(
-        'TsunamiDrawCalculatorHarness',
-        signer,
-        );
-        const drawCalculator: Contract = await drawCalculatorFactory.deploy();
-        return drawCalculator;
-    }
+  const encoder = ethers.utils.defaultAbiCoder
 
   beforeEach(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
@@ -89,37 +32,34 @@ describe('TsunamiDrawCalculator', () => {
     let ticketArtifact = await artifacts.readArtifact('Ticket');
     ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
-    const drawSettings: DrawSettings = {
-      distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-      pickCost: BigNumber.from(utils.parseEther('1')),
-      matchCardinality: BigNumber.from(5),
-      bitRangeSize: BigNumber.from(4),
-    };
-    
-    await drawCalculator.initialize(ticket.address, drawSettings);
-    
+    let claimableDrawArtifact = await artifacts.readArtifact('ClaimableDraw');
+    claimableDraw = await deployMockContract(wallet1, claimableDrawArtifact.abi);
+
+    await drawCalculator.initialize(ticket.address, wallet2.address, claimableDraw.address);
   });
 
-  describe('finding winning random numbers with helper', () => {
-    it('find 3 winning numbers', async () => {
-      const params: DrawSettings = {
-        matchCardinality: BigNumber.from(5),
-        distributions: [
-          ethers.utils.parseEther('0.6'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-        ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
-        bitRangeSize: BigNumber.from(3),
-      };
-      const result = await findWinningNumberForUser(wallet1.address, 3, params);
-    });
-  });
+  describe('initialize()', () => {
+    let drawCalculator: Contract
+    beforeEach(async () => {
+      drawCalculator = await deployDrawCalculator(wallet1);
+    })
 
-  describe('admin functions', () => {
-    it('onlyOwner can setPrizeSettings', async () => {
-      const params: DrawSettings = {
+    it('should require non-zero ticket', async () => {
+      await expect(drawCalculator.initialize(ethers.constants.AddressZero, wallet2.address, claimableDraw.address)).to.be.revertedWith('DrawCalc/ticket-not-zero')
+    })
+
+    it('should require non-zero manager', async () => {
+      await expect(drawCalculator.initialize(ticket.address, ethers.constants.AddressZero, claimableDraw.address)).to.be.revertedWith('Manager/manager-not-zero-address')
+    })
+
+    it('should require non-zero draw', async () => {
+      await expect(drawCalculator.initialize(ticket.address, wallet2.address, ethers.constants.AddressZero)).to.be.revertedWith('DrawCalc/claimable-draw-not-zero-address')
+    })
+  })
+
+  describe('setDrawSettings()', () => {
+    it('should not allow anyone else to set', async () => {
+      const drawSettings: DrawSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -129,18 +69,37 @@ describe('TsunamiDrawCalculator', () => {
         ],
         pickCost: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      await expect(drawCalculator.connect(wallet3).setDrawSettings(0, drawSettings)).to.be.revertedWith('Manager/caller-not-manager-or-owner')
+    })
+
+    it('onlyOwner can setPrizeSettings', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
       };
 
-      expect(await drawCalculator.setDrawSettings(params)).to.emit(
+      await claimableDraw.mock.setDrawCalculator.withArgs(0, drawCalculator.address).returns(drawCalculator.address);
+
+      expect(await drawCalculator.setDrawSettings(0, drawSettings)).to.emit(
         drawCalculator,
         'DrawSettingsSet',
       );
 
-      await expect(drawCalculator.connect(wallet2).setDrawSettings(params)).to.be.reverted;
+      await expect(drawCalculator.connect(wallet2).setDrawSettings(drawSettings)).to.be.reverted;
     });
 
     it('cannot set over 100pc of prize for distribution', async () => {
-      const params: DrawSettings = {
+      const drawSettings: DrawSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.9'),
@@ -150,452 +109,326 @@ describe('TsunamiDrawCalculator', () => {
         ],
         pickCost: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
       };
-      await expect(drawCalculator.setDrawSettings(params)).to.be.revertedWith(
+      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
         'DrawCalc/distributions-gt-100%',
       );
     });
   });
 
-  describe('findBitMatchesAtIndex()', () => {
-    //function findBitMatchesAtIndex(uint256 word1, uint256 word2, uint256 indexOffset, uint8 _bitRangeSize, uint8 _maskValue) external returns(bool)
-    it('should match the value at 0 index over 4 bits', async () => {
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '63',
-        '63',
-        '0',
-        '4',
-        '15',
+  describe('setClaimableDraw()', () => {
+    it('onlyOwnerOrManager can set', async () => {
+      await expect(drawCalculator.setClaimableDraw(claimableDraw.address)).to.emit(
+        drawCalculator,
+        'ClaimableDrawSet',
       );
-      expect(result).to.equal(true);
-    });
-    it('should not match the value at 0 index over 8 bits', async () => {
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '64',
-        '63',
-        '0',
-        '8',
-        '255',
-      );
-      expect(result).to.equal(false);
-    });
+      await expect(drawCalculator.connect(wallet3).setClaimableDraw(claimableDraw.address)).to.be.reverted;
+    })
 
-    it('should match the value at 0 index over 7 bits', async () => {
-      //63: 0 1111 11
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '63',
-        '63',
-        '0',
-        '7',
-        '127',
-      );
-      expect(result).to.equal(true);
-    });
+    it('cant set to zero address', async () => {
+      await expect(drawCalculator.setClaimableDraw(ethers.constants.AddressZero)).to.be.revertedWith("DrawCalc/claimable-draw-not-zero-address");
+    })
+  })
 
-    it('should match the value at 1 index over 4 bits', async () => {
+  describe('calculateDistributionIndex()', () => {
+    it('calculates distribution index 0', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+
+      const bitMasks = await drawCalculator.createBitMasks(drawSettings);
+      const winningRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70"
+      const userRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70" // intentianlly same as winning random number
+      const prizeDistributionIndex: BigNumber = await drawCalculator.calculateDistributionIndex(userRandomNumber, winningRandomNumber, bitMasks)
+
+      expect(prizeDistributionIndex).to.eq(BigNumber.from(0))
+    })
+
+    it('calculates distribution index 1', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(2),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
       // 252: 1111 1100
       // 255  1111 1111
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '252',
-        '255',
-        '1',
-        '4',
-        '15',
-      );
-      expect(result).to.equal(true);
-    });
-    it('should NOT match the value at 0 index over 4 bits', async () => {
-      // 252: 1111 1100
-      // 255  1111 1111
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '252',
-        '255',
-        '0',
-        '4',
-        '15',
-      );
-      expect(result).to.equal(false);
-    });
-    it('should match the value at 1 index over 2 bits', async () => {
-      // 252: 1111 11 00
-      // 255  1111 11 11
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '252',
-        '255',
-        '1',
-        '2',
-        '3',
-      );
-      expect(result).to.equal(true);
-    });
 
-    it('should match the value at 0 index over 6 bits', async () => {
-      // 61676: 001111 000011 101100
-      // 61612: 001111 000010 101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '0',
-        '6',
-        '63',
-      );
-      expect(result).to.equal(true);
-    });
+      const bitMasks = await drawCalculator.createBitMasks(drawSettings);
+      expect(bitMasks.length).to.eq(2) // same as length of matchCardinality
+      expect(bitMasks[0]).to.eq(BigNumber.from(15))
 
-    it('should NOT match the value at 1 index over 6 bits', async () => {
-      // 61676: 001111 000011 101100
-      // 61612: 001111 000010 101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '1',
-        '6',
-        '63',
-      );
-      expect(result).to.equal(false);
-    });
+      const prizeDistributionIndex: BigNumber = await drawCalculator.calculateDistributionIndex(252, 255, bitMasks)
 
-    it('should match the value at 2 index over 6 bits', async () => {
-      // 61676: 001111 000011 101100
-      // 61612: 001111 000010 101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '2',
-        '6',
-        '63',
-      );
-      expect(result).to.equal(true);
-    });
+      expect(prizeDistributionIndex).to.eq(BigNumber.from(1))
+    })
+  })
 
-    it('should NOT match the value at 0 index over 8 bits', async () => {
-      // 61676: 11110000 11101100
-      // 61612: 11110000 10101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '0',
-        '8',
-        '255',
-      );
-      expect(result).to.equal(false);
-    });
+  describe("createBitMasks()", () => {
+    it("creates correct 6 bit masks", async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(2),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(6),
+        prize: ethers.utils.parseEther('1'),
+      };
+      const bitMasks = await drawCalculator.createBitMasks(drawSettings);
+      expect(bitMasks[0]).to.eq(BigNumber.from(63)) // 111111
+      expect(bitMasks[1]).to.eq(BigNumber.from(4032)) // 11111100000
 
-    it('should match the value at 1 index over 8 bits', async () => {
-      // 61676: 11110000 11101100
-      // 61612: 11110000 10101100
-      const result = await drawCalculator.callStatic.findBitMatchesAtIndex(
-        '61676',
-        '61612',
-        '1',
-        '8',
-        '255',
-      );
-      expect(result).to.equal(true);
-    });
-  });
+    })
+
+    it("creates correct 4 bit masks", async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(2),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      const bitMasks = await drawCalculator.createBitMasks(drawSettings);
+      expect(bitMasks[0]).to.eq(BigNumber.from(15)) // 1111
+      expect(bitMasks[1]).to.eq(BigNumber.from(240)) // 11110000 
+
+    })
+  })
 
   describe('calculate()', () => {
-    it('should calculate and win grand prize', async () => {
-      const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
-      const winningRandomNumber = utils.solidityKeccak256(
-        ['bytes32', 'uint256'],
-        [winningNumber, 1],
-      );
+    const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
-      const timestamp = 42;
-      const prizes = [utils.parseEther('100')];
-      const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
-      const ticketBalance = utils.parseEther('10');
+    context('with draw 0 set', () => {
+      let drawSettings: DrawSettings
+      beforeEach(async () => {
+        drawSettings = {
+          distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
+          pickCost: BigNumber.from(utils.parseEther('1')),
+          matchCardinality: BigNumber.from(5),
+          bitRangeSize: BigNumber.from(4),
+          prize: ethers.utils.parseEther('100'),
+        };
+        await claimableDraw.mock.setDrawCalculator.withArgs(0, drawCalculator.address).returns(drawCalculator.address);
+        await drawCalculator.setDrawSettings(0, drawSettings)
+      })
 
-      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+      it('should calculate and win grand prize', async () => {
+        const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+        const winningRandomNumber = utils.solidityKeccak256(
+          ['bytes32', 'uint256'],
+          [winningNumber, 1],
+        );
 
-      const prizesAwardable = await drawCalculator.calculate(
-        wallet1.address,
-        [winningRandomNumber],
-        [timestamp],
-        prizes,
-        pickIndices,
-      )
+        const timestamp = 42;
+        const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+        const ticketBalance = utils.parseEther('10');
 
-      expect(prizesAwardable[0]).to.equal(utils.parseEther('80'));
+        await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
-      console.log(
-        'GasUsed for calculate(): ',
-        (
-          await drawCalculator.estimateGas.calculate(
-            wallet1.address,
-            [winningRandomNumber],
-            [timestamp],
-            prizes,
-            pickIndices,
-          )
-        ).toString(),
-      );
-    });
+        const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp) }
 
-    it('should calculate and win grand prize multiple picks', async () => {
-      const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
-      const winningRandomNumber = utils.solidityKeccak256(
-        ['bytes32', 'uint256'],
-        [winningNumber, 1],
-      );
 
-      const timestamp = 42;
-      const prizes = [utils.parseEther('100')];
-      const pickIndices = encoder.encode(['uint256[][]'], [[[...new Array<number>(1000).keys()]]]);
-      const ticketBalance = utils.parseEther('20000');
-
-      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
-
-      const prizesAwardable = await drawCalculator.calculate(
-        wallet1.address,
-        [winningRandomNumber],
-        [timestamp],
-        prizes,
-        pickIndices,
-      )
-
-      // expect(prizesAwardable[0]).to.equal(utils.parseEther('80'));
-
-      console.log(
-        'GasUsed for calculate two picks(): ',
-        (
-          await drawCalculator.estimateGas.calculate(
-            wallet1.address,
-            [winningRandomNumber],
-            [timestamp],
-            prizes,
-            pickIndices,
-          )
-        ).toString(),
-      );
-    });
-
-    it('should calculate for multiple picks, first pick grand prize winner, second pick no winnings', async () => {
-      //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
-
-      const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
-      const winningRandomNumber = utils.solidityKeccak256(
-        ['bytes32', 'uint256'],
-        [winningNumber, 1],
-      );
-
-      const timestamp1 = 42;
-      const timestamp2 = 51;
-      const prizes = [utils.parseEther('100'), utils.parseEther('20')];
-      const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
-      const ticketBalance = utils.parseEther('10');
-      const ticketBalance2 = utils.parseEther('10');
-
-      await ticket.mock.getBalancesAt
-        .withArgs(wallet1.address, [timestamp1, timestamp2])
-        .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
-
-      const prizesAwardable = await drawCalculator.calculate(
-        wallet1.address,
-        [winningRandomNumber, winningRandomNumber],
-        [timestamp1, timestamp2],
-        prizes,
-        pickIndices,
-      )
-
-      expect(
-        prizesAwardable[0]
-      ).to.equal(utils.parseEther('80'));
-
-      console.log(
-        'GasUsed for 2 calculate() calls: ',
-        (
-          await drawCalculator.estimateGas.calculate(
-            wallet1.address,
-            [winningRandomNumber, winningRandomNumber],
-            [timestamp1, timestamp2],
-            prizes,
-            pickIndices,
-          )
-        ).toString(),
-      );
-
-    });
-
-    it('should not have enough funds for a second pick and revert', async () => {
-      const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
-      const winningRandomNumber = utils.solidityKeccak256(
-        ['bytes32', 'uint256'],
-        [winningNumber, 1],
-      );
-
-      const timestamp1 = 42;
-      const timestamp2 = 51;
-      const prizes = [utils.parseEther('100'), utils.parseEther('20')];
-      const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
-      const ticketBalance = utils.parseEther('10');
-      const ticketBalance2 = utils.parseEther('0.4');
-
-      await ticket.mock.getBalancesAt
-        .withArgs(wallet1.address, [timestamp1, timestamp2])
-        .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
-
-      const drawSettings: DrawSettings = {
-        distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-        pickCost: BigNumber.from(utils.parseEther("10")),
-        matchCardinality: BigNumber.from(5),
-        bitRangeSize: BigNumber.from(4),
-      };
-
-      await drawCalculator.setDrawSettings(drawSettings)
-
-      await expect(
-        drawCalculator.calculate(
+        const prizesAwardable = await drawCalculator.calculate(
           wallet1.address,
-          [winningRandomNumber, winningRandomNumber],
-          [timestamp1, timestamp2],
-          prizes,
+          [draw],
           pickIndices,
-        ),
-      ).to.revertedWith('DrawCalc/insufficient-user-picks');
-    });
+        )
 
-    it.skip('should calculate and win nothing', async () => {
-      const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
-      const userRandomNumber = utils.solidityKeccak256(['bytes32', 'uint256'], [winningNumber, 1]);
-      const timestamp = 42;
-      const prizes = [utils.parseEther('100')];
-      const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
-      const ticketBalance = utils.parseEther('10');
+        expect(prizesAwardable[0]).to.equal(utils.parseEther('80'));
 
-      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+        debug(
+          'GasUsed for calculate(): ',
+          (
+            await drawCalculator.estimateGas.calculate(
+              wallet1.address,
+              [draw],
+              pickIndices,
+            )
+          ).toString(),
+        );
+      });
 
-      const prizesAwardable = await drawCalculator.calculate(
-        wallet1.address,
-        [userRandomNumber],
-        [timestamp],
-        prizes,
-        pickIndices,
-      )
+      it('should calculate and win grand prize multiple picks', async () => {
+        const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+        const winningRandomNumber = utils.solidityKeccak256(
+          ['bytes32', 'uint256'],
+          [winningNumber, 1],
+        );
 
-     expect(
-        prizesAwardable[0]
-      ).to.equal(utils.parseEther('0'));
-    });
+        const timestamp = 42;
+        const prizes = [utils.parseEther('100')];
+        const pickIndices = encoder.encode(['uint256[][]'], [[[...new Array<number>(1000).keys()]]]);
+        const ticketBalance = utils.parseEther('20000');
 
-    it.skip('increasing the matchCardinality for same user and winning numbers results in less of a prize', async () => {
-      const timestamp = 42;
-      const prizes = [utils.parseEther('100')];
-      const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
-      const ticketBalance = utils.parseEther('10');
+        await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
-      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+        const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp) }
 
-      let params: DrawSettings = {
-        matchCardinality: BigNumber.from(6),
-        distributions: [
-          ethers.utils.parseEther('0.2'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-        ],
-        pickCost: BigNumber.from(utils.parseEther('1')),
-        bitRangeSize: BigNumber.from(4),
-      };
-      await drawCalculator.setDrawSettings(params);
+        const prizesAwardable = await drawCalculator.calculate(
+          wallet1.address,
+          [draw],
+          pickIndices,
+        )
 
-      let winningRandomNumber = await findWinningNumberForUser(wallet1.address, 3, params);
-      const resultingPrizes = await drawCalculator.calculate(
-        wallet1.address,
-        [winningRandomNumber],
-        [timestamp],
-        prizes,
-        pickIndices,
-      );
-      expect(resultingPrizes[0]).to.equal(ethers.BigNumber.from(utils.parseEther('0.00244140625')));
+        debug(
+          'GasUsed for calculate 1000 picks(): ',
+          (
+            await drawCalculator.estimateGas.calculate(
+              wallet1.address,
+              [draw],
+              pickIndices,
+            )
+          ).toString(),
+        );
+      });
 
-      // now increase cardinality
-      params = {
-        matchCardinality: BigNumber.from(7),
-        distributions: [
-          ethers.utils.parseEther('0.2'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-        ],
-        pickCost: BigNumber.from(utils.parseEther('1')),
-        bitRangeSize: BigNumber.from(4),
-      };
-      await drawCalculator.setDrawSettings(params);
-      
-      winningRandomNumber = await findWinningNumberForUser(wallet1.address, 3, params);
-      const resultingPrizes2 = await drawCalculator.calculate(
-        wallet1.address,
-        [winningRandomNumber],
-        [timestamp],
-        prizes,
-        pickIndices,
-      );
+      it('should calculate for multiple picks, first pick grand prize winner, second pick no winnings', async () => {
+        //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
 
-      expect(resultingPrizes2[0]).to.equal(ethers.BigNumber.from("152587890625000"));
-    });
+        const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+        const winningRandomNumber = utils.solidityKeccak256(
+          ['bytes32', 'uint256'],
+          [winningNumber, 1],
+        );
 
-    it.skip('increasing the number range results in lower probability of matches', async () => {
-      //function calculate(address user, uint256[] calldata winningRandomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data)
-      const timestamp = 42;
-      const prizes = [utils.parseEther('100')];
-      const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
-      const ticketBalance = utils.parseEther('10');
+        const timestamp1 = 42;
+        const timestamp2 = 51;
+        const prizes = [utils.parseEther('100'), utils.parseEther('20')];
+        const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
+        const ticketBalance = utils.parseEther('10');
+        const ticketBalance2 = utils.parseEther('10');
 
-      await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
 
-      let params: DrawSettings = {
-        matchCardinality: BigNumber.from(5),
-        distributions: [
-          ethers.utils.parseEther('0.2'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-        ],
-        pickCost: BigNumber.from(utils.parseEther('1')),
-        bitRangeSize: BigNumber.from(3),
-      };
-      await drawCalculator.setDrawSettings(params);
+        const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp1) }
+        const draw2: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp2) }
 
-      const winningRandomNumber = await findWinningNumberForUser(wallet1.address, 3, params);
+        await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
 
-      const resultingPrizes = await drawCalculator.calculate(
-        wallet1.address,
-        [winningRandomNumber],
-        [timestamp],
-        prizes,
-        pickIndices,
-      );
-      expect(resultingPrizes[0]).to.equal(
-        ethers.BigNumber.from("156250000000000000"),
-      );
-      // now increase number range
-      params = {
-        matchCardinality: BigNumber.from(5),
-        distributions: [
-          ethers.utils.parseEther('0.2'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-        ],
-        pickCost: BigNumber.from(utils.parseEther('1')),
-        bitRangeSize: BigNumber.from(4),
-      };
-      await drawCalculator.setDrawSettings(params);
+        await ticket.mock.getBalancesAt
+          .withArgs(wallet1.address, [timestamp1, timestamp2])
+          .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
-      const winningRandomNumber2 = await findWinningNumberForUser(wallet1.address, 3, params);
+        const drawSettings2: DrawSettings = {
+          distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
+          pickCost: BigNumber.from(utils.parseEther('1')),
+          matchCardinality: BigNumber.from(5),
+          bitRangeSize: BigNumber.from(4),
+          prize: ethers.utils.parseEther('20'),
+        };
 
-      const resultingPrizes2 = await drawCalculator.calculate(
-        wallet1.address,
-        [winningRandomNumber2],
-        [timestamp],
-        prizes,
-        pickIndices,
-      );
-      expect(resultingPrizes2[0]).to.equal(ethers.BigNumber.from("39062500000000000"));
-    });
+        await drawCalculator.setDrawSettings(1, drawSettings2);
+
+
+        const prizesAwardable = await drawCalculator.calculate(
+          wallet1.address,
+          [draw1, draw2],
+          pickIndices,
+        )
+
+        expect(
+          prizesAwardable[0]
+        ).to.equal(utils.parseEther('80'));
+
+        debug(
+          'GasUsed for 2 calculate() calls: ',
+          (
+            await drawCalculator.estimateGas.calculate(
+              wallet1.address,
+              [draw1, draw2],
+              pickIndices,
+            )
+          ).toString(),
+        );
+
+      });
+
+      it('should not have enough funds for a second pick and revert', async () => {
+        const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+        const winningRandomNumber = utils.solidityKeccak256(
+          ['bytes32', 'uint256'],
+          [winningNumber, 1],
+        );
+
+        const timestamp1 = 42;
+        const timestamp2 = 51;
+        const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
+        const ticketBalance = utils.parseEther('10');
+        const ticketBalance2 = utils.parseEther('0.4');
+
+        await ticket.mock.getBalancesAt
+          .withArgs(wallet1.address, [timestamp1, timestamp2])
+          .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
+
+        const drawSettings: DrawSettings = {
+          distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
+          pickCost: BigNumber.from(utils.parseEther("10")),
+          matchCardinality: BigNumber.from(5),
+          bitRangeSize: BigNumber.from(4),
+          prize: ethers.utils.parseEther('100'),
+        };
+
+        const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp1) }
+        const draw2: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp2) }
+
+        await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
+        await drawCalculator.setDrawSettings(1, drawSettings)
+
+        await expect(
+          drawCalculator.calculate(
+            wallet1.address,
+            [draw1, draw2],
+            pickIndices
+          ),
+        ).to.revertedWith('DrawCalc/insufficient-user-picks');
+      });
+
+      it('should calculate and win nothing', async () => {
+        const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
+        const userRandomNumber = utils.solidityKeccak256(['bytes32', 'uint256'], [winningNumber, 1]);
+        const timestamp = 42;
+
+        const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+        const ticketBalance = utils.parseEther('10');
+
+        await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+
+        const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(userRandomNumber), timestamp: BigNumber.from(timestamp) }
+
+        const prizesAwardable = await drawCalculator.calculate(
+          wallet1.address,
+          [draw1],
+          pickIndices,
+        )
+
+        expect(
+          prizesAwardable[0]
+        ).to.equal(utils.parseEther('0'));
+      });
+    })
   });
 });

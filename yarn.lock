@@ -1107,6 +1107,11 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.2.0.tgz#3b12d6fe9d51e563c8a6ae39c96c1d32c5d0fa4a"
   integrity sha512-vn0hoUqQzgOLzLZwFgh+w/D5hzJHX8F7X/7t/gZdSQYIEXMyGpXUwkr5A3eoAeoc42f/n7yDhwusvBmNknM41Q==
 
+"@openzeppelin/contracts-upgradeable@^4.3.1":
+  version "4.3.1"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.3.1.tgz#d2fdbacd010f9bc2228d58f9d3d3db4e49818ea6"
+  integrity sha512-vqS3gb1J5xlKc+7a931a5Qmg3HDR168E6aCfPY6lPrdFZV4TymN2+HVJNCqCo+KP2UMYDtqRsXu+KB/0L0E34g==
+
 "@openzeppelin/hardhat-upgrades@1.6.0":
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.6.0.tgz#735e1c70aea859e284937995e238fcfdea7b69d7"
@@ -1138,6 +1143,13 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/fixed-point/-/fixed-point-1.0.0-beta.2.tgz#d76a1e77f21833e9b680296d65526b0ffd7415d7"
   integrity sha512-aUw4R0Z2oM0AK3W4LIXyBaojTOzRRbhLDHX0egeuvxfjy4gBb6X66v81gI7Wngg/7O0y9QL/B8jWkUnAFzhTig==
 
+"@pooltogether/owner-manager-contracts@0.0.1-beta.3":
+  version "0.0.1-beta.3"
+  resolved "https://registry.yarnpkg.com/@pooltogether/owner-manager-contracts/-/owner-manager-contracts-0.0.1-beta.3.tgz#883a07a0a703844fea5f711b83b9b07e8914147b"
+  integrity sha512-2rY7IRcsesShGkZc8n3mZE+jhpd2b7XzZOoos04mnIRQgP50wQYpwslLhgrODvuHG6ywNCilJPhF2jIZFpi3Ow==
+  dependencies:
+    "@openzeppelin/contracts-upgradeable" "^4.3.1"
+
 "@pooltogether/pooltogether-contracts@3.4.4":
   version "3.4.4"
   resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-contracts/-/pooltogether-contracts-3.4.4.tgz#fa183e75d26959caa2075d71b80d9d7bef11a659"
@@ -1161,10 +1173,10 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-rng-contracts/-/pooltogether-rng-contracts-1.0.0.tgz#191d155dc960559cce06b7ec3b0f9ed2caed0f46"
   integrity sha512-jQub/+qPLQwTFtbBCvvyIEqxJDEBEV/hgLKnuocBg2/GySWtHLz67WCy17bNn1hZw8nWIt8Ih8h+7iT2UJhtmQ==
 
-"@pooltogether/pooltogether-rng-contracts@1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-rng-contracts/-/pooltogether-rng-contracts-1.2.0.tgz#f7a6989cb5578c56f72c6f21bcc5c5a5c5ede3a8"
-  integrity sha512-oLbYjSbXsR2P+r/wYGxmfPSvWFHikT0D9ykOlPQ/Kq63gecgfskUTDUoEVvp0ryK2f8MtFNb81RdqEQLQOcyDw==
+"@pooltogether/pooltogether-rng-contracts@1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@pooltogether/pooltogether-rng-contracts/-/pooltogether-rng-contracts-1.4.0.tgz#310b9667a1123cfcce718aa6d8eba7c434a53c75"
+  integrity sha512-dNgDpDsCMxUxaz8u6OfpjSBtMOdcp8QkLC3cwJ6E++4ux0qY2ON+ZqJEHIC3q4ZVJ4Xf6FikMJF0a8SVNtl8Zw==
 
 "@pooltogether/uniform-random-number@1.0.0-beta.1":
   version "1.0.0-beta.1"
@@ -1175,6 +1187,11 @@
   version "1.0.0-beta.2"
   resolved "https://registry.yarnpkg.com/@pooltogether/uniform-random-number/-/uniform-random-number-1.0.0-beta.2.tgz#fcc388269098a7303c83de6f07cdc5d46dede0e9"
   integrity sha512-xwEpcg+WXcoWtRdG9WPmE5B93YvkhBi4XCEVQ/kfkXS5tVsrhCjFHWQOuqvX2P7zMyCuI/Bq6Y84QQJnRywJhg==
+
+"@pooltogether/yield-source-interface@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@pooltogether/yield-source-interface/-/yield-source-interface-1.0.2.tgz#59630684e0e55310577e9bf07fd778b60676c8ec"
+  integrity sha512-dt/lkK+0erPHi9FpVaYLA2+PiWJb7sODB/2J/LyrENtAe2Miob03005ijLY3zHb4NtQUEGDDPM0uX51jniex7A==
 
 "@pooltogether/yield-source-interface@^1.0.1":
   version "1.0.1"
@@ -5602,6 +5619,11 @@ hardhat-abi-exporter@2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/hardhat-abi-exporter/-/hardhat-abi-exporter-2.1.2.tgz#7f0aa1fc91d546ca595ca35b743e36211a71f987"
   integrity sha512-ovJr6zJ9uxHDZmqtRRfaaFA8KxVCNzfHroP44QOWZ+CAh06hSen3r4Qehw6u7Vl5xJmw7Pu7nz+7q5QvPWXTKA==
+
+hardhat-dependency-compiler@1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/hardhat-dependency-compiler/-/hardhat-dependency-compiler-1.1.1.tgz#0bfe713d450a7fdad14a210b7a9b8a32e56cc744"
+  integrity sha512-2xubH8aPojhMGbILFlfL28twu6l/5Tyrj4Dpkogvycse6YegKW9GuGA3rnbPH0KP+Nv2xT626ZuR2Ys+w3ifPw==
 
 hardhat-deploy-ethers@0.3.0-beta.10:
   version "0.3.0-beta.10"
