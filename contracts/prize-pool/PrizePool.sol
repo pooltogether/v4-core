@@ -778,6 +778,9 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @param _amount The amount of liquidity to be added to the Prize Pool
   /// @return True if the Prize Pool can receive the specified amount of liquidity
   function _canAddLiquidity(uint256 _amount) internal view returns (bool) {
+    uint256 maxInt = type(uint256).max;
+    uint256 _liquidityCap = liquidityCap;
+    if(_liquidityCap == maxInt) return true;
     uint256 tokenTotalSupply = _tokenTotalSupply();
     return (tokenTotalSupply + _amount <= liquidityCap);
   }
