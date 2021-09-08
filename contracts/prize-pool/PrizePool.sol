@@ -12,7 +12,6 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpg
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
-import "../ControlledToken.sol";
 import "../external/compound/ICompLike.sol";
 import "../registry/RegistryInterface.sol";
 import "../reserve/ReserveInterface.sol";
@@ -289,7 +288,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     _burnCredit(from, controlledToken, burnedCredit);
 
     // burn the tickets
-    ControlledToken(controlledToken).controllerBurnFrom(_msgSender(), from, amount);
+    ControlledTokenInterface(controlledToken).controllerBurnFrom(_msgSender(), from, amount);
 
     // redeem the tickets less the fee
     uint256 amountLessFee = amount - exitFee;
@@ -450,7 +449,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @param controlledToken The token that is going to be minted
   /// @param referrer The user who referred the minting
   function _mint(address to, uint256 amount, address controlledToken, address referrer) internal {
-    ControlledToken(controlledToken).controllerMint(to, amount);
+    ControlledTokenInterface(controlledToken).controllerMint(to, amount);
   }
 
   /// @notice Called by the prize strategy to award external ERC721 prizes
