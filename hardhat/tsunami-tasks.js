@@ -28,7 +28,7 @@ task('push-draw')
   });
 
 task('set-draw-settings')
-  .addPositionalParam('address', 'Draw History address')
+  .addPositionalParam('address', 'TsunamiDrawCalculator address')
   .addPositionalParam('drawId', 'drawId')
   .addPositionalParam('bitRangeSize', 'bitRangeSize')
   .addPositionalParam('matchCardinality', 'matchCardinality')
