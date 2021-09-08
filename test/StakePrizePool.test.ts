@@ -91,7 +91,7 @@ describe('StakePrizePool', function () {
 
       await prizePool.depositTo(wallet.address, amount, ticket.address);
 
-      await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address))
+      await expect(prizePool.withdrawFrom(wallet.address, amount, ticket.address))
         .to.emit(prizePool, 'InstantWithdrawal')
         .withArgs(wallet.address, wallet.address, ticket.address, amount, amount);
     });

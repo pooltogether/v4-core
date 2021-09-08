@@ -264,7 +264,7 @@ describe('PrizePool', function () {
       });
     });
 
-    describe('withdrawInstantlyFrom()', () => {
+    describe('withdrawFrom()', () => {
       it('should allow a user to withdraw instantly', async () => {
         let amount = toWei('10');
 
@@ -273,7 +273,7 @@ describe('PrizePool', function () {
         await yieldSourceStub.mock.redeemToken.withArgs(amount).returns(amount);
 
         await expect(
-          prizePool.withdrawInstantlyFrom(contractsOwner.address, amount, ticket.address),
+          prizePool.withdrawFrom(contractsOwner.address, amount, ticket.address),
         )
           .to.emit(prizePool, 'InstantWithdrawal')
           .withArgs(contractsOwner.address, contractsOwner.address, ticket.address, amount, amount);

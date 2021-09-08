@@ -110,7 +110,7 @@ describe('YieldSourcePrizePool', function () {
       await prizePool.depositTo(wallet.address, amount, ticket.address);
 
       await yieldSource.mock.redeemToken.withArgs(amount).returns(amount);
-      await prizePool.withdrawInstantlyFrom(
+      await prizePool.withdrawFrom(
         wallet.address,
         amount,
         ticket.address,

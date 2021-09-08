@@ -192,7 +192,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @param amount The amount of tokens to redeem for assets.
   /// @param controlledToken The address of the token to redeem (i.e. ticket or sponsorship)
   /// @return The actual exit fee paid
-  function withdrawInstantlyFrom(
+  function withdrawFrom(
     address from,
     uint256 amount,
     address controlledToken
