@@ -10,16 +10,12 @@ contract PrizePoolHarness is PrizePool {
   YieldSourceStub stubYieldSource;
 
   function initializeAll(
-    RegistryInterface _reserveRegistry,
-    ControlledTokenInterface[] memory _controlledTokens,
+    IControlledToken[] memory _controlledTokens,
     YieldSourceStub _stubYieldSource
   )
     public
   {
-    PrizePool.initialize(
-      _reserveRegistry,
-      _controlledTokens
-    );
+    PrizePool.initialize(_controlledTokens);
     stubYieldSource = _stubYieldSource;
   }
 

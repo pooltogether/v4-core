@@ -43,14 +43,14 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   event Deposited(
     address indexed operator,
     address indexed to,
-    address indexed token,
+    IControlledToken indexed token,
     uint256 amount
   );
 
   /// @dev Event emitted when interest is awarded to a winner
   event Awarded(
     address indexed winner,
-    address indexed token,
+    IControlledToken indexed token,
     uint256 amount
   );
 
@@ -76,10 +76,10 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   );
 
   /// @dev Event emitted when assets are withdrawn instantly
-  event InstantWithdrawal(
+  event Withdrawal(
     address indexed operator,
     address indexed from,
-    address indexed token,
+    IControlledToken indexed token,
     uint256 amount,
     uint256 redeemed
   );
@@ -170,7 +170,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   function depositTo(
     address to,
     uint256 amount,
-    address controlledToken
+    IControlledToken controlledToken
   )
     external override
     nonReentrant
@@ -195,7 +195,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   function withdrawFrom(
     address from,
     uint256 amount,
-    address controlledToken
+    IControlledToken controlledToken
   )
     external override
     nonReentrant
@@ -203,14 +203,14 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     returns (uint256)
   {
     // burn the tickets
-    IControlledToken(controlledToken).controllerBurnFrom(_msgSender(), from, amount);
+    controlledToken.controllerBurnFrom(_msgSender(), from, amount);
 
     // redeem the tickets
     uint256 redeemed = _redeem(amount);
 
     _token().safeTransfer(from, redeemed);
 
-    emit InstantWithdrawal(_msgSender(), from, controlledToken, amount, redeemed);
+    emit Withdrawal(_msgSender(), from, controlledToken, amount, redeemed);
 
     return redeemed;
   }
@@ -249,7 +249,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   function award(
     address _to,
     uint256 _amount,
-    address _controlledToken
+    IControlledToken _controlledToken
   )
     external override
     onlyPrizeStrategy
@@ -504,8 +504,8 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
 
   /// @dev Function modifier to ensure usage of tokens controlled by the Prize Pool
   /// @param controlledToken The address of the token to check
-  modifier onlyControlledToken(address controlledToken) {
-    require(_isControlled(IControlledToken(controlledToken)), "PrizePool/unknown-token");
+  modifier onlyControlledToken(IControlledToken controlledToken) {
+    require(_isControlled(controlledToken), "PrizePool/unknown-token");
     _;
   }
 

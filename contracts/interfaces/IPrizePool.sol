@@ -21,7 +21,7 @@ interface IPrizePool {
   function depositTo(
     address to,
     uint256 amount,
-    address controlledToken
+    IControlledToken controlledToken
   )
     external;
 
@@ -33,7 +33,7 @@ interface IPrizePool {
   function withdrawFrom(
     address from,
     uint256 amount,
-    address controlledToken
+    IControlledToken controlledToken
   ) external returns (uint256);
 
   /// @notice Returns the balance that is available to award.
@@ -54,7 +54,7 @@ interface IPrizePool {
   function award(
     address to,
     uint256 amount,
-    address controlledToken
+    IControlledToken controlledToken
   )
     external;
 
