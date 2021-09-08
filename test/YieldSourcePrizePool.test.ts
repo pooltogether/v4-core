@@ -12,13 +12,12 @@ const debug = require('debug')('ptv3:YieldSourcePrizePool.test')
 
 let overrides = { gasLimit: 9500000 }
 
-describe('YieldSourcePrizePool', function() {
+describe('YieldSourcePrizePool', function () {
   let wallet: SignerWithAddress
   let wallet2: SignerWithAddress
 
   let prizePool: Contract
   let depositToken: Contract
-  let reserveRegistry: Contract
   let yieldSource: Contract
   let ticket: Contract
   let YieldSourcePrizePool: ContractFactory
@@ -32,19 +31,16 @@ describe('YieldSourcePrizePool', function() {
     debug(`using wallet ${wallet.address}`)
 
     debug('creating token...')
-    const ERC20MintableContract =  await hardhat.ethers.getContractFactory("ERC20Mintable", wallet, overrides)
+    const ERC20MintableContract = await hardhat.ethers.getContractFactory("ERC20Mintable", wallet, overrides)
     depositToken = await ERC20MintableContract.deploy("Token", "TOKE")
 
     debug('creating yield source mock...')
     const IYieldSource = await hardhat.artifacts.readArtifact("IYieldSource")
-    yieldSource =  await deployMockContract(wallet, IYieldSource.abi, overrides)
+    yieldSource = await deployMockContract(wallet, IYieldSource.abi, overrides)
     yieldSource.mock.depositToken.returns(depositToken.address)
 
-    const RegistryInterface = await hardhat.artifacts.readArtifact("RegistryInterface")
-    reserveRegistry = await deployMockContract(wallet, RegistryInterface.abi, overrides)
-
     debug('deploying YieldSourcePrizePool...')
-    YieldSourcePrizePool =  await hardhat.ethers.getContractFactory("YieldSourcePrizePool", wallet, overrides)
+    YieldSourcePrizePool = await hardhat.ethers.getContractFactory("YieldSourcePrizePool", wallet, overrides)
     prizePool = await YieldSourcePrizePool.deploy()
 
     const Ticket = await hardhat.ethers.getContractFactory("Ticket")
@@ -52,7 +48,6 @@ describe('YieldSourcePrizePool', function() {
     await ticket.initialize("name", "SYMBOL", 18, prizePool.address)
 
     initializeTxPromise = prizePool.initializeYieldSourcePrizePool(
-      reserveRegistry.address,
       [ticket.address],
       poolMaxExitFee,
       yieldSource.address
@@ -78,7 +73,6 @@ describe('YieldSourcePrizePool', function() {
       prizePool = await YieldSourcePrizePool.deploy()
 
       await expect(prizePool.initializeYieldSourcePrizePool(
-        reserveRegistry.address,
         [ticket.address],
         poolMaxExitFee,
         ethers.constants.AddressZero
@@ -89,7 +83,6 @@ describe('YieldSourcePrizePool', function() {
       prizePool = await YieldSourcePrizePool.deploy()
 
       await expect(prizePool.initializeYieldSourcePrizePool(
-        reserveRegistry.address,
         [ticket.address],
         poolMaxExitFee,
         prizePool.address
@@ -115,7 +108,7 @@ describe('YieldSourcePrizePool', function() {
       await depositToken.mint(wallet.address, toWei('99'))
       await yieldSource.mock.supplyTokenTo.withArgs(toWei('99'), prizePool.address).returns()
       await prizePool.depositTo(wallet.address, toWei('99'), ticket.address, ethers.constants.AddressZero)
-      
+
       await yieldSource.mock.redeemToken.withArgs(toWei('99')).returns(toWei('98'))
       await prizePool.withdrawInstantlyFrom(wallet.address, toWei('99'), ticket.address, toWei('99'))
 

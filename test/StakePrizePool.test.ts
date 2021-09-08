@@ -13,7 +13,7 @@ const debug = require('debug')('ptv3:PrizePool.test')
 
 let overrides = { gasLimit: 9500000 }
 
-describe('StakePrizePool', function() {
+describe('StakePrizePool', function () {
   let wallet: SignerWithAddress
   let wallet2: SignerWithAddress
 
@@ -21,7 +21,6 @@ describe('StakePrizePool', function() {
   let erc20token: Contract
   let erc721token: Contract
   let stakeToken: Contract
-  let registry: Contract
 
   let poolMaxExitFee = toWei('0.5')
 
@@ -33,8 +32,7 @@ describe('StakePrizePool', function() {
   let isInitializeTest = false
 
   const initializeStakePrizePool = async (stakeTokenAddress: string) => {
-    return await prizePool['initialize(address,address[],uint256,address)'](
-      registry.address,
+    return await prizePool['initialize(address[],uint256,address)'](
       [ticket.address],
       poolMaxExitFee,
       stakeTokenAddress,
@@ -55,9 +53,6 @@ describe('StakePrizePool', function() {
     const ERC20Mintable = await hardhat.ethers.getContractFactory("ERC20Mintable")
     stakeToken = await ERC20Mintable.deploy("name", "SSYMBOL")
 
-    const RegistryInterface = await hardhat.artifacts.readArtifact("RegistryInterface")
-    registry = await deployMockContract(wallet, RegistryInterface.abi, overrides)
-
     debug('deploying StakePrizePool...')
     StakePrizePool = await hardhat.ethers.getContractFactory("StakePrizePool", wallet, overrides)
 
@@ -70,7 +65,7 @@ describe('StakePrizePool', function() {
   })
 
   describe('initialize()', () => {
-    
+
     beforeEach(async () => {
       prizePool = await StakePrizePool.deploy()
     })
