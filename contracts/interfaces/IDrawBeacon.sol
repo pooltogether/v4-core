@@ -8,6 +8,20 @@ import "../libraries/DrawLib.sol";
 interface IDrawBeacon {
 
   /**
+    * @notice Emit when the DrawBeacon is initialized.
+    * @param drawHistory Address of the draw history to push draws to
+    * @param rng Address of RNG service
+    * @param rngRequestPeriodStart Timestamp when draw period starts
+    * @param drawPeriodSeconds Minimum seconds between draw period
+  */
+  event Initialized(
+    IDrawHistory indexed drawHistory,
+    RNGInterface indexed rng,
+    uint256 rngRequestPeriodStart,
+    uint256 drawPeriodSeconds
+  );
+
+  /**
     * @notice Emit when a new DrawHistory has been set.
     * @param previousDrawHistory  The previous DrawHistory address
     * @param newDrawHistory       The new DrawHistory address
@@ -84,20 +98,6 @@ interface IDrawBeacon {
     * @param drawPeriodSeconds Time between RNG request
   */
   event RngRequestPeriodSecondsUpdated(
-    uint256 drawPeriodSeconds
-  );
-
-  /**
-    * @notice Emit when the DrawBeacon is initialized.
-    * @param drawHistory Address of the draw history to push draws to
-    * @param rng Address of RNG service
-    * @param rngRequestPeriodStart Timestamp when draw period starts
-    * @param drawPeriodSeconds Minimum seconds between draw period
-  */
-  event Initialized(
-    IDrawHistory indexed drawHistory,
-    RNGInterface indexed rng,
-    uint256 rngRequestPeriodStart,
     uint256 drawPeriodSeconds
   );
 

@@ -10,10 +10,10 @@ interface IControlledToken is IERC20Upgradeable {
 
   /// @dev Emitted when an instance is initialized
   event Initialized(
-    string _name,
-    string _symbol,
-    uint8 _decimals,
-    address _controller
+    string name,
+    string symbol,
+    uint8 decimals,
+    address controller
   );
 
   /// @notice Interface to the contract responsible for controlling mint/burn
