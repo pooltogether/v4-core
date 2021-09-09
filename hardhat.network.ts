@@ -3,7 +3,11 @@ import { HardhatUserConfig } from 'hardhat/config';
 const alchemyUrl = process.env.ALCHEMY_URL;
 const infuraApiKey = process.env.INFURA_API_KEY;
 const mnemonic = process.env.HDWALLET_MNEMONIC;
+<<<<<<< HEAD
 const forkBlockNumber = process.env.FORK_BLOCK_NUMBER || "0"
+=======
+const forkBlockNumber = process.env.FORK_BLOCK_NUMBER || "0";
+>>>>>>> f6fcce9c3effb51804b7fb09271c17dcf43e5535
 
 const networks: HardhatUserConfig['networks'] = {
   coverage: {
