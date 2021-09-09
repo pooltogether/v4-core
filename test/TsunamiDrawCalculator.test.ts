@@ -244,6 +244,9 @@ describe('TsunamiDrawCalculator', () => {
       expect(result.prize).to.equal(drawSettings.prize)
       expect(result.pickCost).to.equal(drawSettings.pickCost)
       expect(result.distributions.length).to.equal(drawSettings.distributions.length)
+      for(let i =0; i < result.distributions.length; i++) {
+        expect(result.distributions[i]).to.deep.equal(drawSettings.distributions[i])
+      }
     })
   })
 
