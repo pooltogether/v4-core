@@ -88,39 +88,39 @@ contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Initialize the DrawBeacon smart contract.
-    * @param _rng The RNG service to use
     * @param _drawHistory The address of the draw history to push draws to
-    * @param _rngRequestPeriodStart The starting timestamp of the beacon period.
+    * @param _rng The RNG service to use
+    * @param _beaconPeriodStart The starting timestamp of the beacon period.
     * @param _beaconPeriodSeconds The duration of the beacon period in seconds
   */
   function initialize (
     IDrawHistory _drawHistory,
     RNGInterface _rng,
-    uint256 _rngRequestPeriodStart,
+    uint256 _beaconPeriodStart,
     uint256 _beaconPeriodSeconds
   ) public initializer {
-    require(_rngRequestPeriodStart > 0, "DrawBeacon/rng-request-period-greater-than-zero");
+    require(_beaconPeriodStart > 0, "DrawBeacon/rng-request-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;
 
     __Ownable_init();
 
     _setBeaconPeriodSeconds(_beaconPeriodSeconds);
-    beaconPeriodStartedAt = _rngRequestPeriodStart;
+    beaconPeriodStartedAt = _beaconPeriodStart;
 
     _setDrawHistory(_drawHistory);
 
     // 30 min timeout
-    _setRNGTimeout(1800);
+    _setRngTimeout(1800);
 
     emit Initialized(
       _drawHistory,
       _rng,
-      _rngRequestPeriodStart,
+      _beaconPeriodStart,
       _beaconPeriodSeconds
     );
 
-    emit BeaconPeriodStarted(_msgSender(), _rngRequestPeriodStart);
+    emit BeaconPeriodStarted(_msgSender(), _beaconPeriodStart);
   }
 
   /* ============ Public Functions ============ */
@@ -157,7 +157,7 @@ contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Returns whether an draw request can be started.
-    * @return True if an draw can be started, false otherwise.
+    * @return True if a draw can be started, false otherwise.
    */
   function canStartDraw() external view override returns (bool) {
     return _isBeaconPeriodOver() && !isRngRequested();
@@ -165,7 +165,7 @@ contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Returns whether an draw request can be completed.
-    * @return True if an draw can be completed, false otherwise.
+    * @return True if a draw can be completed, false otherwise.
    */
   function canCompleteDraw() external view override returns (bool) {
     return isRngRequested() && isRngCompleted();
@@ -291,7 +291,7 @@ contract DrawBeacon is IDrawBeacon,
     * @param _rngTimeout The RNG request timeout in seconds.
    */
   function setRngTimeout(uint32 _rngTimeout) external override onlyOwner requireAwardNotInProgress {
-    _setRNGTimeout(_rngTimeout);
+    _setRngTimeout(_rngTimeout);
   }
 
   /**
@@ -312,8 +312,8 @@ contract DrawBeacon is IDrawBeacon,
     * @return The timestamp at which the next beacon period would start
    */
   function _calculateNextBeaconPeriodStartTime(uint256 currentTime) internal view returns (uint256) {
-    uint256 _beaconPeriodStartedAt = beaconPeriodStartedAt; // single sload
-    uint256 _beaconPeriodSeconds = beaconPeriodSeconds; // single sload
+    uint256 _beaconPeriodStartedAt = beaconPeriodStartedAt; 
+    uint256 _beaconPeriodSeconds = beaconPeriodSeconds;
     uint256 elapsedPeriods = (currentTime - _beaconPeriodStartedAt) / (_beaconPeriodSeconds);
     return _beaconPeriodStartedAt + (elapsedPeriods * _beaconPeriodSeconds);
   }
@@ -383,7 +383,7 @@ contract DrawBeacon is IDrawBeacon,
     * @param _beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
    */
   function _setBeaconPeriodSeconds(uint256 _beaconPeriodSeconds) internal {
-    require(_beaconPeriodSeconds > 0, "DrawBeacon/rng-request-period-greater-than-zero");
+    require(_beaconPeriodSeconds > 0, "DrawBeacon/beacon-period-greater-than-zero");
     beaconPeriodSeconds = _beaconPeriodSeconds;
 
     emit BeaconPeriodSecondsUpdated(_beaconPeriodSeconds);
@@ -393,7 +393,7 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Sets the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngTimeout The RNG request timeout in seconds.
    */
-  function _setRNGTimeout(uint32 _rngTimeout) internal {
+  function _setRngTimeout(uint32 _rngTimeout) internal {
     require(_rngTimeout > 60, "DrawBeacon/rng-timeout-gt-60-secs");
     rngTimeout = _rngTimeout;
     emit RngTimeoutSet(_rngTimeout);
