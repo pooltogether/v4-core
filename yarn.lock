@@ -1145,10 +1145,10 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/fixed-point/-/fixed-point-1.0.0-beta.2.tgz#d76a1e77f21833e9b680296d65526b0ffd7415d7"
   integrity sha512-aUw4R0Z2oM0AK3W4LIXyBaojTOzRRbhLDHX0egeuvxfjy4gBb6X66v81gI7Wngg/7O0y9QL/B8jWkUnAFzhTig==
 
-"@pooltogether/owner-manager-contracts@0.0.1-beta.3":
-  version "0.0.1-beta.3"
-  resolved "https://registry.yarnpkg.com/@pooltogether/owner-manager-contracts/-/owner-manager-contracts-0.0.1-beta.3.tgz#883a07a0a703844fea5f711b83b9b07e8914147b"
-  integrity sha512-2rY7IRcsesShGkZc8n3mZE+jhpd2b7XzZOoos04mnIRQgP50wQYpwslLhgrODvuHG6ywNCilJPhF2jIZFpi3Ow==
+"@pooltogether/owner-manager-contracts@1.0.0-beta.1":
+  version "1.0.0-beta.1"
+  resolved "https://registry.yarnpkg.com/@pooltogether/owner-manager-contracts/-/owner-manager-contracts-1.0.0-beta.1.tgz#7d933696374584b941ec963e27e48f51fd6c2900"
+  integrity sha512-m+EqgkxYeR/c0Bwcc2837hd5jtQC/Taj+a+o3TGqwd98n+lfXAhGFmA1+Tc3BuUcEdcD+cuRXm6Vr5w0uURKUw==
   dependencies:
     "@openzeppelin/contracts-upgradeable" "^4.3.1"
 

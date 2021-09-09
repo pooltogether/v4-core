@@ -79,7 +79,7 @@ describe('DrawHistory', () => {
     it('should succeed to set new draw manager', async () => {
       await expect(drawHistory.setManager(wallet2.address))
         .to.emit(drawHistory, 'ManagerTransferred')
-        .withArgs(wallet1.address, wallet2.address);
+        .withArgs(wallet2.address);
     });
   });
 
