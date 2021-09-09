@@ -184,7 +184,7 @@ describe('ClaimableDraw', () => {
     it('should succeed to set new draw manager', async () => {
       await expect(claimableDraw.setManager(wallet2.address))
         .to.emit(claimableDraw, 'ManagerTransferred')
-        .withArgs(wallet1.address, wallet2.address);
+        .withArgs(wallet2.address);
     });
   });
 
