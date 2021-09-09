@@ -265,9 +265,6 @@ describe('TsunamiDrawCalculator', () => {
         expect(result.distributions[i]).to.deep.equal(drawSettings.distributions[i])
       }
     })
-    it("fails to get non-existant draw settings", async () => {
-      await expect(drawCalculator.getDrawSettings(1)).to.be.revertedWith("DrawCalc/drawSettings-does-not-exist")
-    })
   })
 
   describe('calculate()', () => {
