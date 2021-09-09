@@ -39,24 +39,19 @@ describe('Ticket', () => {
   let wallet2: SignerWithAddress;
   let wallet3: SignerWithAddress;
 
-  let isInitializeTest = false;
-
   const ticketName = 'PoolTogether Dai Ticket';
   const ticketSymbol = 'PcDAI';
   const ticketDecimals = 18;
 
-  const initializeTicket = async (
-    decimals: number = ticketDecimals,
-    controllerAddress: string = prizePool.address,
-  ) => {
-    await ticket.initialize(ticketName, ticketSymbol, decimals, controllerAddress);
-  };
+  // const initializeTicket = async (
+  //   decimals: number = ticketDecimals,
+  //   controllerAddress: string = prizePool.address,
+  // ) => {
+  //   await ticket.initialize(ticketName, ticketSymbol, decimals, controllerAddress);
+  // };
 
   beforeEach(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
-
-    const ticketFactory: ContractFactory = await ethers.getContractFactory('TicketHarness');
-    ticket = await ticketFactory.deploy();
 
     const PrizePool = await hre.artifacts.readArtifact(
       'contracts/prize-pool/PrizePool.sol:PrizePool',
@@ -65,41 +60,30 @@ describe('Ticket', () => {
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
     prizePool.mock.balanceCap.withArgs(ticket.address).returns(MaxUint256);
 
-    if (!isInitializeTest) {
-      await initializeTicket();
-    }
+    ticket = await deployTicketContract(ticketName, ticketSymbol, ticketDecimals, prizePool.address);
   });
 
-  describe('initialize()', () => {
-    before(() => {
-      isInitializeTest = true;
-    });
+  async function deployTicketContract(ticketName: string, ticketSymbol: string, decimals: number, controllerAddress: string) {
+    const ticketFactory: ContractFactory = await ethers.getContractFactory('TicketHarness');
+    const ticketContract = await ticketFactory.deploy(ticketName, ticketSymbol, decimals, controllerAddress);
+    return ticketContract;
+  }
 
-    after(() => {
-      isInitializeTest = false;
-    });
-
+  describe('constructor()', () => {
     it('should initialize ticket', async () => {
-      await initializeTicket();
+      let ticket = await deployTicketContract(ticketName, ticketSymbol, ticketDecimals, prizePool.address);
 
       expect(await ticket.name()).to.equal(ticketName);
       expect(await ticket.symbol()).to.equal(ticketSymbol);
       expect(await ticket.decimals()).to.equal(ticketDecimals);
     });
 
-    it('should set custom decimals', async () => {
-      const ticketDecimals = 8;
-
-      await initializeTicket(ticketDecimals);
-      expect(await ticket.decimals()).to.equal(ticketDecimals);
-    });
-
     it('should fail if token decimal is not greater than 0', async () => {
-      await expect(initializeTicket(0)).to.be.revertedWith('Ticket/decimals-gt-zero');
+      await expect(deployTicketContract(ticketName, ticketSymbol, 0, prizePool.address)).to.be.revertedWith('Ticket/decimals-gt-zero');
     });
 
     it('should fail if controller address is address 0', async () => {
-      await expect(initializeTicket(ticketDecimals, AddressZero)).to.be.revertedWith(
+      await expect(deployTicketContract(ticketName, ticketSymbol, ticketDecimals, constants.AddressZero)).to.be.revertedWith(
         'Ticket/controller-not-zero-address',
       );
     });

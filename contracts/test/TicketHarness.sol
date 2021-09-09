@@ -9,6 +9,15 @@ import "../Ticket.sol";
 contract TicketHarness is Ticket {
   using SafeCastUpgradeable for uint256;
 
+  constructor(
+    string memory _name,
+    string memory _symbol,
+    uint8 decimals_,
+    address _controller) Ticket(_name, _symbol, decimals_, _controller)
+  {
+
+  }
+
   function flashLoan(address _to, uint256 _amount) external {
     _mint(_to, _amount);
     _burn(_to, _amount);
