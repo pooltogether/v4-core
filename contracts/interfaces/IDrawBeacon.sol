@@ -96,8 +96,8 @@ interface IDrawBeacon {
     uint256 drawPeriodSeconds
   );
 
-  function canStartDrawRequest() external view virtual returns (bool);
-  function canCompleteDrawRequest() external view virtual returns (bool);
+  function canStartDraw() external view virtual returns (bool);
+  function canCompleteDraw() external view virtual returns (bool);
   function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view virtual returns (uint256);
   function cancelDraw() external virtual;
   function completeDraw() external virtual;

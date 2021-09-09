@@ -159,7 +159,7 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Returns whether an draw request can be started.
     * @return True if an draw can be started, false otherwise.
    */
-  function canStartDrawRequest() external view override returns (bool) {
+  function canStartDraw() external view override returns (bool) {
     return _isBeaconPeriodOver() && !isRngRequested();
   }
 
@@ -167,7 +167,7 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Returns whether an draw request can be completed.
     * @return True if an draw can be completed, false otherwise.
    */
-  function canCompleteDrawRequest() external view override returns (bool) {
+  function canCompleteDraw() external view override returns (bool) {
     return isRngRequested() && isRngCompleted();
   }
 
