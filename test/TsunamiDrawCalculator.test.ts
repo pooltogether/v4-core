@@ -8,12 +8,12 @@ const { getSigners } = ethers;
 
 const newDebug = require('debug')
 
-export async function deployDrawCalculator(signer: any): Promise<Contract> {
+export async function deployDrawCalculator(signer: any, ticketAddress: string, drawSettingsManagerAddress: string, claimableDraw: string): Promise<Contract> {
   const drawCalculatorFactory = await ethers.getContractFactory(
     'TsunamiDrawCalculatorHarness',
     signer,
   );
-  const drawCalculator: Contract = await drawCalculatorFactory.deploy();
+  const drawCalculator: Contract = await drawCalculatorFactory.deploy(ticketAddress, drawSettingsManagerAddress, claimableDraw);
   return drawCalculator;
 }
 
@@ -43,33 +43,27 @@ describe('TsunamiDrawCalculator', () => {
 
   beforeEach(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
-    drawCalculator = await deployDrawCalculator(wallet1);
-
+    
     let ticketArtifact = await artifacts.readArtifact('Ticket');
     ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
     let claimableDrawArtifact = await artifacts.readArtifact('ClaimableDraw');
     claimableDraw = await deployMockContract(wallet1, claimableDrawArtifact.abi);
 
-    await drawCalculator.initialize(ticket.address, wallet2.address, claimableDraw.address);
+    drawCalculator = await deployDrawCalculator(wallet1, ticket.address, wallet2.address, claimableDraw.address);
   });
 
-  describe('initialize()', () => {
-    let drawCalculator: Contract
-    beforeEach(async () => {
-      drawCalculator = await deployDrawCalculator(wallet1);
-    })
-
+  describe('construtor()', () => {
     it('should require non-zero ticket', async () => {
-      await expect(drawCalculator.initialize(ethers.constants.AddressZero, wallet2.address, claimableDraw.address)).to.be.revertedWith('DrawCalc/ticket-not-zero')
+      await expect(deployDrawCalculator(wallet1, ethers.constants.AddressZero, wallet2.address, claimableDraw.address)).to.be.revertedWith('DrawCalc/ticket-not-zero')
     })
 
     it('should require non-zero manager', async () => {
-      await expect(drawCalculator.initialize(ticket.address, ethers.constants.AddressZero, claimableDraw.address)).to.be.revertedWith('Manager/manager-not-zero-address')
+      await expect(deployDrawCalculator(wallet1, ticket.address, ethers.constants.AddressZero, claimableDraw.address)).to.be.revertedWith('Manager/manager-not-zero-address')
     })
 
     it('should require non-zero draw', async () => {
-      await expect(drawCalculator.initialize(ticket.address, wallet2.address, ethers.constants.AddressZero)).to.be.revertedWith('DrawCalc/claimable-draw-not-zero-address')
+      await expect(deployDrawCalculator(wallet1, ticket.address, wallet2.address, ethers.constants.AddressZero)).to.be.revertedWith('DrawCalc/claimable-draw-not-zero-address')
     })
   })
 

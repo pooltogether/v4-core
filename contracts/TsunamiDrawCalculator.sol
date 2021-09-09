@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
 
 import "./interfaces/IDrawCalculator.sol";
@@ -6,12 +7,11 @@ import "./interfaces/ITicket.sol";
 import "./ClaimableDraw.sol";
 import "./libraries/DrawLib.sol";
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
 ///@title TsunamiDrawCalculator is an implmentation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
-  
+
   ///@notice Ticket associated with DrawCalculator
   ITicket ticket;
 
@@ -21,14 +21,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice storage of the TsunamiDrawCalculatorSettings associated with a drawId
   mapping(uint32 => DrawLib.TsunamiDrawCalculatorSettings) drawSettings;
 
-  /* ============ External Functions ============ */
+  /* ============ Constructor ============ */
 
-  ///@notice Initializer sets the initial parameters
+  ///@notice Constructor for TsunamiDrawCalculator
   ///@param _ticket Ticket associated with this DrawCalculator
   ///@param _drawSettingsManager Address of the DrawSettingsManager. Can be different from the contract owner.
   ///@param _claimableDraw ClaimableDraw associated with this DrawCalculator
-  function initialize(ITicket _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw)
-    public initializer
+  constructor(ITicket _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw)
   {
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
     __Ownable_init();
@@ -37,6 +36,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     ticket = _ticket;
     emit Initialized(_ticket);
   }
+
+  /* ============ External Functions ============ */
 
   ///@notice Calulates the prize amount for a user for Multiple Draws. Typically called by a ClaimableDraw.
   ///@param _user User for which to calcualte prize amount
@@ -76,7 +77,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _drawId The id of the Draw
   ///@param _drawSettings The TsunamiDrawCalculatorSettings to set
   function setDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) external onlyManagerOrOwner
-    returns (bool success) 
+    returns (bool success)
   {
     return _setDrawSettings(_drawId, _drawSettings);
   }
@@ -95,7 +96,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings = drawSettings[_drawId];
     return _drawSettings;
   }
-  
+
   /* ============ Internal Functions ============ */
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
@@ -110,7 +111,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
    {
 
     uint96[] memory prizesAwardable = new uint96[](_normalizedUserBalances.length);
-    
+
     // calculate prizes awardable for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
       uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[drawIndex], _normalizedUserBalances[drawIndex]);
@@ -133,24 +134,26 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _drawSettings The draw settings to consider (needed for draw timstamp offsets)
   ///@return An array of normalized balances
   function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings) internal view returns (uint256[] memory) {
-    
     uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_timestamps.length);
     uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_timestamps.length);
+
     // generate timestamps with draw cutoff offsets included
     for (uint32 i = 0; i < _timestamps.length; i++) {
       _timestampsWithStartCutoffTimes[i] = _timestamps[i] - _drawSettings[i].drawStartTimestampOffset;
       _timestampsWithEndCutoffTimes[i] = _timestamps[i] - _drawSettings[i].drawEndTimestampOffset;
     }
-    
+
     uint256[] memory balances = ticket.getAverageBalancesBetween(_user, _timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
     uint256[] memory totalSupplies = ticket.getAverageTotalSuppliesBetween(_timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
 
     uint256[] memory normalizedBalances = new uint256[](_timestamps.length);
+
     // divide balances by total supplies (normalize)
     for (uint256 i = 0; i < _timestamps.length; i++) {
       require(totalSupplies[i] > 0, "DrawCalc/total-supply-zero");
       normalizedBalances[i] = balances[i] * 1 ether / totalSupplies[i];
     }
+
     return normalizedBalances;
   }
 
@@ -165,7 +168,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings)
     internal view returns (uint96)
   {
-    
+
     uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
     uint256[] memory masks =  _createBitMasks(_drawSettings);
     uint256 picksLength = _picks.length;
@@ -177,17 +180,17 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
       // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
       require(_picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
-      
+
       uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
-      
+
       if(distributionIndex < _drawSettings.distributions.length) { // there is prize for this distribution index
         prizeCounts[distributionIndex]++;
-      } 
+      }
     }
 
     // now calculate prizeFraction given prize counts
     uint256 prizeFraction = 0;
-    for(uint256 prizeCountIndex = 0; prizeCountIndex < _drawSettings.distributions.length; prizeCountIndex++) { 
+    for(uint256 prizeCountIndex = 0; prizeCountIndex < _drawSettings.distributions.length; prizeCountIndex++) {
       if(prizeCounts[prizeCountIndex] > 0) {
         prizeFraction += _calculatePrizeDistributionFraction(_drawSettings, prizeCountIndex) * prizeCounts[prizeCountIndex];
       }
@@ -202,12 +205,12 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _masks The pre-calculate bitmasks for the drawSettings
   ///@return The position within the prize distribution array (0 = top prize, 1 = runner-up prize, etc)
   function _calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks)
-    internal pure returns (uint256) 
+    internal pure returns (uint256)
   {
 
     uint256 numberOfMatches = 0;
     uint256 masksLength = _masks.length;
-    
+
     for(uint256 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
       uint256 mask = _masks[matchIndex];
       if((_randomNumberThisPick & mask) != (_winningRandomNumber & mask)){
@@ -217,25 +220,25 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
       // else there was a match
       numberOfMatches++;
     }
-    return masksLength - numberOfMatches; 
+    return masksLength - numberOfMatches;
   }
 
 
   ///@notice helper function to create bitmasks equal to the matchCardinality
   ///@param _drawSettings The TsunamiDrawCalculatorSettings to use to calculate the masks
   ///@return An array of bitmasks
-  function _createBitMasks(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings) 
+  function _createBitMasks(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings)
     internal pure returns (uint256[] memory)
   {
     uint256[] memory masks = new uint256[](_drawSettings.matchCardinality);
-    
+
     uint256 _bitRangeMaskValue = (2 ** _drawSettings.bitRangeSize) - 1; // get a decimal representation of bitRangeSize
-    
+
     for(uint256 maskIndex = 0; maskIndex < _drawSettings.matchCardinality; maskIndex++){
       uint16 _matchIndexOffset = uint16(maskIndex * _drawSettings.bitRangeSize);
       masks[maskIndex] = _bitRangeMaskValue << _matchIndexOffset;
     }
-    
+
     return masks;
   }
 
@@ -243,7 +246,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _drawSettings TsunamiDrawCalculatorSettings struct for Draw
   ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
   ///@return returns the fraction of the total prize (base 1e18)
-  function _calculatePrizeDistributionFraction(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal pure returns (uint256) 
+  function _calculatePrizeDistributionFraction(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal pure returns (uint256)
   {
     uint256 prizeDistribution = _drawSettings.distributions[_prizeDistributionIndex];
     uint256 numberOfPrizesForIndex = _numberOfPrizesForIndex(_drawSettings.bitRangeSize, _prizeDistributionIndex);
@@ -257,7 +260,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   function _numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex) internal pure returns (uint256) {
     uint256 bitRangeDecimal = 2 ** uint256(_bitRangeSize);
     uint256 numberOfPrizesForIndex = bitRangeDecimal ** _prizeDistributionIndex;
-    
+
     if(_prizeDistributionIndex > 0){
       numberOfPrizesForIndex -= bitRangeDecimal ** (_prizeDistributionIndex - 1);
     }
@@ -279,7 +282,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
     require(_drawSettings.numberOfPicks > 0, "DrawCalc/numberOfPicks-gt-0");
     require(_drawSettings.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
-    
+
     // ensure that the distributions are not gt 100%
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
@@ -301,7 +304,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     require(address(_claimableDraw) != address(0), "DrawCalc/claimable-draw-not-zero-address");
     claimableDraw = _claimableDraw;
     emit ClaimableDrawSet(_claimableDraw);
-    return _claimableDraw; 
+    return _claimableDraw;
   }
 
 }

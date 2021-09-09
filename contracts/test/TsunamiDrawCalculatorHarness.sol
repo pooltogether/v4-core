@@ -7,6 +7,11 @@ import "../libraries/DrawLib.sol";
 
 contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
   
+  constructor(ITicket _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw) 
+    TsunamiDrawCalculator(_ticket, _drawSettingsManager, _claimableDraw) {
+    
+  }
+
   function calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks) public view returns (uint256) {
     return _calculateDistributionIndex(_randomNumberThisPick, _winningRandomNumber, _masks); 
   }
