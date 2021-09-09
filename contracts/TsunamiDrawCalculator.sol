@@ -81,9 +81,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
   ///@param _drawId The id of the Draw
   ///@param _drawSettings The DrawSettings to set
-  function setDrawSettings(uint32 _drawId, DrawLib.DrawSettings calldata _drawSettings) external onlyManagerOrOwner 
+  function setDrawSettings(uint32 _drawId, DrawLib.DrawSettings calldata _drawSettings) external onlyManagerOrOwner
+    returns (bool success) 
   {
-    _setDrawSettings(_drawId, _drawSettings);
+    return _setDrawSettings(_drawId, _drawSettings);
   }
 
   ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
@@ -91,6 +92,14 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   function setClaimableDraw(ClaimableDraw _claimableDraw) external onlyManagerOrOwner returns(ClaimableDraw)
   {
     return _setClaimableDraw(_claimableDraw);
+  }
+
+  ///@notice Gets the DrawSettings for a draw id
+  ///@param _drawId The id of the Draw
+  function getDrawSettings(uint32 _drawId) external view returns(DrawLib.DrawSettings memory)
+  {
+    DrawLib.DrawSettings memory _drawSettings = drawSettings[_drawId];
+    return _drawSettings;
   }
 
   /* ============ Internal Functions ============ */
@@ -210,14 +219,16 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param drawId The id of the Draw
   ///@param _drawSettings DrawSettings struct to set
   function _setDrawSettings(uint32 drawId, DrawLib.DrawSettings calldata _drawSettings) internal
+    returns (bool)
   {
     uint256 sumTotalDistributions = 0;
     uint256 distributionsLength = _drawSettings.distributions.length;
 
     require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gt-distributions");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
+    require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
     require(_drawSettings.pickCost > 0, "DrawCalc/pick-cost-gt-0");
-
+    
     // ensure that the distributions are not gt 100%
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
@@ -229,6 +240,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
     drawSettings[drawId] = _drawSettings; //sstore
     emit DrawSettingsSet(drawId, _drawSettings);
+    return true;
   }
 
   ///@notice Internal function to set the Claimable Draw address

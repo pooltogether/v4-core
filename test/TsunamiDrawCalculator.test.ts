@@ -115,6 +115,23 @@ describe('TsunamiDrawCalculator', () => {
         'DrawCalc/distributions-gt-100%',
       );
     });
+    it('cannot set bitRangeSize = 0', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.9'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(0),
+        prize: ethers.utils.parseEther('1'),
+      };
+      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
+        'DrawCalc/bitRangeSize-gt-0',
+      );
+    });
   });
 
   describe('setClaimableDraw()', () => {
@@ -217,6 +234,36 @@ describe('TsunamiDrawCalculator', () => {
       expect(bitMasks[0]).to.eq(BigNumber.from(15)) // 1111
       expect(bitMasks[1]).to.eq(BigNumber.from(240)) // 11110000 
 
+    })
+  })
+
+  describe("getDrawSettings()", () => {
+    it("gets correct draw settings", async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      await claimableDraw.mock.setDrawCalculator.withArgs(70, drawCalculator.address).returns(drawCalculator.address);
+      await drawCalculator.setDrawSettings(70, drawSettings);
+
+      const result = await drawCalculator.getDrawSettings(70);
+      
+      expect(result.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(result.bitRangeSize).to.equal(drawSettings.bitRangeSize)
+      expect(result.prize).to.equal(drawSettings.prize)
+      expect(result.pickCost).to.equal(drawSettings.pickCost)
+      expect(result.distributions.length).to.equal(drawSettings.distributions.length)
+      for(let i =0; i < result.distributions.length; i++) {
+        expect(result.distributions[i]).to.deep.equal(drawSettings.distributions[i])
+      }
     })
   })
 
