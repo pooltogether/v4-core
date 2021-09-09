@@ -127,7 +127,7 @@ function PoolEnv() {
 
   this.draw = async function ({ randomNumber }) {
     const drawBeacon = await this.drawBeacon()
-    const remainingTime = await drawBeacon.drawPeriodRemainingSeconds()
+    const remainingTime = await drawBeacon.beaconPeriodRemainingSeconds()
     await ethers.provider.send('evm_increaseTime', [remainingTime.toNumber()])
     await drawBeacon.startDraw()
     const rng = await this.rng()

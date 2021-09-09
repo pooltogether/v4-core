@@ -29,53 +29,48 @@ interface IDrawBeacon {
   event DrawHistoryTransferred(IDrawHistory indexed previousDrawHistory, IDrawHistory indexed newDrawHistory);
 
   /**
-    * @notice Emit when a RNG request has opened.
-    * @param operator              User address responsible for opening RNG request  
+    * @notice Emit when a draw has opened.
+    * @param operator             User address responsible for opening draw  
     * @param drawPeriodStartedAt  Epoch timestamp
   */
-  event DrawBeaconOpened(
+  event BeaconPeriodStarted(
     address indexed operator,
     uint256 indexed drawPeriodStartedAt
   );
 
   /**
-    * @notice Emit when a RNG request has started.
-    * @param operator      User address responsible for starting RNG request  
-    * @param rngRequestId  RNG request id
-    * @param rngLockBlock  Block when RNG request becomes invalid
+    * @notice Emit when a draw has started.
+    * @param operator      User address responsible for starting draw  
+    * @param rngRequestId  draw id
+    * @param rngLockBlock  Block when draw becomes invalid
   */
-  event DrawBeaconRNGRequestStarted(
+  event DrawStarted(
     address indexed operator,
     uint32 indexed rngRequestId,
     uint32 rngLockBlock
   );
 
   /**
-    * @notice Emit when a RNG request has been cancelled.
-    * @param operator      User address responsible for cancelling RNG request  
-    * @param rngRequestId  RNG request id
-    * @param rngLockBlock  Block when RNG request becomes invalid
+    * @notice Emit when a draw has been cancelled.
+    * @param operator      User address responsible for cancelling draw  
+    * @param rngRequestId  draw id
+    * @param rngLockBlock  Block when draw becomes invalid
   */
-  event DrawBeaconRNGRequestCancelled(
+  event DrawCancelled(
     address indexed operator,
     uint32 indexed rngRequestId,
     uint32 rngLockBlock
   );
   
   /**
-    * @notice Emit when a RNG request has been completed.
-    * @param operator      User address responsible for completing RNG request  
-    * @param randomNumber  Random number generated from RNG request
+    * @notice Emit when a draw has been completed.
+    * @param operator      User address responsible for completing draw  
+    * @param randomNumber  Random number generated from draw
   */
-  event DrawBeaconRNGRequestCompleted(
+  event DrawCompleted(
     address indexed operator,
     uint256 randomNumber
   );
-
-  /**
-    * @notice Emit when a RNG request has failed.
-  */
-  event RngRequestFailed();
 
   /**
     * @notice Emit when a RNG service address is set.
@@ -86,37 +81,36 @@ interface IDrawBeacon {
   );
 
   /**
-    * @notice Emit when a RNG request timeout param is set.
-    * @param rngRequestTimeout  RNG request timeout param in seconds
+    * @notice Emit when a draw timeout param is set.
+    * @param rngTimeout  draw timeout param in seconds
   */
-  event RngRequestTimeoutSet(
-    uint32 rngRequestTimeout
+  event RngTimeoutSet(
+    uint32 rngTimeout
   );
 
   /**
     * @notice Emit when the drawPeriodSeconds is set.
-    * @param drawPeriodSeconds Time between RNG request
+    * @param drawPeriodSeconds Time between draw
   */
-  event RngRequestPeriodSecondsUpdated(
+  event BeaconPeriodSecondsUpdated(
     uint256 drawPeriodSeconds
   );
 
-  function canStartRNGRequest() external view virtual returns (bool);
-  function canCompleteRNGRequest() external view virtual returns (bool);
-  function calculateNextDrawPeriodStartTime(uint256 currentTime) external view virtual returns (uint256);
+  function canStartDraw() external view virtual returns (bool);
+  function canCompleteDraw() external view virtual returns (bool);
+  function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view virtual returns (uint256);
   function cancelDraw() external virtual;
   function completeDraw() external virtual;
-  function drawPeriodRemainingSeconds() external view virtual returns (uint256);
-  function drawPeriodEndAt() external view virtual returns (uint256);
-  function estimateRemainingBlocksToPrize(uint256 secondsPerBlockMantissa) external view virtual returns (uint256);
+  function beaconPeriodRemainingSeconds() external view virtual returns (uint256);
+  function beaconPeriodEndAt() external view virtual returns (uint256);
   function getLastRngLockBlock() external view returns (uint32);
   function getLastRngRequestId() external view returns (uint32);
-  function isDrawPeriodOver() external view returns (bool);
+  function isBeaconPeriodOver() external view returns (bool);
   function isRngCompleted() external view returns (bool);
   function isRngRequested() external view returns (bool);
   function isRngTimedOut() external view returns (bool);
-  function setDrawPeriodSeconds(uint256 drawPeriodSeconds) external;
-  function setRngRequestTimeout(uint32 _rngRequestTimeout) external;
+  function setBeaconPeriodSeconds(uint256 drawPeriodSeconds) external;
+  function setRngTimeout(uint32 _rngTimeout) external;
   function setRngService(RNGInterface rngService) external;
   function startDraw() external virtual;
   function setDrawHistory(IDrawHistory newDrawHistory) external virtual returns (IDrawHistory);
