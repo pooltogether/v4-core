@@ -102,6 +102,15 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   }
 
   /**
+    * @notice External function to get the last draw.
+    * @dev    External function to get the last draw using the nextDrawIndex.
+    * @return Last draw
+  */
+  function getLastDraw() external view returns (DrawLib.Draw memory) {
+    return _getLastDraw(nextDrawIndex);
+  }
+
+  /**
     * @notice External function to create a new draw.
     * @dev    External function to create a new draw from an authorized manager or owner.
     * @param draw Draw struct
@@ -149,6 +158,19 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   }
 
   /**
+    * @notice Internal function to get the last draw.
+    * @dev    Internal function to get the last draw using the nextDrawIndex.
+    * @return Last draw
+  */
+  function _getLastDraw(uint256 _nextDrawIndex) internal view returns (DrawLib.Draw memory) {
+    if(_nextDrawIndex == 0) {
+      return _draws[CARDINALITY - 1];
+    } else {
+      return _draws[_nextDrawIndex - 1];
+    }
+  }
+
+  /**
     * @notice Internal function to create a new draw.
     * @dev    Internal function to create a new draw from an authorized manager or owner.
     * @param _newDraw Draw struct
@@ -156,6 +178,10 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   function _pushDraw(DrawLib.Draw memory _newDraw) internal returns (uint32) {
     uint32 _nextDrawIndex = nextDrawIndex;
+    DrawLib.Draw memory _lastDraw = _getLastDraw(_nextDrawIndex);
+    if (_lastDraw.timestamp != 0) {
+      require(_newDraw.drawId == _lastDraw.drawId + 1, "DrawHistory/nonsequential-draw");
+    }
     _draws[_nextDrawIndex] = _newDraw;
     emit DrawSet(_nextDrawIndex, _newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);
     nextDrawIndex = (_nextDrawIndex + 1) % CARDINALITY;
