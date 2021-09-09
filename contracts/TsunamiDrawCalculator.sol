@@ -93,6 +93,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return _setClaimableDraw(_claimableDraw);
   }
 
+  ///@notice Gets the DrawSettings for a draw id
+  ///@param _drawId The id of the Draw
+  function getDrawSettings(uint32 _drawId) external view returns(DrawLib.DrawSettings memory)
+  {
+    return drawSettings[_drawId];
+  }
+
   /* ============ Internal Functions ============ */
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()

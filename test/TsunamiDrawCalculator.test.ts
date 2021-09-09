@@ -220,6 +220,33 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
+  describe("getDrawSettings()", () => {
+    it("gets correct draw settings", async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      await claimableDraw.mock.setDrawCalculator.withArgs(70, drawCalculator.address).returns(drawCalculator.address);
+      await drawCalculator.setDrawSettings(70, drawSettings);
+
+      const result = await drawCalculator.getDrawSettings(70);
+      
+      expect(result.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(result.bitRangeSize).to.equal(drawSettings.bitRangeSize)
+      expect(result.prize).to.equal(drawSettings.prize)
+      expect(result.pickCost).to.equal(drawSettings.pickCost)
+      expect(result.distributions.length).to.equal(drawSettings.distributions.length)
+    })
+  })
+
   describe('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
