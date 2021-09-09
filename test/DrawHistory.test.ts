@@ -3,7 +3,7 @@ import { ethers } from 'hardhat';
 import { constants, Contract, ContractFactory } from 'ethers';
 const { getSigners } = ethers;
 const { AddressZero } = constants;
-describe('DrawHistory', () => {
+describe.only('DrawHistory', () => {
   let wallet1: any;
   let wallet2: any;
   let wallet3: any;
@@ -26,6 +26,41 @@ describe('DrawHistory', () => {
     await drawHistory.initialize(wallet1.address);
   });
 
+  describe('draws()', () => {
+    it('should get all draws without history', async () => {
+      const draws = await drawHistory.draws();
+      for (let index = 0; index < draws.length; index++) {
+        const draw = draws[index];
+        expect(draw.drawId).to.equal(0)
+        expect(draw.timestamp).to.equal(0)
+        expect(draw.winningRandomNumber).to.equal(0)
+
+      }
+    });
+  })
+
+  describe('getLastDraw()', () => {
+    it('should get the last draw without a draw history', async () => {
+      const draw = await drawHistory.getLastDraw();
+      expect(draw.drawId).to.equal(0)
+      expect(draw.timestamp).to.equal(0)
+      expect(draw.winningRandomNumber).to.equal(0)
+    });
+
+    it('should get the last draw after pushing a draw', async () => {
+      await drawHistory.pushDraw(
+        {
+          drawId: 0,
+          timestamp: DRAW_SAMPLE_CONFIG.timestamp,
+          winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
+        }
+      )
+      const draw = await drawHistory.getLastDraw();
+      expect(draw.drawId).to.equal(0)
+      expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp)
+      expect(draw.winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber)
+    });
+  })
 
   describe('drawIdToDrawIndex()', () => {
     it('should fail get draw index with no draw history', async () => {
