@@ -37,13 +37,13 @@ contract DrawBeacon is IDrawBeacon,
 
   /// @notice RNG Request Timeout.  In fact, this is really a "complete award" timeout.
   /// If the rng completes the award can still be cancelled.
-  uint32 public rngRequestTimeout;
+  uint32 public rngTimeout;
 
-  /// @notice Seconds between draw period request
-  uint256 public drawPeriodSeconds;
+  /// @notice Seconds between beacon period request
+  uint256 public beaconPeriodSeconds;
 
-  /// @notice Epoch timestamp when RNG request can start
-  uint256 public drawPeriodStartedAt;
+  /// @notice Epoch timestamp when beacon period can start
+  uint256 public beaconPeriodStartedAt;
 
   /// @notice Next draw id to use when pushing a new draw on DrawHistory
   uint32 public nextDrawId;
@@ -73,7 +73,7 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   modifier requireCanStartDraw() {
-    require(_isDrawPeriodOver(), "DrawBeacon/prize-period-not-over");
+    require(_isBeaconPeriodOver(), "DrawBeacon/prize-period-not-over");
     require(!isRngRequested(), "DrawBeacon/rng-already-requested");
     _;
   }
@@ -90,14 +90,14 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Initialize the DrawBeacon smart contract.
     * @param _rng The RNG service to use
     * @param _drawHistory The address of the draw history to push draws to
-    * @param _rngRequestPeriodStart The starting timestamp of the draw period.
-    * @param _drawPeriodSeconds The duration of the draw period in seconds
+    * @param _rngRequestPeriodStart The starting timestamp of the beacon period.
+    * @param _beaconPeriodSeconds The duration of the beacon period in seconds
   */
   function initialize (
     IDrawHistory _drawHistory,
     RNGInterface _rng,
     uint256 _rngRequestPeriodStart,
-    uint256 _drawPeriodSeconds
+    uint256 _beaconPeriodSeconds
   ) public initializer {
     require(_rngRequestPeriodStart > 0, "DrawBeacon/rng-request-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
@@ -105,22 +105,22 @@ contract DrawBeacon is IDrawBeacon,
 
     __Ownable_init();
 
-    _setDrawPeriodSeconds(_drawPeriodSeconds);
-    drawPeriodStartedAt = _rngRequestPeriodStart;
+    _setBeaconPeriodSeconds(_beaconPeriodSeconds);
+    beaconPeriodStartedAt = _rngRequestPeriodStart;
 
     _setDrawHistory(_drawHistory);
 
     // 30 min timeout
-    _setRngRequestTimeout(1800);
+    _setRNGTimeout(1800);
 
     emit Initialized(
       _drawHistory,
       _rng,
       _rngRequestPeriodStart,
-      _drawPeriodSeconds
+      _beaconPeriodSeconds
     );
 
-    emit DrawBeaconOpened(_msgSender(), _rngRequestPeriodStart);
+    emit BeaconPeriodStarted(_msgSender(), _rngRequestPeriodStart);
   }
 
   /* ============ Public Functions ============ */
@@ -149,53 +149,52 @@ contract DrawBeacon is IDrawBeacon,
     if (rngRequest.requestedAt == 0) {
       return false;
     } else {
-      return _currentTime() > uint256(rngRequestTimeout) + rngRequest.requestedAt;
+      return _currentTime() > uint256(rngTimeout) + rngRequest.requestedAt;
     }
   }
 
   /* ============ External Functions ============ */
 
   /**
-    * @notice Returns whether an award process can be started.
-    * @return True if an award can be started, false otherwise.
+    * @notice Returns whether an draw request can be started.
+    * @return True if an draw can be started, false otherwise.
    */
-  function canStartRNGRequest() external view override returns (bool) {
-    return _isDrawPeriodOver() && !isRngRequested();
+  function canStartDrawRequest() external view override returns (bool) {
+    return _isBeaconPeriodOver() && !isRngRequested();
   }
 
   /**
-    * @notice Returns whether an award process can be completed.
-    * @return True if an award can be completed, false otherwise.
+    * @notice Returns whether an draw request can be completed.
+    * @return True if an draw can be completed, false otherwise.
    */
-  function canCompleteRNGRequest() external view override returns (bool) {
+  function canCompleteDrawRequest() external view override returns (bool) {
     return isRngRequested() && isRngCompleted();
   }
 
 
   /**
-    * @notice Calculates when the next draw period will start.
+    * @notice Calculates when the next beacon period will start.
     * @param currentTime The timestamp to use as the current time
-    * @return The timestamp at which the next draw period would start
+    * @return The timestamp at which the next beacon period would start
    */
-  function calculateNextDrawPeriodStartTime(uint256 currentTime) external view override returns (uint256) {
-    return _calculateNextDrawPeriodStartTime(currentTime);
+  function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view override returns (uint256) {
+    return _calculateNextBeaconPeriodStartTime(currentTime);
   }
 
   /**
-    * @notice Can be called by anyone to cancel the RNG request if the RNG has timed out.
+    * @notice Can be called by anyone to cancel the draw request if the RNG has timed out.
    */
   function cancelDraw() external override {
     require(isRngTimedOut(), "DrawBeacon/rng-not-timedout");
     uint32 requestId = rngRequest.id;
     uint32 lockBlock = rngRequest.lockBlock;
     delete rngRequest;
-    emit RngRequestFailed();
-    emit DrawBeaconRNGRequestCancelled(msg.sender, requestId, lockBlock);
+    emit DrawCancelled(msg.sender, requestId, lockBlock);
   }
 
   /**
-    * @notice Completes the RNG request and creates a new draw.
-    * @dev    Completes the RNG request, creates a new draw on the DrawHistory and reset draw period start.
+    * @notice Completes the draw request and creates a new draw.
+    * @dev    Completes the draw request, creates a new draw on the DrawHistory and reset beacon period start.
     *
    */
   function completeDraw() external override requireCanCompleteRngRequest {
@@ -205,38 +204,26 @@ contract DrawBeacon is IDrawBeacon,
     _saveRNGRequestWithDraw(randomNumber);
 
     // to avoid clock drift, we should calculate the start time based on the previous period start time.
-    drawPeriodStartedAt = _calculateNextDrawPeriodStartTime(_currentTime());
+    beaconPeriodStartedAt = _calculateNextBeaconPeriodStartTime(_currentTime());
 
-    emit DrawBeaconRNGRequestCompleted(_msgSender(), randomNumber);
-    emit DrawBeaconOpened(_msgSender(), drawPeriodStartedAt);
+    emit DrawCompleted(_msgSender(), randomNumber);
+    emit BeaconPeriodStarted(_msgSender(), beaconPeriodStartedAt);
   }
 
   /**
-    * @notice Returns the number of seconds remaining until the rng request can be complete.
-    * @return The number of seconds remaining until the rng request can be complete.
+    * @notice Returns the number of seconds remaining until the beacon period can be complete.
+    * @return The number of seconds remaining until the beacon period can be complete.
    */
-  function drawPeriodRemainingSeconds() external view override returns (uint256) {
-    return _drawPeriodRemainingSeconds();
+  function beaconPeriodRemainingSeconds() external view override returns (uint256) {
+    return _beaconPeriodRemainingSeconds();
   }
 
   /**
-    * @notice Returns the timestamp at which the draw period ends
-    * @return The timestamp at which the draw period ends.
+    * @notice Returns the timestamp at which the beacon period ends
+    * @return The timestamp at which the beacon period ends.
    */
-  function drawPeriodEndAt() external view override returns (uint256) {
-    return _drawPeriodEndAt();
-  }
-
-  /**
-    * @notice Estimates the remaining blocks until the prize given a number of seconds per block
-    * @param secondsPerBlockMantissa The number of seconds per block to use for the calculation.  Should be a fixed point 18 number like Ether.
-    * @return The estimated number of blocks remaining until the prize can be awarded.
-   */
-  function estimateRemainingBlocksToPrize(uint256 secondsPerBlockMantissa) external view override returns (uint256) {
-    return FixedPoint.divideUintByMantissa(
-      _drawPeriodRemainingSeconds(),
-      secondsPerBlockMantissa
-    );
+  function beaconPeriodEndAt() external view override returns (uint256) {
+    return _beaconPeriodEndAt();
   }
 
   /**
@@ -256,11 +243,11 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Returns whether the draw period is over
-    * @return True if the draw period is over, false otherwise
+    * @notice Returns whether the beacon period is over
+    * @return True if the beacon period is over, false otherwise
    */
-  function isDrawPeriodOver() external view override returns (bool) {
-    return _isDrawPeriodOver();
+  function isBeaconPeriodOver() external view override returns (bool) {
+    return _isBeaconPeriodOver();
   }
 
   /**
@@ -274,7 +261,7 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Starts the award process by starting random number request.  The draw period must have ended.
+    * @notice Starts the award process by starting random number request.  The beacon period must have ended.
     * @dev The RNG-Request-Fee is expected to be held within this contract before calling this function
    */
   function startDraw() external override requireCanStartDraw {
@@ -288,23 +275,23 @@ contract DrawBeacon is IDrawBeacon,
     rngRequest.lockBlock = lockBlock;
     rngRequest.requestedAt = _currentTime().toUint32();
 
-    emit DrawBeaconRNGRequestStarted(_msgSender(), requestId, lockBlock);
+    emit DrawStarted(_msgSender(), requestId, lockBlock);
   }
 
   /**
-    * @notice Allows the owner to set the draw period in seconds.
-    * @param drawPeriodSeconds The new draw period in seconds.  Must be greater than zero.
+    * @notice Allows the owner to set the beacon period in seconds.
+    * @param beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
    */
-  function setDrawPeriodSeconds(uint256 drawPeriodSeconds) external override onlyOwner requireAwardNotInProgress {
-    _setDrawPeriodSeconds(drawPeriodSeconds);
+  function setBeaconPeriodSeconds(uint256 beaconPeriodSeconds) external override onlyOwner requireAwardNotInProgress {
+    _setBeaconPeriodSeconds(beaconPeriodSeconds);
   }
   
   /**
     * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
-    * @param _rngRequestTimeout The RNG request timeout in seconds.
+    * @param _rngTimeout The RNG request timeout in seconds.
    */
-  function setRngRequestTimeout(uint32 _rngRequestTimeout) external override onlyOwner requireAwardNotInProgress {
-    _setRngRequestTimeout(_rngRequestTimeout);
+  function setRngTimeout(uint32 _rngTimeout) external override onlyOwner requireAwardNotInProgress {
+    _setRNGTimeout(_rngTimeout);
   }
 
   /**
@@ -320,15 +307,15 @@ contract DrawBeacon is IDrawBeacon,
   /* ============ Internal Functions ============ */
 
   /**
-    * @notice Calculates when the next draw period will start
+    * @notice Calculates when the next beacon period will start
     * @param currentTime The timestamp to use as the current time
-    * @return The timestamp at which the next draw period would start
+    * @return The timestamp at which the next beacon period would start
    */
-  function _calculateNextDrawPeriodStartTime(uint256 currentTime) internal view returns (uint256) {
-    uint256 _drawPeriodStartedAt = drawPeriodStartedAt; // single sload
-    uint256 _drawPeriodSeconds = drawPeriodSeconds; // single sload
-    uint256 elapsedPeriods = (currentTime - _drawPeriodStartedAt) / (_drawPeriodSeconds);
-    return _drawPeriodStartedAt + (elapsedPeriods * _drawPeriodSeconds);
+  function _calculateNextBeaconPeriodStartTime(uint256 currentTime) internal view returns (uint256) {
+    uint256 _beaconPeriodStartedAt = beaconPeriodStartedAt; // single sload
+    uint256 _beaconPeriodSeconds = beaconPeriodSeconds; // single sload
+    uint256 elapsedPeriods = (currentTime - _beaconPeriodStartedAt) / (_beaconPeriodSeconds);
+    return _beaconPeriodStartedAt + (elapsedPeriods * _beaconPeriodSeconds);
   }
 
   /**
@@ -340,19 +327,19 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Returns the timestamp at which the draw period ends
-    * @return The timestamp at which the draw period ends
+    * @notice Returns the timestamp at which the beacon period ends
+    * @return The timestamp at which the beacon period ends
    */
-  function _drawPeriodEndAt() internal view returns (uint256) {
-    return drawPeriodStartedAt + drawPeriodSeconds;
+  function _beaconPeriodEndAt() internal view returns (uint256) {
+    return beaconPeriodStartedAt + beaconPeriodSeconds;
   }
 
   /**
     * @notice Returns the number of seconds remaining until the prize can be awarded.
     * @return The number of seconds remaining until the prize can be awarded.
    */
-  function _drawPeriodRemainingSeconds() internal view returns (uint256) {
-    uint256 endAt = _drawPeriodEndAt();
+  function _beaconPeriodRemainingSeconds() internal view returns (uint256) {
+    uint256 endAt = _beaconPeriodEndAt();
     uint256 time = _currentTime();
     if (time > endAt) {
       return 0;
@@ -361,11 +348,11 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Returns whether the draw period is over.
-    * @return True if the draw period is over, false otherwise
+    * @notice Returns whether the beacon period is over.
+    * @return True if the beacon period is over, false otherwise
    */
-  function _isDrawPeriodOver() internal view returns (bool) {
-    return _currentTime() >= _drawPeriodEndAt();
+  function _isBeaconPeriodOver() internal view returns (bool) {
+    return _currentTime() >= _beaconPeriodEndAt();
   }
 
   /**
@@ -392,24 +379,24 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Sets the draw period in seconds.
-    * @param _drawPeriodSeconds The new draw period in seconds.  Must be greater than zero.
+    * @notice Sets the beacon period in seconds.
+    * @param _beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
    */
-  function _setDrawPeriodSeconds(uint256 _drawPeriodSeconds) internal {
-    require(_drawPeriodSeconds > 0, "DrawBeacon/rng-request-period-greater-than-zero");
-    drawPeriodSeconds = _drawPeriodSeconds;
+  function _setBeaconPeriodSeconds(uint256 _beaconPeriodSeconds) internal {
+    require(_beaconPeriodSeconds > 0, "DrawBeacon/rng-request-period-greater-than-zero");
+    beaconPeriodSeconds = _beaconPeriodSeconds;
 
-    emit RngRequestPeriodSecondsUpdated(_drawPeriodSeconds);
+    emit BeaconPeriodSecondsUpdated(_beaconPeriodSeconds);
   }
   
   /**
     * @notice Sets the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
-    * @param _rngRequestTimeout The RNG request timeout in seconds.
+    * @param _rngTimeout The RNG request timeout in seconds.
    */
-  function _setRngRequestTimeout(uint32 _rngRequestTimeout) internal {
-    require(_rngRequestTimeout > 60, "DrawBeacon/rng-timeout-gt-60-secs");
-    rngRequestTimeout = _rngRequestTimeout;
-    emit RngRequestTimeoutSet(_rngRequestTimeout);
+  function _setRNGTimeout(uint32 _rngTimeout) internal {
+    require(_rngTimeout > 60, "DrawBeacon/rng-timeout-gt-60-secs");
+    rngTimeout = _rngTimeout;
+    emit RngTimeoutSet(_rngTimeout);
   }
 
   /**
