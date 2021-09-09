@@ -1,5 +1,4 @@
 import { Signer } from '@ethersproject/abstract-signer';
-import { BigNumber } from '@ethersproject/bignumber';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
@@ -549,7 +548,7 @@ describe('Ticket', () => {
 
       debug(`WALLET 2: ${wallet2.address}`)
       await printTwabs(ticket, wallet2, debug)
-      
+
       debug(`WALLET 3: ${wallet3.address}`)
       await printTwabs(ticket, wallet3, debug)
 
@@ -557,7 +556,7 @@ describe('Ticket', () => {
       expect(await ticket.getBalanceAt(wallet2.address, mintTimestamp)).to.equal('0')
       // balance at the end of the block was zero
       expect(await ticket.getBalanceAt(wallet2.address, delegateTimestamp)).to.equal(toWei('100'))
-      
+
       expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet3.address)
       expect(await ticket.getBalanceAt(wallet1.address, secondTimestamp)).to.equal(toWei('0'))
       expect(await ticket.getBalanceAt(wallet2.address, secondTimestamp)).to.equal(toWei('0'))

@@ -22,13 +22,13 @@ describe('Tickets', () => {
     await env.buyTickets({ user: 1, tickets: 100 })
     // they deposited all of their tokens
     await env.expectUserToHaveTokens({ user: 1, tokens: 0 })
-    await env.withdrawInstantly({ user: 1, tickets: 100 })
+    await env.withdraw({ user: 1, tickets: 100 })
     await env.expectUserToHaveTokens({ user: 1, tokens: 100 })
   })
 
   it('should allow a user to pull their prizes', async () => {
     await env.buyTickets({ user: 1, tickets: 100 })
-    
+
     const wallet = await env.wallet(1)
 
     const winningNumber = ethers.utils.solidityKeccak256(['address'], [wallet.address]);

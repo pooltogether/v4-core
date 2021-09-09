@@ -32,9 +32,9 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     * @param token         Token awarded address
   */
   event PrizeSplitAwarded(
-    address indexed user, 
+    address indexed user,
     uint256 prizeAwarded,
-    address indexed token 
+    IControlledToken indexed token
   );
 
   /* ============ Initialize ============ */
@@ -66,7 +66,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
   }
 
   /* ============ Internal Functions ============ */
-  
+
   /**
     * @notice Award ticket or sponsorship tokens to prize split recipient.
     * @dev Award ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
@@ -76,8 +76,8 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
   */
   function _awardPrizeSplitAmount(address user, uint256 amount, uint8 tokenIndex) override internal {
     IControlledToken _token = prizePool.tokenAtIndex(tokenIndex);
-    prizePool.award(user, amount, address(_token));
-    emit PrizeSplitAwarded(user, amount, address(_token));
+    prizePool.award(user, amount, _token);
+    emit PrizeSplitAwarded(user, amount, _token);
   }
 
 }

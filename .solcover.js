@@ -5,15 +5,5 @@ module.exports = {
     _chainId: 1337,
     _chainIdRpc: 1337,
   },
-  skipFiles: [
-    'external',
-    'prize-pool',
-    'prize-strategy',
-    'registry',
-    'reserve',
-    'utils',
-    'test',
-    'token',
-    'yield-source',
-  ],
+  skipFiles: ['external', 'prize-strategy', 'test'],
 };

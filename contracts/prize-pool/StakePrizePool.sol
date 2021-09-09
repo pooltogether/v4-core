@@ -14,20 +14,15 @@ contract StakePrizePool is PrizePool {
 
   /// @notice Initializes the Prize Pool and Yield Service with the required contract connections
   /// @param _controlledTokens Array of addresses for the Ticket and Sponsorship Tokens controlled by the Prize Pool
-  /// @param _maxExitFeeMantissa The maximum exit fee size, relative to the withdrawal amount
   /// @param _stakeToken Address of the stake token
   function initialize (
     IControlledToken[] memory _controlledTokens,
-    uint256 _maxExitFeeMantissa,
     IERC20Upgradeable _stakeToken
   )
     public
     initializer
   {
-    PrizePool.initialize(
-      _controlledTokens,
-      _maxExitFeeMantissa
-    );
+    PrizePool.initialize(_controlledTokens);
 
     require(address(_stakeToken) != address(0), "StakePrizePool/stake-token-not-zero-address");
     stakeToken = _stakeToken;

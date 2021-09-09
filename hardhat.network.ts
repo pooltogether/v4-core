@@ -34,6 +34,7 @@ if (alchemyUrl && process.env.FORK_ENABLED && mnemonic) {
   networks.hardhat = {
     allowUnlimitedContractSize: true,
     gas: 12000000,
+    initialBaseFeePerGas: 0, // temporary fix, remove once we bump version: https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
     blockGasLimit: 0x1fffffffffffff,
   };
 }
