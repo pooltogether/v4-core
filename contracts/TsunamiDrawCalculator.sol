@@ -3,8 +3,8 @@ pragma solidity 0.8.6;
 
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
-import "./libraries/DrawLib.sol";
 import "./ClaimableDraw.sol";
+import "./libraries/DrawLib.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
@@ -20,17 +20,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
   ///@notice storage of the DrawSettings associated with a drawId
   mapping(uint32 => DrawLib.DrawSettings) drawSettings;
-
-  /* ============ Events ============ */
-
-  ///@notice Emitted when the DrawParams are set/updated
-  event DrawSettingsSet(uint32 indexed drawId, DrawLib.DrawSettings _drawSettings);
-
-  ///@notice Emitted when the contract is initialized
-  event Initialized(ITicket indexed _ticket);
-
-  ///@notice Emitted when the claimableDraw is set/updated
-  event ClaimableDrawSet(ClaimableDraw indexed _claimableDraw);
 
   /* ============ External Functions ============ */
 
