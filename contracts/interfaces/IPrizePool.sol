@@ -10,6 +10,78 @@ import "../interfaces/IControlledToken.sol";
 /// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
 interface IPrizePool {
 
+  /// @dev Emitted when an instance is initialized
+  event Initialized(
+    address reserveRegistry
+  );
+
+  /// @dev Event emitted when controlled token is added
+  event ControlledTokenAdded(
+    IControlledToken indexed token
+  );
+
+  event AwardCaptured(
+    uint256 amount
+  );
+
+  /// @dev Event emitted when assets are deposited
+  event Deposited(
+    address indexed operator,
+    address indexed to,
+    IControlledToken indexed token,
+    uint256 amount
+  );
+
+  /// @dev Event emitted when interest is awarded to a winner
+  event Awarded(
+    address indexed winner,
+    IControlledToken indexed token,
+    uint256 amount
+  );
+
+  /// @dev Event emitted when external ERC20s are awarded to a winner
+  event AwardedExternalERC20(
+    address indexed winner,
+    address indexed token,
+    uint256 amount
+  );
+
+  /// @dev Event emitted when external ERC20s are transferred out
+  event TransferredExternalERC20(
+    address indexed to,
+    address indexed token,
+    uint256 amount
+  );
+
+  /// @dev Event emitted when external ERC721s are awarded to a winner
+  event AwardedExternalERC721(
+    address indexed winner,
+    address indexed token,
+    uint256[] tokenIds
+  );
+
+  /// @dev Event emitted when assets are withdrawn instantly
+  event Withdrawal(
+    address indexed operator,
+    address indexed from,
+    IControlledToken indexed token,
+    uint256 amount,
+    uint256 redeemed
+  );
+
+  /// @dev Event emitted when the Liquidity Cap is set
+  event LiquidityCapSet(
+    uint256 liquidityCap
+  );
+
+  /// @dev Event emitted when the Prize Strategy is set
+  event PrizeStrategySet(
+    address indexed prizeStrategy
+  );
+
+  /// @dev Emitted when there was an error thrown awarding an External ERC721
+  event ErrorAwardingExternalERC721(bytes error);
+
   /// @dev Returns the address of a token in the _tokens array.
   /// @return Address of token
   function tokenAtIndex(uint256 tokenIndex) external returns (IControlledToken);

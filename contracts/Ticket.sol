@@ -44,39 +44,6 @@ contract Ticket is ControlledToken, ITicket {
     TwabLibrary.Twab[MAX_CARDINALITY] twabs;
   }
 
-  event Delegated(
-    address indexed user,
-    address indexed delegate
-  );
-
-  /// @notice Emitted when ticket is initialized.
-  /// @param name Ticket name (eg: PoolTogether Dai Ticket (Compound)).
-  /// @param symbol Ticket symbol (eg: PcDAI).
-  /// @param decimals Ticket decimals.
-  /// @param controller Token controller address.
-  event TicketInitialized(
-    string name,
-    string symbol,
-    uint8 decimals,
-    address controller
-  );
-
-  /// @notice Emitted when a new TWAB has been recorded.
-  /// @param ticketHolder The Ticket holder address.
-  /// @param user The recipient of the ticket power (may be the same as the ticketHolder)
-  /// @param newTwab Updated TWAB of a ticket holder after a successful TWAB recording.
-  event NewUserTwab(
-    address indexed ticketHolder,
-    address indexed user,
-    TwabLibrary.Twab newTwab
-  );
-
-  /// @notice Emitted when a new total supply TWAB has been recorded.
-  /// @param newTotalSupplyTwab Updated TWAB of tickets total supply after a successful total supply TWAB recording.
-  event NewTotalSupplyTwab(
-    TwabLibrary.Twab newTotalSupplyTwab
-  );
-
   /// @notice Record of token holders TWABs for each account.
   mapping (address => Account) internal userTwabs;
 

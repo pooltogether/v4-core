@@ -23,22 +23,6 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   DrawLib.Draw[CARDINALITY] private _draws;
 
-  /* ============ Events ============ */
-
-  /**
-    * @notice Emit when a new draw has been created.
-    * @param drawIndex    Draw index in the draws array
-    * @param drawId       Draw id
-    * @param timestamp    Epoch timestamp when the draw is created.
-    * @param winningRandomNumber Randomly generated number used to calculate draw winning numbers
-  */
-  event DrawSet (
-    uint256 drawIndex,
-    uint32 drawId,
-    uint32 timestamp,
-    uint256 winningRandomNumber
-  );
-
   /* ============ Initialize ============ */
 
   /**

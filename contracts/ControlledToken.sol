@@ -11,14 +11,6 @@ import "./interfaces/IControlledToken.sol";
 /// @notice ERC20 Tokens with a controller for minting & burning
 contract ControlledToken is ERC20PermitUpgradeable, IControlledToken {
 
-  /// @dev Emitted when an instance is initialized
-  event Initialized(
-    string _name,
-    string _symbol,
-    uint8 _decimals,
-    address _controller
-  );
-
   /// @notice Interface to the contract responsible for controlling mint/burn
   address public override controller;
 
