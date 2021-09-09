@@ -97,7 +97,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _drawId The id of the Draw
   function getDrawSettings(uint32 _drawId) external view returns(DrawLib.DrawSettings memory)
   {
-    return drawSettings[_drawId];
+    DrawLib.DrawSettings memory _drawSettings = drawSettings[_drawId];
+    require(_drawSettings.bitRangeSize > 0, "DrawCalc/drawSettings-does-not-exist");
+    return _drawSettings;
   }
 
   /* ============ Internal Functions ============ */
@@ -223,8 +225,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
     require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gt-distributions");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
+    require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
     require(_drawSettings.pickCost > 0, "DrawCalc/pick-cost-gt-0");
-
+    
     // ensure that the distributions are not gt 100%
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];

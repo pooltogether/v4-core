@@ -115,6 +115,23 @@ describe('TsunamiDrawCalculator', () => {
         'DrawCalc/distributions-gt-100%',
       );
     });
+    it('cannot set bitRangeSize = 0', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.9'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(0),
+        prize: ethers.utils.parseEther('1'),
+      };
+      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
+        'DrawCalc/bitRangeSize-gt-0',
+      );
+    });
   });
 
   describe('setClaimableDraw()', () => {
@@ -247,6 +264,9 @@ describe('TsunamiDrawCalculator', () => {
       for(let i =0; i < result.distributions.length; i++) {
         expect(result.distributions[i]).to.deep.equal(drawSettings.distributions[i])
       }
+    })
+    it("fails to get non-existant draw settings", async () => {
+      await expect(drawCalculator.getDrawSettings(1)).to.be.revertedWith("DrawCalc/drawSettings-does-not-exist")
     })
   })
 
