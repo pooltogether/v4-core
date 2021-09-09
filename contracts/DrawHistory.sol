@@ -104,10 +104,10 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   /**
     * @notice External function to get the last draw.
     * @dev    External function to get the last draw using the nextDrawIndex.
-    * @return Draw index
+    * @return Last draw
   */
   function getLastDraw() external view returns (DrawLib.Draw memory) {
-    return _getLastDraw();
+    return _getLastDraw(nextDrawIndex);
   }
 
   /**
@@ -132,7 +132,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   }
 
   /* ============ Internal Functions ============ */
-  
+
   /**
     * @notice Internal function to calculate draw index using the draw id.
     * @dev    Use the draw id to calculate the draw index position in the draws ring buffer.
@@ -160,17 +160,14 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   /**
     * @notice Internal function to get the last draw.
     * @dev    Internal function to get the last draw using the nextDrawIndex.
-    * @return Draw index
+    * @return Last draw
   */
-  function _getLastDraw() internal view returns (DrawLib.Draw memory) {
-    uint32 _nextDrawIndex = nextDrawIndex;
-    DrawLib.Draw memory _lastDraw;
+  function _getLastDraw(uint256 _nextDrawIndex) internal view returns (DrawLib.Draw memory) {
     if(_nextDrawIndex == 0) {
-      _lastDraw = _draws[CARDINALITY - 1];
+      return _draws[CARDINALITY - 1];
     } else {
-      _lastDraw = _draws[_nextDrawIndex - 1];
+      return _draws[_nextDrawIndex - 1];
     }
-    return _lastDraw;
   }
 
   /**
@@ -181,12 +178,9 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   function _pushDraw(DrawLib.Draw memory _newDraw) internal returns (uint32) {
     uint32 _nextDrawIndex = nextDrawIndex;
-    DrawLib.Draw memory _lastDraw = _getLastDraw();
-    // Without an existing draw history check the next draw is sequential. Else check the first draw id is 0.
-    if(_lastDraw.timestamp != 0) {
+    DrawLib.Draw memory _lastDraw = _getLastDraw(_nextDrawIndex);
+    if (_lastDraw.timestamp != 0) {
       require(_newDraw.drawId == _lastDraw.drawId + 1, "DrawHistory/nonsequential-draw");
-    } else {
-      require(_newDraw.drawId == 0, "DrawHistory/first-drawid-must-be-zero");
     }
     _draws[_nextDrawIndex] = _newDraw;
     emit DrawSet(_nextDrawIndex, _newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);

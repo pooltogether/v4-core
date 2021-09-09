@@ -3,7 +3,7 @@ import { ethers } from 'hardhat';
 import { constants, Contract, ContractFactory } from 'ethers';
 const { getSigners } = ethers;
 const { AddressZero } = constants;
-describe.only('DrawHistory', () => {
+describe('DrawHistory', () => {
   let wallet1: any;
   let wallet2: any;
   let wallet3: any;
@@ -34,7 +34,6 @@ describe.only('DrawHistory', () => {
         expect(draw.drawId).to.equal(0)
         expect(draw.timestamp).to.equal(0)
         expect(draw.winningRandomNumber).to.equal(0)
-
       }
     });
   })
