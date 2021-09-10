@@ -20,6 +20,7 @@ interface IPrizePool {
     IControlledToken indexed token
   );
 
+  /// @dev Event emitted when awardable amount is captured
   event AwardCaptured(
     uint256 amount
   );
