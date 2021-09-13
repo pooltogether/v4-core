@@ -88,6 +88,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
       };
 
+      
       await claimableDraw.mock.setDrawCalculator.withArgs(0, drawCalculator.address).returns(drawCalculator.address);
 
       expect(await drawCalculator.setDrawSettings(0, drawSettings)).to.emit(
@@ -149,6 +150,49 @@ describe('TsunamiDrawCalculator', () => {
   })
 
   describe('calculateDistributionIndex()', () => {
+    it('grand prize gets the full fraction at index 0', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      const amount = await drawCalculator.calculatePrizeDistributionFraction(drawSettings, BigNumber.from(0));
+      expect(amount).to.equal(drawSettings.distributions[0]);
+    })
+    it('runner up gets part of the fraction at index 1', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      const amount = await drawCalculator.calculatePrizeDistributionFraction(drawSettings, BigNumber.from(1));
+      // Prize Count = (2**bitRange)**(cardinality-numberOfMatches)
+      // if not grand prize: - (2^bitRange)**(cardinality-numberOfMatches-1)
+      const prizeCount = ((2 ** drawSettings.bitRangeSize.toNumber()) ** (1)) - (2 ** drawSettings.bitRangeSize.toNumber()) ** (1-1);
+      const expectedPrize = drawSettings.distributions[1].div(prizeCount)
+      expect(amount).to.equal(expectedPrize);
+    })
+
+
+  })
+
+
+
+  describe('calculatePrizeDistributionFraction()', () => {
     it('calculates distribution index 0', async () => {
       const drawSettings: DrawSettings = {
         matchCardinality: BigNumber.from(5),
@@ -167,7 +211,7 @@ describe('TsunamiDrawCalculator', () => {
       const winningRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70"
       const userRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70" // intentianlly same as winning random number
       const prizeDistributionIndex: BigNumber = await drawCalculator.calculateDistributionIndex(userRandomNumber, winningRandomNumber, bitMasks)
-
+      // all numbers match so grand prize!
       expect(prizeDistributionIndex).to.eq(BigNumber.from(0))
     })
 
@@ -193,8 +237,36 @@ describe('TsunamiDrawCalculator', () => {
 
       const prizeDistributionIndex: BigNumber = await drawCalculator.calculateDistributionIndex(252, 255, bitMasks)
 
-      expect(prizeDistributionIndex).to.eq(BigNumber.from(1))
+      // since the first 4 bits do not match the distribution index will be: (matchCardinality - numberOfMatches )= 2-0 = 2 
+      expect(prizeDistributionIndex).to.eq(drawSettings.matchCardinality) 
     })
+
+    it('calculates distribution index 1', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(3),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      // 527: 0010 0000 1111
+      // 271  0001 0000 1111
+
+      const bitMasks = await drawCalculator.createBitMasks(drawSettings);
+      expect(bitMasks.length).to.eq(3) // same as length of matchCardinality
+      expect(bitMasks[0]).to.eq(BigNumber.from(15))
+
+      const prizeDistributionIndex: BigNumber = await drawCalculator.calculateDistributionIndex(527, 271, bitMasks)
+
+      // since the first 4 bits do not match the distribution index will be: (matchCardinality - numberOfMatches )= 3-2 = 1 
+      expect(prizeDistributionIndex).to.eq(BigNumber.from(1)) 
+    })
+
   })
 
   describe("createBitMasks()", () => {
@@ -267,7 +339,7 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
-  describe.only('calculate()', () => {
+  describe('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
     context('with draw 0 set', () => {
@@ -365,7 +437,7 @@ describe('TsunamiDrawCalculator', () => {
 
         const timestamp1 = 42;
         const timestamp2 = 51;
-        const prizes = [utils.parseEther('100'), utils.parseEther('20')];
+        
         const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
         const ticketBalance = utils.parseEther('10');
         const ticketBalance2 = utils.parseEther('10');
