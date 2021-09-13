@@ -161,16 +161,21 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   {
 
     uint256 numberOfMatches = 0;
-    for(uint256 matchIndex = 0; matchIndex < _masks.length; matchIndex++) {
+    uint256 masksLength = _masks.length;
+
+    for(uint256 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
       uint256 mask = _masks[matchIndex];
       assembly{
-        if eq(and(_winningRandomNumber, mask), and(_randomNumberThisPick, mask)) {
-          numberOfMatches := add(numberOfMatches, 1)
+        if not(eq(and(_winningRandomNumber, mask), and(_randomNumberThisPick, mask))) {
+          mstore(0x0, sub(masksLength, numberOfMatches)) // does memory get reset per function?
+          return(0x0,32)      
         }
+        // else there was a match
+        numberOfMatches := add(numberOfMatches, 1)
       }
     }
 
-    return _masks.length - numberOfMatches;
+    return _masks.length - numberOfMatches; // will this now be 0 all the time?
   }
 
 

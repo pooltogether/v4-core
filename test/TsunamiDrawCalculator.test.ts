@@ -267,7 +267,7 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
-  describe('calculate()', () => {
+  describe.only('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
     context('with draw 0 set', () => {
