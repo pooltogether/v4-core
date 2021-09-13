@@ -2,14 +2,14 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./interfaces/IControlledToken.sol";
 
 /// @title Controlled ERC20 Token
 /// @notice ERC20 Tokens with a controller for minting & burning
-contract ControlledToken is ERC20PermitUpgradeable, IControlledToken {
+contract ControlledToken is ERC20Permit, IControlledToken {
 
   /// @notice Interface to the contract responsible for controlling mint/burn
   address public override controller;
@@ -22,21 +22,19 @@ contract ControlledToken is ERC20PermitUpgradeable, IControlledToken {
   /// @param _symbol The symbol for the Token
   /// @param decimals_ The number of decimals for the Token
   /// @param _controller Address of the Controller contract for minting & burning
-  function initialize(
+  constructor(
     string memory _name,
     string memory _symbol,
     uint8 decimals_,
     address _controller
   )
-    public
-    virtual
-    initializer
+    ERC20Permit("PoolTogether ControlledToken")
+    ERC20(_name, _symbol)
   {
     require(address(_controller) != address(0), "ControlledToken/controller-not-zero");
     controller = _controller;
 
-    __ERC20_init(_name, _symbol);
-    __ERC20Permit_init("PoolTogether ControlledToken");
+    // __ERC20_init(_name, _symbol);
     _decimals = decimals_;
 
     emit Initialized(

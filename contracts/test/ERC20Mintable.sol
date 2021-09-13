@@ -1,6 +1,6 @@
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @dev Extension of {ERC20} that adds a set of accounts with the {MinterRole},
@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
  *
  * At construction, the deployer of the contract is the only minter.
  */
-contract ERC20Mintable is ERC20Upgradeable {
+contract ERC20Mintable is ERC20 {
 
     constructor(string memory _name, string memory _symbol) {
         __ERC20_init(_name, _symbol);

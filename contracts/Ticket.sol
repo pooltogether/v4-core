@@ -3,9 +3,9 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
@@ -21,8 +21,8 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice The maximum number of twab entries
   uint16 public constant MAX_CARDINALITY = 65535;
 
-  using SafeERC20Upgradeable for IERC20Upgradeable;
-  using SafeCastUpgradeable for uint256;
+  using SafeERC20 for IERC20Upgradeable;
+  using SafeCast for uint256;
 
   /// @notice A struct containing details for an Account
   /// @param balance The current balance for an Account
@@ -78,7 +78,7 @@ contract Ticket is ControlledToken, ITicket {
 
     require(_controller != address(0), "Ticket/controller-not-zero-address");
 
-    ControlledToken.initialize(_name, _symbol, decimals_, _controller);
+    // ControlledToken.initialize(_name, _symbol, decimals_, _controller);
 
     emit TicketInitialized(_name, _symbol, decimals_, _controller);
   }

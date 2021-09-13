@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./PrizePool.sol";
 
 contract StakePrizePool is PrizePool {
 
-  IERC20Upgradeable private stakeToken;
+  IERC20 private stakeToken;
 
   event StakePrizePoolInitialized(address indexed stakeToken);
 

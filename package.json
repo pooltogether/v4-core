@@ -28,7 +28,6 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.1",
-    "@openzeppelin/contracts-upgradeable": "4.2.0",
     "@pooltogether/fixed-point": "1.0.0",
     "@pooltogether/owner-manager-contracts": "1.0.0-beta.1",
     "@pooltogether/pooltogether-contracts": "3.4.4",

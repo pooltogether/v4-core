@@ -2,14 +2,14 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 import "../external/compound/ICompLike.sol";
@@ -19,11 +19,11 @@ import "../interfaces/IPrizePool.sol";
 ///       Users deposit and withdraw from this contract to participate in Prize Pool.
 /// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
 /// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
-abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUpgradeable, IERC721ReceiverUpgradeable {
-  using SafeCastUpgradeable for uint256;
-  using SafeERC20Upgradeable for IERC20Upgradeable;
-  using SafeERC20Upgradeable for IERC721Upgradeable;
-  using ERC165CheckerUpgradeable for address;
+abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Receiver {
+  using SafeCast for uint256;
+  using SafeERC20 for IERC20;
+  using SafeERC20 for IERC721;
+  using ERC165Checker for address;
 
   /// @notice Semver Version
   string constant public VERSION = "3.4.0";
