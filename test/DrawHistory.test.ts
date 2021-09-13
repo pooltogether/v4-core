@@ -38,9 +38,9 @@ describe('DrawHistory', () => {
     });
   })
 
-  describe('getLastDraw()', () => {
+  describe('getNewestDraw()', () => {
     it('should get the last draw without a draw history', async () => {
-      const draw = await drawHistory.getLastDraw();
+      const draw = await drawHistory.getNewestDraw();
       expect(draw.drawId).to.equal(0)
       expect(draw.timestamp).to.equal(0)
       expect(draw.winningRandomNumber).to.equal(0)
@@ -54,39 +54,93 @@ describe('DrawHistory', () => {
           winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
         }
       )
-      const draw = await drawHistory.getLastDraw();
+      const draw = await drawHistory.getNewestDraw();
       expect(draw.drawId).to.equal(0)
       expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp)
       expect(draw.winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber)
     });
   })
 
-  describe('drawIdToDrawIndex()', () => {
-    it('should fail get draw index with no draw history', async () => {
-      await expect(drawHistory.drawIdToDrawIndex(0))
-        .to.be.revertedWith('DrawHistory/no-draw-history')
+  describe('getOldestDraw()', () => {
+    it('should get the oldest draw without a draw history', async () => {
+      const draw = await drawHistory.getOldestDraw();
+      expect(draw.drawId).to.equal(0)
+      expect(draw.timestamp).to.equal(0)
+      expect(draw.winningRandomNumber).to.equal(0)
     });
 
     it('should convert a draw id to a draw index with 32 draws', async () => {
       await drawHistory.addMultipleDraws(0, 32, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
-      const drawIdToDrawIndex = await drawHistory.drawIdToDrawIndex(1);
-      expect(drawIdToDrawIndex)
+      const draw = await drawHistory.getOldestDraw();
+      expect(draw.drawId).to.equal(0)
+      expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp)
+      expect(draw.winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber)
+    });
+
+    it('should convert a draw id to a draw index with 257 draws', async () => {
+      await drawHistory.addMultipleDraws(0, 128, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      await drawHistory.addMultipleDraws(128, 257, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      const draw = await drawHistory.getOldestDraw();
+      expect(draw.drawId).to.equal(1)
+      expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp)
+      expect(draw.winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber)
+    });
+
+    it('should convert a draw id to a draw index with 513 draws', async () => {
+      await drawHistory.addMultipleDraws(0, 128, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      await drawHistory.addMultipleDraws(128, 256, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      await drawHistory.addMultipleDraws(256, 384, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      await drawHistory.addMultipleDraws(384, 513, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      const draw = await drawHistory.getOldestDraw();
+      expect(draw.drawId).to.equal(257)
+      expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp)
+      expect(draw.winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber)
+
+      expect(await drawHistory.drawIdToDrawIndex(257))
         .to.equal(1)
     });
 
-    it('should convert a draw id to a draw index with 128 draws', async () => {
+  })
+
+  describe('drawIdToDrawIndex()', () => {
+    it('should return draw index 255 from draw id 0 with no draw history', async () => {
+      expect(await drawHistory.drawIdToDrawIndex(0))
+        .to.equal(255)
+    });
+
+    it('should revert when converting draw id 1 with no draw history', async () => {
+      expect(drawHistory.drawIdToDrawIndex(1))
+        .to.be.revertedWith('DrawHistory/drawid-out-of-bounds')
+    });
+
+    it('should convert a draw id 0 to a draw index 0 with 32 draws', async () => {
+      await drawHistory.addMultipleDraws(0, 32, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      const drawIdToDrawIndex = await drawHistory.drawIdToDrawIndex(0);
+      expect(drawIdToDrawIndex)
+        .to.equal(0)
+    });
+
+    it('should convert a draw id 128 to a draw index 128 with 128 draws', async () => {
       await drawHistory.addMultipleDraws(0, 129, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
       const drawIdToDrawIndex = await drawHistory.drawIdToDrawIndex(128);
       expect(drawIdToDrawIndex)
         .to.equal(128)
     });
 
-    it('should convert a draw id to a draw index with 257 draws', async () => {
+    it('should convert a draw id 255/256 to a draw index 255/0 with 257 draws', async () => {
       await drawHistory.addMultipleDraws(0, 128, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
-      await drawHistory.addMultipleDraws(128, 258, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
-      const drawIdToDrawIndex = await drawHistory.drawIdToDrawIndex(256);
-      expect(drawIdToDrawIndex)
+      await drawHistory.addMultipleDraws(128, 257, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      expect(await drawHistory.drawIdToDrawIndex(255))
+        .to.equal(255)
+      expect(await drawHistory.drawIdToDrawIndex(256))
         .to.equal(0)
+    });
+
+    it('should revert with draw expired when converting draw id 0 to draw index after 257 draws', async () => {
+      await drawHistory.addMultipleDraws(0, 128, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      await drawHistory.addMultipleDraws(128, 257, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      expect(drawHistory.drawIdToDrawIndex(0))
+        .to.be.revertedWith('DrawHistory/draw-expired')
     });
   });
 
@@ -168,8 +222,11 @@ describe('DrawHistory', () => {
   });
 
   describe('getDraw()', () => {
-    it('should fail to read non-existent draw', async () => {
-      await expect(drawHistory.getDraw(0)).to.revertedWith('DrawHistory/no-draw-history');
+    it('should read empty draw for drawId 0 when no draw history', async () => {
+      const draw = await drawHistory.getDraw(0)
+      expect(draw.timestamp).to.equal(0);
+      expect(draw.winningRandomNumber).to.equal(0);
+      expect(draw.drawId).to.equal(0);
     });
 
     it('should read the recently created draw struct', async () => {
@@ -188,8 +245,13 @@ describe('DrawHistory', () => {
   });
 
   describe('getDraws()', () => {
-    it('should fail to read draw with no draw history', async () => {
-      await expect(drawHistory.getDraws([0])).to.revertedWith('DrawHistory/no-draw-history');
+    it('should return empty draws when no draw history is available', async () => {
+      const draws = await drawHistory.getDraws([0]);
+      for (let index = 0; index < draws.length; index++) {
+        expect(draws[index].timestamp).to.equal(0);
+        expect(draws[index].winningRandomNumber).to.equal(0);
+        expect(draws[index].drawId).to.equal(0);
+      }
     });
 
     it('should fail to read draws when final draw is is out of bounds ', async () => {
