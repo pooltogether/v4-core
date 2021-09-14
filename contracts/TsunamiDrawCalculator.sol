@@ -93,20 +93,20 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   /* ============ Internal Functions ============ */
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
-  ///@param _userBalances Number of picks the user has for each Draw
+  ///@param _normalizedUserBalances Number of picks the user has for each Draw
   ///@param _userRandomNumber Random number of the user to consider over draws
   ///@param _winningRandomNumbers Winning random numbers for each Draw
   ///@param _pickIndicesForDraws Pick indices for each Draw
-  function _calculatePrizesAwardable(uint256[] memory _userBalances, bytes32 _userRandomNumber, uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws)
+  function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber, uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws)
    internal view returns (uint96[] memory)
    {
 
-    uint96[] memory prizesAwardable = new uint96[](_userBalances.length);
+    uint96[] memory prizesAwardable = new uint96[](_normalizedUserBalances.length);
     
     // calculate for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
       DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
-      uint256 totalUserPicks = (_userBalances[drawIndex] * _drawSettings.numberOfPicks) / 1e18; // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
+      uint256 totalUserPicks = (_normalizedUserBalances[drawIndex] * _drawSettings.numberOfPicks) / 1e18; // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
       prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
     }
     return prizesAwardable;

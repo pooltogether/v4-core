@@ -32,14 +32,14 @@ task('set-draw-settings')
   .addPositionalParam('drawId', 'drawId')
   .addPositionalParam('bitRangeSize', 'bitRangeSize')
   .addPositionalParam('matchCardinality', 'matchCardinality')
-  .addPositionalParam('pickCost', 'pickCost')
+  .addPositionalParam('numberOfPicks', 'numberOfPicks')
   .addPositionalParam('prize', 'prize')
-  .setAction(async function ({ address, drawId, bitRangeSize, matchCardinality, pickCost, prize }) {
+  .setAction(async function ({ address, drawId, bitRangeSize, matchCardinality, numberOfPicks, prize }) {
     const contract = await ethers.getContractAt('DrawHistory', address);
     await contract.setDrawSettings(drawId, {
       bitRangeSize: BigNumber.from(bitRangeSize),
       matchCardinality: BigNumber.from(matchCardinality),
-      pickCost: BigNumber.from(utils.parseEther(`${pickCost}`)),
+      numberOfPicks: BigNumber.from(utils.parseEther(`${numberOfPicks}`)),
       prize: ethers.utils.parseEther(`${prize}`),
       distributions: distributions,
     });
