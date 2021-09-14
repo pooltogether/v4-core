@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 pragma solidity 0.8.6;
-import "hardhat/console.sol";
+
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
@@ -298,7 +298,7 @@ contract DrawBeacon is IDrawBeacon,
   function setDrawPeriodSeconds(uint256 drawPeriodSeconds) external override onlyOwner requireAwardNotInProgress {
     _setDrawPeriodSeconds(drawPeriodSeconds);
   }
-  
+
   /**
     * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngRequestTimeout The RNG request timeout in seconds.
@@ -401,7 +401,7 @@ contract DrawBeacon is IDrawBeacon,
 
     emit RngRequestPeriodSecondsUpdated(_drawPeriodSeconds);
   }
-  
+
   /**
     * @notice Sets the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngRequestTimeout The RNG request timeout in seconds.

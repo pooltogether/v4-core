@@ -7,8 +7,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
 import "./interfaces/ITicket.sol";
@@ -361,10 +359,10 @@ contract Ticket is ControlledToken, ITicket {
     uint256 _amount
   ) internal {
     Account storage _account = userTwabs[_user];
-    // console.log("_increaseUserTwab ", _user);
+
     (TwabLibrary.Twab memory twab, bool isNew) = increaseTwab(_account, _amount);
+
     if (isNew) {
-      // console.log("!!! new twab: ", twab.timestamp);
       emit NewUserTwab(_holder, _user, twab);
     }
   }
@@ -375,10 +373,10 @@ contract Ticket is ControlledToken, ITicket {
     uint256 _amount
   ) internal {
     Account storage _account = userTwabs[_user];
-    // console.log("_decreaseUserTwab ", _user);
+
     (TwabLibrary.Twab memory twab, bool isNew) = decreaseTwab(_account, _amount, "ERC20: burn amount exceeds balance");
+
     if (isNew) {
-      // console.log("!!! new twab: ", twab.timestamp);
       emit NewUserTwab(_holder, _user, twab);
     }
   }
