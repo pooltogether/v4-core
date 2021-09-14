@@ -21,8 +21,8 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice The maximum number of twab entries
   uint16 public constant MAX_CARDINALITY = 65535;
 
-  using SafeERC20Upgradeable for IERC20Upgradeable;
-  using SafeCastUpgradeable for uint256;
+  using SafeERC20 for IERC20Upgradeable;
+  using SafeCast for uint256;
 
   /// @notice A struct containing details for an Account
   /// @param balance The current balance for an Account
@@ -42,6 +42,41 @@ contract Ticket is ControlledToken, ITicket {
     TwabLibrary.Twab[MAX_CARDINALITY] twabs;
   }
 
+  /* ============ Events ============ */
+
+  event Delegated(
+    address indexed user,
+    address indexed delegate
+  );
+
+  /// @notice Emitted when ticket is initialized.
+  /// @param name Ticket name (eg: PoolTogether Dai Ticket (Compound)).
+  /// @param symbol Ticket symbol (eg: PcDAI).
+  /// @param decimals Ticket decimals.
+  /// @param controller Token controller address.
+  event TicketInitialized(
+    string name,
+    string symbol,
+    uint8 decimals,
+    address controller
+  );
+
+  /// @notice Emitted when a new TWAB has been recorded.
+  /// @param ticketHolder The Ticket holder address.
+  /// @param user The recipient of the ticket power (may be the same as the ticketHolder)
+  /// @param newTwab Updated TWAB of a ticket holder after a successful TWAB recording.
+  event NewUserTwab(
+    address indexed ticketHolder,
+    address indexed user,
+    TwabLibrary.Twab newTwab
+  );
+
+  /// @notice Emitted when a new total supply TWAB has been recorded.
+  /// @param newTotalSupplyTwab Updated TWAB of tickets total supply after a successful total supply TWAB recording.
+  event NewTotalSupplyTwab(
+    TwabLibrary.Twab newTotalSupplyTwab
+  );
+
   /// @notice Record of token holders TWABs for each account.
   mapping (address => Account) internal userTwabs;
 
@@ -57,28 +92,33 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice Each address's balance
   mapping(address => uint256) balances;
 
-  /// @notice Initializes Ticket with passed parameters.
+  /* ============ Constructor ============ */
+
+  /// @notice Constructs Ticket with passed parameters.
   /// @param _name ERC20 ticket token name.
   /// @param _symbol ERC20 ticket token symbol.
   /// @param decimals_ ERC20 ticket token decimals.
-  function initialize (
-    string calldata _name,
-    string calldata _symbol,
+  constructor (
+    string memory _name,
+    string memory _symbol,
     uint8 decimals_,
     address _controller
-  ) public virtual override initializer {
-    __ERC20_init(_name, _symbol);
-    __ERC20Permit_init("PoolTogether Ticket");
+  ){
+
+    // __ERC20_init(_name, _symbol);    
+    // __ERC20Permit_init("PoolTogether Ticket");
 
     require(decimals_ > 0, "Ticket/decimals-gt-zero");
     _decimals = decimals_;
 
     require(_controller != address(0), "Ticket/controller-not-zero-address");
 
-    ControlledToken.initialize(_name, _symbol, _decimals, _controller);
+    // ControlledToken.initialize(_name, _symbol, decimals_, _controller);
 
     emit TicketInitialized(_name, _symbol, decimals_, _controller);
   }
+
+    /* ============ External Functions ============ */
 
   /// @notice Gets a users twap context.  This is a struct with their balance, next twab index, and cardinality.
   /// @param _user The user for whom to fetch the TWAB context
@@ -103,37 +143,6 @@ contract Ticket is ControlledToken, ITicket {
     return _getBalanceAt(account.twabs, account.details, _target);
   }
 
-  /// @notice Returns the normalized balance of the user across the totalSupply at a specific timestamp.
-  /// @param _user Address of the user whose TWAB is being fetched.
-  /// @param _targets Timestamp at which the reserved TWAB should be for.
-  /// @return The normalized balance of the user across the totalSupply at a specific timestamp.
-  function getNormalizedBalancesAt(address _user, uint32[] calldata _targets) external view returns (uint256[] memory) {
-    uint256[] memory balances = _getBalancesAt(_user, _targets);
-    uint256[] memory totalSupplies = _getTotalSupplies(_targets);
-    require(balances.length == totalSupplies.length, "Ticket/balances-length-eq-totalsupplies-length");
-
-    uint256[] memory normalizedBalances = new uint256[](totalSupplies.length); 
-    // return balance / getTotalSupply(_target);
-    for (uint256 i = 0; i < balances.length; i++) {
-      require(totalSupplies[i] > 0, "Ticket/totalsupply-gt-zero");
-      normalizedBalances[i] = balances[i] / totalSupplies[i];
-    }
-    return normalizedBalances;
-  }
-
-  /// @notice Retrieves `_user` TWAB balance.
-  /// @param _target Timestamp at which the reserved TWAB should be for.
-  function _getBalanceAt(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target) internal view returns (uint256) {
-    return TwabLibrary.getBalanceAt(
-      _details.cardinality,
-      _details.nextTwabIndex,
-      _twabs,
-      _details.balance,
-      uint32(_target),
-      uint32(block.timestamp)
-    );
-  }
-
   /// @notice Calculates the average balance held by a user for a given time frame.
   /// @param _user The user whose balance is checked
   /// @param _startTime The start time of the time frame.
@@ -144,32 +153,11 @@ contract Ticket is ControlledToken, ITicket {
     return _getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime));
   }
 
-  /// @notice Calculates the average balance held by a user for a given time frame.
-  /// @param _startTime The start time of the time frame.
-  /// @param _endTime The end time of the time frame.
-  /// @return The average balance that the user held during the time frame.
-  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime) internal view returns (uint256) {
-    return TwabLibrary.getAverageBalanceBetween(
-      _details.cardinality,
-      _details.nextTwabIndex,
-      _twabs,
-      _details.balance,
-      _startTime,
-      _endTime,
-      uint32(block.timestamp)
-    );
-  }
-
   /// @notice Retrieves `_user` TWAB balances.
   /// @param _user Address of the user whose TWABs are being fetched.
   /// @param _targets Timestamps at which the reserved TWABs should be for.
   /// @return uint256[] `_user` TWAB balances.
   function getBalancesAt(address _user, uint32[] calldata _targets) external override view returns (uint256[] memory) {
-    return _getBalancesAt(_user, _targets);
-  }
-
-
-  function _getBalancesAt(address _user, uint32[] calldata _targets) internal view returns (uint256[] memory) {
     uint256 length = _targets.length;
     uint256[] memory balances = new uint256[](length);
 
@@ -179,6 +167,7 @@ contract Ticket is ControlledToken, ITicket {
     for(uint256 i = 0; i < length; i++) {
       balances[i] = _getBalanceAt(twabContext.twabs, details, _targets[i]);
     }
+
     return balances;
   }
 
@@ -192,10 +181,6 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _targets Timestamps at which the reserved TWABs should be for.
   /// @return uint256[] ticket TWAB `totalSupplies`.
   function getTotalSupplies(uint32[] calldata _targets) external view override returns (uint256[] memory){
-    return _getTotalSupplies(_targets);
-  }
-
-  function _getTotalSupplies(uint32[] calldata _targets) internal view returns (uint256[] memory){
     uint256 length = _targets.length;
     uint256[] memory totalSupplies = new uint256[](length);
 
@@ -206,18 +191,10 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     return totalSupplies;
-    
   }
-
 
   function delegateOf(address _user) external view returns (address) {
     return delegates[_user];
-  }
-
-  /// @notice Returns the ERC20 ticket token balance of a ticket holder.
-  /// @return uint256 `_user` ticket token balance.
-  function _balanceOf(address _user) internal view returns (uint256) {
-    return balances[_user];
   }
 
   /// @notice Returns the ERC20 ticket token decimals.
@@ -258,6 +235,45 @@ contract Ticket is ControlledToken, ITicket {
     delegates[msg.sender] = to;
 
     emit Delegated(msg.sender, to);
+  }
+
+  /* ============ Internal Functions ============ */
+
+  /// @notice Calculates the average balance held by a user for a given time frame.
+  /// @param _startTime The start time of the time frame.
+  /// @param _endTime The end time of the time frame.
+  /// @return The average balance that the user held during the time frame.
+  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime)
+    internal view returns (uint256) {
+    return TwabLibrary.getAverageBalanceBetween(
+      _details.cardinality,
+      _details.nextTwabIndex,
+      _twabs,
+      _details.balance,
+      _startTime,
+      _endTime,
+      uint32(block.timestamp)
+    );
+  }
+
+  /// @notice Retrieves `_user` TWAB balance.
+  /// @param _target Timestamp at which the reserved TWAB should be for.
+  function _getBalanceAt(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target) 
+    internal view returns (uint256) {
+    return TwabLibrary.getBalanceAt(
+      _details.cardinality,
+      _details.nextTwabIndex,
+      _twabs,
+      _details.balance,
+      uint32(_target),
+      uint32(block.timestamp)
+    );
+  }
+
+  /// @notice Returns the ERC20 ticket token balance of a ticket holder.
+  /// @return uint256 `_user` ticket token balance.
+  function _balanceOf(address _user) internal view returns (uint256) {
+    return balances[_user];
   }
 
   /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
