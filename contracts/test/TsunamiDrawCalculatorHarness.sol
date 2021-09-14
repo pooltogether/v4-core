@@ -27,4 +27,8 @@ contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
   function numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex) external pure returns (uint256) {
     return _numberOfPrizesForIndex(_bitRangeSize, _prizeDistributionIndex);
   }
+
+  function getNormalizedBalancesAt(address _user, uint32[] memory _timestamps) external view returns (uint256[] memory) {
+    return _getNormalizedBalancesAt(_user, _timestamps);
+  }
 }

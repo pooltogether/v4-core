@@ -8,6 +8,7 @@ import "./libraries/DrawLib.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
+import "hardhat/console.sol";
 
 ///@title TsunamiDrawCalculator is an implmentation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
@@ -60,7 +61,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     }
     require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
-    uint256[] memory userBalances = ticket.getBalancesAt(_user, _timestamps); // returns the fraction of the users balance base 1e18
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps);
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
     return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices);
@@ -115,9 +116,33 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
   ///@param _drawSettings The DrawSettings to consider
   ///@param _normalizedUserBalance The normalized user balances to consider
-  function _calculateNumberOfUserPicks(DrawLib.DrawSettings memory _drawSettings, uint256 _normalizedUserBalance) internal pure returns (uint256) {
+  function _calculateNumberOfUserPicks(DrawLib.DrawSettings memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
     // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
-    return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1e18; 
+    console.log("normalizedUserBalance ", _normalizedUserBalance);
+    uint256 numberOfPicks = (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether; 
+    console.log("numberOfPicks for draw ", numberOfPicks);
+    return numberOfPicks;
+  }
+
+  ///@notice Calculates the normalized balance of a user against the total supply for timestamps
+  ///@param _user The user to consider
+  ///@param _timestamps The timestamps to consider
+  ///@return An array of normalized balances
+  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps) internal view returns (uint256[] memory) {
+    uint256[] memory normalizedBalances = new uint256[](_timestamps.length);
+    
+    uint256[] memory balances = ticket.getBalancesAt(_user, _timestamps);
+    uint256[] memory totalSupplies = ticket.getTotalSupplies(_timestamps);
+  
+    for (uint256 i = 0; i < _timestamps.length; i++) {
+
+      require(totalSupplies[i] > 0, "DrawCalc/total-supply-zero");
+      console.log("balance ", balances[i]);
+      console.log("totalSupply ", totalSupplies[i]);
+      normalizedBalances[i] = balances[i] * 1 ether / totalSupplies[i];
+      console.log("normalizedBalances ", normalizedBalances[i]);
+    }
+    return normalizedBalances;
   }
 
 

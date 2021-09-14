@@ -68,7 +68,7 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
-  describe.only('setDrawSettings()', () => {
+  describe('setDrawSettings()', () => {
     it('should not allow anyone else to set', async () => {
       const drawSettings: DrawSettings = {
         matchCardinality: BigNumber.from(5),
@@ -78,7 +78,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        numberOfPicks: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from("100"),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
       };
@@ -465,7 +465,7 @@ describe('TsunamiDrawCalculator', () => {
       beforeEach(async () => {
         drawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-          numberOfPicks: BigNumber.from(utils.parseEther('1')),
+          numberOfPicks: BigNumber.from("10000"),
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('100'),
@@ -484,12 +484,15 @@ describe('TsunamiDrawCalculator', () => {
         const timestamp = 42;
         const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
         const ticketBalance = utils.parseEther('10');
-        console.log("mocking getBalancesAt()")
+        const totalSupply = utils.parseEther('100');
+        
         await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): [balance]
+        await ticket.mock.getTotalSupplies.withArgs([timestamp]).returns([totalSupply]); 
+
 
         const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp) }
 
-        console.log("calculate()")
+        
         const prizesAwardable = await drawCalculator.calculate(
           wallet1.address,
           [draw],
@@ -510,7 +513,7 @@ describe('TsunamiDrawCalculator', () => {
         );
       });
 
-      it('should calculate and win grand prize multiple picks', async () => {
+      it('should calculate 1000 picks', async () => {
         const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
         const winningRandomNumber = utils.solidityKeccak256(
           ['bytes32', 'uint256'],
@@ -520,9 +523,12 @@ describe('TsunamiDrawCalculator', () => {
         const timestamp = 42;
         const prizes = [utils.parseEther('100')];
         const pickIndices = encoder.encode(['uint256[][]'], [[[...new Array<number>(1000).keys()]]]);
-        const ticketBalance = utils.parseEther('20000');
+        const totalSupply = utils.parseEther("10000")
+        const ticketBalance = utils.parseEther('1000'); // 10 percent of total supply
+        // drawSettings.numberOfPicks = 10000 so user has 1000 picks
 
         await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+        await ticket.mock.getTotalSupplies.withArgs([timestamp]).returns([totalSupply]); 
 
         const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp) }
 
@@ -559,6 +565,8 @@ describe('TsunamiDrawCalculator', () => {
         const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
         const ticketBalance = utils.parseEther('10');
         const ticketBalance2 = utils.parseEther('10');
+        const totalSupply1 = utils.parseEther('100');
+        const totalSupply2 = utils.parseEther('100');
 
 
         const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp1) }
@@ -570,6 +578,8 @@ describe('TsunamiDrawCalculator', () => {
           .withArgs(wallet1.address, [timestamp1, timestamp2])
           .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
+        await ticket.mock.getTotalSupplies.withArgs([timestamp1, timestamp2]).returns([totalSupply1, totalSupply2]); 
+        
         const drawSettings2: DrawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
           numberOfPicks: BigNumber.from(utils.parseEther('1')),
@@ -613,13 +623,18 @@ describe('TsunamiDrawCalculator', () => {
 
         const timestamp1 = 42;
         const timestamp2 = 51;
+        const totalSupply1 = utils.parseEther('100');
+        const totalSupply2 = utils.parseEther('100');
+
         const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
-        const ticketBalance = ethers.utils.parseEther('0.6'); // they had 0.6 of all tickets
+        const ticketBalance = ethers.utils.parseEther('6'); // they had 0.6 of all tickets
         // the first draw the user has 1 pick and the second draw has 0 picks
         const ticketBalance2 = ethers.utils.parseEther('0.3'); // they had 0.3 of all tickets
         await ticket.mock.getBalancesAt
           .withArgs(wallet1.address, [timestamp1, timestamp2])
           .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
+        
+        await ticket.mock.getTotalSupplies.withArgs([timestamp1, timestamp2]).returns([totalSupply1, totalSupply2]);   
 
         const drawSettings: DrawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
@@ -648,11 +663,14 @@ describe('TsunamiDrawCalculator', () => {
         const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
         const userRandomNumber = utils.solidityKeccak256(['bytes32', 'uint256'], [winningNumber, 1]);
         const timestamp = 42;
+        const totalSupply = utils.parseEther('100');
 
         const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
         const ticketBalance = utils.parseEther('10');
 
         await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+        await ticket.mock.getTotalSupplies.withArgs([timestamp]).returns([totalSupply]);   
+
 
         const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(userRandomNumber), timestamp: BigNumber.from(timestamp) }
 
