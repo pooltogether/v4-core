@@ -166,12 +166,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     for(uint256 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
       uint256 mask = _masks[matchIndex];
       if((_randomNumberThisPick & mask) != (_winningRandomNumber & mask)){
+        // there are no more sequential matches since this comparison is not a match
         return masksLength - numberOfMatches;
       }
       // else there was a match
       numberOfMatches++;
     }
-    return _masks.length - numberOfMatches; // will this now be 0 all the time?
+    return masksLength - numberOfMatches; 
   }
 
 
@@ -199,16 +200,24 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@return returns the fraction of the total prize (base 1e18)
   function _calculatePrizeDistributionFraction(DrawLib.DrawSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal pure returns (uint256) 
   {
-    uint256 bitRangeDecimal = 2 ** uint256(_drawSettings.bitRangeSize);
-    uint256 numberOfPrizesForIndex = bitRangeDecimal** _prizeDistributionIndex;
+    uint256 prizeDistribution = _drawSettings.distributions[_prizeDistributionIndex];
+    uint256 numberOfPrizesForIndex = _numberOfPrizesForIndex(_drawSettings.bitRangeSize, _prizeDistributionIndex);
+    return prizeDistribution / numberOfPrizesForIndex;
+  }
+
+  ///@notice Calculates the number of prizes for a given prizeDistributionIndex
+  ///@param _bitRangeSize DrawSettings struct for Draw
+  ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
+  ///@return returns the fraction of the total prize (base 1e18)
+  function _numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex) internal pure returns (uint256) {
+    uint256 bitRangeDecimal = 2 ** uint256(_bitRangeSize);
+    uint256 numberOfPrizesForIndex = bitRangeDecimal ** _prizeDistributionIndex;
     
     if(_prizeDistributionIndex > 0){
       numberOfPrizesForIndex -= bitRangeDecimal ** (_prizeDistributionIndex - 1);
     }
-
-    uint256 prizeDistribution = _drawSettings.distributions[_prizeDistributionIndex];
-    return prizeDistribution / numberOfPrizesForIndex;
-  } 
+    return numberOfPrizesForIndex;
+  }
 
   ///@notice Set the DrawCalculators DrawSettings
   ///@dev Distributions must be expressed with Ether decimals (1e18)

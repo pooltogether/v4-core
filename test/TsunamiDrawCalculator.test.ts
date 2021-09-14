@@ -17,6 +17,17 @@ export async function deployDrawCalculator(signer: any): Promise<Contract> {
   return drawCalculator;
 }
 
+function calculateNumberOfWinnersAtIndex(bitRangeSize: number, distributionIndex: number): number {
+  // Prize Count = (2**bitRange)**(cardinality-numberOfMatches)
+  // if not grand prize: - (2^bitRange)**(cardinality-numberOfMatches-1)
+
+  let prizeCount = ((2 ** bitRangeSize) ** (distributionIndex))
+  if(distributionIndex > 0) {
+    prizeCount -=  (2 ** bitRangeSize) ** (distributionIndex -1);
+  }
+  return prizeCount;
+}
+
 describe('TsunamiDrawCalculator', () => {
   let drawCalculator: Contract; let ticket: MockContract; let claimableDraw: MockContract;
   let wallet1: any;
@@ -180,17 +191,72 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
       };
       const amount = await drawCalculator.calculatePrizeDistributionFraction(drawSettings, BigNumber.from(1));
-      // Prize Count = (2**bitRange)**(cardinality-numberOfMatches)
-      // if not grand prize: - (2^bitRange)**(cardinality-numberOfMatches-1)
-      const prizeCount = ((2 ** drawSettings.bitRangeSize.toNumber()) ** (1)) - (2 ** drawSettings.bitRangeSize.toNumber()) ** (1-1);
-      const expectedPrize = drawSettings.distributions[1].div(prizeCount)
-      expect(amount).to.equal(expectedPrize);
+
+      const prizeCount = calculateNumberOfWinnersAtIndex(drawSettings.bitRangeSize.toNumber(), 1)
+      const expectedPrizeFraction = drawSettings.distributions[1].div(prizeCount)
+      expect(amount).to.equal(expectedPrizeFraction);
     })
+    it('all distribution indexes', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.5'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1')
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      for(let numberOfMatches = 0; numberOfMatches < drawSettings.distributions.length; numberOfMatches++) {
+        
+        const distributionIndex = BigNumber.from(drawSettings.distributions.length - numberOfMatches - 1) // minus one because we start at 0
+        const fraction = await drawCalculator.calculatePrizeDistributionFraction(drawSettings, distributionIndex);
 
-
+        let prizeCount = calculateNumberOfWinnersAtIndex(drawSettings.bitRangeSize.toNumber(), distributionIndex.toNumber())
+        
+        const expectedPrizeFraction = drawSettings.distributions[distributionIndex.toNumber()].div(prizeCount)
+        expect(fraction).to.equal(expectedPrizeFraction);
+      }
+    })
   })
 
+  describe('numberOfPrizesForIndex()', () => {
+    it('calculates the number of prizes at distribution index 0', async () => {
+      const bitRangeSize = 2
+      const result = await drawCalculator.numberOfPrizesForIndex(bitRangeSize, BigNumber.from(0));
+      expect(result).to.equal(1); // grand prize
+    })
 
+    it('calculates the number of prizes at distribution index 0', async () => {
+      const bitRangeSize = 3
+      const result = await drawCalculator.numberOfPrizesForIndex(bitRangeSize, BigNumber.from(4));
+      // (2 ^ 3) ^  4 - (2 ^ 3) ^ (4-1) = 4096 - 512 = 3584
+      expect(result).to.equal(3584)
+    })
+
+    it('calculates the number of prizes at all distribution indices', async () => {
+      let drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.5'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1')
+        ],
+        pickCost: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      for(let distributionIndex = 0; distributionIndex < drawSettings.distributions.length; distributionIndex++) {
+        const result = await drawCalculator.numberOfPrizesForIndex(drawSettings.bitRangeSize, distributionIndex);
+        const expectedNumberOfWinners = calculateNumberOfWinnersAtIndex(drawSettings.bitRangeSize.toNumber(), distributionIndex)
+        expect(result).to.equal(expectedNumberOfWinners);
+      }
+    })
+
+  })
 
   describe('calculatePrizeDistributionFraction()', () => {
     it('calculates distribution index 0', async () => {
@@ -209,7 +275,7 @@ describe('TsunamiDrawCalculator', () => {
 
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       const winningRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70"
-      const userRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70" // intentianlly same as winning random number
+      const userRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70" // intentionally same as winning random number
       const prizeDistributionIndex: BigNumber = await drawCalculator.calculateDistributionIndex(userRandomNumber, winningRandomNumber, bitMasks)
       // all numbers match so grand prize!
       expect(prizeDistributionIndex).to.eq(BigNumber.from(0))
