@@ -114,10 +114,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   }
 
   ///@notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
+  ///@dev Divided by 1e18 since the normalized user balance is stored as a base 18 number
   ///@param _drawSettings The DrawSettings to consider
   ///@param _normalizedUserBalance The normalized user balances to consider
   function _calculateNumberOfUserPicks(DrawLib.DrawSettings memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
-    // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
     return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether;
   }
 
