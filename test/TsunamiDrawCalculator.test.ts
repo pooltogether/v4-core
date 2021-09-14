@@ -40,7 +40,7 @@ describe('TsunamiDrawCalculator', () => {
     [wallet1, wallet2, wallet3] = await getSigners();
     drawCalculator = await deployDrawCalculator(wallet1);
 
-    let ticketArtifact = await artifacts.readArtifact('Ticket');
+    let ticketArtifact = await artifacts.readArtifact('ITicket');
     ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
     let claimableDrawArtifact = await artifacts.readArtifact('ClaimableDraw');
@@ -78,7 +78,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
       };
@@ -94,7 +94,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
       };
@@ -119,7 +119,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
       };
@@ -136,7 +136,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(0),
         prize: ethers.utils.parseEther('1'),
       };
@@ -170,7 +170,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
       };
@@ -186,7 +186,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
       };
@@ -268,7 +268,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
       };
@@ -345,7 +345,7 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(6),
         prize: ethers.utils.parseEther('1'),
       };
@@ -385,19 +385,20 @@ describe('TsunamiDrawCalculator', () => {
           ethers.utils.parseEther('0.1'),
           ethers.utils.parseEther('0.1'),
         ],
-        pickCost: BigNumber.from(utils.parseEther("1")),
+        numberOfPicks: BigNumber.from(utils.parseEther("10")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
       };
+      
       await claimableDraw.mock.setDrawCalculator.withArgs(70, drawCalculator.address).returns(drawCalculator.address);
       await drawCalculator.setDrawSettings(70, drawSettings);
-
+      
       const result = await drawCalculator.getDrawSettings(70);
       
       expect(result.matchCardinality).to.equal(drawSettings.matchCardinality)
       expect(result.bitRangeSize).to.equal(drawSettings.bitRangeSize)
       expect(result.prize).to.equal(drawSettings.prize)
-      expect(result.pickCost).to.equal(drawSettings.pickCost)
+      expect(result.numberOfPicks).to.equal(drawSettings.numberOfPicks)
       expect(result.distributions.length).to.equal(drawSettings.distributions.length)
       for(let i =0; i < result.distributions.length; i++) {
         expect(result.distributions[i]).to.deep.equal(drawSettings.distributions[i])
@@ -405,7 +406,7 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
-  describe('calculate()', () => {
+  describe.only('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
     context('with draw 0 set', () => {
@@ -413,7 +414,7 @@ describe('TsunamiDrawCalculator', () => {
       beforeEach(async () => {
         drawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-          pickCost: BigNumber.from(utils.parseEther('1')),
+          numberOfPicks: BigNumber.from(utils.parseEther('1')),
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('100'),
@@ -432,12 +433,12 @@ describe('TsunamiDrawCalculator', () => {
         const timestamp = 42;
         const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
         const ticketBalance = utils.parseEther('10');
-
-        await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): balance
+        console.log("mocking getBalancesAt()")
+        await ticket.mock.getBalancesAt.withArgs(wallet1.address, [timestamp]).returns([ticketBalance]); // (user, timestamp): [balance]
 
         const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamp) }
 
-
+        console.log("calculate()")
         const prizesAwardable = await drawCalculator.calculate(
           wallet1.address,
           [draw],
@@ -520,7 +521,7 @@ describe('TsunamiDrawCalculator', () => {
 
         const drawSettings2: DrawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-          pickCost: BigNumber.from(utils.parseEther('1')),
+          numberOfPicks: BigNumber.from(utils.parseEther('1')),
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('20'),
@@ -571,7 +572,7 @@ describe('TsunamiDrawCalculator', () => {
 
         const drawSettings: DrawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-          pickCost: BigNumber.from(utils.parseEther("10")),
+          numberOfPicks: BigNumber.from(utils.parseEther("10")),
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('100'),
