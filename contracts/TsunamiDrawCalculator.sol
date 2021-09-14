@@ -6,8 +6,6 @@ import "./interfaces/ITicket.sol";
 import "./ClaimableDraw.sol";
 import "./libraries/DrawLib.sol";
 
-import "hardhat/console.sol";
-
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
@@ -109,8 +107,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
       DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
       uint256 totalUserPicks = (_userBalances[drawIndex] * _drawSettings.numberOfPicks) / 1e18; // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
-      console.log("totalUserPicks", totalUserPicks);
-
       prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
     }
     return prizesAwardable;
