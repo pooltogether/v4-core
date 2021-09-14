@@ -146,7 +146,7 @@ function PoolEnv() {
     drawId,
     bitRangeSize,
     matchCardinality,
-    pickCost,
+    numberOfPicks,
     distributions,
     prize
   }) {
@@ -154,7 +154,7 @@ function PoolEnv() {
     const drawSettings = {
       bitRangeSize,
       matchCardinality,
-      pickCost,
+      numberOfPicks,
       distributions,
       prize,
     }

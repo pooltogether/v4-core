@@ -21,14 +21,14 @@ describe('Oracle jobs', () => {
     await env.draw({ randomNumber: 1 })
     bitRangeSize = 2
     matchCardinality = 2
-    pickCost = toWei(1)
+    numberOfPicks = toWei(1)
     distributions = [toWei(1)]
     prize = toWei(10)
     await env.setDrawSettings({
       drawId: 0,
       bitRangeSize,
       matchCardinality,
-      pickCost,
+      numberOfPicks,
       distributions,
       prize
     })

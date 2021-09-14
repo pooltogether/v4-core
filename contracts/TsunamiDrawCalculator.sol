@@ -6,6 +6,8 @@ import "./interfaces/ITicket.sol";
 import "./ClaimableDraw.sol";
 import "./libraries/DrawLib.sol";
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
@@ -54,15 +56,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     uint32[] memory _timestamps = new uint32[](_draws.length);
     uint256[] memory _winningRandomNumbers = new uint256[](_draws.length);
 
-    uint256[] memory userBalances = ticket.getBalancesAt(_user, _timestamps);
-    
-
     for(uint256 i = 0; i < _draws.length; i++){
       _timestamps[i] = _draws[i].timestamp;
       _winningRandomNumbers[i] = _draws[i].winningRandomNumber;
     }
     require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
+    uint256[] memory userBalances = ticket.getBalancesAt(_user, _timestamps); // returns the fraction of the users balance base 1e18
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
     return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices);
@@ -108,7 +108,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     // calculate for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
       DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
-      uint256 totalUserPicks = _userBalances[drawIndex] * _drawSettings.numberOfPicks;
+      uint256 totalUserPicks = (_userBalances[drawIndex] * _drawSettings.numberOfPicks) / 1e18; // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
+      console.log("totalUserPicks", totalUserPicks);
+
       prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
     }
     return prizesAwardable;

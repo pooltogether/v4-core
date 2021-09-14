@@ -40,7 +40,7 @@ describe('TsunamiDrawCalculator', () => {
     [wallet1, wallet2, wallet3] = await getSigners();
     drawCalculator = await deployDrawCalculator(wallet1);
 
-    let ticketArtifact = await artifacts.readArtifact('ITicket');
+    let ticketArtifact = await artifacts.readArtifact('Ticket');
     ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
     let claimableDrawArtifact = await artifacts.readArtifact('ClaimableDraw');
@@ -406,7 +406,7 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
-  describe.only('calculate()', () => {
+  describe('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
     context('with draw 0 set', () => {
@@ -563,16 +563,16 @@ describe('TsunamiDrawCalculator', () => {
         const timestamp1 = 42;
         const timestamp2 = 51;
         const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
-        const ticketBalance = utils.parseEther('10');
-        const ticketBalance2 = utils.parseEther('0.4');
-
+        const ticketBalance = ethers.utils.parseEther('0.6'); // they had 0.6 of all tickets
+        // the first draw the user has 1 pick and the second draw has 0 picks
+        const ticketBalance2 = ethers.utils.parseEther('0.3'); // they had 0.3 of all tickets
         await ticket.mock.getBalancesAt
           .withArgs(wallet1.address, [timestamp1, timestamp2])
           .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
         const drawSettings: DrawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
-          numberOfPicks: BigNumber.from(utils.parseEther("10")),
+          numberOfPicks: BigNumber.from(1),
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('100'),
