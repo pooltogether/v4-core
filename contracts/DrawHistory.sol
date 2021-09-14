@@ -12,6 +12,11 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     * @notice Next ring buffer index position when pushing a new draw. 
   */
   uint32 public nextDrawIndex;
+  
+   /**
+    * @notice Total draws pushed to the draw history.
+  */
+  uint32 public totalDraws;
 
   /**
     * @notice Ring buffer array size.
@@ -76,22 +81,35 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     * @return draws Draw structs
   */
   function getDraws(uint32[] calldata drawIds) external view override returns(DrawLib.Draw[] memory) {
-    uint32 drawIndex;
     DrawLib.Draw[] memory draws = new DrawLib.Draw[](drawIds.length);
     for (uint256 index = 0; index < drawIds.length; index++) {
-      drawIndex = _drawIdToDrawIndex(drawIds[index]);
-      draws[index] = _draws[drawIndex];
+      draws[index] = _draws[_drawIdToDrawIndex(drawIds[index])];
     }
     return draws;
   }
 
   /**
-    * @notice External function to get the last draw.
-    * @dev    External function to get the last draw using the nextDrawIndex.
+    * @notice External function to get the newest draw.
+    * @dev    External function to get the newest draw using the nextDrawIndex.
+    * @return Newest draw
+  */
+  function getNewestDraw() external view returns (DrawLib.Draw memory) {
+    return _getNewestDraw(nextDrawIndex);
+  }
+
+  /**
+    * @notice Function to get the oldest draw.
+    * @dev    Function to get the oldest draw using the totalDraws.
     * @return Last draw
   */
-  function getLastDraw() external view returns (DrawLib.Draw memory) {
-    return _getLastDraw(nextDrawIndex);
+  function getOldestDraw() external view returns (DrawLib.Draw memory) {
+    uint256 _totalDraws = totalDraws;
+    uint256 _nextDrawIndex = nextDrawIndex;
+    if(_totalDraws < CARDINALITY) {
+      return _draws[_nextDrawIndex - _totalDraws];
+    } else {
+      return _draws[(_totalDraws - CARDINALITY) % CARDINALITY];
+    }
   }
 
   /**
@@ -115,6 +133,27 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     return _setDraw(drawIndex, newDraw);
   }
 
+  /* ============ Pure Functions ============ */
+
+  /**
+    * @dev    Calculates a ring buffer position using the next index and delta index
+    * @param _nextBufferIndex Next ring buffer index 
+    * @param _deltaIndex Delta index 
+    * @return Ring buffer index pointer
+  */
+  function _bufferPosition(uint256 _nextBufferIndex, uint32 _deltaIndex) internal pure returns (uint32) {
+    return _wrapCardinality(((_nextBufferIndex + CARDINALITY) - 1) - _deltaIndex);
+  }
+
+  /**
+    * @dev    Modulo index with ring buffer cardinality.
+    * @param _index Ring buffer index 
+    * @return Ring buffer index pointer
+  */
+  function _wrapCardinality(uint256 _index) internal pure returns (uint32) {
+    return uint32(_index % CARDINALITY);
+  }
+
   /* ============ Internal Functions ============ */
 
   /**
@@ -125,20 +164,11 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   function _drawIdToDrawIndex(uint32 _drawId) internal view returns (uint32) {
     uint32 _nextDrawIndex = nextDrawIndex;
-    DrawLib.Draw memory _lastDraw;
-    // Read the most recently pushed draw in the ring buffer.
-    if(_nextDrawIndex == 0) {
-      // If nextDrawIndex is 0 the DrawHistory either has NO draws or the ring buffer has looped. Read from the end of the ring buffer if current position is 0.
-      _lastDraw = _draws[CARDINALITY - 1];
-      // If the draw at the end draws array has no timestamp we can assume no draws have been created.
-      require(_lastDraw.timestamp > 0, "DrawHistory/no-draw-history");
-    } else {
-      _lastDraw = _draws[_nextDrawIndex - 1];
-    }
+    DrawLib.Draw memory _lastDraw = _getNewestDraw(_nextDrawIndex);
     require(_drawId + CARDINALITY > _lastDraw.drawId, "DrawHistory/draw-expired");
     require(_drawId <= _lastDraw.drawId, "DrawHistory/drawid-out-of-bounds");
-    uint256 deltaIndex = _lastDraw.drawId - _drawId;
-    return uint32(((_nextDrawIndex - 1) - deltaIndex) % CARDINALITY);
+    uint256 _deltaIndex = _lastDraw.drawId - _drawId;
+    return _bufferPosition(_nextDrawIndex, uint32(_deltaIndex));
   }
 
   /**
@@ -146,12 +176,8 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     * @dev    Internal function to get the last draw using the nextDrawIndex.
     * @return Last draw
   */
-  function _getLastDraw(uint256 _nextDrawIndex) internal view returns (DrawLib.Draw memory) {
-    if(_nextDrawIndex == 0) {
-      return _draws[CARDINALITY - 1];
-    } else {
-      return _draws[_nextDrawIndex - 1];
-    }
+  function _getNewestDraw(uint256 _nextDrawIndex) internal view returns (DrawLib.Draw memory) {
+    return _draws[_wrapCardinality((_nextDrawIndex + CARDINALITY) - 1)];
   }
 
   /**
@@ -162,13 +188,14 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   function _pushDraw(DrawLib.Draw memory _newDraw) internal returns (uint32) {
     uint32 _nextDrawIndex = nextDrawIndex;
-    DrawLib.Draw memory _lastDraw = _getLastDraw(_nextDrawIndex);
-    if (_lastDraw.timestamp != 0) {
-      require(_newDraw.drawId == _lastDraw.drawId + 1, "DrawHistory/nonsequential-draw");
+    DrawLib.Draw memory _newestDraw = _getNewestDraw(_nextDrawIndex);
+    if (_newestDraw.timestamp != 0) {
+      require(_newDraw.drawId == _newestDraw.drawId + 1, "DrawHistory/nonsequential-draw");
     }
     _draws[_nextDrawIndex] = _newDraw;
     emit DrawSet(_nextDrawIndex, _newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);
-    nextDrawIndex = (_nextDrawIndex + 1) % CARDINALITY;
+    nextDrawIndex = _wrapCardinality(_nextDrawIndex + 1);
+    totalDraws += 1;
     return _newDraw.drawId;
   } 
 
