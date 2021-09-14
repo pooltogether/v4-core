@@ -133,6 +133,18 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     return _setDraw(drawIndex, newDraw);
   }
 
+  /* ============ Pure Functions ============ */
+
+  /**
+    * @dev    Calculates a ring buffer position using the next index and delta index
+    * @param _nextBufferIndex Next ring buffer index 
+    * @param _deltaIndex Delta index 
+    * @return Ring buffer index pointer
+  */
+  function _bufferPosition(uint256 _nextBufferIndex, uint32 _deltaIndex) internal pure returns (uint32) {
+    return uint32((((_nextBufferIndex + CARDINALITY) - 1) - _deltaIndex) % CARDINALITY);
+  }
+
   /* ============ Internal Functions ============ */
 
   /**
@@ -143,11 +155,11 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   function _drawIdToDrawIndex(uint32 _drawId) internal view returns (uint32) {
     uint32 _nextDrawIndex = nextDrawIndex;
-    DrawLib.Draw memory _lastDraw = _draws[((_nextDrawIndex + CARDINALITY) - 1) % CARDINALITY];
+    DrawLib.Draw memory _lastDraw = _getNewestDraw(_nextDrawIndex);
     require(_drawId + CARDINALITY > _lastDraw.drawId, "DrawHistory/draw-expired");
     require(_drawId <= _lastDraw.drawId, "DrawHistory/drawid-out-of-bounds");
-    uint256 deltaIndex = _lastDraw.drawId - _drawId;
-    return uint32((((_nextDrawIndex + CARDINALITY) - 1) - deltaIndex) % CARDINALITY);
+    uint32 _deltaIndex = uint32(_lastDraw.drawId - _drawId);
+    return _bufferPosition(_nextDrawIndex, _deltaIndex);
   }
 
   /**

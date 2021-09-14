@@ -1,12 +1,14 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { constants, Contract, ContractFactory } from 'ethers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 const { getSigners } = ethers;
 const { AddressZero } = constants;
+
 describe('DrawHistory', () => {
-  let wallet1: any;
-  let wallet2: any;
-  let wallet3: any;
+  let wallet1: SignerWithAddress;
+  let wallet2: SignerWithAddress;
+  let wallet3: SignerWithAddress;
   let drawHistory: Contract;
 
   const DRAW_SAMPLE_CONFIG = {
@@ -25,6 +27,38 @@ describe('DrawHistory', () => {
     drawHistory = await drawHistoryFactory.deploy();
     await drawHistory.initialize(wallet1.address);
   });
+
+  describe('bufferPosition()', () => { // Assumes CARDINALITY OF 256
+    it('should mock buffer position with no draw history', async () => {
+      expect(await drawHistory.bufferPosition(0, 0))
+        .to.equal(255);
+    });
+
+    it('should mock buffer position with 10 draws requesting draw 6', async () => {
+      expect(await drawHistory.bufferPosition(10, 5))
+        .to.equal(4);
+    });
+
+    it('should mock buffer position with 128 draws requesting draw 127', async () => {
+      expect(await drawHistory.bufferPosition(128, 126))
+        .to.equal(1);
+    });
+
+    it('should mock buffer position after 256 draws requesting draw 255', async () => {
+      expect(await drawHistory.bufferPosition(0, 1))
+        .to.equal(254);
+    });
+
+    it('should mock buffer position after 255 draws requesting draw 129', async () => {
+      expect(await drawHistory.bufferPosition(255, 128))
+        .to.equal(126);
+    });
+
+    it('should mock buffer position after 256 draws requesting draw 129', async () => {
+      expect(await drawHistory.bufferPosition(0, 128))
+        .to.equal(127);
+    });
+  })
 
   describe('draws()', () => {
     it('should get all draws without history', async () => {
