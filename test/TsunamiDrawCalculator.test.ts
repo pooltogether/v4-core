@@ -457,6 +457,36 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
+  describe("getNormalizedBalancesAt()", () => {
+    it("calculates the correct normalized balance", async () => {
+      const timestamps = [42,77]
+
+      await ticket.mock.getBalancesAt.withArgs(wallet1.address, timestamps).returns([utils.parseEther("20"), utils.parseEther("30")]); // (user, timestamp): [balance]
+      await ticket.mock.getTotalSupplies.withArgs(timestamps).returns([utils.parseEther("100"), utils.parseEther("600")]); 
+      const userNormalizedBalances = await drawCalculator.getNormalizedBalancesAt(wallet1.address, timestamps)
+      expect(userNormalizedBalances[0]).to.eq(utils.parseEther("0.2"))
+      expect(userNormalizedBalances[1]).to.eq(utils.parseEther("0.05"))
+    })
+    it("reverts when totalSupply is zero", async () => {
+      const timestamps = [42]
+
+      await ticket.mock.getBalancesAt.withArgs(wallet1.address, timestamps).returns([utils.parseEther("0"), utils.parseEther("30")]); // (user, timestamp): [balance]
+      await ticket.mock.getTotalSupplies.withArgs(timestamps).returns([utils.parseEther("0"), utils.parseEther("600")]); 
+      await expect(drawCalculator.getNormalizedBalancesAt(wallet1.address, timestamps)).to.be.revertedWith("DrawCalc/total-supply-zero")
+    })
+
+    it("returns zero when the balance is very small", async () => {
+      const timestamps = [42]
+
+      await ticket.mock.getBalancesAt.withArgs(wallet1.address, timestamps).returns([utils.parseEther("0.00000000000000001")]); // (user, timestamp): [balance]
+      await ticket.mock.getTotalSupplies.withArgs(timestamps).returns([utils.parseEther("1000")]); 
+      const result = await drawCalculator.getNormalizedBalancesAt(wallet1.address, timestamps)
+      expect(result[0]).to.eq(BigNumber.from(0))
+    })
+
+  })
+
+
   describe('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 

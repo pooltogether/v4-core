@@ -8,7 +8,7 @@ import "./libraries/DrawLib.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
-import "hardhat/console.sol";
+
 
 ///@title TsunamiDrawCalculator is an implmentation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
@@ -118,10 +118,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _normalizedUserBalance The normalized user balances to consider
   function _calculateNumberOfUserPicks(DrawLib.DrawSettings memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
     // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
-    console.log("normalizedUserBalance ", _normalizedUserBalance);
-    uint256 numberOfPicks = (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether; 
-    console.log("numberOfPicks for draw ", numberOfPicks);
-    return numberOfPicks;
+    return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether;
   }
 
   ///@notice Calculates the normalized balance of a user against the total supply for timestamps
@@ -135,12 +132,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     uint256[] memory totalSupplies = ticket.getTotalSupplies(_timestamps);
   
     for (uint256 i = 0; i < _timestamps.length; i++) {
-
       require(totalSupplies[i] > 0, "DrawCalc/total-supply-zero");
-      console.log("balance ", balances[i]);
-      console.log("totalSupply ", totalSupplies[i]);
       normalizedBalances[i] = balances[i] * 1 ether / totalSupplies[i];
-      console.log("normalizedBalances ", normalizedBalances[i]);
     }
     return normalizedBalances;
   }
