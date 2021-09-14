@@ -406,6 +406,43 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
+  describe("calculateNumberOfUserPicks()", () => {
+    it("calculates the correct number of user picks", async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        numberOfPicks: BigNumber.from("100"),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      const normalizedUsersBalance = utils.parseEther("0.05") // has 5% of the total supply
+      const userPicks = await drawCalculator.calculateNumberOfUserPicks(drawSettings, normalizedUsersBalance)
+      expect(userPicks).to.eq(BigNumber.from(5))
+    })
+    it("calculates the correct number of user picks", async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        numberOfPicks: BigNumber.from("100000"),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+      };
+      const normalizedUsersBalance = utils.parseEther("0.1") // has 10% of the total supply
+      const userPicks = await drawCalculator.calculateNumberOfUserPicks(drawSettings, normalizedUsersBalance)
+      expect(userPicks).to.eq(BigNumber.from(10000)) // 10% of numberOfPicks
+    })
+  })
+
   describe('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 

@@ -106,11 +106,20 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     // calculate for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
       DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
-      uint256 totalUserPicks = (_normalizedUserBalances[drawIndex] * _drawSettings.numberOfPicks) / 1e18; // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
+      uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings, _normalizedUserBalances[drawIndex]);
       prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
     }
     return prizesAwardable;
   }
+
+  ///@notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
+  ///@param _drawSettings The DrawSettings to consider
+  ///@param _normalizedUserBalance The normalized user balances to consider
+  function _calculateNumberOfUserPicks(DrawLib.DrawSettings memory _drawSettings, uint256 _normalizedUserBalance) internal pure returns (uint256) {
+    // (fraction of users balance of the total supply * numberOfPicks) / 1e18 (normalize pick fraction)
+    return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1e18; 
+  }
+
 
   ///@notice calculates the prize amount per Draw per users pick
   ///@param _winningRandomNumber The Draw's winningRandomNumber
