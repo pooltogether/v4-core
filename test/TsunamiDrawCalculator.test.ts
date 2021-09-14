@@ -645,6 +645,7 @@ describe('TsunamiDrawCalculator', () => {
       });
 
       it('should not have enough funds for a second pick and revert', async () => {
+        // the first draw the user has > 1 pick and the second draw has 0 picks (0.3/100 < 0.5 so rounds down to 0)
         const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
         const winningRandomNumber = utils.solidityKeccak256(
           ['bytes32', 'uint256'],
@@ -657,9 +658,9 @@ describe('TsunamiDrawCalculator', () => {
         const totalSupply2 = utils.parseEther('100');
 
         const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
-        const ticketBalance = ethers.utils.parseEther('6'); // they had 0.6 of all tickets
-        // the first draw the user has 1 pick and the second draw has 0 picks
-        const ticketBalance2 = ethers.utils.parseEther('0.3'); // they had 0.3 of all tickets
+        const ticketBalance = ethers.utils.parseEther('6'); // they had 6pc of all tickets
+        
+        const ticketBalance2 = ethers.utils.parseEther('0.3'); // they had 0.03pc of all tickets
         await ticket.mock.getBalancesAt
           .withArgs(wallet1.address, [timestamp1, timestamp2])
           .returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
