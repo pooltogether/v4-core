@@ -142,7 +142,16 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     * @return Ring buffer index pointer
   */
   function _bufferPosition(uint256 _nextBufferIndex, uint32 _deltaIndex) internal pure returns (uint32) {
-    return uint32((((_nextBufferIndex + CARDINALITY) - 1) - _deltaIndex) % CARDINALITY);
+    return _wrapCardinality(((_nextBufferIndex + CARDINALITY) - 1) - _deltaIndex);
+  }
+
+  /**
+    * @dev    Modulo index with ring buffer cardinality.
+    * @param _index Ring buffer index 
+    * @return Ring buffer index pointer
+  */
+  function _wrapCardinality(uint256 _index) internal pure returns (uint32) {
+    return uint32(_index % CARDINALITY);
   }
 
   /* ============ Internal Functions ============ */
@@ -158,8 +167,8 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     DrawLib.Draw memory _lastDraw = _getNewestDraw(_nextDrawIndex);
     require(_drawId + CARDINALITY > _lastDraw.drawId, "DrawHistory/draw-expired");
     require(_drawId <= _lastDraw.drawId, "DrawHistory/drawid-out-of-bounds");
-    uint32 _deltaIndex = uint32(_lastDraw.drawId - _drawId);
-    return _bufferPosition(_nextDrawIndex, _deltaIndex);
+    uint256 _deltaIndex = _lastDraw.drawId - _drawId;
+    return _bufferPosition(_nextDrawIndex, uint32(_deltaIndex));
   }
 
   /**
@@ -168,7 +177,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     * @return Last draw
   */
   function _getNewestDraw(uint256 _nextDrawIndex) internal view returns (DrawLib.Draw memory) {
-    return _draws[((_nextDrawIndex + CARDINALITY) - 1) % CARDINALITY];
+    return _draws[_wrapCardinality((_nextDrawIndex + CARDINALITY) - 1)];
   }
 
   /**
@@ -185,7 +194,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     }
     _draws[_nextDrawIndex] = _newDraw;
     emit DrawSet(_nextDrawIndex, _newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);
-    nextDrawIndex = (_nextDrawIndex + 1) % CARDINALITY;
+    nextDrawIndex = _wrapCardinality(_nextDrawIndex + 1);
     totalDraws += 1;
     return _newDraw.drawId;
   } 

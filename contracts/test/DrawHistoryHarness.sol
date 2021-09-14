@@ -14,6 +14,10 @@ contract DrawHistoryHarness is DrawHistory {
     return _bufferPosition(_nextDrawIndex, _deltaIndex);
   }
 
+  function wrapCardinality(uint256 _index) external pure returns (uint32) {
+    return _wrapCardinality(_index);
+  }
+
   function setNextDrawIndexAndDraw(
     uint32 nextDrawIndex, 
     uint256 drawIndex, 

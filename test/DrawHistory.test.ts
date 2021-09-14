@@ -28,6 +28,23 @@ describe('DrawHistory', () => {
     await drawHistory.initialize(wallet1.address);
   });
 
+  describe('wrapCardinality()', () => { // Assumes CARDINALITY OF 256
+    it('should modulo index 0', async () => {
+      expect(await drawHistory.wrapCardinality(0))
+        .to.equal(0);
+    });
+
+    it('should modulo index 32', async () => {
+      expect(await drawHistory.wrapCardinality(32))
+        .to.equal(32);
+    });
+
+    it('should modulo index 256', async () => {
+      expect(await drawHistory.wrapCardinality(256))
+        .to.equal(0);
+    });
+  })
+
   describe('bufferPosition()', () => { // Assumes CARDINALITY OF 256
     it('should mock buffer position with no draw history', async () => {
       expect(await drawHistory.bufferPosition(0, 0))
