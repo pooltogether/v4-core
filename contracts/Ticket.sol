@@ -103,6 +103,24 @@ contract Ticket is ControlledToken, ITicket {
     return _getBalanceAt(account.twabs, account.details, _target);
   }
 
+  /// @notice Returns the normalized balance of the user across the totalSupply at a specific timestamp.
+  /// @param _user Address of the user whose TWAB is being fetched.
+  /// @param _targets Timestamp at which the reserved TWAB should be for.
+  /// @return The normalized balance of the user across the totalSupply at a specific timestamp.
+  function getNormalizedBalancesAt(address _user, uint32[] calldata _targets) external view returns (uint256[] memory) {
+    uint256[] memory balances = _getBalancesAt(_user, _targets);
+    uint256[] memory totalSupplies = _getTotalSupplies(_targets);
+    require(balances.length == totalSupplies.length, "Ticket/balances-length-eq-totalsupplies-length");
+
+    uint256[] memory normalizedBalances = new uint256[](totalSupplies.length); 
+    // return balance / getTotalSupply(_target);
+    for (uint256 i = 0; i < balances.length; i++) {
+      require(totalSupplies[i] > 0, "Ticket/totalsupply-gt-zero");
+      normalizedBalances[i] = balances[i] / totalSupplies[i];
+    }
+    return normalizedBalances;
+  }
+
   /// @notice Retrieves `_user` TWAB balance.
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function _getBalanceAt(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target) internal view returns (uint256) {
@@ -147,6 +165,11 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _targets Timestamps at which the reserved TWABs should be for.
   /// @return uint256[] `_user` TWAB balances.
   function getBalancesAt(address _user, uint32[] calldata _targets) external override view returns (uint256[] memory) {
+    return _getBalancesAt(_user, _targets);
+  }
+
+
+  function _getBalancesAt(address _user, uint32[] calldata _targets) internal view returns (uint256[] memory) {
     uint256 length = _targets.length;
     uint256[] memory balances = new uint256[](length);
 
@@ -156,7 +179,6 @@ contract Ticket is ControlledToken, ITicket {
     for(uint256 i = 0; i < length; i++) {
       balances[i] = _getBalanceAt(twabContext.twabs, details, _targets[i]);
     }
-
     return balances;
   }
 
@@ -170,6 +192,10 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _targets Timestamps at which the reserved TWABs should be for.
   /// @return uint256[] ticket TWAB `totalSupplies`.
   function getTotalSupplies(uint32[] calldata _targets) external view override returns (uint256[] memory){
+    return _getTotalSupplies(_targets);
+  }
+
+  function _getTotalSupplies(uint32[] calldata _targets) internal view returns (uint256[] memory){
     uint256 length = _targets.length;
     uint256[] memory totalSupplies = new uint256[](length);
 
@@ -180,7 +206,9 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     return totalSupplies;
+    
   }
+
 
   function delegateOf(address _user) external view returns (address) {
     return delegates[_user];

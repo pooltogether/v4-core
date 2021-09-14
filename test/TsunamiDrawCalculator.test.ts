@@ -68,7 +68,7 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
-  describe('setDrawSettings()', () => {
+  describe.only('setDrawSettings()', () => {
     it('should not allow anyone else to set', async () => {
       const drawSettings: DrawSettings = {
         matchCardinality: BigNumber.from(5),
@@ -132,9 +132,6 @@ describe('TsunamiDrawCalculator', () => {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.9'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
         ],
         numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(0),
@@ -144,6 +141,23 @@ describe('TsunamiDrawCalculator', () => {
         'DrawCalc/bitRangeSize-gt-0',
       );
     });
+
+    it('cannot set numberOfPicks = 0', async () => {
+      const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.9'),
+          ethers.utils.parseEther('0.04')
+        ],
+        numberOfPicks: utils.parseEther("0"),
+        bitRangeSize: BigNumber.from(1),
+        prize: ethers.utils.parseEther('1'),
+      };
+      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
+        'DrawCalc/numberOfPicks-gt-0',
+      );
+    });
+
   });
 
   describe('setClaimableDraw()', () => {
