@@ -1,9 +1,9 @@
 {{{natspec.userdoc}}}
 {{{natspec.devdoc}}}
-{{#if ownFunctions}}
+{{#if functions}}
 ## Functions
 {{/if}}
-{{#ownFunctions}}
+{{#functions}}
 {{#unless (eq visibility "internal")}}
 ### {{name}}
 ```solidity
@@ -28,11 +28,11 @@
 {{#natspec.returns}}
 |`{{param}}`| {{#lookup ../args.types @index}}{{/lookup}} | {{{description}}}{{/natspec.returns}}{{/if}}
 {{/unless}}
-{{/ownFunctions}}
-{{#if ownEvents}}
+{{/functions}}
+{{#if events}}
 ## Events
 {{/if}}
-{{#ownEvents}}
+{{#events}}
 ### {{name}}
 ```solidity
   event {{name}}(
@@ -49,4 +49,4 @@
 | :----------------------------- | :------------ | :--------------------------------------------- |
 {{#natspec.params}}
 |`{{param}}`| {{#lookup ../args.types @index}}{{/lookup}} | {{{description}}}{{/natspec.params}}{{/if}}
-{{/ownEvents}}
+{{/events}}
