@@ -34,6 +34,9 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @dev The Prize Strategy that this Prize Pool is bound to.
   address public prizeStrategy;
 
+  /// @dev The total amount of funds a user can hold.
+  uint256 public balanceCap;
+
   /// @dev The total amount of funds that the prize pool can hold.
   uint256 public liquidityCap;
 
@@ -59,9 +62,10 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     __Ownable_init();
     __ReentrancyGuard_init();
 
-    // NOTE: Updated from _setLiquidityCap(uint256(-1));
-    uint256 liquidityCapMask = type(uint256).max;
-    _setLiquidityCap(liquidityCapMask);
+    uint256 _maxUintAmount = type(uint256).max;
+
+    _setBalanceCap(_maxUintAmount);
+    _setLiquidityCap(_maxUintAmount);
   }
 
   /// @dev Returns the address of the underlying ERC20 asset
@@ -106,6 +110,8 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     canAddLiquidity(amount)
   {
     address operator = _msgSender();
+
+    require(_canDeposit(operator, amount), "PrizePool/exceeds-balance-cap");
 
     _mint(to, amount, controlledToken);
 
@@ -197,9 +203,9 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
 
   /// @notice Called by the Prize-Strategy to transfer out external ERC20 tokens
   /// @dev Used to transfer out tokens held by the Prize Pool.  Could be liquidated, or anything.
-  /// @param _to The address of the winner that receives the award
-  /// @param _amount The amount of external assets to be awarded
-  /// @param _externalToken The address of the external asset token being awarded
+  /// @param _to Address of the winner that receives the award
+  /// @param _externalToken Address of the external asset token being awarded
+  /// @param _amount Amount of external assets to be awarded
   function transferExternalERC20(
     address _to,
     address _externalToken,
@@ -215,9 +221,9 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
 
   /// @notice Called by the Prize-Strategy to award external ERC20 prizes
   /// @dev Used to award any arbitrary tokens held by the Prize Pool
-  /// @param _to The address of the winner that receives the award
-  /// @param _amount The amount of external assets to be awarded
-  /// @param _externalToken The address of the external asset token being awarded
+  /// @param _to Address of the winner that receives the award
+  /// @param _externalToken Address of the external asset token being awarded
+  /// @param _amount Amount of external assets to be awarded
   function awardExternalERC20(
     address _to,
     address _externalToken,
@@ -231,6 +237,12 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     }
   }
 
+  /// @notice Transfer out `amount` of `externalToken` to recipient `to`
+  /// @dev Only awardable `externalToken` can be transferred out
+  /// @param _to Recipient address
+  /// @param _externalToken Address of the external asset token being transferred
+  /// @param _amount Amount of external assets to be transferred
+  /// @return True if transfer is successful
   function _transferOut(
     address _to,
     address _externalToken,
@@ -290,12 +302,32 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     emit AwardedExternalERC721(to, externalToken, tokenIds);
   }
 
-  /// @notice Allows the Governor to set a cap on the amount of liquidity that he pool can hold
-  /// @param _liquidityCap The new liquidity cap for the prize pool
+  /// @notice Allows the owner to set a balance cap for the pool.
+  /// @dev If a user wins, his balance can go over the cap. He won't then
+  /// @dev Only tickets balance is capped.
+  /// @param _balanceCap New balance cap.
+  /// @return True if new balance cap has been successfully set.
+  function setBalanceCap(uint256 _balanceCap) external override onlyOwner returns (bool) {
+    _setBalanceCap(_balanceCap);
+    return true;
+  }
+
+  /// @notice Allows the owner to set a balance cap for the pool.
+  /// @param _balanceCap New balance cap.
+  function _setBalanceCap(uint256 _balanceCap) internal {
+    balanceCap = _balanceCap;
+
+    emit BalanceCapSet(_balanceCap);
+  }
+
+  /// @notice Allows the owner to set a liquidity cap for the pool
+  /// @param _liquidityCap New liquidity cap
   function setLiquidityCap(uint256 _liquidityCap) external override onlyOwner {
     _setLiquidityCap(_liquidityCap);
   }
 
+  /// @notice Allows the owner to set a liquidity cap for the pool
+  /// @param _liquidityCap New liquidity cap
   function _setLiquidityCap(uint256 _liquidityCap) internal {
     liquidityCap = _liquidityCap;
     emit LiquidityCapSet(_liquidityCap);
@@ -368,7 +400,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @return The current total of all tokens
   function _tokenTotalSupply() internal view returns (uint256) {
     uint256 total;
-    IControlledToken[] memory tokens = _tokens; // SLOAD
+    IControlledToken[] memory tokens = _tokens;
     uint256 tokensLength = tokens.length;
 
     for(uint256 i = 0; i < tokensLength; i++){
@@ -376,6 +408,18 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     }
 
     return total;
+  }
+
+  /// @dev Checks if `user` can deposit in the Prize Pool based on the current balance cap.
+  /// @param _user Address of the user depositing.
+  /// @param _amount The amount of tokens to be deposited into the Prize Pool.
+  /// @return True if the Prize Pool can receive the specified `amount` of tokens.
+  function _canDeposit(address _user, uint256 _amount) internal view returns (bool) {
+    uint256 _balanceCap = balanceCap;
+
+    if (_balanceCap == type(uint256).max) return true;
+
+    return (_tokens[0].balanceOf(_user) + _amount <= _balanceCap);
   }
 
   /// @dev Checks if the Prize Pool can receive liquidity based on the current cap
