@@ -34,8 +34,8 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @dev The Prize Strategy that this Prize Pool is bound to.
   address public prizeStrategy;
 
-  /// @dev The total amount of funds a user can hold.
-  uint256 public balanceCap;
+  /// @dev The total amount per tokens a user can hold.
+  mapping(address => uint256) public balanceCap;
 
   /// @dev The total amount of funds that the prize pool can hold.
   uint256 public liquidityCap;
@@ -62,10 +62,7 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     __Ownable_init();
     __ReentrancyGuard_init();
 
-    uint256 _maxUintAmount = type(uint256).max;
-
-    _setBalanceCap(_maxUintAmount);
-    _setLiquidityCap(_maxUintAmount);
+    _setLiquidityCap(type(uint256).max);
   }
 
   /// @dev Returns the address of the underlying ERC20 asset
@@ -302,22 +299,24 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
     emit AwardedExternalERC721(to, externalToken, tokenIds);
   }
 
-  /// @notice Allows the owner to set a balance cap for the pool.
-  /// @dev If a user wins, his balance can go over the cap. He won't then
-  /// @dev Only tickets balance is capped.
+  /// @notice Allows the owner to set a balance cap per `token` for the pool.
+  /// @dev If a user wins, his balance can go over the cap. He will be able to withdraw the excess but not deposit.
+  /// @dev Needs to be called after deploying a prize pool to be able to deposit into it.
+  /// @param _token Address of the token to set the balance cap for.
   /// @param _balanceCap New balance cap.
   /// @return True if new balance cap has been successfully set.
-  function setBalanceCap(uint256 _balanceCap) external override onlyOwner returns (bool) {
-    _setBalanceCap(_balanceCap);
+  function setBalanceCap(address _token, uint256 _balanceCap) external override onlyOwner returns (bool) {
+    _setBalanceCap(_token, _balanceCap);
     return true;
   }
 
-  /// @notice Allows the owner to set a balance cap for the pool.
+  /// @notice Allows the owner to set a balance cap per `token` for the pool.
+  /// @param _token Address of the token to set the balance cap for.
   /// @param _balanceCap New balance cap.
-  function _setBalanceCap(uint256 _balanceCap) internal {
-    balanceCap = _balanceCap;
+  function _setBalanceCap(address _token, uint256 _balanceCap) internal {
+    balanceCap[_token] = _balanceCap;
 
-    emit BalanceCapSet(_balanceCap);
+    emit BalanceCapSet(_token, _balanceCap);
   }
 
   /// @notice Allows the owner to set a liquidity cap for the pool
@@ -415,11 +414,12 @@ abstract contract PrizePool is IPrizePool, OwnableUpgradeable, ReentrancyGuardUp
   /// @param _amount The amount of tokens to be deposited into the Prize Pool.
   /// @return True if the Prize Pool can receive the specified `amount` of tokens.
   function _canDeposit(address _user, uint256 _amount) internal view returns (bool) {
-    uint256 _balanceCap = balanceCap;
+    IControlledToken _ticket = _tokens[0];
+    uint256 _balanceCap = balanceCap[address(_ticket)];
 
     if (_balanceCap == type(uint256).max) return true;
 
-    return (_tokens[0].balanceOf(_user) + _amount <= _balanceCap);
+    return (_ticket.balanceOf(_user) + _amount <= _balanceCap);
   }
 
   /// @dev Checks if the Prize Pool can receive liquidity based on the current cap
