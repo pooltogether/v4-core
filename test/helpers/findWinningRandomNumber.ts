@@ -85,7 +85,7 @@ async function runFindWinningRandomNumbers() {
       ethers.utils.parseEther('0.1'),
       ethers.utils.parseEther('0.1'),
     ],
-    pickCost: BigNumber.from(utils.parseEther('1')),
+    numberOfPicks: BigNumber.from(utils.parseEther('1')),
     bitRangeSize: BigNumber.from(4),
     prize: ethers.utils.parseEther('100'),
   };

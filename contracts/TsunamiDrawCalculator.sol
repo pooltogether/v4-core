@@ -9,6 +9,7 @@ import "./libraries/DrawLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
+
 ///@title TsunamiDrawCalculator is an implmentation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   
@@ -53,15 +54,14 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     //now unpack Draw struct
     uint32[] memory _timestamps = new uint32[](_draws.length);
     uint256[] memory _winningRandomNumbers = new uint256[](_draws.length);
-    
+
     for(uint256 i = 0; i < _draws.length; i++){
       _timestamps[i] = _draws[i].timestamp;
       _winningRandomNumbers[i] = _draws[i].winningRandomNumber;
     }
     require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
-
-    uint256[] memory userBalances = ticket.getBalancesAt(_user, _timestamps); // CALL
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps);
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
     return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices);
@@ -94,36 +94,62 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   /* ============ Internal Functions ============ */
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
-  ///@param _userBalances Balances of the user at each Draw
+  ///@param _normalizedUserBalances Number of picks the user has for each Draw
   ///@param _userRandomNumber Random number of the user to consider over draws
   ///@param _winningRandomNumbers Winning random numbers for each Draw
   ///@param _pickIndicesForDraws Pick indices for each Draw
-  function _calculatePrizesAwardable(uint256[] memory _userBalances, bytes32 _userRandomNumber, uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws)
+  function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber, uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws)
    internal view returns (uint96[] memory)
    {
 
-    uint96[] memory prizesAwardable = new uint96[](_userBalances.length);
+    uint96[] memory prizesAwardable = new uint96[](_normalizedUserBalances.length);
     
     // calculate for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
       DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
-      prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], _userBalances[drawIndex], _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
+      uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings, _normalizedUserBalances[drawIndex]);
+      prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
     }
     return prizesAwardable;
   }
 
+  ///@notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
+  ///@dev Divided by 1e18 since the normalized user balance is stored as a base 18 number
+  ///@param _drawSettings The DrawSettings to consider
+  ///@param _normalizedUserBalance The normalized user balances to consider
+  function _calculateNumberOfUserPicks(DrawLib.DrawSettings memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
+    return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether;
+  }
+
+  ///@notice Calculates the normalized balance of a user against the total supply for timestamps
+  ///@param _user The user to consider
+  ///@param _timestamps The timestamps to consider
+  ///@return An array of normalized balances
+  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps) internal view returns (uint256[] memory) {
+    uint256[] memory normalizedBalances = new uint256[](_timestamps.length);
+    
+    uint256[] memory balances = ticket.getBalancesAt(_user, _timestamps);
+    uint256[] memory totalSupplies = ticket.getTotalSupplies(_timestamps);
+  
+    for (uint256 i = 0; i < _timestamps.length; i++) {
+      require(totalSupplies[i] > 0, "DrawCalc/total-supply-zero");
+      normalizedBalances[i] = balances[i] * 1 ether / totalSupplies[i];
+    }
+    return normalizedBalances;
+  }
+
+
   ///@notice calculates the prize amount per Draw per users pick
   ///@param _winningRandomNumber The Draw's winningRandomNumber
-  ///@param _balance The users's balance for that Draw
+  ///@param totalUserPicks The number of picks the user gets for the Draw
   ///@param _userRandomNumber the users randomNumber for that draw
   ///@param _picks The users picks for that draw
   ///@param _drawSettings Params with the associated draw
   ///@return prize (if any) per Draw claim
-  function _calculate(uint256 _winningRandomNumber, uint256 _balance, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.DrawSettings memory _drawSettings)
+  function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.DrawSettings memory _drawSettings)
     internal view returns (uint96)
   {
     
-    uint256 totalUserPicks = _balance / _drawSettings.pickCost;
     uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
     uint256[] memory masks =  _createBitMasks(_drawSettings);
 
@@ -232,7 +258,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gt-distributions");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
-    require(_drawSettings.pickCost > 0, "DrawCalc/pick-cost-gt-0");
+    require(_drawSettings.numberOfPicks > 0, "DrawCalc/numberOfPicks-gt-0");
     
     // ensure that the distributions are not gt 100%
     for(uint256 index = 0; index < distributionsLength; index++){

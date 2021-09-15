@@ -2,7 +2,7 @@ import { BigNumber } from "ethers"
 
 export type DrawSettings = {
     matchCardinality: BigNumber;
-    pickCost: BigNumber;
+    numberOfPicks: BigNumber;
     distributions: BigNumber[];
     bitRangeSize: BigNumber;
     prize: BigNumber;
