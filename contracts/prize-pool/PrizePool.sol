@@ -45,11 +45,9 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
   /// @notice Initializes the Prize Pool
   /// @param _controlledTokens Array of ControlledTokens that are controlled by this Prize Pool.
-  function initialize (
+  constructor (
     IControlledToken[] memory _controlledTokens
-  )
-    public
-    initializer
+  ) Ownable() ReentrancyGuard()
   {
     uint256 controlledTokensLength = _controlledTokens.length;
     _tokens = new IControlledToken[](controlledTokensLength);
@@ -58,9 +56,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
       IControlledToken controlledToken = _controlledTokens[i];
       _addControlledToken(controlledToken, i);
     }
-
-    __Ownable_init();
-    __ReentrancyGuard_init();
 
     _setLiquidityCap(type(uint256).max);
   }
@@ -254,7 +249,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
       return false;
     }
 
-    IERC20Upgradeable(_externalToken).safeTransfer(_to, _amount);
+    IERC20(_externalToken).safeTransfer(_to, _amount);
 
     return true;
   }
@@ -287,7 +282,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     }
 
     for (uint256 i = 0; i < tokenIds.length; i++) {
-      try IERC721Upgradeable(externalToken).safeTransferFrom(address(this), to, tokenIds[i]){
+      try IERC721(externalToken).safeTransferFrom(address(this), to, tokenIds[i]){
 
       }
       catch(bytes memory error){
@@ -392,7 +387,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @param _tokenId The NFT to transfer
   /// @param _data Additional data with no specified format, sent in call to `_to`.
   function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external override returns (bytes4){
-    return IERC721ReceiverUpgradeable.onERC721Received.selector;
+    return IERC721Receiver.onERC721Received.selector;
   }
 
   /// @notice The total of all controlled tokens
@@ -403,7 +398,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     uint256 tokensLength = tokens.length;
 
     for(uint256 i = 0; i < tokensLength; i++){
-      total = total + IERC20Upgradeable(tokens[i]).totalSupply();
+      total = total + IERC20(tokens[i]).totalSupply();
     }
 
     return total;
@@ -460,7 +455,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
   /// @notice Returns the ERC20 asset token used for deposits.
   /// @return The ERC20 asset token
-  function _token() internal virtual view returns (IERC20Upgradeable);
+  function _token() internal virtual view returns (IERC20);
 
   /// @notice Returns the total balance (in asset tokens).  This includes the deposits and interest.
   /// @return The underlying balance of asset tokens

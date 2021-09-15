@@ -17,7 +17,7 @@ import "./libraries/DrawLib.sol";
   * @notice Distributes PrizePool captured interest as individual draw payouts.
 */
 contract ClaimableDraw is IClaimableDraw, OwnerOrManager {
-  using SafeERC20Upgradeable for IERC20Upgradeable;
+  using SafeERC20 for IERC20;
 
   /* ============ Global Variables ============ */
 
@@ -31,8 +31,7 @@ contract ClaimableDraw is IClaimableDraw, OwnerOrManager {
   mapping(uint32 => IDrawCalculator) internal drawCalculatorAddresses;
 
   /// @notice User address to draw claims ring buffer mapping
-  mapping(address => uint96[CARDINALITY]) internal userDrawClaims;
-
+  mapping(address => uint96[CARDINALITY]) internal _userDrawClaims;
 
   /* ============ Initialize ============ */
 
@@ -41,11 +40,10 @@ contract ClaimableDraw is IClaimableDraw, OwnerOrManager {
     * @param _manager     Manager address
     * @param _drawHistory DrawHistory address
   */
-  function initialize (
+  constructor(
     address _manager,
     IDrawHistory _drawHistory
-  ) external initializer {
-    __Ownable_init();
+  ) OwnerOrManager() {
     _setManager(_manager);
 
     drawHistory = _drawHistory;

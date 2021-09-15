@@ -18,7 +18,6 @@ import "./libraries/DrawLib.sol";
 import "./prize-pool/PrizePool.sol";
 
 contract DrawBeacon is IDrawBeacon,
-                       Initializable,
                        Ownable {
 
   using SafeCast for uint256;
@@ -93,20 +92,18 @@ contract DrawBeacon is IDrawBeacon,
     * @param _beaconPeriodStart The starting timestamp of the beacon period.
     * @param _beaconPeriodSeconds The duration of the beacon period in seconds
   */
-  function initialize (
+  constructor (
     IDrawHistory _drawHistory,
     RNGInterface _rng,
     uint256 _beaconPeriodStart,
-    uint256 _beaconPeriodSeconds
-  ) public initializer {
-    require(_beaconPeriodStart > 0, "DrawBeacon/rng-request-period-greater-than-zero");
+    uint256 _drawPeriodSeconds
+  ) public {
+    require(_beaconPeriodStart > 0, "DrawBeacon/beacon-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;
 
-    __Ownable_init();
-
-    _setBeaconPeriodSeconds(_beaconPeriodSeconds);
-    beaconPeriodStartedAt = _beaconPeriodStart;
+    _setDrawPeriodSeconds(_drawPeriodSeconds);
+    drawPeriodStartedAt = _beaconPeriodStart;
 
     _setDrawHistory(_drawHistory);
 

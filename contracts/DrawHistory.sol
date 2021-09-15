@@ -36,10 +36,10 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     *
     * @param _manager Draw manager address
   */
-  function initialize (
+  constructor(
     address _manager
-  ) public initializer {
-    __Ownable_init();
+  ) public {
+    
     _setManager(_manager);
   }
 

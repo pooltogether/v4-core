@@ -21,7 +21,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice The maximum number of twab entries
   uint16 public constant MAX_CARDINALITY = 65535;
 
-  using SafeERC20 for IERC20Upgradeable;
+  using SafeERC20 for IERC20;
   using SafeCast for uint256;
 
   /// @notice A struct containing details for an Account
@@ -68,7 +68,9 @@ contract Ticket is ControlledToken, ITicket {
     string memory _symbol,
     uint8 decimals_,
     address _controller
-  ){
+  )
+  ControlledToken()
+  {
 
     __ERC20_init(_name, _symbol);
     __ERC20Permit_init("PoolTogether Ticket");

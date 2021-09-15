@@ -15,15 +15,12 @@ contract StakePrizePool is PrizePool {
   /// @notice Initializes the Prize Pool and Yield Service with the required contract connections
   /// @param _controlledTokens Array of addresses for the Ticket and Sponsorship Tokens controlled by the Prize Pool
   /// @param _stakeToken Address of the stake token
-  function initialize (
+  constructor (
     IControlledToken[] memory _controlledTokens,
-    IERC20Upgradeable _stakeToken
+    IERC20 _stakeToken
   )
-    public
-    initializer
+    PrizePool(_controlledTokens)
   {
-    PrizePool.initialize(_controlledTokens);
-
     require(address(_stakeToken) != address(0), "StakePrizePool/stake-token-not-zero-address");
     stakeToken = _stakeToken;
 
@@ -45,7 +42,7 @@ contract StakePrizePool is PrizePool {
     return stakeToken.balanceOf(address(this));
   }
 
-  function _token() internal override view returns (IERC20Upgradeable) {
+  function _token() internal override view returns (IERC20) {
     return stakeToken;
   }
 

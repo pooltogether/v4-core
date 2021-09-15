@@ -1170,15 +1170,15 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-3.4.0.tgz#7674c73c643a509f1b90c509e3e72fe9aae02aeb"
   integrity sha512-7wBcbukDqWZt/B1zjb7zyeWq+AC7rx7nGln7/hPxHdKd8PAiiteXd51Cp2KmGP8qaY0/TXh/fQLsA082LWp8Zw==
 
-"@openzeppelin/contracts-upgradeable@^4.3.1":
-  version "4.3.1"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.3.1.tgz#d2fdbacd010f9bc2228d58f9d3d3db4e49818ea6"
-  integrity sha512-vqS3gb1J5xlKc+7a931a5Qmg3HDR168E6aCfPY6lPrdFZV4TymN2+HVJNCqCo+KP2UMYDtqRsXu+KB/0L0E34g==
-
 "@openzeppelin/contracts@^4.3.1":
   version "4.3.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.3.1.tgz#c01f791ce6c9d3989ac1a643267501dbe336b9e3"
   integrity sha512-QjgbPPlmDK2clK1hzjw2ROfY8KA5q+PfhDUUxZFEBCZP9fi6d5FuNoh/Uq0oCTMEKPmue69vhX2jcl0N/tFKGw==
+
+"@openzeppelin/contracts@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.3.2.tgz#ff80affd6d352dbe1bbc5b4e1833c41afd6283b6"
+  integrity sha512-AybF1cesONZStg5kWf6ao9OlqTZuPqddvprc0ky7lrUVOjXeKpmQ2Y9FK+6ygxasb+4aic4O5pneFBfwVsRRRg==
 
 "@openzeppelin/hardhat-upgrades@1.6.0":
   version "1.6.0"
@@ -1211,12 +1211,12 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/fixed-point/-/fixed-point-1.0.0-beta.2.tgz#d76a1e77f21833e9b680296d65526b0ffd7415d7"
   integrity sha512-aUw4R0Z2oM0AK3W4LIXyBaojTOzRRbhLDHX0egeuvxfjy4gBb6X66v81gI7Wngg/7O0y9QL/B8jWkUnAFzhTig==
 
-"@pooltogether/owner-manager-contracts@1.0.0-beta.1":
-  version "1.0.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@pooltogether/owner-manager-contracts/-/owner-manager-contracts-1.0.0-beta.1.tgz#7d933696374584b941ec963e27e48f51fd6c2900"
-  integrity sha512-m+EqgkxYeR/c0Bwcc2837hd5jtQC/Taj+a+o3TGqwd98n+lfXAhGFmA1+Tc3BuUcEdcD+cuRXm6Vr5w0uURKUw==
+"@pooltogether/owner-manager-contracts@1.0.0-beta.2":
+  version "1.0.0-beta.2"
+  resolved "https://registry.yarnpkg.com/@pooltogether/owner-manager-contracts/-/owner-manager-contracts-1.0.0-beta.2.tgz#f5d9d2cfe7bbc3792a3fb9d1668a4f51a06edfd1"
+  integrity sha512-X14w5x2bIcvF3pIx9QkmwiCA085Op76qCz3Joil4Rt99ZRnqRBSSL1QSi8YqUWfZUwvaXbcGeG6mGn3sz0tRFQ==
   dependencies:
-    "@openzeppelin/contracts-upgradeable" "^4.3.1"
+    "@openzeppelin/contracts" "^4.3.2"
 
 "@pooltogether/pooltogether-contracts@3.4.4":
   version "3.4.4"

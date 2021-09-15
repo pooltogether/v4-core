@@ -9,13 +9,14 @@ contract PrizePoolHarness is PrizePool {
 
   YieldSourceStub stubYieldSource;
 
-  function initializeAll(
+  constructor(
     IControlledToken[] memory _controlledTokens,
     YieldSourceStub _stubYieldSource
   )
+    PrizePool(_controlledTokens)
     public
   {
-    PrizePool.initialize(_controlledTokens);
+    
     stubYieldSource = _stubYieldSource;
   }
 
@@ -43,8 +44,8 @@ contract PrizePoolHarness is PrizePool {
     return stubYieldSource.canAwardExternal(_externalToken);
   }
 
-  function _token() internal override view returns (IERC20Upgradeable) {
-    return IERC20Upgradeable(stubYieldSource.depositToken());
+  function _token() internal override view returns (IERC20) {
+    return IERC20(stubYieldSource.depositToken());
   }
 
   function _balance() internal override returns (uint256) {

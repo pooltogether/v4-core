@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "@pooltogether/yield-source-interface/contracts/IYieldSource.sol";
 
@@ -12,8 +12,8 @@ import "./PrizePool.sol";
 
 contract YieldSourcePrizePool is PrizePool {
 
-  using SafeERC20Upgradeable for IERC20Upgradeable;
-  using AddressUpgradeable for address;
+  using SafeERC20 for IERC20;
+  using Address for address;
 
   IYieldSource public yieldSource;
 
@@ -22,16 +22,13 @@ contract YieldSourcePrizePool is PrizePool {
   /// @notice Initializes the Prize Pool and Yield Service with the required contract connections
   /// @param _controlledTokens Array of addresses for the Ticket and Sponsorship Tokens controlled by the Prize Pool
   /// @param _yieldSource Address of the yield source
-  function initializeYieldSourcePrizePool (
+  constructor (
     IControlledToken[] memory _controlledTokens,
     IYieldSource _yieldSource
   )
-    public
-    initializer
+    PrizePool(_controlledTokens)
   {
     require(address(_yieldSource) != address(0), "YieldSourcePrizePool/yield-source-not-zero-address");
-
-    PrizePool.initialize(_controlledTokens);
 
     yieldSource = _yieldSource;
 
@@ -57,8 +54,8 @@ contract YieldSourcePrizePool is PrizePool {
     return yieldSource.balanceOfToken(address(this));
   }
 
-  function _token() internal override view returns (IERC20Upgradeable) {
-    return IERC20Upgradeable(yieldSource.depositToken());
+  function _token() internal override view returns (IERC20) {
+    return IERC20(yieldSource.depositToken());
   }
 
   /// @notice Supplies asset tokens to the yield source.

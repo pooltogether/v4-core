@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-
 import "./interfaces/IPrizePool.sol";
 import "./prize-strategy/PrizeSplit.sol";
 
@@ -46,7 +44,6 @@ contract PrizeSplitStrategy is PrizeSplit {
   constructor(
     IPrizePool _prizePool
   ) {
-    __Ownable_init();
     require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero");
     prizePool = _prizePool;
   }

@@ -34,7 +34,6 @@ contract ControlledToken is ERC20Permit, IControlledToken {
     require(address(_controller) != address(0), "ControlledToken/controller-not-zero");
     controller = _controller;
 
-    // __ERC20_init(_name, _symbol);
     _decimals = decimals_;
 
     emit Initialized(

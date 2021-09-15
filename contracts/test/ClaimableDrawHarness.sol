@@ -6,6 +6,11 @@ import "../ClaimableDraw.sol";
 import "../interfaces/IDrawCalculator.sol";
 
 contract ClaimableDrawHarness is ClaimableDraw {
+
+  constructor(address _drawCalculatorManager,
+    IDrawHistory _drawHistory) ClaimableDraw(_drawCalculatorManager, _drawHistory) {
+
+  }
   
   function __wrapCardinality(uint8 drawId) external pure returns (uint256) {
     return _wrapCardinality(drawId);

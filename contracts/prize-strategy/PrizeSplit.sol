@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
   * @title Abstract prize split contract for adding unique award distribution to static addresses. 
   * @author Kames Geraghty (PoolTogether Inc)
 */
-abstract contract PrizeSplit is OwnableUpgradeable {
+abstract contract PrizeSplit is Ownable {
   
   PrizeSplitConfig[] internal _prizeSplits;
 

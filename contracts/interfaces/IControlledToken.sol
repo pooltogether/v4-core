@@ -2,11 +2,11 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Controlled ERC20 Token
 /// @notice ERC20 Tokens with a controller for minting & burning
-interface IControlledToken is IERC20Upgradeable {
+interface IControlledToken is IERC20 {
 
   /// @dev Emitted when an instance is initialized
   event Initialized(
