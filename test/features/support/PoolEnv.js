@@ -6,12 +6,11 @@ require('../../helpers/chaiMatchers');
 
 const { ethers, deployments } = hardhat
 
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 
 const debug = require('debug')('pt:PoolEnv.js');
 
 const toWei = (val) => ethers.utils.parseEther('' + val);
-const fromWei = (val) => ethers.utils.formatEther('' + val);
 
 function PoolEnv() {
   this.overrides = { gasLimit: 9500000 };
@@ -50,12 +49,15 @@ function PoolEnv() {
 
   this.buyTickets = async function ({ user, tickets }) {
     debug(`Buying tickets...`);
+    const owner = await this.wallet(0);
     let wallet = await this.wallet(user);
 
     debug('wallet is ', wallet.address);
     let token = await this.token(wallet);
     let ticket = await this.ticket(wallet);
     let prizePool = await this.prizePool(wallet);
+
+    await prizePool.connect(owner).setBalanceCap(ticket.address, MaxUint256);
 
     let amount = toWei(tickets);
 

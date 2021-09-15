@@ -12,7 +12,7 @@ const newDebug = require('debug')
 const debug = newDebug("pt:Ticket.test.ts")
 
 const { constants, getSigners, provider } = ethers;
-const { AddressZero } = constants;
+const { AddressZero, MaxUint256 } = constants;
 const { getBlock } = provider;
 const { parseEther: toWei } = utils;
 
@@ -60,7 +60,9 @@ describe('Ticket', () => {
     const PrizePool = await hre.artifacts.readArtifact(
       'contracts/prize-pool/PrizePool.sol:PrizePool',
     );
+
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
+    prizePool.mock.balanceCap.withArgs(ticket.address).returns(MaxUint256);
 
     if (!isInitializeTest) {
       await initializeTicket();
