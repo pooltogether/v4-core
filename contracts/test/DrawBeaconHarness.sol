@@ -1,9 +1,19 @@
 pragma solidity 0.8.6;
 
 import "../DrawBeacon.sol";
+import "../interfaces/IDrawHistory.sol";
+
+import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 
 /* solium-disable security/no-block-members */
 contract DrawBeaconHarness is DrawBeacon {
+
+  constructor(IDrawHistory _drawHistory,
+    RNGInterface _rng,
+    uint256 _rngRequestPeriodStart,
+    uint256 _drawPeriodSeconds) DrawBeacon(_drawHistory, _rng, _rngRequestPeriodStart, _drawPeriodSeconds)
+  {
+  }
 
   uint256 internal time;
   function setCurrentTime(uint256 _time) external {

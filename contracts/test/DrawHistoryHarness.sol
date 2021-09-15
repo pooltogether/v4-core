@@ -5,6 +5,10 @@ import "../libraries/DrawLib.sol";
 
 contract DrawHistoryHarness is DrawHistory {
 
+  constructor(address manager) DrawHistory(manager){
+    
+  }
+
   function setNextDrawIndex(uint32 _nextDrawIndex) public returns (uint256) {
     nextDrawIndex = _nextDrawIndex;
     return _nextDrawIndex;

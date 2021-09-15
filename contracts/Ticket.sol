@@ -69,7 +69,10 @@ contract Ticket is ControlledToken, ITicket {
     uint8 decimals_,
     address _controller
   )
-  ControlledToken()
+  ControlledToken(_name,
+    _symbol,
+    decimals_,
+    _controller)
   {
 
     __ERC20_init(_name, _symbol);
