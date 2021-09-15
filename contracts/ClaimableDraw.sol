@@ -1,36 +1,40 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-
+import "hardhat/console.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/IDrawHistory.sol";
-
 import "./libraries/DrawLib.sol";
 
 contract ClaimableDraw is OwnerOrManager {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
-  ///@notice The cardinality of the users payout/claim history
+  /// @notice The cardinality of the users payout/claim history
   uint16 public constant PAYOUT_CARDINALITY = 8;
 
-  ///@notice Mapping of drawId to the drawCalculator
-  mapping(uint32 => IDrawCalculator) public drawCalculatorAddresses;
-
-  // Mapping of user draw payout history
-  // +---------+-------------------+
-  // | Address | uint96[]          |
-  // +---------+-------------------+
-  // | user    | userPayoutHistory |
-  // | user    | userPayoutHistory |
-  // +---------+-------------------+
-  mapping(address => uint96[PAYOUT_CARDINALITY]) internal userPayoutHistory;
-
-  ///@notice DrawHistory address
+  /// @notice DrawHistory smart contract
   IDrawHistory public drawHistory;
 
-    /* ============ Events ============ */
+  /// @notice Mapping of drawId to the drawCalculator
+  mapping(uint32 => IDrawCalculator) public drawCalculatorAddresses;
+
+  /** 
+    /* User draw claim payout history
+    /* +---------+-------------------+
+    /* | Address | uint96[]          |
+    /* +---------+-------------------+
+    /* | user    | userPayoutHistory |
+    /* | user    | userPayoutHistory |
+    /* +---------+-------------------+
+  */
+  mapping(address => uint96[PAYOUT_CARDINALITY]) internal userPayoutHistory;
+  
+  /// @notice User highest claimed draw id
+  mapping(address => uint32) internal _userHighestClaimedDrawId;
+  
+  /* ============ Events ============ */
 
   /**
     * @notice Emitted when a user has claimed N of draw prizes.
@@ -92,20 +96,19 @@ contract ClaimableDraw is OwnerOrManager {
   /* ============ External Functions ============ */
 
   /**
-    * @notice Allows users to check the claimable status for a target draw. 
-    * @dev    Checks a claimable status for target draw by reading from a user's claim history in claimedDraws.
-    *
+    * @notice Reads a user draw claim payout history for target draw id.
+    * @dev    Reads a user draw claim payout history for target draw id.
     * @param user   Address of user
     * @param drawId Draw id
   */
   function userDrawPayout(address user, uint32 drawId) external view returns (uint96) {
-    uint96[PAYOUT_CARDINALITY] memory _userPayoutHistory = userPayoutHistory[user];// sload
-    return _userPayoutHistory[_drawIdToClaimIndex(drawId)];
+    uint96[PAYOUT_CARDINALITY] memory _userPayoutHistory = userPayoutHistory[user]; // sload
+    return _userPayoutHistory[_wrapCardinality(drawId)];
   }
 
   /**
-    * @notice Reads a user draw claim history.
-    * @dev    Reads a user draw claim history, which is stored in a packed bytes32 "word"
+    * @notice Reads a user draw claim payout history.
+    * @dev    Reads a user draw claim payout history.
     * @param user Address of user
   */
   function userDrawPayouts(address user) external view returns(uint96[PAYOUT_CARDINALITY] memory) {
@@ -113,10 +116,10 @@ contract ClaimableDraw is OwnerOrManager {
   }
 
   /**
-    * @notice External function to set a new draw calculator.
-    * @dev    External function to sets a new draw calculator, which is then sequentially stored in new draw structs. Enabling unique prize calculators for individual draws.
-    * @param _drawId    Draw id
-    * @param _newCalculator  New draw calculator address
+    * @notice Sets DrawCalculator reference for individual draw id.
+    * @dev    Sets DrawCalculator reference for individual draw id.
+    * @param _drawId         Draw id
+    * @param _newCalculator  DrawCalculator address
     * @return New calculator address
   */
   function setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) external onlyManagerOrOwner returns(IDrawCalculator) {
@@ -124,8 +127,9 @@ contract ClaimableDraw is OwnerOrManager {
   }
   
   /**
-    @notice External function to set a new draw calculator. Only callable by manager or owner.
-    @param _drawHistory Address of the draw history contract
+    @notice Set global DrawHistory smart contract reference.
+    @dev    Set global DrawHistory smart contract reference.
+    @param _drawHistory DrawHistory address
   */
   function setDrawHistory(IDrawHistory _drawHistory) external onlyManagerOrOwner returns (IDrawHistory) {
     return _setDrawHistory(_drawHistory);
@@ -133,7 +137,6 @@ contract ClaimableDraw is OwnerOrManager {
 
   /**
     * @notice External function to claim a user's award by passing in the calculated drawIds, drawCalculators and pickIndices. 
-    *
     * @param _user             Address of user to claim awards for. Does NOT need to be msg.sender
     * @param _drawIds          Index of the draw in the draws array
     * @param _drawCalculators  Address of the draw calculator for a set of draw ids
@@ -141,7 +144,20 @@ contract ClaimableDraw is OwnerOrManager {
     * @return Total claim payout
   */
   function claim(address _user, uint32[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256) {
-    return _claim(_user, _drawIds, _drawCalculators, _data);
+
+    uint32 _highestClaimedDrawId = _userHighestClaimedDrawId[_user];
+    uint96[PAYOUT_CARDINALITY] memory _userPayoutHistory = userPayoutHistory[_user];
+    DrawLib.Draw memory _newestDrawFromHistory = drawHistory.getNewestDraw();
+
+    if(_newestDrawFromHistory.drawId >= PAYOUT_CARDINALITY) {
+      _userPayoutHistory = _resetUserDrawClaimedHistory(
+        _wrapCardinality(_newestDrawFromHistory.drawId), 
+        (_newestDrawFromHistory.drawId - _highestClaimedDrawId),
+        _userPayoutHistory
+      );
+    }
+
+    return _claim(_user, _drawIds, _drawCalculators, _data, _userPayoutHistory, _newestDrawFromHistory);
   }
 
   /**
@@ -163,23 +179,9 @@ contract ClaimableDraw is OwnerOrManager {
   /* ============ Internal Functions ============ */
 
   /**
-    * @notice Calculates the claim index using the draw id.
-    * @dev Calculates the claim index, while accounting for a draws expiration status. 
-    * @param _drawId         Draw id used for calculation
-    * @return Absolute draw index in draws ring buffer
-  */
-  function _drawIdToClaimIndex(uint32 _drawId) internal pure returns (uint8) { 
-    // require(_drawId + PAYOUT_CARDINALITY > _currentDrawId, "ClaimableDraw/claim-expired");
-    // require(_drawId <= _currentDrawId, "ClaimableDraw/drawid-out-of-bounds");
-
-    return uint8(_drawId % PAYOUT_CARDINALITY);
-  }
-
-
-  /**
-    * @notice Internal function to set a new draw calculator.
-    * @dev    Internal function to sets a new draw calculator, which is then sequentially stored in new draw structs. Enabling unique prize calculators for individual draws.
-    * @param _newCalculator  New draw calculator address
+    * @notice Sets DrawCalculator reference for individual draw id.
+    * @dev    Sets DrawCalculator reference for individual draw id.
+    * @param _newCalculator  DrawCalculator address
     * @return New calculator address
    */
   function _setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) internal returns(IDrawCalculator) {
@@ -192,8 +194,9 @@ contract ClaimableDraw is OwnerOrManager {
   }
 
   /**
-    @notice Internal function to set a new draw calculator.
-    @param _drawHistory Address of the draw history contract
+    @notice Set global DrawHistory smart contract reference.
+    @dev    Set global DrawHistory smart contract reference.
+    @param _drawHistory DrawHistory address
   */
   function _setDrawHistory(IDrawHistory _drawHistory) internal returns (IDrawHistory) 
   {
@@ -217,19 +220,22 @@ contract ClaimableDraw is OwnerOrManager {
     address _user, 
     uint32[][] calldata _drawIds, 
     IDrawCalculator[] calldata _drawCalculators, 
-    bytes[] calldata _data
+    bytes[] calldata _data,
+    uint96[PAYOUT_CARDINALITY] memory _userPayoutHistory,
+    DrawLib.Draw memory _newestDrawFromHistory
   ) internal returns (uint256) {
-    
-    uint256 drawCalculatorsLength = _drawCalculators.length;
-    require(drawCalculatorsLength == _drawIds.length, "ClaimableDraw/invalid-calculator-array");
     uint256 totalPayout;
     uint256 drawCollectionPayout;
-
-    for (uint8 calcIndex = 0; calcIndex < drawCalculatorsLength; calcIndex++) {
+    require(_drawCalculators.length == _drawIds.length, "ClaimableDraw/invalid-calculator-array");
+    for (uint8 calcIndex = 0; calcIndex < _drawCalculators.length; calcIndex++) {
+      // Validate collection of draw ids are within the acceptable range.
+      _validateDrawIdRange(_drawIds[calcIndex], _newestDrawFromHistory);
       IDrawCalculator _drawCalculator = _drawCalculators[calcIndex];
-      drawCollectionPayout = _calculate(_user, _drawIds[calcIndex], _drawCalculator, _data[calcIndex]);
+      (drawCollectionPayout, _userPayoutHistory) = _calculate(_user, _drawIds[calcIndex], _drawCalculator, _data[calcIndex], _userPayoutHistory);
       totalPayout += drawCollectionPayout;
     }
+    _saveUserHighestClaimedDrawId(_user, _drawIds);
+    userPayoutHistory[_user] = _userPayoutHistory;
 
     emit ClaimedDraw(_user, totalPayout);
 
@@ -248,16 +254,12 @@ contract ClaimableDraw is OwnerOrManager {
     address _user, 
     uint32[] calldata _drawIds, 
     IDrawCalculator _drawCalculator, 
-    bytes calldata _data
-  ) internal returns (uint256) {
-    
+    bytes calldata _data,
+    uint96[PAYOUT_CARDINALITY] memory _userPayoutHistory
+  ) internal returns (uint256, uint96[PAYOUT_CARDINALITY] memory) {
     uint256 drawCollectionPayout;
-    uint96[PAYOUT_CARDINALITY] memory _userPayoutHistory = userPayoutHistory[_user];
-
     (drawCollectionPayout, _userPayoutHistory) = _calculateDrawCollectionPayout(_user, _userPayoutHistory, _drawIds, _drawCalculator, _data);
-    userPayoutHistory[_user] = _userPayoutHistory;
-
-    return drawCollectionPayout;
+    return (drawCollectionPayout, _userPayoutHistory);
   }
 
   /**
@@ -275,24 +277,82 @@ contract ClaimableDraw is OwnerOrManager {
     uint32[] calldata _drawIds, 
     IDrawCalculator _drawCalculator, 
     bytes calldata _data
-  ) internal returns (uint256 totalPayout, uint96[PAYOUT_CARDINALITY] memory userPayoutHistory) {
-    
+  ) internal returns (uint256, uint96[PAYOUT_CARDINALITY] memory) {
+    uint96 prize;
+    uint256 totalPayout;
     uint96[] memory prizesAwardable;
-    userPayoutHistory = _userPayoutHistory;
-
     DrawLib.Draw[] memory _draws = drawHistory.getDraws(_drawIds); // CALL
-
     prizesAwardable = _drawCalculator.calculate(_user, _draws, _data);  // CALL
-    
     require(_drawIds.length == prizesAwardable.length, "ClaimableDraw/invalid-prizes-awardable");
 
-    uint96 prize;
     for (uint256 prizeIndex = 0; prizeIndex < prizesAwardable.length; prizeIndex++) {
       prize = prizesAwardable[prizeIndex];
-      (prize, userPayoutHistory) = _validateDrawPayout(userPayoutHistory, (_drawIds[prizeIndex] % PAYOUT_CARDINALITY), prize);
+      (prize, _userPayoutHistory) = _validateDrawPayout(_userPayoutHistory, _wrapCardinality(_drawIds[prizeIndex]), prize);
       totalPayout += prize;
     }
+
+    return (totalPayout, _userPayoutHistory);
   }
+
+  /* ============ Helper Functions ============ */
+
+  function _resetUserDrawClaimedHistory(
+    uint32 _resetPosition,
+    uint32 _resetAmount, 
+    uint96[PAYOUT_CARDINALITY] memory _claimHistory
+  ) internal returns (uint96[PAYOUT_CARDINALITY] memory) {
+    uint8 _pointer = _wrapCardinality(_resetPosition);
+
+    if(_resetAmount >= PAYOUT_CARDINALITY) {
+      for (uint256 index = 0; index < PAYOUT_CARDINALITY; index++) {
+        _claimHistory[index] = 0;
+      }
+    } else {
+      for (uint256 index = 0; index < _resetAmount; index++) {
+        if(index == PAYOUT_CARDINALITY) break;
+        _claimHistory[_pointer - index] = 0;
+      }
+    }
+    return _claimHistory;
+  }
+  /**
+    * @dev Calculates ring buffer index
+    * @param _user User address
+    * @param _drawIdsCollection User address
+    * @return Highest claimed draw id
+  */
+  function _saveUserHighestClaimedDrawId(address _user, uint32[][] calldata _drawIdsCollection) internal returns (uint32) {
+    uint32 _newHighestClaimedDrawId;
+    uint32 ___userHighestClaimedDrawId = _userHighestClaimedDrawId[_user];
+
+    for (uint256 drawIdsCollectionIndex = 0; drawIdsCollectionIndex < _drawIdsCollection.length; drawIdsCollectionIndex++) {
+      uint32[] memory _drawIds = _drawIdsCollection[drawIdsCollectionIndex];
+      for (uint256 index = 0; index < _drawIds.length; index++) {
+        uint32 _drawId =  _drawIds[index];
+        _newHighestClaimedDrawId = _drawId > _newHighestClaimedDrawId ? _drawId : _newHighestClaimedDrawId;
+      } 
+    }
+
+    if ( _newHighestClaimedDrawId >= ___userHighestClaimedDrawId) {
+      _userHighestClaimedDrawId[_user] = _newHighestClaimedDrawId;
+      return _newHighestClaimedDrawId;
+    }
+
+    return ___userHighestClaimedDrawId;
+  }
+
+  /**
+    * @notice Modulo index with ring buffer cardinality.
+    * @dev    Modulo index with ring buffer cardinality.
+    * @param _index Index 
+    * @return Ring buffer pointer
+  */
+  function _wrapCardinality(uint32 _index) internal pure returns (uint8) { 
+    return uint8(_index % PAYOUT_CARDINALITY);
+  }
+
+  /* ============ Validation Functions ============ */
+
 
   /**
     * @notice Calculates payout for individual draw.
@@ -308,10 +368,23 @@ contract ClaimableDraw is OwnerOrManager {
     uint96 _payout
   ) internal pure returns (uint96, uint96[PAYOUT_CARDINALITY] memory) {
     uint96 pastPayout = _userPayoutHistory[_drawIndex];
-    require(_payout > pastPayout, "ClaimableDraw/payout-below-threshold");
+    require(_payout >= pastPayout, "ClaimableDraw/payout-below-threshold");
     uint96 payoutDiff = _payout - pastPayout;
     _userPayoutHistory[_drawIndex] = payoutDiff;
     return (payoutDiff, _userPayoutHistory);
   }
 
+  /**
+    * @dev Validate claim draw ids to be within PAYOUT_CARDINALITY range.
+    * @param _drawIds     Array of draw ids grouped for target draw calculator
+    * @param _newestDrawFromHistory Acceptable draw id minimum (supplied ids must be greater)
+    * @return Boolean if all draw ids in range
+  */
+  function _validateDrawIdRange(uint32[] calldata _drawIds, DrawLib.Draw memory _newestDrawFromHistory) internal pure returns (bool) { 
+    uint32 _drawIdFloor = _newestDrawFromHistory.drawId > PAYOUT_CARDINALITY ? _newestDrawFromHistory.drawId - PAYOUT_CARDINALITY : 0;
+    for (uint256 drawIdsIndex = 0; drawIdsIndex < _drawIds.length; drawIdsIndex++) {
+      require(_drawIds[drawIdsIndex] >= _drawIdFloor, "ClaimableDraw/draw-id-out-of-range");
+    }
+    return true;
+  }
 }

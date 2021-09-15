@@ -89,20 +89,20 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   }
 
   /**
-    * @notice External function to get the newest draw.
-    * @dev    External function to get the newest draw using the nextDrawIndex.
-    * @return Newest draw
+    * @notice Retrieve the newest draw within the cardinality range.
+    * @dev    Retrieve the newest draw within the cardinality range.
+    * @return Draw
   */
-  function getNewestDraw() external view returns (DrawLib.Draw memory) {
+  function getNewestDraw() external view override returns (DrawLib.Draw memory) {
     return _getNewestDraw(nextDrawIndex);
   }
 
   /**
-    * @notice Function to get the oldest draw.
-    * @dev    Function to get the oldest draw using the totalDraws.
-    * @return Last draw
+    * @notice Retrieve the oldest draw within the cardinality range.
+    * @dev    Retrieve the oldest draw within the cardinality range.
+    * @return Draw
   */
-  function getOldestDraw() external view returns (DrawLib.Draw memory) {
+  function getOldestDraw() external view override returns (DrawLib.Draw memory) {
     uint256 _totalDraws = totalDraws;
     uint256 _nextDrawIndex = nextDrawIndex;
     if(_totalDraws < CARDINALITY) {

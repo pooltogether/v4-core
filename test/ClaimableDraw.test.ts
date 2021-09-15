@@ -3,6 +3,7 @@ import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, constants, Contract, ContractFactory, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
 import { Address } from 'hardhat-deploy/dist/types';
+import { Artifact } from 'hardhat/types';
 import { Draw } from "./types"
 
 const { getSigners } = ethers;
@@ -37,82 +38,130 @@ describe('ClaimableDraw', () => {
   let claimableDraw: Contract;
   let drawCalculator: MockContract;
   let drawHistory: MockContract;
+  let IDrawCalculator: Artifact
+  let IDrawHistory: Artifact
+  let claimableDrawFactory: ContractFactory
+  let erc20MintableFactory: ContractFactory
 
   const DRAW_SAMPLE_CONFIG = {
-    randomNumber: 11111,
-    timestamp: 1111111111,
+    randomNumber: BigNumber.from('11111'),
+    timestamp: BigNumber.from('1111111111'),
     prize: toWei('10'),
   };
 
   before(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
+    IDrawCalculator = await artifacts.readArtifact('IDrawCalculator');
+    IDrawHistory = await artifacts.readArtifact('IDrawHistory');
+    claimableDrawFactory = await ethers.getContractFactory('ClaimableDrawHarness');
+    erc20MintableFactory = await ethers.getContractFactory('ERC20Mintable');
   });
 
   beforeEach(async () => {
-    let IDrawCalculator = await artifacts.readArtifact('IDrawCalculator');
     drawCalculator = await deployMockContract(wallet1, IDrawCalculator.abi);
-
-    let IDrawHistory = await artifacts.readArtifact('IDrawHistory');
     drawHistory = await deployMockContract(wallet1, IDrawHistory.abi);
-
-    const claimableDrawFactory: ContractFactory = await ethers.getContractFactory(
-      'ClaimableDrawHarness',
-    );
     claimableDraw = await claimableDrawFactory.deploy();
-
-    await claimableDraw.initialize(wallet1.address, drawHistory.address);
-
-    const erc20MintableFactory: ContractFactory = await ethers.getContractFactory(
-      'ERC20Mintable',
-    );
     dai = await erc20MintableFactory.deploy('Dai Stablecoin', 'DAI');
+    await claimableDraw.initialize(wallet1.address, drawHistory.address);
   });
 
-  describe('drawIdToClaimIndex()', () => {
+  /* ------------------------------------ */
+  /* -------- Internal Functions -------- */
+  /* ------------------------------------ */
+
+  describe('_wrapCardinality()', () => {
     it('should convert a draw id to a draw index before reaching cardinality', async () => {
-      const drawIdToClaimIndex = await claimableDraw.drawIdToClaimIndex(1);
-      expect(drawIdToClaimIndex)
+      expect(await claimableDraw.wrapCardinality(1))
         .to.equal(1)
     });
 
     it('should convert a draw id to a draw index after reaching cardinality', async () => {
-      const drawIdToClaimIndex = await claimableDraw.drawIdToClaimIndex(13);
-      expect(drawIdToClaimIndex)
+      expect(await claimableDraw.wrapCardinality(13))
         .to.equal(5)
     });
   });
 
-  describe('calculateDrawCollectionPayout()', () => {
-    it('should return a total payout after calculating a draw collection prize', async () => {
-      //function calculate(uint32[] calldata drawIds, address _user, DrawLib.Draw[] calldata _draws, bytes calldata _pickIndicesForDraws)
-      const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(DRAW_SAMPLE_CONFIG.randomNumber), timestamp: BigNumber.from(DRAW_SAMPLE_CONFIG.timestamp) }
-
-      await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
-      await drawHistory.mock.getDraws.withArgs([0]).returns([draw])
-
-      const calculateDrawCollectionPayoutResult = await claimableDraw.callStatic.calculateDrawCollectionPayout(
-        wallet1.address, // _user
-        [
-          BigNumber.from('0'),
-          BigNumber.from('0'),
-          BigNumber.from('0'),
-          BigNumber.from('0'),
-          BigNumber.from('0'),
-          BigNumber.from('0'),
-          BigNumber.from('0'),
-          BigNumber.from('0')
-        ], // _userClaimedDraws
-        [0], // _drawIds
-        drawCalculator.address, // _drawCalculator
-        '0x' // _data
+  describe('_resetUserDrawClaimedHistory()', () => {
+    it('should succesfully reset positions 0,1,2,3 in a user draw claimed history', async () => {
+      await claimableDraw.resetUserDrawClaimedHistory(
+        3,
+        4,
+        [toWei('1'), toWei('2'), toWei('3'), toWei('4'), toWei('5'), toWei('6'), toWei('7'), toWei('8')]
       );
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 0))
+        .to.equal(toWei('0'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 1))
+        .to.equal(toWei('0'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 2))
+        .to.equal(toWei('0'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 3))
+        .to.equal(toWei('0'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 4))
+        .to.equal(toWei('5'));
+    });
 
-      expect(calculateDrawCollectionPayoutResult.totalPayout)
-        .to.equal(toWei('10'))
+    it('should succesfully reset positions 4,5,6,7 in a user draw claimed history', async () => {
+      await claimableDraw.resetUserDrawClaimedHistory(
+        7,
+        4,
+        [toWei('1'), toWei('2'), toWei('3'), toWei('4'), toWei('5'), toWei('6'), toWei('7'), toWei('8')]
+      );
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 0))
+        .to.equal(toWei('1'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 1))
+        .to.equal(toWei('2'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 2))
+        .to.equal(toWei('3'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 3))
+        .to.equal(toWei('4'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 4))
+        .to.equal(toWei('0'));
+      expect(await claimableDraw.userDrawPayout(wallet1.address, 7))
+        .to.equal(toWei('0'));
+    });
+
+    it('should reset the entire user draw claimed history', async () => {
+      await claimableDraw.resetUserDrawClaimedHistory(
+        1,
+        8,
+        [toWei('1'), toWei('2'), toWei('3'), toWei('4'), toWei('5'), toWei('6'), toWei('7'), toWei('8')]
+      );
+      const payoutHistory = await claimableDraw.userDrawPayouts(wallet1.address)
+      for (let index = 0; index < payoutHistory.length; index++) {
+        expect(payoutHistory[index]).to.equal(toWei('0'));
+      }
     });
   });
 
-  describe('validateDrawPayout()', () => {
+  describe('_validateDrawIdRange()', () => {
+    it('should fail to validate draw ids when first draw id is out of payout cardinality range', async () => {
+      expect(claimableDraw.validateDrawIdRange(
+        [0, 1, 2, 3, 4, 5, 6, 7],
+        {
+          drawId: 9,
+          drawIndex: 9,
+          winningRandomNumber: 0,
+          timestamp: 0,
+        }
+      ))
+        .to.be.revertedWith('ClaimableDraw/draw-id-out-of-range')
+    });
+
+    it('should succeed to validate draw ids when all draws ids are within the payout cardinality range', async () => {
+      expect(await claimableDraw.validateDrawIdRange(
+        [0, 1, 2, 3, 4, 5, 6, 7],
+        {
+          drawId: 8,
+          drawIndex: 8,
+          winningRandomNumber: 0,
+          timestamp: 0,
+        }
+      ))
+        .to.equal(true)
+    });
+  });
+
+  describe('_validateDrawPayout()', () => {
     it('should an update draw claim payout history with the full payout amount in index 0', async () => {
       const payoutHistory = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
       const updatedPayoutHistory = await claimableDraw.validateDrawPayout(payoutHistory, 0, toWei('10'))
@@ -141,6 +190,37 @@ describe('ClaimableDraw', () => {
     });
   });
 
+  describe('_calculateDrawCollectionPayout()', () => {
+    it('should return a total payout after calculating a draw collection prize', async () => {
+      const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(DRAW_SAMPLE_CONFIG.randomNumber), timestamp: BigNumber.from(DRAW_SAMPLE_CONFIG.timestamp) }
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
+      await drawHistory.mock.getDraws.withArgs([0]).returns([draw])
+      const calculateDrawCollectionPayoutResult = await claimableDraw.callStatic.calculateDrawCollectionPayout(
+        wallet1.address, // _user
+        [
+          BigNumber.from('0'),
+          BigNumber.from('0'),
+          BigNumber.from('0'),
+          BigNumber.from('0'),
+          BigNumber.from('0'),
+          BigNumber.from('0'),
+          BigNumber.from('0'),
+          BigNumber.from('0')
+        ], // _userClaimedDraws
+        [0], // _drawIds
+        drawCalculator.address, // _drawCalculator
+        '0x' // _data
+      );
+
+      expect(calculateDrawCollectionPayoutResult.totalPayout)
+        .to.equal(toWei('10'))
+    });
+  });
+
+  /* ---------------------------------- */
+  /* -------- Public Functions -------- */
+  /* ---------------------------------- */
+
   describe('userDrawPayout()', () => {
     it('should return the user payout for draw before claiming a payout', async () => {
       expect(await claimableDraw.userDrawPayout(wallet1.address, 0))
@@ -165,7 +245,7 @@ describe('ClaimableDraw', () => {
     });
   });
 
-  describe('set DrawCalculatorManager()', () => {
+  describe('setManager()', () => {
     it('should fail to set draw manager from unauthorized wallet', async () => {
       const claimableDrawUnauthorized = claimableDraw.connect(wallet2);
       await expect(claimableDrawUnauthorized.setManager(wallet2.address)).to.be.revertedWith(
@@ -232,14 +312,11 @@ describe('ClaimableDraw', () => {
   });
 
   describe('claim()', () => {
-    // function claim(address _user, uint32[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256) {
     it('should fail to claim with incorrect amount of draw calculators', async () => {
-      const draw: any = { drawId: 0, winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
-
-
+      const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
       await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
       await drawHistory.mock.getDraws.withArgs([0]).returns([draw])
-
+      await drawHistory.mock.getNewestDraw.returns(draw)
       await expect(
         claimableDraw.claim(
           wallet1.address,
@@ -250,32 +327,44 @@ describe('ClaimableDraw', () => {
       ).to.be.revertedWith('ClaimableDraw/invalid-calculator-array');
     });
 
-    it('should fail to claim a previously claimed prize', async () => {
+    it('should fail to claim with out of range draw id', async () => {
       const draw: any = { drawId: 0, winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
-
+      const drawNewest: any = { drawId: 9, winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
       await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
       await drawHistory.mock.getDraws.withArgs([0]).returns([draw])
+      await drawHistory.mock.getNewestDraw.returns(drawNewest)
+      await expect(
+        claimableDraw.claim(
+          wallet1.address,
+          [[0]],
+          [drawCalculator.address],
+          ['0x'],
+        ),
+      ).to.be.revertedWith('ClaimableDraw/draw-id-out-of-range');
+    });
 
+    it('should fail to claim a previously claimed prize', async () => {
+      const draw: any = { drawId: 0, winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
+      await drawHistory.mock.getDraws.withArgs([0]).returns([draw])
+      await drawHistory.mock.getNewestDraw.returns(draw)
       await claimableDraw.claim(wallet1.address, [[0]], [drawCalculator.address], ['0x']);
-
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('9.9')])
       await expect(claimableDraw.claim(wallet1.address, [[0]], [drawCalculator.address], ['0x']))
         .to.be.revertedWith('ClaimableDraw/payout-below-threshold');
     });
 
     it('should succeed to claim and emit ClaimedDraw event', async () => {
-
-      const draw: any = { drawId: 0, winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
-
+      const draw: Draw = { drawId: BigNumber.from('0'), winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
       await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
       await drawHistory.mock.getDraws.withArgs([0]).returns([draw])
-
+      await drawHistory.mock.getNewestDraw.returns(draw)
       await expect(claimableDraw.claim(wallet1.address, [[0]], [drawCalculator.address], ['0x']))
         .to.emit(claimableDraw, 'ClaimedDraw')
         .withArgs(
           wallet1.address,
           toWei('10'),
         );
-
       const userClaimedDraws = await claimableDraw.userDrawPayouts(wallet1.address);
       expect(userClaimedDraws[0])
         .to.equal(toWei('10'))
@@ -295,12 +384,11 @@ describe('ClaimableDraw', () => {
       // prepare claim data
       for (let index = 0; index < CLAIM_COUNT; index++) {
         MOCK_UNIQUE_DRAW = {
-          randomNumber: DRAW_SAMPLE_CONFIG.randomNumber * index,
+          randomNumber: DRAW_SAMPLE_CONFIG.randomNumber.mul(index),
           timestamp: DRAW_SAMPLE_CONFIG.timestamp,
           prize: DRAW_SAMPLE_CONFIG.prize,
           payout: toWei('' + index),
         };
-
 
         drawsIds.push(BigNumber.from(index));
         drawRandomNumbers.push(MOCK_UNIQUE_DRAW.randomNumber);
@@ -317,6 +405,7 @@ describe('ClaimableDraw', () => {
       await drawHistory.mock.getDraws.withArgs(drawsIds).returns(draws)
       const payouts = [toWei('1'), toWei('2'), toWei('3'), toWei('4'), toWei('5'), toWei('6'), toWei('7'), toWei('8')]
 
+      await drawHistory.mock.getNewestDraw.returns(draws[(draws.length - 1)])
       await drawCalculator.mock.calculate.withArgs(wallet1.address, draws, '0x').returns(payouts)
       await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], ['0x']);
 
@@ -325,24 +414,96 @@ describe('ClaimableDraw', () => {
       for (let index = 0; index < payoutHistory.length; index++) {
         expect(payoutHistory[index]).to.equal(payouts[index]);
       }
+    });
 
-      // TODO: Fix a deep equal to remove extra expect statements
-      // expect(await claimableDraw.userDrawPayouts(wallet1.address)).to.equal(payoutExpectation); // FAILS
+    it('should create 8 draws and a user claims all draw ids in a single claim', async () => {
+
+      let drawsIds = [];
+      let drawRandomNumbers = [];
+      let drawTimestamps = [];
+      let drawPrizes = [];
+      let draws: Draw[] = []
+
+      let MOCK_UNIQUE_DRAW;
+      const CLAIM_COUNT = 8;
+
+      // prepare claim data
+      for (let index = 0; index < CLAIM_COUNT; index++) {
+        MOCK_UNIQUE_DRAW = {
+          randomNumber: DRAW_SAMPLE_CONFIG.randomNumber.mul(index),
+          timestamp: DRAW_SAMPLE_CONFIG.timestamp,
+          prize: DRAW_SAMPLE_CONFIG.prize,
+          payout: toWei('' + index),
+        };
+
+        drawsIds.push(BigNumber.from(index));
+        drawRandomNumbers.push(MOCK_UNIQUE_DRAW.randomNumber);
+        drawTimestamps.push(MOCK_UNIQUE_DRAW.timestamp);
+        drawPrizes.push(MOCK_UNIQUE_DRAW.prize);
+
+        draws.push({
+          drawId: BigNumber.from(index),
+          winningRandomNumber: BigNumber.from(MOCK_UNIQUE_DRAW.randomNumber),
+          timestamp: BigNumber.from(MOCK_UNIQUE_DRAW.timestamp),
+        })
+      }
+
+      await drawHistory.mock.getDraws.withArgs(drawsIds).returns(draws)
+      let payouts = [toWei('1'), toWei('2'), toWei('3'), toWei('4'), toWei('5'), toWei('6'), toWei('7'), toWei('8')]
+
+      await drawHistory.mock.getNewestDraw.returns(draws[(draws.length - 1)])
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, draws, '0x').returns(payouts)
+      await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], ['0x']);
+
+      let payoutHistory = await claimableDraw.userDrawPayouts(wallet1.address)
+
+      for (let index = 0; index < payoutHistory.length; index++) {
+        expect(payoutHistory[index]).to.equal(payouts[index]);
+      }
+
+      draws = []
+      drawsIds = []
+      drawRandomNumbers = []
+      drawTimestamps = []
+      drawPrizes = []
+      for (let index = 10; index < 18; index++) {
+        MOCK_UNIQUE_DRAW = {
+          randomNumber: DRAW_SAMPLE_CONFIG.randomNumber.mul(index),
+          timestamp: DRAW_SAMPLE_CONFIG.timestamp,
+          prize: DRAW_SAMPLE_CONFIG.prize,
+          payout: toWei('' + index),
+        };
+
+        drawsIds.push(BigNumber.from(index));
+        drawRandomNumbers.push(MOCK_UNIQUE_DRAW.randomNumber);
+        drawTimestamps.push(MOCK_UNIQUE_DRAW.timestamp);
+        drawPrizes.push(MOCK_UNIQUE_DRAW.prize);
+
+        draws.push({
+          drawId: BigNumber.from(index),
+          winningRandomNumber: BigNumber.from(MOCK_UNIQUE_DRAW.randomNumber),
+          timestamp: BigNumber.from(MOCK_UNIQUE_DRAW.timestamp),
+        })
+      }
+
+      await drawHistory.mock.getDraws.withArgs(drawsIds).returns(draws)
+      payouts = [toWei('1'), toWei('2'), toWei('3'), toWei('4'), toWei('4'), toWei('4'), toWei('4'), toWei('4')]
+      await drawHistory.mock.getNewestDraw.returns(draws[(draws.length - 1)])
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, draws, '0x').returns(payouts)
+      await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], ['0x']);
+      payoutHistory = await claimableDraw.userDrawPayouts(wallet1.address)
     });
   });
 
   describe('withdrawERC20()', () => {
     let withdrawAmount: BigNumber;
-
     beforeEach(async () => {
       withdrawAmount = toWei('100');
-
       await dai.mint(claimableDraw.address, toWei('1000'));
     });
 
     it('should withdraw ERC20 tokens', async () => {
       await claimableDraw.setManager(wallet2.address);
-
       expect(
         await claimableDraw
           .connect(wallet2)
@@ -360,7 +521,6 @@ describe('ClaimableDraw', () => {
 
     it('should fail to withdraw ERC20 tokens if token address is address zero', async () => {
       await claimableDraw.setManager(wallet2.address);
-
       await expect(
         claimableDraw
           .connect(wallet2)
