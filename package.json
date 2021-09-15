@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf cache/ artifacts/",
+    "docs": "solidity-docgen --solc-module solc-0.8 -i contracts -o docs -t templates",
     "compile": "mkdir -p abis && hardhat --show-stack-traces --max-memory 8192 compile",
     "coverage": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage",
     "coverage:file": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage --testfiles",
@@ -60,8 +61,10 @@
     "mocha": "9.0.3",
     "mocha-junit-reporter": "2.0.0",
     "prettier": "2.2.1",
+    "solc-0.8": "npm:solc@0.8.6",
     "solhint": "3.3.3",
     "solidity-coverage": "0.7.16",
+    "solidity-docgen": "^0.5.13",
     "ts-generator": "0.1.1",
     "ts-node": "9.1.1",
     "typescript": "4.2.3"
