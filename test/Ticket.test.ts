@@ -462,7 +462,7 @@ describe('Ticket', () => {
     })
   })
 
-  describe.only('getAverageBalancesBetween()', () => {
+  describe('getAverageBalancesBetween()', () => {
     const debug = newDebug('pt:Ticket.test.ts:getAverageBalancesBetween()')
     const balanceBefore = toWei('1000');
     let timestamp: number
