@@ -47,6 +47,8 @@ describe('Tickets', () => {
       numberOfPicks: toWei('1'),
       distributions: [toWei('0.8'), toWei('0.2')],
       prize: toWei('10'),
+      drawStartTimestampOffset: 5,
+      drawEndTimestampOffset: 1,
     })
 
     await env.claim({ user: 1, drawId: 0, picks: [1], prize: 10 })
