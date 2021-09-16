@@ -8,12 +8,12 @@ import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 
 contract DrawHistory is IDrawHistory, OwnerOrManager {
-  
+
   /**
-    * @notice Next ring buffer index position when pushing a new draw. 
+    * @notice Next ring buffer index position when pushing a new draw.
   */
   uint32 public nextDrawIndex;
-  
+
    /**
     * @notice Total draws pushed to the draw history.
   */
@@ -39,12 +39,11 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   constructor(
     address _manager
   ) public {
-    
     _setManager(_manager);
   }
 
   /* ============ External Functions ============ */
-  
+
   /**
     * @notice Read all draws.
     * @dev    Return all draws from the draws ring buffer.
@@ -121,7 +120,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   function pushDraw(DrawLib.Draw memory draw) external override onlyManagerOrOwner returns (uint32) {
     return _pushDraw(draw);
-  } 
+  }
 
   /**
     * @notice Set existing draw in draw history.
@@ -138,8 +137,8 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
 
   /**
     * @dev    Calculates a ring buffer position using the next index and delta index
-    * @param _nextBufferIndex Next ring buffer index 
-    * @param _deltaIndex Delta index 
+    * @param _nextBufferIndex Next ring buffer index
+    * @param _deltaIndex Delta index
     * @return Ring buffer index pointer
   */
   function _bufferPosition(uint256 _nextBufferIndex, uint32 _deltaIndex) internal pure returns (uint32) {
@@ -148,7 +147,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
 
   /**
     * @dev    Modulo index with ring buffer cardinality.
-    * @param _index Ring buffer index 
+    * @param _index Ring buffer index
     * @return Ring buffer index pointer
   */
   function _wrapCardinality(uint256 _index) internal pure returns (uint32) {
@@ -198,7 +197,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     nextDrawIndex = _wrapCardinality(_nextDrawIndex + 1);
     totalDraws += 1;
     return _newDraw.drawId;
-  } 
+  }
 
   /**
     * @notice Internal function to set an existing draw.
@@ -211,6 +210,6 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     _draws[_drawIndex] = _newDraw;
     emit DrawSet(_drawIndex, _newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);
     return _newDraw.drawId;
-  } 
+  }
 
 }

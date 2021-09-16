@@ -2,14 +2,15 @@ import { ethers, artifacts } from 'hardhat';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { constants, Contract, ContractFactory } from 'ethers';
+import { constants, Contract, ContractFactory, utils } from 'ethers';
 import { expect } from 'chai';
-import { deploy1820 } from 'deploy-eip-1820'
 
 const debug = require('debug')('ptv3:PoolEnv');
+
 const now = () => (new Date().getTime() / 1000) | 0;
-const toWei = (val: string | number) => ethers.utils.parseEther('' + val);
+
 const { AddressZero } = constants;
+const { parseEther: toWei } = utils;
 
 describe('DrawBeacon', () => {
   let wallet: SignerWithAddress;
@@ -17,15 +18,14 @@ describe('DrawBeacon', () => {
   let DrawBeaconFactory: ContractFactory
   let drawHistory: Contract;
   let drawBeacon: Contract;
-  let drawBeacon2: Contract;
   let rng: MockContract;
   let rngFeeToken: MockContract;
 
-  let rngRequestPeriodStart = now();
-  let drawPeriodSeconds = 1000;
+  let beaconPeriodStart = now();
+  let beaconPeriodSeconds = 1000;
 
-  const halfTime = drawPeriodSeconds / 2;
-  const overTime = drawPeriodSeconds + 1;
+  const halfTime = beaconPeriodSeconds / 2;
+  const overTime = beaconPeriodSeconds + 1;
 
   let IERC20;
 
@@ -40,10 +40,7 @@ describe('DrawBeacon', () => {
 
     debug(`deploy draw history...`);
     const DrawHistoryFactory = await ethers.getContractFactory('DrawHistory', wallet);
-    drawHistory = await DrawHistoryFactory.deploy();
-
-    debug(`initializing draw history...`);
-    await drawHistory.initialize(wallet.address)
+    drawHistory = await DrawHistoryFactory.deploy(wallet.address);
 
     debug('mocking rng...');
     const RNGInterface = await artifacts.readArtifact('RNGInterface');
@@ -54,14 +51,11 @@ describe('DrawBeacon', () => {
 
     debug('deploying drawBeacon...');
     DrawBeaconFactory = await ethers.getContractFactory('DrawBeaconHarness', wallet);
-    drawBeacon = await DrawBeaconFactory.deploy();
-
-    debug('initializing drawBeacon...');
-    await drawBeacon.initialize(
+    drawBeacon = await DrawBeaconFactory.deploy(
       drawHistory.address,
       rng.address,
-      rngRequestPeriodStart,
-      drawPeriodSeconds,
+      beaconPeriodStart,
+      beaconPeriodSeconds
     );
 
     debug('set draw history manager as draw beacon');
@@ -69,54 +63,62 @@ describe('DrawBeacon', () => {
     debug('initialized!');
   });
 
-  describe('initialize()', () => {
-    it('should emit an Initialized event', async () => {
-      debug('deploying another drawBeacon...');
-      let drawBeacon2 = await DrawBeaconFactory.deploy();
-      const initalizeResult2 = drawBeacon2.initialize(
+  describe('constructor()', () => {
+    it('should emit a Deployed event', async () => {
+     const drawBeacon2 = await DrawBeaconFactory.deploy(
         drawHistory.address,
         rng.address,
-        rngRequestPeriodStart,
-        drawPeriodSeconds
+        beaconPeriodStart,
+        beaconPeriodSeconds
       );
 
-      await expect(initalizeResult2)
-        .to.emit(drawBeacon2, 'Initialized')
+      await expect(
+        drawBeacon2.deployTransaction
+      ).to.emit(drawBeacon2, 'Deployed')
         .withArgs(
           drawHistory.address,
           rng.address,
-          rngRequestPeriodStart,
-          drawPeriodSeconds
+          beaconPeriodStart,
+          beaconPeriodSeconds
+        );
+
+      await expect(
+        drawBeacon2.deployTransaction
+      ).to.emit(drawBeacon2, 'BeaconPeriodStarted')
+        .withArgs(
+          wallet.address,
+          beaconPeriodStart
         );
     });
 
     it('should set the params', async () => {
-      expect(await drawBeacon.beaconPeriodSeconds()).to.equal(drawPeriodSeconds);
       expect(await drawBeacon.rng()).to.equal(rng.address);
+      expect(await drawBeacon.beaconPeriodStartedAt()).to.equal(beaconPeriodStart);
+      expect(await drawBeacon.beaconPeriodSeconds()).to.equal(beaconPeriodSeconds);
     });
 
     it('should reject rng request period', async () => {
-      debug('deploying secondary drawBeacon...');
-      drawBeacon2 = await DrawBeaconFactory.deploy();
-      await expect(drawBeacon2.initialize(
-        drawHistory.address,
-        rng.address,
-        0,
-        drawPeriodSeconds
-      )).to.be.revertedWith(
-        'DrawBeacon/rng-request-period-greater-than-zero',
+      await expect(
+        DrawBeaconFactory.deploy(
+          drawHistory.address,
+          rng.address,
+          0,
+          beaconPeriodSeconds
+        )
+      ).to.be.revertedWith(
+        'DrawBeacon/beacon-period-greater-than-zero',
       );
     })
 
     it('should reject invalid rng', async () => {
-      debug('deploying secondary drawBeacon...');
-      drawBeacon2 = await DrawBeaconFactory.deploy();
-      await expect(drawBeacon2.initialize(
-        drawHistory.address,
-        AddressZero,
-        rngRequestPeriodStart,
-        drawPeriodSeconds
-      )).to.be.revertedWith(
+      await expect(
+        DrawBeaconFactory.deploy(
+          drawHistory.address,
+          AddressZero,
+          beaconPeriodStart,
+          beaconPeriodSeconds
+        )
+      ).to.be.revertedWith(
         'DrawBeacon/rng-not-zero',
       );
     });
@@ -223,12 +225,12 @@ describe('DrawBeacon', () => {
       expect(await drawBeacon.canStartDraw()).to.equal(false);
 
       // Prize-period over, RNG requested
-      await drawBeacon.setCurrentTime(startTime.add(drawPeriodSeconds));
+      await drawBeacon.setCurrentTime(startTime.add(beaconPeriodSeconds));
       await drawBeacon.setRngRequest(1, 100);
       expect(await drawBeacon.canStartDraw()).to.equal(false);
 
       // Prize-period over, RNG not requested
-      await drawBeacon.setCurrentTime(startTime.add(drawPeriodSeconds));
+      await drawBeacon.setCurrentTime(startTime.add(beaconPeriodSeconds));
       await drawBeacon.setRngRequest(0, 0);
       expect(await drawBeacon.canStartDraw()).to.equal(true);
     });
@@ -329,7 +331,7 @@ describe('DrawBeacon', () => {
         );
 
       expect(await drawBeacon.beaconPeriodStartedAt()).to.equal(
-        startedAt.add(drawPeriodSeconds),
+        startedAt.add(beaconPeriodSeconds),
       );
     });
   });
@@ -339,16 +341,16 @@ describe('DrawBeacon', () => {
       let startedAt = await drawBeacon.beaconPeriodStartedAt();
       expect(
         await drawBeacon.calculateNextBeaconPeriodStartTime(
-          startedAt.add(drawPeriodSeconds * 14),
+          startedAt.add(beaconPeriodSeconds * 14),
         ),
-      ).to.equal(startedAt.add(drawPeriodSeconds * 14));
+      ).to.equal(startedAt.add(beaconPeriodSeconds * 14));
     });
 
     it('should return the current if it is within', async () => {
       let startedAt = await drawBeacon.beaconPeriodStartedAt();
       expect(
         await drawBeacon.calculateNextBeaconPeriodStartTime(
-          startedAt.add(drawPeriodSeconds / 2),
+          startedAt.add(beaconPeriodSeconds / 2),
         ),
       ).to.equal(startedAt);
     });
@@ -357,9 +359,9 @@ describe('DrawBeacon', () => {
       let startedAt = await drawBeacon.beaconPeriodStartedAt();
       expect(
         await drawBeacon.calculateNextBeaconPeriodStartTime(
-          startedAt.add(parseInt('' + drawPeriodSeconds * 1.5)),
+          startedAt.add(parseInt('' + beaconPeriodSeconds * 1.5)),
         ),
-      ).to.equal(startedAt.add(drawPeriodSeconds));
+      ).to.equal(startedAt.add(beaconPeriodSeconds));
     });
   });
 
@@ -383,20 +385,14 @@ describe('DrawBeacon', () => {
     let drawBeaconBase2: Contract;
 
     beforeEach(async () => {
-      rngRequestPeriodStart = 10000;
+      beaconPeriodStart = 10000;
 
-      debug('deploying secondary drawBeacon...');
-      drawBeaconBase2 = await DrawBeaconFactory.deploy();
-
-      debug('initializing secondary drawBeacon...');
-      await drawBeaconBase2.initialize(
+      drawBeaconBase2 = await DrawBeaconFactory.deploy(
         drawHistory.address,
         rng.address,
-        rngRequestPeriodStart,
-        drawPeriodSeconds
+        beaconPeriodStart,
+        beaconPeriodSeconds
       );
-
-      debug('initialized!');
     });
 
     describe('startDraw()', () => {

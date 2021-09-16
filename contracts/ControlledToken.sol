@@ -31,9 +31,10 @@ contract ControlledToken is ERC20Permit, IControlledToken {
     ERC20Permit("PoolTogether ControlledToken")
     ERC20(_name, _symbol)
   {
-    require(address(_controller) != address(0), "ControlledToken/controller-not-zero");
+    require(address(_controller) != address(0), "ControlledToken/controller-not-zero-address");
     controller = _controller;
 
+    require(decimals_ > 0, "ControlledToken/decimals-gt-zero");
     _decimals = decimals_;
 
     emit Initialized(

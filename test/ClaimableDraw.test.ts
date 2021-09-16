@@ -38,9 +38,7 @@ describe('ClaimableDraw', () => {
     const claimableDrawFactory: ContractFactory = await ethers.getContractFactory(
       'ClaimableDrawHarness',
     );
-    claimableDraw = await claimableDrawFactory.deploy();
-
-    await claimableDraw.initialize(wallet1.address, drawHistory.address);
+    claimableDraw = await claimableDrawFactory.deploy(wallet1.address, drawHistory.address);
 
     const erc20MintableFactory: ContractFactory = await ethers.getContractFactory(
       'ERC20Mintable',

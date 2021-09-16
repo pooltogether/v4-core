@@ -44,7 +44,7 @@ contract PrizeSplitStrategy is PrizeSplit {
   constructor(
     IPrizePool _prizePool
   ) {
-    require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero");
+    require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero-address");
     prizePool = _prizePool;
   }
 

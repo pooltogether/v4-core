@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IControlledToken is IERC20 {
 
   /// @dev Emitted when an instance is initialized
-  event Initialized(
+  event Deployed(
     string name,
     string symbol,
     uint8 decimals,

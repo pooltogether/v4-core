@@ -19,6 +19,12 @@ const { parseEther: toWei } = utils;
 
 const increaseTime = (time: number) => increaseTimeHelper(provider, time);
 
+async function deployTicketContract(ticketName: string, ticketSymbol: string, decimals: number, controllerAddress: string) {
+  const ticketFactory: ContractFactory = await ethers.getContractFactory('TicketHarness');
+  const ticketContract = await ticketFactory.deploy(ticketName, ticketSymbol, decimals, controllerAddress);
+  return ticketContract;
+}
+
 async function printTwabs(ticketContract: Contract, wallet: SignerWithAddress, debugLog: any = debug) {
   const context = await ticketContract.getAccountDetails(wallet.address)
   debugLog(`Twab Context for ${wallet.address}: { balance: ${ethers.utils.formatEther(context.balance)}, nextTwabIndex: ${context.nextTwabIndex}, cardinality: ${context.cardinality}}`)
@@ -43,13 +49,6 @@ describe('Ticket', () => {
   const ticketSymbol = 'PcDAI';
   const ticketDecimals = 18;
 
-  // const initializeTicket = async (
-  //   decimals: number = ticketDecimals,
-  //   controllerAddress: string = prizePool.address,
-  // ) => {
-  //   await ticket.initialize(ticketName, ticketSymbol, decimals, controllerAddress);
-  // };
-
   beforeEach(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
 
@@ -58,16 +57,9 @@ describe('Ticket', () => {
     );
 
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
-    prizePool.mock.balanceCap.withArgs(ticket.address).returns(MaxUint256);
-
     ticket = await deployTicketContract(ticketName, ticketSymbol, ticketDecimals, prizePool.address);
+    prizePool.mock.balanceCap.withArgs(ticket.address).returns(MaxUint256);
   });
-
-  async function deployTicketContract(ticketName: string, ticketSymbol: string, decimals: number, controllerAddress: string) {
-    const ticketFactory: ContractFactory = await ethers.getContractFactory('TicketHarness');
-    const ticketContract = await ticketFactory.deploy(ticketName, ticketSymbol, decimals, controllerAddress);
-    return ticketContract;
-  }
 
   describe('constructor()', () => {
     it('should initialize ticket', async () => {
@@ -79,12 +71,12 @@ describe('Ticket', () => {
     });
 
     it('should fail if token decimal is not greater than 0', async () => {
-      await expect(deployTicketContract(ticketName, ticketSymbol, 0, prizePool.address)).to.be.revertedWith('Ticket/decimals-gt-zero');
+      await expect(deployTicketContract(ticketName, ticketSymbol, 0, prizePool.address)).to.be.revertedWith('ControlledToken/decimals-gt-zero');
     });
 
     it('should fail if controller address is address 0', async () => {
       await expect(deployTicketContract(ticketName, ticketSymbol, ticketDecimals, constants.AddressZero)).to.be.revertedWith(
-        'Ticket/controller-not-zero-address',
+        'ControlledToken/controller-not-zero-address',
       );
     });
   });
@@ -371,31 +363,25 @@ describe('Ticket', () => {
       await ticket.mint(wallet1.address, balanceBefore);
       timestamp = (await getBlock('latest')).timestamp;
       debug(`minted ${ethers.utils.formatEther(balanceBefore)} @ timestamp ${timestamp}`)
-      // console.log(`Minted at time ${timestamp}`)
-
     });
 
     it('should return an average of zero for pre-history requests', async () => {
       await printTwabs(ticket, wallet1, debug)
-      // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
       expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 100, timestamp - 50)).to.equal(toWei('0'));
     });
 
     it('should not project into the future', async () => {
       // at this time the user has held 1000 tokens for zero seconds
-      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
       expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('0'))
     })
 
     it('should return half the minted balance when the duration is centered over first twab', async () => {
       await increaseTime(100);
-      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
       expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp - 50, timestamp + 50)).to.equal(toWei('500'))
     })
 
     it('should return an accurate average when the range is after the last twab', async () => {
       await increaseTime(100);
-      // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 51}`)
       expect(await ticket.getAverageBalanceBetween(wallet1.address, timestamp + 50, timestamp + 51)).to.equal(toWei('1000'))
     })
 

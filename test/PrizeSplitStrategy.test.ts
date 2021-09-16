@@ -4,7 +4,7 @@ import { ethers, artifacts } from 'hardhat';
 import { Artifact } from 'hardhat/types';
 import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { Contract, ContractFactory, constants } from 'ethers';
+import { Contract, ContractFactory } from 'ethers';
 
 const { getSigners } = ethers;
 const debug = require('debug')('ptv4:PrizeSplitStrategy');
@@ -29,23 +29,23 @@ describe('PrizeSplitStrategy', () => {
     prizeSplitStrategyFactory = await ethers.getContractFactory(
       'PrizeSplitStrategy',
     );
+
     erc20MintableFactory = await ethers.getContractFactory(
       'ERC20Mintable',
     );
+
     PrizePool = await artifacts.readArtifact('PrizePool');
   });
 
   beforeEach(async () => {
-    prizeSplitStrategy = await prizeSplitStrategyFactory.deploy();
-
     debug('mocking ticket and prizePool...');
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
     await prizePool.mock.tokenAtIndex.withArgs(0).returns(ticket.address)
     await prizePool.mock.tokenAtIndex.withArgs(1).returns(ticket.address)
 
-    debug('initialize prizeSplitStrategy...');
-    await prizeSplitStrategy.initialize(prizePool.address);
+    debug('deploy prizeSplitStrategy...');
+    prizeSplitStrategy = await prizeSplitStrategyFactory.deploy(prizePool.address);
   });
 
   describe('distribute()', () => {

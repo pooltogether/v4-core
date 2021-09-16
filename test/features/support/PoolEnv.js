@@ -1,7 +1,6 @@
-const chalk = require('chalk')
 const hardhat = require('hardhat')
 const { expect } = require('chai');
-const { call } = require('../../helpers/call');
+
 require('../../helpers/chaiMatchers');
 
 const { ethers, deployments } = hardhat

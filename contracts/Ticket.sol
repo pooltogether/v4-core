@@ -45,9 +45,6 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice Record of token holders TWABs for each account.
   mapping (address => Account) internal userTwabs;
 
-  /// @notice ERC20 ticket token decimals.
-  uint8 private _decimals;
-
   /// @notice Record of tickets total supply and most recent TWAB index.
   Account internal totalSupplyTwab;
 
@@ -68,25 +65,12 @@ contract Ticket is ControlledToken, ITicket {
     string memory _symbol,
     uint8 decimals_,
     address _controller
-  )
-  ControlledToken(_name,
+  ) ControlledToken(
+    _name,
     _symbol,
     decimals_,
-    _controller)
-  {
-
-    __ERC20_init(_name, _symbol);
-    __ERC20Permit_init("PoolTogether Ticket");
-
-    require(decimals_ > 0, "Ticket/decimals-gt-zero");
-    _decimals = decimals_;
-
-    require(_controller != address(0), "Ticket/controller-not-zero-address");
-
-    // ControlledToken.initialize(_name, _symbol, decimals_, _controller);
-
-    emit TicketInitialized(_name, _symbol, decimals_, _controller);
-  }
+    _controller
+  ){}
 
     /* ============ External Functions ============ */
 
@@ -230,13 +214,6 @@ contract Ticket is ControlledToken, ITicket {
 
   function delegateOf(address _user) external view returns (address) {
     return delegates[_user];
-  }
-
-  /// @notice Returns the ERC20 ticket token decimals.
-  /// @dev This value should be equal to the decimals of the token used to deposit into the pool.
-  /// @return uint8 decimals.
-  function decimals() public view virtual override returns (uint8) {
-    return _decimals;
   }
 
   /// @notice Returns the ERC20 ticket token balance of a ticket holder.
