@@ -129,6 +129,23 @@ describe('Ticket', () => {
     });
   });
 
+  describe.only('getAverageTotalSuppliesBetween()', () => {
+    it('should return total supply of tickets between two time frames', async () => {
+
+      const mint1Timestamp = (await provider.getBlock('latest')).timestamp
+      await ticket.mint(wallet1.address, toWei('1000'));
+      
+      await increaseTime(10)
+      const mint2Timestamp = (await provider.getBlock('latest')).timestamp
+      await ticket.mint(wallet2.address, toWei('500'));
+      const result = await ticket.getAverageTotalSuppliesBetween([mint1Timestamp],
+         [mint2Timestamp])
+      // 1000 + 500 / 10 = 750
+      console.log(utils.formatEther(result[0]))
+      // expect(result)
+    });
+  });
+
   describe('flash loan attack', () => {
     let flashTimestamp: number
     let mintTimestamp: number
