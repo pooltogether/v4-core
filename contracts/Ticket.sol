@@ -117,6 +117,33 @@ contract Ticket is ControlledToken, ITicket {
   }
 
   /// @notice Calculates the average balance held by a user for a given time frame.
+  /// @param user The user whose balance is checked
+  /// @param startTimes The start time of the time frame.
+  /// @param endTimes The end time of the time frame.
+  /// @return The average balance that the user held during the time frame.
+  function getAverageBalancesBetween(address user, uint32[] calldata startTimes, uint32[] calldata endTimes) external override view returns (uint256[] memory)
+  {
+    require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
+    Account storage account = userTwabs[user];
+    uint256[] memory averageBalances = new uint256[](startTimes.length);
+    for (uint i = 0; i < startTimes.length; i++) {
+      averageBalances[i] = _getAverageBalanceBetween(account.twabs, account.details, startTimes[i], endTimes[i]);
+    }
+    return averageBalances;
+  }
+
+  function getAverageTotalSuppliesBetween(uint32[] calldata startTimes, uint32[] calldata endTimes) external override view returns(uint256[] memory)
+  {
+    require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
+    
+    uint256[] memory averageTotalSupplies = new uint256[](startTimes.length);
+    for (uint i = 0; i < startTimes.length; i++) {
+      // averageTotalSupplies[i] = _getAverageBalanceBetween(account.twabs, account.details, startTimes[i], endTimes[i]);
+    }
+    return averageTotalSupplies;
+  }
+  
+  /// @notice Calculates the average balance held by a user for a given time frame.
   /// @param _user The user whose balance is checked
   /// @param _startTime The start time of the time frame.
   /// @param _endTime The end time of the time frame.

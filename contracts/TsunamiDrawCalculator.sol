@@ -22,6 +22,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice storage of the DrawSettings associated with a drawId
   mapping(uint32 => DrawLib.DrawSettings) drawSettings;
 
+  ///@notice storage of the TimestampCutoffTimes associated with a this calculator
+  DrawLib.DrawCalculatorCutoffTimes public timestampCutoffTimes;
+
   /* ============ External Functions ============ */
 
   ///@notice Initializer sets the initial parameters
@@ -90,6 +93,14 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     DrawLib.DrawSettings memory _drawSettings = drawSettings[_drawId];
     return _drawSettings;
   }
+  
+  ///@notice Sets the cutoff times for draw balance calculations
+  ///@param _timestampCutoffTimes The new cutoff times to set
+  function setTimestampCutoffTimes(DrawLib.DrawCalculatorCutoffTimes calldata _timestampCutoffTimes) external onlyManagerOrOwner
+  {
+    timestampCutoffTimes = _timestampCutoffTimes;
+    emit TimestampCutoffTimes(_timestampCutoffTimes);
+  }
 
   /* ============ Internal Functions ============ */
 
@@ -126,10 +137,19 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _timestamps The timestamps to consider
   ///@return An array of normalized balances
   function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps) internal view returns (uint256[] memory) {
-    uint256[] memory normalizedBalances = new uint256[](_timestamps.length);
+    DrawLib.DrawCalculatorCutoffTimes memory _cutoffTimes = timestampCutoffTimes; //SLOAD
     
-    uint256[] memory balances = ticket.getBalancesAt(_user, _timestamps);
-    uint256[] memory totalSupplies = ticket.getTotalSupplies(_timestamps);
+    uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_timestamps.length);
+    uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_timestamps.length);
+    for (uint32 i = 0; i < _timestamps.length; i++) {
+      _timestampsWithStartCutoffTimes[i] = _timestamps[i] - _cutoffTimes.drawStartTimestampCutoff;
+      _timestampsWithEndCutoffTimes[i] = _timestamps[i] + _cutoffTimes.drawEndTimestampCutoff;
+    }
+    
+    uint256[] memory balances = ticket.getAverageBalancesBetween(_user, _timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
+    uint256[] memory totalSupplies = ticket.getAverageTotalSuppliesBetween(_timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
+
+    uint256[] memory normalizedBalances = new uint256[](_timestamps.length);
   
     for (uint256 i = 0; i < _timestamps.length; i++) {
       require(totalSupplies[i] > 0, "DrawCalc/total-supply-zero");

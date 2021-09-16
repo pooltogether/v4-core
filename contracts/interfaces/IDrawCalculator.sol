@@ -15,6 +15,9 @@ interface IDrawCalculator {
 
   ///@notice Emitted when the claimableDraw is set/updated
   event ClaimableDrawSet(ClaimableDraw indexed claimableDraw);
+
+    ///@notice Emitted when the timestamp cutoff times are set/updated
+  event TimestampCutoffTimes(DrawLib.DrawCalculatorCutoffTimes cutoffTimes);
   
   function calculate(address user, DrawLib.Draw[] calldata draws, bytes calldata pickIndicesForDraws)
     external view returns (uint96[] memory);

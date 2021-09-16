@@ -24,4 +24,9 @@ library DrawLib{
         uint256 prize;
     }
 
+    struct DrawCalculatorCutoffTimes {
+        uint32 drawStartTimestampCutoff;
+        uint32 drawEndTimestampCutoff;
+    }
+
 }
