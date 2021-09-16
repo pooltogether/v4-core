@@ -7,7 +7,7 @@ import "../interfaces/IDrawCalculator.sol";
 
 contract ClaimableDrawHarness is ClaimableDraw {
   
-  function drawIdToClaimIndex(uint8 drawId) external pure returns (uint256) {
+  function wrapCardinality(uint8 drawId) external pure returns (uint256) {
     return _wrapCardinality(drawId);
   } 
 

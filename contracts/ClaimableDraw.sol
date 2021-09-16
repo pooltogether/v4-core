@@ -93,7 +93,6 @@ contract ClaimableDraw is OwnerOrManager {
 
   /**
     * @notice Read user's draw claim history for target Draw ID.
-    * @dev    Read user's draw claim history for target Draw ID.
     * @param user   User address
     * @param drawId Draw ID
   */
@@ -104,7 +103,6 @@ contract ClaimableDraw is OwnerOrManager {
 
   /**
     * @notice Read user's complete draw claim history.
-    * @dev    Read user's complete draw claim history.
     * @param user Address of user
   */
   function userDrawClaims(address user) external view returns(uint96[CARDINALITY] memory) {
@@ -156,9 +154,9 @@ contract ClaimableDraw is OwnerOrManager {
     uint256 totalPayout;
     uint256 drawCollectionPayout;
 
-    for (uint8 calcIndex = 0; calcIndex < drawCalculatorsLength; calcIndex++) {
-      IDrawCalculator _drawCalculator = _drawCalculators[calcIndex];
-      drawCollectionPayout = _calculate(_user, _drawIds[calcIndex], _drawCalculator, _data[calcIndex]);
+    for (uint256 i = 0; i < drawCalculatorsLength; i++) {
+      IDrawCalculator _drawCalculator = _drawCalculators[i];
+      drawCollectionPayout = _calculate(_user, _drawIds[i], _drawCalculator, _data[i]);
       totalPayout += drawCollectionPayout;
     }
 
@@ -169,10 +167,9 @@ contract ClaimableDraw is OwnerOrManager {
 
   /**
     * @notice Sets DrawCalculator reference for individual draw id.
-    * @dev    Sets DrawCalculator reference for individual draw id.
     * @param _drawId         Draw id
     * @param _newCalculator  DrawCalculator address
-    * @return New calculator address
+    * @return New DrawCalculator address
   */
   function setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) external onlyManagerOrOwner returns(IDrawCalculator) {
     require(address(_newCalculator) != address(0), "ClaimableDraw/calculator-not-zero-address");
@@ -180,11 +177,11 @@ contract ClaimableDraw is OwnerOrManager {
     emit DrawCalculatorSet(_drawId, _newCalculator);
     return _newCalculator;
   }
-  
+
   /**
     @notice Set global DrawHistory reference.
-    @dev    Set global DrawHistory reference.
     @param _drawHistory DrawHistory address
+    * @return New DrawHistory address
   */
   function setDrawHistory(IDrawHistory _drawHistory) external onlyManagerOrOwner returns (IDrawHistory) {
     require(address(_drawHistory) != address(0), "ClaimableDraw/draw-history-not-zero-address");
@@ -195,14 +192,14 @@ contract ClaimableDraw is OwnerOrManager {
 
   /**
     * @notice Transfer ERC20 tokens out of this contract.
-    * @dev    This function is only callable by the owner asset manager.
+    * @dev    This function is only callable by the owner or manager.
     * @param _erc20Token ERC20 token to transfer.
     * @param _to Recipient of the tokens.
     * @param _amount Amount of tokens to transfer.
     * @return true if operation is successful.
   */
   function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyManagerOrOwner returns (bool) {
-    require(address(_to) != address(0), "ClaimableDraw/ERC20-not-zero-address");
+    require(_to != address(0), "ClaimableDraw/recipient-not-zero-address");
     require(address(_erc20Token) != address(0), "ClaimableDraw/ERC20-not-zero-address");
     _erc20Token.safeTransfer(_to, _amount);
     emit ERC20Withdrawn(_erc20Token, _to, _amount);

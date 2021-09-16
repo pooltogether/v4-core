@@ -68,16 +68,16 @@ describe('ClaimableDraw', () => {
     dai = await erc20MintableFactory.deploy('Dai Stablecoin', 'DAI');
   });
 
-  describe('drawIdToClaimIndex()', () => {
+  describe('wrapCardinality()', () => {
     it('should convert a draw id to a draw index before reaching cardinality', async () => {
-      const drawIdToClaimIndex = await claimableDraw.drawIdToClaimIndex(1);
-      expect(drawIdToClaimIndex)
+      const wrapCardinality = await claimableDraw.wrapCardinality(1);
+      expect(wrapCardinality)
         .to.equal(1)
     });
 
     it('should convert a draw id to a draw index after reaching cardinality', async () => {
-      const drawIdToClaimIndex = await claimableDraw.drawIdToClaimIndex(13);
-      expect(drawIdToClaimIndex)
+      const wrapCardinality = await claimableDraw.wrapCardinality(13);
+      expect(wrapCardinality)
         .to.equal(5)
     });
   });
