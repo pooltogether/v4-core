@@ -84,7 +84,6 @@ describe('ClaimableDraw', () => {
 
   describe('calculateDrawCollectionPayout()', () => {
     it('should return a total payout after calculating a draw collection prize', async () => {
-      //function calculate(uint32[] calldata drawIds, address _user, DrawLib.Draw[] calldata _draws, bytes calldata _pickIndicesForDraws)
       const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(DRAW_SAMPLE_CONFIG.randomNumber), timestamp: BigNumber.from(DRAW_SAMPLE_CONFIG.timestamp) }
 
       await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
@@ -112,54 +111,54 @@ describe('ClaimableDraw', () => {
     });
   });
 
-  describe('validateDrawPayout()', () => {
+  describe('_updateUserDrawPayout()', () => {
     it('should an update draw claim payout history with the full payout amount in index 0', async () => {
       const payoutHistory = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
-      const updatedPayoutHistory = await claimableDraw.validateDrawPayout(payoutHistory, 0, toWei('10'))
+      const updatedPayoutHistory = await claimableDraw.updateUserDrawPayout(payoutHistory, 0, toWei('10'))
       expect(updatedPayoutHistory[1][0])
         .to.equal(toWei('10'))
     });
 
     it('should an update draw claim payout history with the diff payout amount in index 0', async () => {
       const payoutHistory = [toWei('5'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
-      const updatedPayoutHistory = await claimableDraw.validateDrawPayout(payoutHistory, 0, toWei('10'))
+      const updatedPayoutHistory = await claimableDraw.updateUserDrawPayout(payoutHistory, 0, toWei('10'))
       expect(updatedPayoutHistory[1][0])
         .to.equal(toWei('5'))
     });
     it('should an update draw claim payout history with the full payout amount in index 7', async () => {
       const payoutHistory = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
-      const updatedPayoutHistory = await claimableDraw.validateDrawPayout(payoutHistory, 7, toWei('10'))
+      const updatedPayoutHistory = await claimableDraw.updateUserDrawPayout(payoutHistory, 7, toWei('10'))
       expect(updatedPayoutHistory[1][7])
         .to.equal(toWei('10'))
     });
 
     it('should an update draw claim payout history with the diff payout amount in index 7', async () => {
       const payoutHistory = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0'), toWei('5')]
-      const updatedPayoutHistory = await claimableDraw.validateDrawPayout(payoutHistory, 7, toWei('10'))
+      const updatedPayoutHistory = await claimableDraw.updateUserDrawPayout(payoutHistory, 7, toWei('10'))
       expect(updatedPayoutHistory[1][7])
         .to.equal(toWei('5'))
     });
   });
 
-  describe('userDrawPayout()', () => {
+  describe('userDrawClaim()', () => {
     it('should return the user payout for draw before claiming a payout', async () => {
-      expect(await claimableDraw.userDrawPayout(wallet1.address, 0))
+      expect(await claimableDraw.userDrawClaim(wallet1.address, 0))
         .to.equal('0');
     });
 
     it('should return the user payout for draw after claiming a payout', async () => {
       await claimableDraw.setUserDrawPayoutHistory(wallet1.address, [toWei('1'), toWei('2'), toWei('3'), toWei('4'), toWei('5'), toWei('6'), toWei('7'), toWei('8')]);
-      expect(await claimableDraw.userDrawPayout(wallet1.address, 0))
+      expect(await claimableDraw.userDrawClaim(wallet1.address, 0))
         .to.equal(toWei('1'));
 
-      expect(await claimableDraw.userDrawPayout(wallet1.address, 7))
+      expect(await claimableDraw.userDrawClaim(wallet1.address, 7))
         .to.equal(toWei('8'));
     });
   });
 
-  describe('userDrawPayouts()', () => {
+  describe('userDrawClaims()', () => {
     it('should read an uninitialized userClaimedDraws', async () => {
-      const userClaimedDraws = await claimableDraw.userDrawPayouts(wallet1.address);
+      const userClaimedDraws = await claimableDraw.userDrawClaims(wallet1.address);
       expect(userClaimedDraws[0])
         .to.equal('0')
     });
@@ -276,7 +275,7 @@ describe('ClaimableDraw', () => {
           toWei('10'),
         );
 
-      const userClaimedDraws = await claimableDraw.userDrawPayouts(wallet1.address);
+      const userClaimedDraws = await claimableDraw.userDrawClaims(wallet1.address);
       expect(userClaimedDraws[0])
         .to.equal(toWei('10'))
     })
@@ -320,14 +319,14 @@ describe('ClaimableDraw', () => {
       await drawCalculator.mock.calculate.withArgs(wallet1.address, draws, '0x').returns(payouts)
       await claimableDraw.claim(wallet1.address, [drawsIds], [drawCalculator.address], ['0x']);
 
-      const payoutHistory = await claimableDraw.userDrawPayouts(wallet1.address)
+      const payoutHistory = await claimableDraw.userDrawClaims(wallet1.address)
 
       for (let index = 0; index < payoutHistory.length; index++) {
         expect(payoutHistory[index]).to.equal(payouts[index]);
       }
 
       // TODO: Fix a deep equal to remove extra expect statements
-      // expect(await claimableDraw.userDrawPayouts(wallet1.address)).to.equal(payoutExpectation); // FAILS
+      // expect(await claimableDraw.userDrawClaims(wallet1.address)).to.equal(payoutExpectation); // FAILS
     });
   });
 

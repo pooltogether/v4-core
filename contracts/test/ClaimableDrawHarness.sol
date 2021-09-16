@@ -8,30 +8,30 @@ import "../interfaces/IDrawCalculator.sol";
 contract ClaimableDrawHarness is ClaimableDraw {
   
   function drawIdToClaimIndex(uint8 drawId) external pure returns (uint256) {
-    return _drawIdToClaimIndex(drawId);
+    return _wrapCardinality(drawId);
   } 
 
   function calculateDrawCollectionPayout(
     address _user,
-    uint96[PAYOUT_CARDINALITY] memory _userClaimedDraws, 
+    uint96[CARDINALITY] memory _userClaimedDraws, 
     uint32[] calldata _drawIds, 
     IDrawCalculator _drawCalculator, 
     bytes calldata _data
-  ) external returns (uint256 totalPayout, uint96[PAYOUT_CARDINALITY] memory userClaimedDraws) {
+  ) external returns (uint256 totalPayout, uint96[CARDINALITY] memory userClaimedDraws) {
     return _calculateDrawCollectionPayout(_user, _userClaimedDraws, _drawIds, _drawCalculator, _data);
   } 
 
 
-  function validateDrawPayout(
-    uint96[PAYOUT_CARDINALITY] memory _userClaimedDraws, 
+  function updateUserDrawPayout(
+    uint96[CARDINALITY] memory _userClaimedDraws, 
     uint32 _drawId, 
     uint96 _payout
-  ) external view returns (uint96, uint96[PAYOUT_CARDINALITY] memory) {
-    return _validateDrawPayout(_userClaimedDraws, _drawId, _payout);
+  ) external view returns (uint96, uint96[CARDINALITY] memory) {
+    return _updateUserDrawPayout(_userClaimedDraws, _drawId, _payout);
   } 
 
-  function setUserDrawPayoutHistory(address user, uint96[PAYOUT_CARDINALITY] memory userClaimedDraws) external returns (bool) {
-    userPayoutHistory[user] = userClaimedDraws;
+  function setUserDrawPayoutHistory(address user, uint96[CARDINALITY] memory userClaimedDraws) external returns (bool) {
+    _userDrawClaims[user] = userClaimedDraws;
     return true;
   } 
 
