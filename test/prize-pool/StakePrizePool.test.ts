@@ -5,7 +5,7 @@ import { constants, Contract, ContractFactory, utils } from 'ethers';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import hardhat from 'hardhat';
 
-const { AddressZero } = constants;
+const { AddressZero, MaxUint256 } = constants;
 const { parseEther: toWei } = utils;
 
 const debug = require('debug')('ptv3:PrizePool.test');
@@ -55,6 +55,8 @@ describe('StakePrizePool', function () {
     await ticket.initialize('name', 'SYMBOL', 18, prizePool.address);
 
     initializeTxPromise = await initializeStakePrizePool(stakeToken.address);
+
+    await prizePool.setBalanceCap(ticket.address, MaxUint256);
   });
 
   describe('initialize()', () => {

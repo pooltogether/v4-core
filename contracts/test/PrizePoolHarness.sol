@@ -19,6 +19,10 @@ contract PrizePoolHarness is PrizePool {
     stubYieldSource = _stubYieldSource;
   }
 
+  function mint(address _to, uint256 _amount, IControlledToken _controlledToken) external {
+    _mint(_to, _amount, _controlledToken);
+  }
+
   function supply(uint256 mintAmount) external {
     _supply(mintAmount);
   }
