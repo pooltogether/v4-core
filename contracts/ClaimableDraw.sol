@@ -192,13 +192,13 @@ contract ClaimableDraw is OwnerOrManager {
 
   /**
     * @notice Transfer ERC20 tokens out of this contract.
-    * @dev    This function is only callable by the owner or manager.
+    * @dev    This function is only callable by the owner.
     * @param _erc20Token ERC20 token to transfer.
     * @param _to Recipient of the tokens.
     * @param _amount Amount of tokens to transfer.
     * @return true if operation is successful.
   */
-  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyManagerOrOwner returns (bool) {
+  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyOwner returns (bool) {
     require(_to != address(0), "ClaimableDraw/recipient-not-zero-address");
     require(address(_erc20Token) != address(0), "ClaimableDraw/ERC20-not-zero-address");
     _erc20Token.safeTransfer(_to, _amount);
