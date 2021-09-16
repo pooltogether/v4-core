@@ -36,3 +36,6 @@ coverage.json
 # Development Notes
 Networks.md
 *.dev.md
+
+# Docs
+docs
