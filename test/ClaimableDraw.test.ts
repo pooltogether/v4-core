@@ -188,22 +188,24 @@ describe('ClaimableDraw', () => {
   });
 
   describe('setDrawHistory()', () => {
-
-    it('only owner or manager should be able to set', async () => {
-      await expect(claimableDraw.connect(wallet3).setDrawHistory(ethers.Wallet.createRandom().address)).to.be.reverted
+    it('should fail to set DrawHistory by unauthorized user', async () => {
+      await expect(claimableDraw.connect(wallet3).setDrawHistory(ethers.Wallet.createRandom().address))
+        .to.be.revertedWith('Ownable: caller is not the owner')
     });
 
-    it('should fail to set draw history with zero address', async () => {
-      await expect(claimableDraw.setDrawHistory(constants.AddressZero)).to.be.reverted
-    });
-
-    it('owner or manager should succeed to set new draw manager', async () => {
-      await expect(claimableDraw.setDrawHistory(wallet2.address))
-        .to.emit(claimableDraw, 'DrawHistorySet')
-        .withArgs(wallet2.address);
-
+    it('should fail to set DrawHistory as manager', async () => {
       await claimableDraw.setManager(wallet2.address)
-      await expect(claimableDraw.connect(wallet2).setDrawHistory(wallet2.address))
+      await expect(claimableDraw.connect(wallet2).setDrawHistory(wallet3.address))
+        .to.be.revertedWith('Ownable: caller is not the owner')
+    });
+
+    it('should fail to set DrawHistory with zero address', async () => {
+      await expect(claimableDraw.setDrawHistory(constants.AddressZero))
+        .to.be.revertedWith('ClaimableDraw/draw-history-not-zero-address')
+    });
+
+    it('should succeed to set DrawHistory as owner', async () => {
+      await expect(claimableDraw.setDrawHistory(wallet2.address))
         .to.emit(claimableDraw, 'DrawHistorySet')
         .withArgs(wallet2.address);
     });
