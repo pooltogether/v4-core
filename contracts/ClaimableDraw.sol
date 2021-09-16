@@ -173,6 +173,13 @@ contract ClaimableDraw is OwnerOrManager {
   */
   function setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) external onlyManagerOrOwner returns(IDrawCalculator) {
     require(address(_newCalculator) != address(0), "ClaimableDraw/calculator-not-zero-address");
+
+    // Restrict the manager from setting a Draw ID linked DrawCalculator if previously set.
+    if(manager() == _msgSender() && _msgSender() != owner()) {
+      IDrawCalculator _currentCalculator = drawCalculatorAddresses[_drawId];
+      require(address(_currentCalculator) == address(0), "ClaimableDraw/draw-calculator-previous-set");
+    }
+
     drawCalculatorAddresses[_drawId] = _newCalculator; 
     emit DrawCalculatorSet(_drawId, _newCalculator);
     return _newCalculator;
