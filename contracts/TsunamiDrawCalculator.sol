@@ -22,9 +22,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice storage of the DrawSettings associated with a drawId
   mapping(uint32 => DrawLib.DrawSettings) drawSettings;
 
-  ///@notice storage of the TimestampCutoffTimes associated with a this calculator
-  DrawLib.DrawCalculatorCutoffTimes public timestampCutoffTimes;
-
   /* ============ External Functions ============ */
 
   ///@notice Initializer sets the initial parameters
@@ -64,10 +61,16 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     }
     require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
-    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps);
+
+    DrawLib.DrawSettings[] memory _drawSettings =  new DrawLib.DrawSettings[](_draws.length);
+    for(uint256 i = 0; i < _draws.length; i++){
+      _drawSettings[i] = drawSettings[_draws[i].drawId];
+    }
+
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps, _drawSettings);
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
-    return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices);
+    return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices, _drawSettings);
   }
 
   ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
@@ -94,14 +97,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return _drawSettings;
   }
   
-  ///@notice Sets the cutoff times for draw balance calculations
-  ///@param _timestampCutoffTimes The new cutoff times to set
-  function setTimestampCutoffTimes(DrawLib.DrawCalculatorCutoffTimes calldata _timestampCutoffTimes) external onlyManagerOrOwner
-  {
-    timestampCutoffTimes = _timestampCutoffTimes;
-    emit TimestampCutoffTimes(_timestampCutoffTimes);
-  }
-
   /* ============ Internal Functions ============ */
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
@@ -109,17 +104,18 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _userRandomNumber Random number of the user to consider over draws
   ///@param _winningRandomNumbers Winning random numbers for each Draw
   ///@param _pickIndicesForDraws Pick indices for each Draw
-  function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber, uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws)
-   internal view returns (uint96[] memory)
+  function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber,
+    uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws, DrawLib.DrawSettings[] memory _drawSettings)
+    internal view returns (uint96[] memory)
    {
 
     uint96[] memory prizesAwardable = new uint96[](_normalizedUserBalances.length);
     
     // calculate for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
-      DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
-      uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings, _normalizedUserBalances[drawIndex]);
-      prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
+      // DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
+      uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[drawIndex], _normalizedUserBalances[drawIndex]);
+      prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings[drawIndex]);
     }
     return prizesAwardable;
   }
@@ -136,14 +132,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _user The user to consider
   ///@param _timestamps The timestamps to consider
   ///@return An array of normalized balances
-  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps) internal view returns (uint256[] memory) {
-    DrawLib.DrawCalculatorCutoffTimes memory _cutoffTimes = timestampCutoffTimes; //SLOAD
+  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.DrawSettings[] memory _drawSettings) internal view returns (uint256[] memory) {
     
     uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_timestamps.length);
     uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_timestamps.length);
     for (uint32 i = 0; i < _timestamps.length; i++) {
-      _timestampsWithStartCutoffTimes[i] = _timestamps[i] - _cutoffTimes.drawStartTimestampCutoff;
-      _timestampsWithEndCutoffTimes[i] = _timestamps[i] + _cutoffTimes.drawEndTimestampCutoff;
+      _timestampsWithStartCutoffTimes[i] = _timestamps[i] - _drawSettings[i].drawStartTimestampOffset;
+      _timestampsWithEndCutoffTimes[i] = _timestamps[i] - _drawSettings[i].drawEndTimestampOffset;
     }
     
     uint256[] memory balances = ticket.getAverageBalancesBetween(_user, _timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
@@ -279,7 +274,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
     require(_drawSettings.numberOfPicks > 0, "DrawCalc/numberOfPicks-gt-0");
-    
+    require(_drawSettings.drawStartTimestampOffset > 0, "DrawCalc/drawStartTimestampOffset-gt-0");
+    require(_drawSettings.drawEndTimestampOffset > 0, "DrawCalc/drawEndTimestampOffset-gt-0");
     // ensure that the distributions are not gt 100%
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];

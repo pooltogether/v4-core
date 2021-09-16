@@ -129,7 +129,7 @@ describe('Ticket', () => {
     });
   });
 
-  describe.only('getAverageTotalSuppliesBetween()', () => {
+  describe('getAverageTotalSuppliesBetween()', () => {
     it('should return total supply of tickets between two time frames', async () => {
 
       const mint1Timestamp = (await provider.getBlock('latest')).timestamp
