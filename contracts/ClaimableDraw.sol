@@ -179,11 +179,11 @@ contract ClaimableDraw is OwnerOrManager {
   }
 
   /**
-    @notice Set global DrawHistory reference.
-    @param _drawHistory DrawHistory address
+    * @notice Set global DrawHistory reference.
+    * @param _drawHistory DrawHistory address
     * @return New DrawHistory address
   */
-  function setDrawHistory(IDrawHistory _drawHistory) external onlyManagerOrOwner returns (IDrawHistory) {
+  function setDrawHistory(IDrawHistory _drawHistory) external onlyOwner returns (IDrawHistory) {
     require(address(_drawHistory) != address(0), "ClaimableDraw/draw-history-not-zero-address");
     drawHistory = _drawHistory;
     emit DrawHistorySet(_drawHistory);
