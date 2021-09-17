@@ -18,16 +18,16 @@ contract ClaimableDraw is OwnerOrManager {
   /* ============ Global Variables ============ */
 
   /// @notice User draw claims ring buffer cardinality
-  uint16 public constant CARDINALITY = 8;
+  uint16 internal constant CARDINALITY = 8;
 
   /// @notice DrawHistory address
-  IDrawHistory public drawHistory;
+  IDrawHistory internal drawHistory;
 
   /// @notice Draw.drawId to DrawCalculator mapping
-  mapping(uint32 => IDrawCalculator) public drawCalculatorAddresses;
+  mapping(uint32 => IDrawCalculator) internal drawCalculatorAddresses;
 
   /// @notice User address to draw claims ring buffer mapping
-  mapping(address => uint96[CARDINALITY]) internal _userDrawClaims;
+  mapping(address => uint96[CARDINALITY]) internal userDrawClaims;
 
   /* ============ Events ============ */
 
@@ -89,15 +89,54 @@ contract ClaimableDraw is OwnerOrManager {
     emit DrawHistorySet(_drawHistory);
   }
 
-  /* ============ View/Pure Functions ============ */
+  
+  /* ============ External View Functions ============ */
+  
+  /**
+    * @notice Read CARDINALITY for ring buffer.
+    * @return CARDINALITY
+  */
+  function getCardinality() external view returns (uint16) {
+    return CARDINALITY;
+  }
+
+  /**
+    * @notice Read DrawCalculator linked to Draw ID
+    * @param  drawId Draw ID
+    * @return IDrawCalculator
+  */
+  function getDrawCalculator(uint32 drawId) external view returns (IDrawCalculator) {
+    return drawCalculatorAddresses[drawId];
+  }
+  
+  /**
+    * @notice Read DrawCalculator(s) linked to Draw ID(s)
+    * @param  drawIds Draw ID(s)
+    * @return IDrawCalculator[]
+  */
+  function getDrawCalculators(uint32[] calldata drawIds) external view returns (IDrawCalculator[] memory) {
+    IDrawCalculator[] memory _calculators = new IDrawCalculator[](drawIds.length);
+    for (uint256 index = 0; index < drawIds.length; index++) {
+      _calculators[index] = drawCalculatorAddresses[drawIds[index]];
+    }
+    return _calculators;
+  }
+
+  /**
+    * @notice Read global DrawHistory variable.
+    * @return IDrawHistory
+  */
+  function getDrawHistory() external view returns (IDrawHistory) {
+    return drawHistory;
+  }
 
   /**
     * @notice Read user's draw claim history for target Draw ID.
     * @param user   User address
     * @param drawId Draw ID
   */
-  function userDrawClaim(address user, uint32 drawId) external view returns (uint96) {
-    uint96[CARDINALITY] memory _claims = _userDrawClaims[user]; // sload
+  function getUserDrawClaim(address user, uint32 drawId) external view returns (uint96) {
+    uint96[CARDINALITY] memory _claims = userDrawClaims[user]; // sload
     return _claims[_wrapCardinality(drawId)];
   }
 
@@ -105,9 +144,11 @@ contract ClaimableDraw is OwnerOrManager {
     * @notice Read user's complete draw claim history.
     * @param user Address of user
   */
-  function userDrawClaims(address user) external view returns(uint96[CARDINALITY] memory) {
-    return _userDrawClaims[user];
+  function getUserDrawClaims(address user) external view returns(uint96[CARDINALITY] memory) {
+    return userDrawClaims[user];
   }
+
+  /* ============ Internal Pure Functions ============ */
 
   /**
     * @notice Calculates payout for individual draw.
@@ -229,10 +270,10 @@ contract ClaimableDraw is OwnerOrManager {
     bytes calldata _data
   ) internal returns (uint256) {
     uint256 _payout;
-    uint96[CARDINALITY] memory _claims = _userDrawClaims[_user];
+    uint96[CARDINALITY] memory _claims = userDrawClaims[_user];
 
     (_payout, _claims) = _calculateDrawCollectionPayout(_user, _claims, _drawIds, _drawCalculator, _data);
-    _userDrawClaims[_user] = _claims;
+    userDrawClaims[_user] = _claims;
 
     return _payout;
   }
