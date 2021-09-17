@@ -71,7 +71,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     
     for(uint256 i = 0; i < _draws.length; i++){
       _drawSettings[i] = drawSettings[_draws[i].drawId];
-      
+
       if(_draws[i].drawId == _drawSettingsCooldown.lastUpdatedDrawId){
         require(_checkIfDrawSettingsActive(_drawSettingsCooldown), "DrawCalc/draw-settings-not-active");
       }
@@ -109,7 +109,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
   ///@notice Sets the cooldown period after which the draw settings can be considered valid
   ///@param _drawSettingsCooldown The length of the cooldown in seconds
-  function setDrawSettingsCooldownPeriod(DrawLib.DrawSettingsCooldown calldata _drawSettingsCooldown) external onlyManagerOrOwner returns(bool)
+  function setDrawSettingsCooldownPeriod(DrawLib.DrawSettingsCooldown calldata _drawSettingsCooldown) external onlyOwner returns(bool)
   {
     return _setDrawSettingsCooldown(_drawSettingsCooldown);
   }
@@ -319,6 +319,13 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     require(sumTotalDistributions <= 1 ether, "DrawCalc/distributions-gt-100%");
 
     claimableDraw.setDrawCalculator(drawId, IDrawCalculator(address(this)));
+
+    DrawLib.DrawSettingsCooldown memory _drawSettingsCooldown = drawSettingsCooldown; // SLOAD
+    drawSettingsCooldown = DrawLib.DrawSettingsCooldown({
+      lastUpdatedDrawId: drawId,
+      lastUpdatedTimestamp: uint32(block.timestamp),
+      cooldownPeriod: _drawSettingsCooldown.cooldownPeriod
+    });
 
     drawSettings[drawId] = _drawSettings; //sstore
     emit DrawSettingsSet(drawId, _drawSettings);
