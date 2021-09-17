@@ -24,10 +24,10 @@ contract ClaimableDraw is OwnerOrManager {
   IDrawHistory internal drawHistory;
 
   /// @notice Draw.drawId to DrawCalculator mapping
-  mapping(uint32 => IDrawCalculator) internal _drawCalculatorAddresses;
+  mapping(uint32 => IDrawCalculator) internal drawCalculatorAddresses;
 
   /// @notice User address to draw claims ring buffer mapping
-  mapping(address => uint96[CARDINALITY]) internal _userDrawClaims;
+  mapping(address => uint96[CARDINALITY]) internal userDrawClaims;
 
   /* ============ Events ============ */
 
@@ -106,7 +106,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @return IDrawCalculator
   */
   function getDrawCalculator(uint32 drawId) external view returns (IDrawCalculator) {
-    return _drawCalculatorAddresses[drawId];
+    return drawCalculatorAddresses[drawId];
   }
   
   /**
@@ -117,7 +117,7 @@ contract ClaimableDraw is OwnerOrManager {
   function getDrawCalculators(uint32[] calldata drawIds) external view returns (IDrawCalculator[] memory) {
     IDrawCalculator[] memory _calculators = new IDrawCalculator[](drawIds.length);
     for (uint256 index = 0; index < drawIds.length; index++) {
-      _calculators[index] = _drawCalculatorAddresses[drawIds[index]];
+      _calculators[index] = drawCalculatorAddresses[drawIds[index]];
     }
     return _calculators;
   }
@@ -136,7 +136,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param drawId Draw ID
   */
   function getUserDrawClaim(address user, uint32 drawId) external view returns (uint96) {
-    uint96[CARDINALITY] memory _claims = _userDrawClaims[user]; // sload
+    uint96[CARDINALITY] memory _claims = userDrawClaims[user]; // sload
     return _claims[_wrapCardinality(drawId)];
   }
 
@@ -145,7 +145,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param user Address of user
   */
   function getUserDrawClaims(address user) external view returns(uint96[CARDINALITY] memory) {
-    return _userDrawClaims[user];
+    return userDrawClaims[user];
   }
 
   /* ============ Internal Pure Functions ============ */
@@ -216,11 +216,11 @@ contract ClaimableDraw is OwnerOrManager {
     // Restrict the manager from setting a Draw ID linked DrawCalculator if previously set.
     if(_msgSender() != owner()) {
       require(address(_newCalculator) != address(0), "ClaimableDraw/calculator-not-zero-address");
-      IDrawCalculator _currentCalculator = _drawCalculatorAddresses[_drawId];
+      IDrawCalculator _currentCalculator = drawCalculatorAddresses[_drawId];
       require(address(_currentCalculator) == address(0), "ClaimableDraw/draw-calculator-previous-set");
     }
 
-    _drawCalculatorAddresses[_drawId] = _newCalculator; 
+    drawCalculatorAddresses[_drawId] = _newCalculator; 
     emit DrawCalculatorSet(_drawId, _newCalculator);
     return _newCalculator;
   }
@@ -270,10 +270,10 @@ contract ClaimableDraw is OwnerOrManager {
     bytes calldata _data
   ) internal returns (uint256) {
     uint256 _payout;
-    uint96[CARDINALITY] memory _claims = _userDrawClaims[_user];
+    uint96[CARDINALITY] memory _claims = userDrawClaims[_user];
 
     (_payout, _claims) = _calculateDrawCollectionPayout(_user, _claims, _drawIds, _drawCalculator, _data);
-    _userDrawClaims[_user] = _claims;
+    userDrawClaims[_user] = _claims;
 
     return _payout;
   }

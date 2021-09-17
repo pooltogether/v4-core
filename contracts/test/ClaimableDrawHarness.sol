@@ -30,8 +30,8 @@ contract ClaimableDrawHarness is ClaimableDraw {
     return _updateUserDrawPayout(_userClaimedDraws, _drawId, _payout);
   } 
 
-  function __setUserDrawPayoutHistory(address user, uint96[CARDINALITY] memory userClaimedDraws) external returns (bool) {
-    _userDrawClaims[user] = userClaimedDraws;
+  function __setUserDrawPayoutHistory(address user, uint96[CARDINALITY] memory _userClaimedDraws) external returns (bool) {
+    userDrawClaims[user] = _userClaimedDraws;
     return true;
   } 
 
