@@ -61,10 +61,16 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     }
     require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
-    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps);
+
+    DrawLib.DrawSettings[] memory _drawSettings =  new DrawLib.DrawSettings[](_draws.length);
+    for(uint256 i = 0; i < _draws.length; i++){
+      _drawSettings[i] = drawSettings[_draws[i].drawId];
+    }
+
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps, _drawSettings);
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
-    return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices);
+    return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices, _drawSettings);
   }
 
   ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
@@ -90,7 +96,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     DrawLib.DrawSettings memory _drawSettings = drawSettings[_drawId];
     return _drawSettings;
   }
-
+  
   /* ============ Internal Functions ============ */
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
@@ -98,17 +104,18 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _userRandomNumber Random number of the user to consider over draws
   ///@param _winningRandomNumbers Winning random numbers for each Draw
   ///@param _pickIndicesForDraws Pick indices for each Draw
-  function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber, uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws)
-   internal view returns (uint96[] memory)
+  ///@param _drawSettings DrawSettings for each Draw
+  function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber,
+    uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws, DrawLib.DrawSettings[] memory _drawSettings)
+    internal view returns (uint96[] memory)
    {
 
     uint96[] memory prizesAwardable = new uint96[](_normalizedUserBalances.length);
     
-    // calculate for each Draw passed
+    // calculate prizes awardable for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
-      DrawLib.DrawSettings memory _drawSettings = drawSettings[drawIndex]; // sload
-      uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings, _normalizedUserBalances[drawIndex]);
-      prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings);
+      uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[drawIndex], _normalizedUserBalances[drawIndex]);
+      prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings[drawIndex]);
     }
     return prizesAwardable;
   }
@@ -124,13 +131,23 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice Calculates the normalized balance of a user against the total supply for timestamps
   ///@param _user The user to consider
   ///@param _timestamps The timestamps to consider
+  ///@param _drawSettings The draw settings to consider (needed for draw timstamp offsets)
   ///@return An array of normalized balances
-  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps) internal view returns (uint256[] memory) {
-    uint256[] memory normalizedBalances = new uint256[](_timestamps.length);
+  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.DrawSettings[] memory _drawSettings) internal view returns (uint256[] memory) {
     
-    uint256[] memory balances = ticket.getBalancesAt(_user, _timestamps);
-    uint256[] memory totalSupplies = ticket.getTotalSupplies(_timestamps);
-  
+    uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_timestamps.length);
+    uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_timestamps.length);
+    // generate timestamps with draw cutoff offsets included
+    for (uint32 i = 0; i < _timestamps.length; i++) {
+      _timestampsWithStartCutoffTimes[i] = _timestamps[i] - _drawSettings[i].drawStartTimestampOffset;
+      _timestampsWithEndCutoffTimes[i] = _timestamps[i] - _drawSettings[i].drawEndTimestampOffset;
+    }
+    
+    uint256[] memory balances = ticket.getAverageBalancesBetween(_user, _timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
+    uint256[] memory totalSupplies = ticket.getAverageTotalSuppliesBetween(_timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
+
+    uint256[] memory normalizedBalances = new uint256[](_timestamps.length);
+    // divide balances by total supplies (normalize)
     for (uint256 i = 0; i < _timestamps.length; i++) {
       require(totalSupplies[i] > 0, "DrawCalc/total-supply-zero");
       normalizedBalances[i] = balances[i] * 1 ether / totalSupplies[i];
@@ -153,15 +170,15 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
     uint256[] memory masks =  _createBitMasks(_drawSettings);
 
-    // for each pick find number of matching numbers and calculate prioze distribution index
+    // for each pick find number of matching numbers and calculate prize distribution index
     for(uint256 index  = 0; index < _picks.length; index++){
-      
+      // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
       require(_picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
       
       uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
       
-      if(distributionIndex < _drawSettings.distributions.length) { // there is prize for this distributionIndex
+      if(distributionIndex < _drawSettings.distributions.length) { // there is prize for this distribution index
         prizeCounts[distributionIndex]++;
       } 
     }

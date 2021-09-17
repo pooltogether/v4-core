@@ -15,7 +15,7 @@ interface IDrawCalculator {
 
   ///@notice Emitted when the claimableDraw is set/updated
   event ClaimableDrawSet(ClaimableDraw indexed claimableDraw);
-  
+
   function calculate(address user, DrawLib.Draw[] calldata draws, bytes calldata pickIndicesForDraws)
     external view returns (uint96[] memory);
 }

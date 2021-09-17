@@ -42,6 +42,8 @@ interface ITicket {
   function getBalanceAt(address user, uint256 timestamp) external view returns(uint256);
   function getBalancesAt(address user, uint32[] calldata timestamp) external view returns(uint256[] memory);
   function getAverageBalanceBetween(address user, uint256 startTime, uint256 endTime) external view returns (uint256);
+  function getAverageBalancesBetween(address user, uint32[] calldata startTimes, uint32[] calldata endTimes) external view returns (uint256[] memory);
   function getTotalSupply(uint32 timestamp) external view returns(uint256);
   function getTotalSupplies(uint32[] calldata timestamp) external view returns(uint256[] memory);
+  function getAverageTotalSuppliesBetween(uint32[] calldata startTimes, uint32[] calldata endTimes) external view returns(uint256[] memory);
 }

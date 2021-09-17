@@ -19,9 +19,10 @@ library DrawLib{
     struct DrawSettings {
         uint8 bitRangeSize;
         uint16 matchCardinality;
-        uint224 numberOfPicks;
+        uint32 drawStartTimestampOffset;
+        uint32 drawEndTimestampOffset;
+        uint64 numberOfPicks;
         uint128[] distributions;
         uint256 prize;
     }
-
 }

@@ -116,6 +116,41 @@ contract Ticket is ControlledToken, ITicket {
     );
   }
 
+  /// @notice Calculates the average balance held by a user for given time frames.
+  /// @param user The user whose balance is checked
+  /// @param startTimes The start time of the time frame.
+  /// @param endTimes The end time of the time frame.
+  /// @return The average balance that the user held during the time frame.
+  function getAverageBalancesBetween(address user, uint32[] calldata startTimes, uint32[] calldata endTimes) external override view 
+    returns (uint256[] memory)
+  {
+    require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
+    Account storage account = userTwabs[user];
+    uint256[] memory averageBalances = new uint256[](startTimes.length);
+    
+    for (uint i = 0; i < startTimes.length; i++) {
+      averageBalances[i] = _getAverageBalanceBetween(account.twabs, account.details, startTimes[i], endTimes[i]);
+    }
+    return averageBalances;
+  }
+
+  /// @notice Calculates the average total supply balance for a set of given time frames.
+  /// @param startTimes Array of start times
+  /// @param endTimes Array of end times 
+  /// @return The average total supplies held during the time frame.
+  function getAverageTotalSuppliesBetween(uint32[] calldata startTimes, uint32[] calldata endTimes) external override view
+    returns (uint256[] memory)
+  {
+    require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
+    Account storage _totalSupplyTwab = totalSupplyTwab;
+    uint256[] memory averageTotalSupplies = new uint256[](startTimes.length);
+    
+    for (uint i = 0; i < startTimes.length; i++) {
+      averageTotalSupplies[i] = _getAverageBalanceBetween(_totalSupplyTwab.twabs, _totalSupplyTwab.details, startTimes[i], endTimes[i]);
+    }
+    return averageTotalSupplies;
+  }
+  
   /// @notice Calculates the average balance held by a user for a given time frame.
   /// @param _user The user whose balance is checked
   /// @param _startTime The start time of the time frame.
@@ -130,7 +165,8 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _startTime The start time of the time frame.
   /// @param _endTime The end time of the time frame.
   /// @return The average balance that the user held during the time frame.
-  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime) internal view returns (uint256) {
+  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime)
+   internal view returns (uint256) {
     return TwabLibrary.getAverageBalanceBetween(
       _details.cardinality,
       _details.nextTwabIndex,

@@ -24,13 +24,18 @@ describe('Oracle jobs', () => {
     numberOfPicks = toWei(1)
     distributions = [toWei(1)]
     prize = toWei(10)
+    drawStartTimestampOffset = 1
+    drawEndTimestampOffset = 2
+    
     await env.setDrawSettings({
       drawId: 0,
       bitRangeSize,
       matchCardinality,
+      drawStartTimestampOffset,
+      drawEndTimestampOffset,
       numberOfPicks,
       distributions,
-      prize
+      prize,
     })
   })
 

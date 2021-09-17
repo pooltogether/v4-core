@@ -235,7 +235,7 @@ library TwabLibrary {
     uint16 _cardinality,
     uint32 _time
   ) internal view returns (uint256) {
-    require(_endTime > _startTime, "start time must be greater than end time");
+    require(_endTime > _startTime, "TWAB/startTime-gt-than-endTime");
 
     // Find oldest Twab
     uint16 oldestTwabIndex = wrapCardinality(_twabIndex + 1, _cardinality);

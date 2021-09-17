@@ -6,6 +6,8 @@ export type DrawSettings = {
     distributions: BigNumber[];
     bitRangeSize: BigNumber;
     prize: BigNumber;
+    drawStartTimestampOffset: BigNumber;
+    drawEndTimestampOffset: BigNumber;
 };
 
 export type Draw = { drawId: BigNumber, winningRandomNumber: BigNumber, timestamp: BigNumber }
