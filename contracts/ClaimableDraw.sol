@@ -3,6 +3,7 @@ pragma solidity 0.8.6;
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "./interfaces/IClaimableDraw.sol";
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
@@ -12,7 +13,7 @@ import "./libraries/DrawLib.sol";
   * @author PoolTogether Inc Team
   * @notice Distributes PrizePool captured interest as individual draw payouts.  
 */
-contract ClaimableDraw is OwnerOrManager {
+contract ClaimableDraw is IClaimableDraw, OwnerOrManager {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   /* ============ Global Variables ============ */
@@ -29,47 +30,6 @@ contract ClaimableDraw is OwnerOrManager {
   /// @notice User address to draw claims ring buffer mapping
   mapping(address => uint96[CARDINALITY]) internal userDrawClaims;
 
-  /* ============ Events ============ */
-
-  /**
-    * @notice Emitted when a user has claimed N draw payouts.
-    * @param user        User address receiving draw claim payouts
-    * @param totalPayout Payout for N draw claims 
-  */
-  event ClaimedDraw (
-    address indexed user,
-    uint256 totalPayout
-  );
-
-  /**
-    * @notice Emitted when a DrawCalculator is linked to a Draw ID.
-    * @param drawId     Draw ID
-    * @param calculator DrawCalculator address
-  */
-  event DrawCalculatorSet (
-    uint256 drawId,
-    IDrawCalculator indexed calculator
-  );
-
-  /**
-    * @notice Emitted when a global DrawHistory variable is set.
-    * @param drawHistory DrawHistory address
-  */
-  event DrawHistorySet (
-    IDrawHistory indexed drawHistory
-  );
-
-  /**
-    * @notice Emitted when ERC20 tokens are withdrawn from the claimable draw.
-    * @param token ERC20 token transferred.
-    * @param to Address that received funds.
-    * @param amount Amount of tokens transferred.
-  */
-  event ERC20Withdrawn(
-    IERC20Upgradeable indexed token,
-    address indexed to,
-    uint256 amount
-  );
 
   /* ============ Initialize ============ */
 
@@ -96,7 +56,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @notice Read CARDINALITY for ring buffer.
     * @return CARDINALITY
   */
-  function getCardinality() external view returns (uint16) {
+  function getCardinality() external override view returns (uint16) {
     return CARDINALITY;
   }
 
@@ -105,7 +65,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param  drawId Draw ID
     * @return IDrawCalculator
   */
-  function getDrawCalculator(uint32 drawId) external view returns (IDrawCalculator) {
+  function getDrawCalculator(uint32 drawId) external override view returns (IDrawCalculator) {
     return drawCalculatorAddresses[drawId];
   }
   
@@ -114,7 +74,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param  drawIds Draw ID(s)
     * @return IDrawCalculator[]
   */
-  function getDrawCalculators(uint32[] calldata drawIds) external view returns (IDrawCalculator[] memory) {
+  function getDrawCalculators(uint32[] calldata drawIds) external override view returns (IDrawCalculator[] memory) {
     IDrawCalculator[] memory _calculators = new IDrawCalculator[](drawIds.length);
     for (uint256 index = 0; index < drawIds.length; index++) {
       _calculators[index] = drawCalculatorAddresses[drawIds[index]];
@@ -126,16 +86,16 @@ contract ClaimableDraw is OwnerOrManager {
     * @notice Read global DrawHistory variable.
     * @return IDrawHistory
   */
-  function getDrawHistory() external view returns (IDrawHistory) {
+  function getDrawHistory() external override view returns (IDrawHistory) {
     return drawHistory;
   }
-
+  
   /**
     * @notice Read user's draw claim history for target Draw ID.
     * @param user   User address
     * @param drawId Draw ID
   */
-  function getUserDrawClaim(address user, uint32 drawId) external view returns (uint96) {
+  function getUserDrawClaim(address user, uint32 drawId) external override view returns (uint96) {
     uint96[CARDINALITY] memory _claims = userDrawClaims[user]; // sload
     return _claims[_wrapCardinality(drawId)];
   }
@@ -144,8 +104,16 @@ contract ClaimableDraw is OwnerOrManager {
     * @notice Read user's complete draw claim history.
     * @param user Address of user
   */
-  function getUserDrawClaims(address user) external view returns(uint96[CARDINALITY] memory) {
+  function getUserDrawClaims(address user) external override view returns(uint96[CARDINALITY] memory) {
     return userDrawClaims[user];
+  }
+
+  /**
+    * @notice Read global Ticket variable.
+    * @return IERC20Upgradeable
+  */
+  function getTicket() external override view returns (IERC20Upgradeable) {
+    // return ticket;
   }
 
   /* ============ Internal Pure Functions ============ */
@@ -189,7 +157,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param _data             The draw pick indices (uint256[][]) passed as a formatted bytes correlating to the draw ids
     * @return Total claim payout
   */
-  function claim(address _user, uint32[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256) {
+  function claim(address _user, uint32[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external override returns (uint256) {
     uint256 drawCalculatorsLength = _drawCalculators.length;
     require(drawCalculatorsLength == _drawIds.length, "ClaimableDraw/invalid-calculator-array");
     uint256 totalPayout;
@@ -212,7 +180,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param _newCalculator  DrawCalculator address
     * @return New DrawCalculator address
   */
-  function setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) external onlyManagerOrOwner returns(IDrawCalculator) {
+  function setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) external override onlyManagerOrOwner returns(IDrawCalculator) {
     // Restrict the manager from setting a Draw ID linked DrawCalculator if previously set.
     if(_msgSender() != owner()) {
       require(address(_newCalculator) != address(0), "ClaimableDraw/calculator-not-zero-address");
@@ -230,7 +198,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param _drawHistory DrawHistory address
     * @return New DrawHistory address
   */
-  function setDrawHistory(IDrawHistory _drawHistory) external onlyOwner returns (IDrawHistory) {
+  function setDrawHistory(IDrawHistory _drawHistory) external override onlyOwner returns (IDrawHistory) {
     require(address(_drawHistory) != address(0), "ClaimableDraw/draw-history-not-zero-address");
     drawHistory = _drawHistory;
     emit DrawHistorySet(_drawHistory);
@@ -245,7 +213,7 @@ contract ClaimableDraw is OwnerOrManager {
     * @param _amount Amount of tokens to transfer.
     * @return true if operation is successful.
   */
-  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external onlyOwner returns (bool) {
+  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external override onlyOwner returns (bool) {
     require(_to != address(0), "ClaimableDraw/recipient-not-zero-address");
     require(address(_erc20Token) != address(0), "ClaimableDraw/ERC20-not-zero-address");
     _erc20Token.safeTransfer(_to, _amount);
