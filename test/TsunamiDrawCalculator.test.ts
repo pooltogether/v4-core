@@ -139,38 +139,6 @@ describe('TsunamiDrawCalculator', () => {
       );
     });
 
-    it('cannot set drawEndTimestampOffset or drawStartTimestampOffset = 0', async () => {
-      let drawSettings: DrawSettings = {
-        matchCardinality: BigNumber.from(5),
-        distributions: [
-          ethers.utils.parseEther('0.9')
-        ],
-        numberOfPicks: BigNumber.from(utils.parseEther("1")),
-        bitRangeSize: BigNumber.from(4),
-        prize: ethers.utils.parseEther('1'),
-        drawStartTimestampOffset: BigNumber.from(0),
-        drawEndTimestampOffset: BigNumber.from(1),
-      };
-      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
-        'DrawCalc/drawStartTimestampOffset-gt-0',
-      );
-      drawSettings = {
-        matchCardinality: BigNumber.from(5),
-        distributions: [
-          ethers.utils.parseEther('0.9')
-        ],
-        numberOfPicks: BigNumber.from(utils.parseEther("1")),
-        bitRangeSize: BigNumber.from(4),
-        prize: ethers.utils.parseEther('1'),
-        drawStartTimestampOffset: BigNumber.from(1),
-        drawEndTimestampOffset: BigNumber.from(0),
-      };
-      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
-        'DrawCalc/drawEndTimestampOffset-gt-0',
-      );
-    });
-
-
     it('cannot set bitRangeSize = 0', async () => {
       const drawSettings: DrawSettings = {
         matchCardinality: BigNumber.from(5),

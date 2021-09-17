@@ -276,8 +276,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
     require(_drawSettings.numberOfPicks > 0, "DrawCalc/numberOfPicks-gt-0");
-    require(_drawSettings.drawStartTimestampOffset > 0, "DrawCalc/drawStartTimestampOffset-gt-0");
-    require(_drawSettings.drawEndTimestampOffset > 0, "DrawCalc/drawEndTimestampOffset-gt-0");
+    
     // ensure that the distributions are not gt 100%
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
