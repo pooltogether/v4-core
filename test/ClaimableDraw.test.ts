@@ -164,7 +164,7 @@ describe('ClaimableDraw', () => {
     });
   });
 
-  describe('set DrawCalculatorManager()', () => {
+  describe('setManager()', () => {
     it('should fail to set draw manager from unauthorized wallet', async () => {
       const claimableDrawUnauthorized = claimableDraw.connect(wallet2);
       await expect(claimableDrawUnauthorized.setManager(wallet2.address)).to.be.revertedWith(
@@ -214,21 +214,47 @@ describe('ClaimableDraw', () => {
   describe('setDrawCalculator()', () => {
     it('should fail to set draw calculator from unauthorized wallet', async () => {
       const claimableDrawUnauthorized = claimableDraw.connect(wallet2);
-      await expect(
-        claimableDrawUnauthorized.setDrawCalculator(0, constants.AddressZero),
-      ).to.be.revertedWith('Manager/caller-not-manager-or-owner');
+      expect(claimableDrawUnauthorized.setDrawCalculator(0, constants.AddressZero))
+        .to.be.revertedWith('Manager/caller-not-manager-or-owner');
     });
 
-    it('should fail to set draw calculator with zero address', async () => {
-      await expect(claimableDraw.setDrawCalculator(0, constants.AddressZero)).to.be.revertedWith(
-        'ClaimableDraw/calculator-not-zero-address',
-      );
+    it('should fail to set draw calculator with zero address as manager', async () => {
+      await claimableDraw.setManager(wallet2.address)
+      await expect(claimableDraw.connect(wallet2).setDrawCalculator(0, constants.AddressZero))
+        .to.be.revertedWith('ClaimableDraw/calculator-not-zero-address');
     });
 
-    it('should succeed to set new draw calculator', async () => {
-      await expect(claimableDraw.setDrawCalculator(0, wallet2.address))
+    it('should succeed to set draw calculator with zero address as owner', async () => {
+      await expect(claimableDraw.setDrawCalculator(0, constants.AddressZero))
+        .to.emit(claimableDraw, 'DrawCalculatorSet')
+        .withArgs(0, constants.AddressZero);
+    });
+
+    it('should succeed to set new draw calculator for target draw id as manager', async () => {
+      await claimableDraw.setManager(wallet2.address)
+      await expect(claimableDraw.connect(wallet2).setDrawCalculator(0, wallet2.address))
         .to.emit(claimableDraw, 'DrawCalculatorSet')
         .withArgs(0, wallet2.address);
+    });
+
+    it('should succeed to set new draw calculator for target draw id as owner', async () => {
+      expect(claimableDraw.setDrawCalculator(0, wallet2.address))
+        .to.emit(claimableDraw, 'DrawCalculatorSet')
+        .withArgs(0, wallet2.address);
+    });
+
+    it('should fail to update draw calculator for target draw id as manager', async () => {
+      await claimableDraw.setManager(wallet2.address)
+      await claimableDraw.setDrawCalculator(0, wallet2.address)
+      expect(claimableDraw.connect(wallet2).setDrawCalculator(0, wallet3.address))
+        .to.be.revertedWith('ClaimableDraw/draw-calculator-previous-set')
+    });
+
+    it('should succeed to update draw calculator for target draw id as owner', async () => {
+      await claimableDraw.setDrawCalculator(0, wallet2.address)
+      expect(claimableDraw.setDrawCalculator(0, wallet3.address))
+        .to.emit(claimableDraw, 'DrawCalculatorSet')
+        .withArgs(0, wallet3.address);
     });
   });
 
