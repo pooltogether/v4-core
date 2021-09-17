@@ -14,6 +14,7 @@ describe('ClaimableDraw', () => {
   let wallet2: any;
   let wallet3: any;
   let dai: Contract;
+  let ticket: Contract;
   let claimableDraw: Contract;
   let drawCalculator: MockContract;
   let drawHistory: MockContract;
@@ -44,6 +45,9 @@ describe('ClaimableDraw', () => {
       'ERC20Mintable',
     );
     dai = await erc20MintableFactory.deploy('Dai Stablecoin', 'DAI');
+    ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
+    await ticket.mint(claimableDraw.address, toWei('1000'));
+    await claimableDraw.initialize(wallet1.address, ticket.address, drawHistory.address);
   });
 
   /* =============================== */

@@ -27,6 +27,9 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /// @notice The Draw Calculator to use
   IDrawCalculator internal drawCalculator;
 
+  /// @notice Ticket address
+  IERC20Upgradeable internal ticket;
+
   /// @notice Maps users => drawId => paid out balance
   mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
 
@@ -37,11 +40,13 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
     * @param _drawHistory DrawHistory address
   */
   constructor(
+    IERC20Upgradeable _ticket,
     IDrawHistory _drawHistory,
     IDrawCalculator _drawCalculator
   ) Ownable() {
     _setDrawHistory(_drawHistory);
     _setDrawCalculator(_drawCalculator);
+    ticket = _ticket;
   }
 
   /* ============ External View Functions ============ */
@@ -76,7 +81,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
     * @return IERC20
   */
   function getTicket() external override view returns (IERC20) {
-    // return ticket;
+    return ticket;
   }
 
   function _getDrawPayoutBalanceOf(address _user, uint32 _drawId) internal view returns (uint256) {
@@ -114,6 +119,8 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
       totalPayout += payoutDiff;
       emit ClaimedDraw(_user, drawId, payoutDiff);
     }
+
+    _awardPayout(_user, totalPayout);
 
     return totalPayout;
   }
