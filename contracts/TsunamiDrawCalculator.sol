@@ -22,6 +22,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice storage of the DrawSettings associated with a drawId
   mapping(uint32 => DrawLib.DrawSettings) drawSettings;
 
+  uint32 public drawSettingsCooldownPeriod;
+
   /* ============ External Functions ============ */
 
   ///@notice Initializer sets the initial parameters
@@ -76,9 +78,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
   ///@param _drawId The id of the Draw
   ///@param _drawSettings The DrawSettings to set
-  function setDrawSettings(uint32 _drawId, DrawLib.DrawSettings calldata _drawSettings) external onlyManagerOrOwner
+  function setDrawSettings(uint32 _drawId, DrawLib.DrawSettings memory _drawSettings) external onlyManagerOrOwner
     returns (bool success) 
   {
+    _drawSettings.validAfterTimestamp = uint32(block.timestamp) + drawSettingsCooldownPeriod;
     return _setDrawSettings(_drawId, _drawSettings);
   }
 
@@ -96,7 +99,15 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     DrawLib.DrawSettings memory _drawSettings = drawSettings[_drawId];
     return _drawSettings;
   }
-  
+
+  ///@notice Sets the cooldown period after which the draw settings can be considered valid
+  ///@param _drawSettingsCooldownPeriod The length of the cooldown in seconds
+  function setDrawSettingsCooldownPeriod(uint32 _drawSettingsCooldownPeriod) external onlyManagerOrOwner returns(uint32)
+  {
+    drawSettingsCooldownPeriod = _drawSettingsCooldownPeriod;
+    emit DrawSettingsCooldownPeriodSet(_drawSettingsCooldownPeriod);
+  }
+
   /* ============ Internal Functions ============ */
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
@@ -262,11 +273,20 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return numberOfPrizesForIndex;
   }
 
+  function _checkIfDrawSettingsActive(DrawLib.DrawSettings memory _drawSettings) internal view returns (bool) {
+    uint32 now = block.timestamp;
+    if(_drawSettings.validAfterTimestamp > now) {
+      return true;
+    }
+    return false; // todo convert to ternary stmt 
+    
+  }
+
   ///@notice Set the DrawCalculators DrawSettings
   ///@dev Distributions must be expressed with Ether decimals (1e18)
   ///@param drawId The id of the Draw
   ///@param _drawSettings DrawSettings struct to set
-  function _setDrawSettings(uint32 drawId, DrawLib.DrawSettings calldata _drawSettings) internal
+  function _setDrawSettings(uint32 drawId, DrawLib.DrawSettings memory _drawSettings) internal
     returns (bool)
   {
     uint256 sumTotalDistributions = 0;
