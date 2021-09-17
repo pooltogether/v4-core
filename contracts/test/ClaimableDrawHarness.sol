@@ -7,11 +7,11 @@ import "../interfaces/IDrawCalculator.sol";
 
 contract ClaimableDrawHarness is ClaimableDraw {
   
-  function wrapCardinality(uint8 drawId) external pure returns (uint256) {
+  function __wrapCardinality(uint8 drawId) external pure returns (uint256) {
     return _wrapCardinality(drawId);
   } 
 
-  function calculateDrawCollectionPayout(
+  function __calculateDrawCollectionPayout(
     address _user,
     uint96[CARDINALITY] memory _userClaimedDraws, 
     uint32[] calldata _drawIds, 
@@ -22,7 +22,7 @@ contract ClaimableDrawHarness is ClaimableDraw {
   } 
 
 
-  function updateUserDrawPayout(
+  function __updateUserDrawPayout(
     uint96[CARDINALITY] memory _userClaimedDraws, 
     uint32 _drawId, 
     uint96 _payout
@@ -30,7 +30,7 @@ contract ClaimableDrawHarness is ClaimableDraw {
     return _updateUserDrawPayout(_userClaimedDraws, _drawId, _payout);
   } 
 
-  function setUserDrawPayoutHistory(address user, uint96[CARDINALITY] memory userClaimedDraws) external returns (bool) {
+  function __setUserDrawPayoutHistory(address user, uint96[CARDINALITY] memory userClaimedDraws) external returns (bool) {
     _userDrawClaims[user] = userClaimedDraws;
     return true;
   } 
