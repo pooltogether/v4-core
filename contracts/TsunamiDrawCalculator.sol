@@ -19,8 +19,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice ClaimableDraw associated with DrawCalculator
   ClaimableDraw public claimableDraw;
 
-  ///@notice storage of the DrawSettings associated with a drawId
-  mapping(uint32 => DrawLib.DrawSettings) drawSettings;
+  ///@notice storage of the TsunamiDrawCalculatorSettings associated with a drawId
+  mapping(uint32 => DrawLib.TsunamiDrawCalculatorSettings) drawSettings;
 
   /* ============ External Functions ============ */
 
@@ -62,7 +62,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
 
-    DrawLib.DrawSettings[] memory _drawSettings =  new DrawLib.DrawSettings[](_draws.length);
+    DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings =  new DrawLib.TsunamiDrawCalculatorSettings[](_draws.length);
     for(uint256 i = 0; i < _draws.length; i++){
       _drawSettings[i] = drawSettings[_draws[i].drawId];
     }
@@ -73,27 +73,27 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices, _drawSettings);
   }
 
-  ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
+  ///@notice Sets TsunamiDrawCalculatorSettings for a draw id. only callable by the owner or manager
   ///@param _drawId The id of the Draw
-  ///@param _drawSettings The DrawSettings to set
-  function setDrawSettings(uint32 _drawId, DrawLib.DrawSettings calldata _drawSettings) external onlyManagerOrOwner
+  ///@param _drawSettings The TsunamiDrawCalculatorSettings to set
+  function setDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) external onlyManagerOrOwner
     returns (bool success) 
   {
     return _setDrawSettings(_drawId, _drawSettings);
   }
 
-  ///@notice Sets DrawSettings for a draw id. only callable by the owner or manager
-  ///@param _claimableDraw The address of the ClaimableDraw to update with the updated DrawSettings
+  ///@notice Sets TsunamiDrawCalculatorSettings for a draw id. only callable by the owner or manager
+  ///@param _claimableDraw The address of the ClaimableDraw to update with the updated TsunamiDrawCalculatorSettings
   function setClaimableDraw(ClaimableDraw _claimableDraw) external onlyManagerOrOwner returns(ClaimableDraw)
   {
     return _setClaimableDraw(_claimableDraw);
   }
 
-  ///@notice Gets the DrawSettings for a draw id
+  ///@notice Gets the TsunamiDrawCalculatorSettings for a draw id
   ///@param _drawId The id of the Draw
-  function getDrawSettings(uint32 _drawId) external view returns(DrawLib.DrawSettings memory)
+  function getDrawSettings(uint32 _drawId) external view returns(DrawLib.TsunamiDrawCalculatorSettings memory)
   {
-    DrawLib.DrawSettings memory _drawSettings = drawSettings[_drawId];
+    DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings = drawSettings[_drawId];
     return _drawSettings;
   }
   
@@ -104,9 +104,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _userRandomNumber Random number of the user to consider over draws
   ///@param _winningRandomNumbers Winning random numbers for each Draw
   ///@param _pickIndicesForDraws Pick indices for each Draw
-  ///@param _drawSettings DrawSettings for each Draw
+  ///@param _drawSettings TsunamiDrawCalculatorSettings for each Draw
   function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber,
-    uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws, DrawLib.DrawSettings[] memory _drawSettings)
+    uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws, DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings)
     internal view returns (uint96[] memory)
    {
 
@@ -122,9 +122,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
   ///@notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
   ///@dev Divided by 1e18 since the normalized user balance is stored as a base 18 number
-  ///@param _drawSettings The DrawSettings to consider
+  ///@param _drawSettings The TsunamiDrawCalculatorSettings to consider
   ///@param _normalizedUserBalance The normalized user balances to consider
-  function _calculateNumberOfUserPicks(DrawLib.DrawSettings memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
+  function _calculateNumberOfUserPicks(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
     return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether;
   }
 
@@ -133,7 +133,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _timestamps The timestamps to consider
   ///@param _drawSettings The draw settings to consider (needed for draw timstamp offsets)
   ///@return An array of normalized balances
-  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.DrawSettings[] memory _drawSettings) internal view returns (uint256[] memory) {
+  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings) internal view returns (uint256[] memory) {
     
     uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_timestamps.length);
     uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_timestamps.length);
@@ -163,7 +163,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _picks The users picks for that draw
   ///@param _drawSettings Params with the associated draw
   ///@return prize (if any) per Draw claim
-  function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.DrawSettings memory _drawSettings)
+  function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings)
     internal view returns (uint96)
   {
     
@@ -220,9 +220,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
 
   ///@notice helper function to create bitmasks equal to the matchCardinality
-  ///@param _drawSettings The DrawSettings to use to calculate the masks
+  ///@param _drawSettings The TsunamiDrawCalculatorSettings to use to calculate the masks
   ///@return An array of bitmasks
-  function _createBitMasks(DrawLib.DrawSettings memory _drawSettings) 
+  function _createBitMasks(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings) 
     internal pure returns (uint256[] memory)
   {
     uint256[] memory masks = new uint256[](_drawSettings.matchCardinality);
@@ -237,11 +237,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return masks;
   }
 
-  ///@notice Calculates the expected prize fraction per DrawSettings and prizeDistributionIndex
-  ///@param _drawSettings DrawSettings struct for Draw
+  ///@notice Calculates the expected prize fraction per TsunamiDrawCalculatorSettings and prizeDistributionIndex
+  ///@param _drawSettings TsunamiDrawCalculatorSettings struct for Draw
   ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
   ///@return returns the fraction of the total prize (base 1e18)
-  function _calculatePrizeDistributionFraction(DrawLib.DrawSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal pure returns (uint256) 
+  function _calculatePrizeDistributionFraction(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal pure returns (uint256) 
   {
     uint256 prizeDistribution = _drawSettings.distributions[_prizeDistributionIndex];
     uint256 numberOfPrizesForIndex = _numberOfPrizesForIndex(_drawSettings.bitRangeSize, _prizeDistributionIndex);
@@ -249,7 +249,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   }
 
   ///@notice Calculates the number of prizes for a given prizeDistributionIndex
-  ///@param _bitRangeSize DrawSettings struct for Draw
+  ///@param _bitRangeSize TsunamiDrawCalculatorSettings struct for Draw
   ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
   ///@return returns the fraction of the total prize (base 1e18)
   function _numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex) internal pure returns (uint256) {
@@ -262,11 +262,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return numberOfPrizesForIndex;
   }
 
-  ///@notice Set the DrawCalculators DrawSettings
+  ///@notice Set the DrawCalculators TsunamiDrawCalculatorSettings
   ///@dev Distributions must be expressed with Ether decimals (1e18)
   ///@param drawId The id of the Draw
-  ///@param _drawSettings DrawSettings struct to set
-  function _setDrawSettings(uint32 drawId, DrawLib.DrawSettings calldata _drawSettings) internal
+  ///@param _drawSettings TsunamiDrawCalculatorSettings struct to set
+  function _setDrawSettings(uint32 drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) internal
     returns (bool)
   {
     uint256 sumTotalDistributions = 0;

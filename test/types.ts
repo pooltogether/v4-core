@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers"
 
-export type DrawSettings = {
+export type TsunamiDrawCalculatorSettings = {
     matchCardinality: BigNumber;
     numberOfPicks: BigNumber;
     distributions: BigNumber[];
