@@ -22,7 +22,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice storage of the DrawSettings associated with a drawId
   mapping(uint32 => DrawLib.DrawSettings) drawSettings;
 
-  uint32 public drawSettingsCooldownPeriod;
+  ///@notice storage of the DrawSettings cooldown settings
+  DrawLib.DrawSettingsCooldown public drawSettingsCooldown;
 
   /* ============ External Functions ============ */
 
@@ -30,13 +31,14 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _ticket Ticket associated with this DrawCalculator
   ///@param _drawSettingsManager Address of the DrawSettingsManager. Can be different from the contract owner.
   ///@param _claimableDraw ClaimableDraw associated with this DrawCalculator
-  function initialize(ITicket _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw)
+  function initialize(ITicket _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw, DrawLib.DrawSettingsCooldown calldata _drawSettingsCooldown)
     public initializer
   {
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
     __Ownable_init();
     setManager(_drawSettingsManager);
     _setClaimableDraw(_claimableDraw);
+    _setDrawSettingsCooldown(_drawSettingsCooldown);
     ticket = _ticket;
     emit Initialized(_ticket);
   }
@@ -63,10 +65,16 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     }
     require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
-
+    // load and validate draw settings
     DrawLib.DrawSettings[] memory _drawSettings =  new DrawLib.DrawSettings[](_draws.length);
+    DrawLib.DrawSettingsCooldown memory _drawSettingsCooldown = drawSettingsCooldown; //SLOAD
+    
     for(uint256 i = 0; i < _draws.length; i++){
       _drawSettings[i] = drawSettings[_draws[i].drawId];
+      
+      if(_draws[i].drawId == _drawSettingsCooldown.lastUpdatedDrawId){
+        require(_checkIfDrawSettingsActive(_drawSettingsCooldown), "DrawCalc/draw-settings-not-active");
+      }
     }
 
     uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps, _drawSettings);
@@ -81,7 +89,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   function setDrawSettings(uint32 _drawId, DrawLib.DrawSettings memory _drawSettings) external onlyManagerOrOwner
     returns (bool success) 
   {
-    _drawSettings.validAfterTimestamp = uint32(block.timestamp) + drawSettingsCooldownPeriod;
     return _setDrawSettings(_drawId, _drawSettings);
   }
 
@@ -101,11 +108,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   }
 
   ///@notice Sets the cooldown period after which the draw settings can be considered valid
-  ///@param _drawSettingsCooldownPeriod The length of the cooldown in seconds
-  function setDrawSettingsCooldownPeriod(uint32 _drawSettingsCooldownPeriod) external onlyManagerOrOwner returns(uint32)
+  ///@param _drawSettingsCooldown The length of the cooldown in seconds
+  function setDrawSettingsCooldownPeriod(DrawLib.DrawSettingsCooldown calldata _drawSettingsCooldown) external onlyManagerOrOwner returns(bool)
   {
-    drawSettingsCooldownPeriod = _drawSettingsCooldownPeriod;
-    emit DrawSettingsCooldownPeriodSet(_drawSettingsCooldownPeriod);
+    return _setDrawSettingsCooldown(_drawSettingsCooldown);
   }
 
   /* ============ Internal Functions ============ */
@@ -273,13 +279,21 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return numberOfPrizesForIndex;
   }
 
-  function _checkIfDrawSettingsActive(DrawLib.DrawSettings memory _drawSettings) internal view returns (bool) {
-    uint32 now = block.timestamp;
-    if(_drawSettings.validAfterTimestamp > now) {
+  function _checkIfDrawSettingsActive(DrawLib.DrawSettingsCooldown memory _drawSettingsCooldown) internal view returns (bool) {
+    uint32 now = uint32(block.timestamp);
+    if(now > _drawSettingsCooldown.lastUpdatedTimestamp + _drawSettingsCooldown.cooldownPeriod) {
       return true;
     }
     return false; // todo convert to ternary stmt 
-    
+  }
+
+  ///@notice Sets the cooldown period after which the draw settings can be considered valid
+  ///@param _drawSettingsCooldown The length of the cooldown in seconds
+  function _setDrawSettingsCooldown(DrawLib.DrawSettingsCooldown memory _drawSettingsCooldown) internal returns (bool)
+  {
+    drawSettingsCooldown = _drawSettingsCooldown;
+    emit DrawSettingsCooldownSet(_drawSettingsCooldown);
+    return true;
   }
 
   ///@notice Set the DrawCalculators DrawSettings

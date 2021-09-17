@@ -50,8 +50,8 @@ describe('TsunamiDrawCalculator', () => {
 
     let claimableDrawArtifact = await artifacts.readArtifact('ClaimableDraw');
     claimableDraw = await deployMockContract(wallet1, claimableDrawArtifact.abi);
-
-    await drawCalculator.initialize(ticket.address, wallet2.address, claimableDraw.address);
+    const drawSettingsCooldown = 0
+    await drawCalculator.initialize(ticket.address, wallet2.address, claimableDraw.address, drawSettingsCooldown);
   });
 
   describe('initialize()', () => {
