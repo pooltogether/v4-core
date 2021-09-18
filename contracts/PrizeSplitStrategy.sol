@@ -59,7 +59,8 @@ contract PrizeSplitStrategy is PrizeSplit {
 
   /**
     * @notice Capture the award balance and distribute to prize splits.
-    * @dev    Can be executed by any wallet at any time. Optimal executation (minimal wasted gas) is before pushing a new Draw.
+    * @dev    Can be executed by any wallet at any time. Optimal executation (minimal wasted gas) 
+              is coordination when pushing Draw(s) to DrawHistory to cover upcoming prize distribution.
     * @return Prize captured from PrizePool
   */
   function distribute() external returns (uint256) {
