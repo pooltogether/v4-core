@@ -49,21 +49,15 @@ describe('TsunamiDrawCalculator', () => {
     ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
     drawCalculator = await deployDrawCalculator(wallet1, ticket.address, wallet2.address);
-
-    await drawCalculator.initialize(ticket.address, wallet2.address);
   });
 
-  describe('construtor()', () => {
+  describe('constructor()', () => {
     it('should require non-zero ticket', async () => {
       await expect(deployDrawCalculator(wallet1, ethers.constants.AddressZero, wallet2.address)).to.be.revertedWith('DrawCalc/ticket-not-zero')
     })
 
     it('should require non-zero manager', async () => {
       await expect(deployDrawCalculator(wallet1, ticket.address, ethers.constants.AddressZero)).to.be.revertedWith('Manager/manager-not-zero-address')
-    })
-
-    it('should require non-zero manager', async () => {
-      await expect(drawCalculator.initialize(ticket.address, ethers.constants.AddressZero)).to.be.revertedWith('Manager/manager-not-zero-address')
     })
   })
 
