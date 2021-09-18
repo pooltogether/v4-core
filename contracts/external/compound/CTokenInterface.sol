@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface CTokenInterface is IERC20Upgradeable {
+interface CTokenInterface is IERC20 {
     function decimals() external view returns (uint8);
     function totalSupply() external override view returns (uint256);
     function underlying() external view returns (address);

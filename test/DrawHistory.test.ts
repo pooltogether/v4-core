@@ -24,8 +24,9 @@ describe('DrawHistory', () => {
     const drawHistoryFactory: ContractFactory = await ethers.getContractFactory(
       'DrawHistoryHarness',
     );
+
     drawHistory = await drawHistoryFactory.deploy();
-    await drawHistory.initialize(wallet1.address);
+    await drawHistory.setManager(wallet1.address);
   });
 
   describe('wrapCardinality()', () => { // Assumes CARDINALITY OF 256

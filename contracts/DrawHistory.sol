@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.6;
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
+
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 
@@ -17,12 +18,12 @@ import "./libraries/DrawLib.sol";
             duplicating the mainnet Draw configuration - enabling a prize savings liquidity network.
 */
 contract DrawHistory is IDrawHistory, OwnerOrManager {
-  
+
   /**
     * @notice Next index position for a new Draw in the _draws ring buffer.
   */
   uint32 public nextDrawIndex;
-  
+
    /**
     * @notice Total draws pushed to DrawHistory.
   */
@@ -39,22 +40,15 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   DrawLib.Draw[CARDINALITY] private _draws;
 
-  /* ============ Initialize ============ */
+  /* ============ Deploy ============ */
 
   /**
-    * @notice Initialize DrawHistory smart contract.
-    *
-    * @param _manager Draw manager address
+    * @notice Deploy DrawHistory smart contract.
   */
-  function initialize (
-    address _manager
-  ) public initializer {
-    __Ownable_init();
-    _setManager(_manager);
-  }
+  constructor() {}
 
   /* ============ External Functions ============ */
-  
+
   /**
     * @notice Read all draws.
     * @dev    Return all draws from the draws ring buffer.
@@ -131,7 +125,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   function pushDraw(DrawLib.Draw memory draw) external override onlyManagerOrOwner returns (uint32) {
     return _pushDraw(draw);
-  } 
+  }
 
   /**
     * @notice Set existing Draw in draws ring buffer with new parameters.
@@ -158,7 +152,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
 
   /**
     * @dev    Modulo index with ring buffer cardinality.
-    * @param _index Ring buffer index 
+    * @param _index Ring buffer index
     * @return Ring buffer index pointer
   */
   function _wrapCardinality(uint256 _index) internal pure returns (uint32) {
@@ -209,7 +203,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     nextDrawIndex = _wrapCardinality(_nextDrawIndex + 1);
     totalDraws += 1;
     return _newDraw.drawId;
-  } 
+  }
 
   /**
     * @notice Set existing Draw in draws ring buffer with new parameters.
@@ -222,6 +216,6 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     _draws[_drawIndex] = _newDraw;
     emit DrawSet(_drawIndex, _newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);
     return _newDraw.drawId;
-  } 
+  }
 
 }

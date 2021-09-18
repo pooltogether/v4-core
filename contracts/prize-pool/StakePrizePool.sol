@@ -2,32 +2,26 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./PrizePool.sol";
 
 contract StakePrizePool is PrizePool {
 
-  IERC20Upgradeable private stakeToken;
+  IERC20 private stakeToken;
 
-  event StakePrizePoolInitialized(address indexed stakeToken);
+  /// @dev Emitted when stake prize pool is deployed
+  event Deployed(IERC20 indexed stakeToken);
 
-  /// @notice Initializes the Prize Pool and Yield Service with the required contract connections
-  /// @param _controlledTokens Array of addresses for the Ticket and Sponsorship Tokens controlled by the Prize Pool
+  /// @notice Deploy the Prize Pool and Yield Service with the required contract connections
   /// @param _stakeToken Address of the stake token
-  function initialize (
-    IControlledToken[] memory _controlledTokens,
-    IERC20Upgradeable _stakeToken
-  )
-    public
-    initializer
-  {
-    PrizePool.initialize(_controlledTokens);
-
+  constructor (
+    IERC20 _stakeToken
+  ) PrizePool() {
     require(address(_stakeToken) != address(0), "StakePrizePool/stake-token-not-zero-address");
     stakeToken = _stakeToken;
 
-    emit StakePrizePoolInitialized(address(stakeToken));
+    emit Deployed(_stakeToken);
   }
 
   /// @notice Determines whether the passed token can be transferred out as an external award.
@@ -45,7 +39,7 @@ contract StakePrizePool is PrizePool {
     return stakeToken.balanceOf(address(this));
   }
 
-  function _token() internal override view returns (IERC20Upgradeable) {
+  function _token() internal override view returns (IERC20) {
     return stakeToken;
   }
 
