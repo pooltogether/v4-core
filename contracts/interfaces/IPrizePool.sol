@@ -55,7 +55,7 @@ interface IPrizePool {
     uint256[] tokenIds
   );
 
-  /// @dev Event emitted when assets are withdrawn instantly
+  /// @dev Event emitted when assets are withdrawn
   event Withdrawal(
     address indexed operator,
     address indexed from,
@@ -80,33 +80,30 @@ interface IPrizePool {
     address indexed prizeStrategy
   );
 
+  /// @dev Event emitted when the Ticket is set
+  event TicketSet(
+    IControlledToken indexed ticket
+  );
+
   /// @dev Emitted when there was an error thrown awarding an External ERC721
   event ErrorAwardingExternalERC721(bytes error);
-
-  /// @dev Returns the address of a token in the _tokens array.
-  /// @return Address of token
-  function tokenAtIndex(uint256 tokenIndex) external returns (IControlledToken);
 
   /// @notice Deposit assets into the Prize Pool in exchange for tokens
   /// @param to The address receiving the newly minted tokens
   /// @param amount The amount of assets to deposit
-  /// @param controlledToken The address of the type of token the user is minting
   function depositTo(
     address to,
-    uint256 amount,
-    IControlledToken controlledToken
+    uint256 amount
   )
     external;
 
   /// @notice Withdraw assets from the Prize Pool instantly.  A fairness fee may be charged for an early exit.
   /// @param from The address to redeem tokens from.
   /// @param amount The amount of tokens to redeem for assets.
-  /// @param controlledToken The address of the token to redeem (i.e. ticket or sponsorship)
   /// @return The actual amount withdrawn
   function withdrawFrom(
     address from,
-    uint256 amount,
-    IControlledToken controlledToken
+    uint256 amount
   ) external returns (uint256);
 
   /// @notice Returns the balance that is available to award.
@@ -123,11 +120,9 @@ interface IPrizePool {
   /// @dev The amount awarded must be less than the awardBalance()
   /// @param to The address of the winner that receives the award
   /// @param amount The amount of assets to be awarded
-  /// @param controlledToken The address of the asset token being awarded
   function award(
     address to,
-    uint256 amount,
-    IControlledToken controlledToken
+    uint256 amount
   )
     external;
 
@@ -181,13 +176,18 @@ interface IPrizePool {
   /// @param _prizeStrategy The new prize strategy.  Must implement ClaimableDrawPrizeStrategy
   function setPrizeStrategy(address _prizeStrategy) external;
 
+  /// @notice Set prize pool ticket.
+  /// @param _ticket Address of the ticket to set.
+  /// @return True if ticket has been successfully set.
+  function setTicket(IControlledToken _ticket) external returns (bool);
+
+  /// @dev Returns the address of the prize pool ticket.
+  /// @return The address of the prize pool ticket.
+  function ticket() external view returns (IControlledToken);
+
   /// @dev Returns the address of the underlying ERC20 asset
   /// @return The address of the asset
   function token() external view returns (address);
-
-  /// @notice An array of the Tokens controlled by the Prize Pool (ie. Tickets, Sponsorship)
-  /// @return An array of controlled token addresses
-  function tokens() external view returns (IControlledToken[] memory);
 
   /// @notice The total of all controlled tokens
   /// @return The current total of all tokens

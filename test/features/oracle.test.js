@@ -26,6 +26,7 @@ describe('Oracle jobs', () => {
     prize = toWei(10)
     drawStartTimestampOffset = 1
     drawEndTimestampOffset = 2
+    maxPicksPerUser = 1000
     
     await env.setDrawSettings({
       drawId: 0,
@@ -36,6 +37,7 @@ describe('Oracle jobs', () => {
       numberOfPicks,
       distributions,
       prize,
+      maxPicksPerUser
     })
   })
 

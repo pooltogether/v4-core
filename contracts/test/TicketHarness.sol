@@ -2,12 +2,21 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "../Ticket.sol";
 
 contract TicketHarness is Ticket {
-  using SafeCastUpgradeable for uint256;
+  using SafeCast for uint256;
+
+  constructor(
+    string memory _name,
+    string memory _symbol,
+    uint8 decimals_,
+    address _controller) Ticket(_name, _symbol, decimals_, _controller)
+  {
+
+  }
 
   function flashLoan(address _to, uint256 _amount) external {
     _mint(_to, _amount);
@@ -28,7 +37,7 @@ contract TicketHarness is Ticket {
   }
 
   /// @dev we need to use a different function name than `transfer`
-  /// otherwise it collides with the `transfer` function of the `ERC20Upgradeable` contract
+  /// otherwise it collides with the `transfer` function of the `ERC20` contract
   function transferTo(address _sender, address _recipient, uint256 _amount) external {
     _transfer(_sender, _recipient, _amount);
   }

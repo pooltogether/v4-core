@@ -27,9 +27,9 @@
     "parallel-test": "mocha --require hardhat/register --recursive --parallel --exit --extension ts"
   },
   "dependencies": {
-    "@openzeppelin/contracts-upgradeable": "4.2.0",
+    "@openzeppelin/contracts": "^4.3.1",
     "@pooltogether/fixed-point": "1.0.0",
-    "@pooltogether/owner-manager-contracts": "1.0.0-beta.1",
+    "@pooltogether/owner-manager-contracts": "1.0.0-beta.2",
     "@pooltogether/pooltogether-contracts": "3.4.4",
     "@pooltogether/pooltogether-rng-contracts": "1.4.0",
     "@pooltogether/yield-source-interface": "1.0.2",
