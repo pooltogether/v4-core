@@ -95,6 +95,38 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return _drawSettings;
   }
 
+  ///@notice Returns the distribution index for a users pickIndices for a draw
+  ///@param _user The user for which to calculate the distribution indices
+  ///@param _pickIndices The users pick indices for a draw
+  ///@param _draw The draw for which to calculate the distribution indices
+  function checkPrizeDistributionIndicesForDraw(address _user, uint256[] calldata _pickIndices, DrawLib.Draw calldata _draw) 
+    external view returns(uint256[] memory)
+  {
+    bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
+
+    DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings = drawSettings[_draw.drawId]; 
+    uint32[] memory _timestamps = new uint32[](1);
+    _timestamps[0] = _draw.timestamp;
+    DrawLib.TsunamiDrawCalculatorSettings[] memory drawSettings = new DrawLib.TsunamiDrawCalculatorSettings[](1);
+    drawSettings[0] = _drawSettings;
+
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps, drawSettings);
+    uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings, userBalances[0]);
+
+    require(_pickIndices.length <= _drawSettings.maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
+    
+    uint256[] memory masks =  _createBitMasks(_drawSettings);
+    uint256[] memory prizeDistributionIndices = new uint256[](_pickIndices.length);
+
+    for(uint256 i = 0; i < _pickIndices.length; i++){
+      uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _pickIndices[i])));
+      require(_pickIndices[i] < totalUserPicks, "DrawCalc/insufficient-user-picks");
+      prizeDistributionIndices[i] =  _calculateDistributionIndex(randomNumberThisPick, _draw.winningRandomNumber, masks);
+    }
+    return prizeDistributionIndices;
+  }
+
+
   /* ============ Internal Functions ============ */
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
