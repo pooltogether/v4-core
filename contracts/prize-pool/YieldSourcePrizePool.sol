@@ -17,17 +17,13 @@ contract YieldSourcePrizePool is PrizePool {
 
   IYieldSource public yieldSource;
 
-  event YieldSourcePrizePoolInitialized(address indexed yieldSource);
+  event Deployed(address indexed yieldSource);
 
-  /// @notice Initializes the Prize Pool and Yield Service with the required contract connections
-  /// @param _controlledTokens Array of addresses for the Ticket and Sponsorship Tokens controlled by the Prize Pool
+  /// @notice Deploy the Prize Pool and Yield Service with the required contract connections
   /// @param _yieldSource Address of the yield source
   constructor (
-    IControlledToken[] memory _controlledTokens,
     IYieldSource _yieldSource
-  )
-    PrizePool(_controlledTokens)
-  {
+  ) PrizePool() {
     require(address(_yieldSource) != address(0), "YieldSourcePrizePool/yield-source-not-zero-address");
 
     yieldSource = _yieldSource;
@@ -36,7 +32,7 @@ contract YieldSourcePrizePool is PrizePool {
     (bool succeeded,) = address(_yieldSource).staticcall(abi.encodePacked(_yieldSource.depositToken.selector));
     require(succeeded, "YieldSourcePrizePool/invalid-yield-source");
 
-    emit YieldSourcePrizePoolInitialized(address(_yieldSource));
+    emit Deployed(address(_yieldSource));
   }
 
   /// @notice Determines whether the passed token can be transferred out as an external award.

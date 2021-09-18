@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
-  * @title Abstract prize split contract for adding unique award distribution to static addresses. 
+  * @title Abstract prize split contract for adding unique award distribution to static addresses.
   * @author Kames Geraghty (PoolTogether Inc)
 */
 abstract contract PrizeSplit is Ownable {
-  
+
   PrizeSplitConfig[] internal _prizeSplits;
 
   /**
@@ -17,23 +17,20 @@ abstract contract PrizeSplit is Ownable {
     * @dev The prize split configuration struct used to award prize splits during distribution.
     * @param target Address of recipient receiving the prize split distribution
     * @param percentage Percentage of prize split using a 0-1000 range for single decimal precision i.e. 125 = 12.5%
-    * @param token Position of controlled token in prizePool.tokens (i.e. ticket or sponsorship)
   */
   struct PrizeSplitConfig {
       address target;
       uint16 percentage;
-      uint8 token;
   }
 
   /**
     * @notice Emitted when a PrizeSplitConfig config is added or updated.
-    * @dev Emitted when aPrizeSplitConfig config is added or updated in setPrizeSplits or setPrizeSplit.
+    * @dev Emitted when a PrizeSplitConfig config is added or updated in setPrizeSplits or setPrizeSplit.
     * @param target Address of prize split recipient
     * @param percentage Percentage of prize split. Must be between 0 and 1000 for single decimal precision
-    * @param token Index (0 or 1) of token in the prizePool.tokens mapping
     * @param index Index of prize split in the prizeSplts array
   */
-  event PrizeSplitSet(address indexed target, uint16 percentage, uint8 token, uint256 index);
+  event PrizeSplitSet(address indexed target, uint16 percentage, uint256 index);
 
   /**
     * @notice Emitted when a PrizeSplitConfig config is removed.
@@ -47,9 +44,8 @@ abstract contract PrizeSplit is Ownable {
     * @dev Mints ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
     * @param target Recipient of minted tokens
     * @param amount Amount of minted tokens
-    * @param tokenIndex Index (0 or 1) of a token in the prizePool.tokens mapping
   */
-  function _awardPrizeSplitAmount(address target, uint256 amount, uint8 tokenIndex) virtual internal;
+  function _awardPrizeSplitAmount(address target, uint256 amount) virtual internal;
 
   /**
     * @notice Read all prize splits configs.
@@ -81,14 +77,14 @@ abstract contract PrizeSplit is Ownable {
     // Add and/or update prize split configs using newPrizeSplits PrizeSplitConfig structs array.
     for (uint256 index = 0; index < newPrizeSplitsLength; index++) {
       PrizeSplitConfig memory split = newPrizeSplits[index];
-      require(split.token <= 1, "PrizeSplit/invalid-prizesplit-token");
+
       require(split.target != address(0), "PrizeSplit/invalid-prizesplit-target");
-      
+
       if (_prizeSplits.length <= index) {
         _prizeSplits.push(split);
       } else {
         PrizeSplitConfig memory currentSplit = _prizeSplits[index];
-        if (split.target != currentSplit.target || split.percentage != currentSplit.percentage || split.token != currentSplit.token) {
+        if (split.target != currentSplit.target || split.percentage != currentSplit.percentage) {
           _prizeSplits[index] = split;
         } else {
           continue;
@@ -96,7 +92,7 @@ abstract contract PrizeSplit is Ownable {
       }
 
       // Emit the added/updated prize split config.
-      emit PrizeSplitSet(split.target, split.percentage, split.token, index);
+      emit PrizeSplitSet(split.target, split.percentage, index);
     }
 
     // Remove old prize splits configs. Match storage _prizesSplits.length with the passed newPrizeSplits.length
@@ -119,9 +115,8 @@ abstract contract PrizeSplit is Ownable {
   */
   function setPrizeSplit(PrizeSplitConfig memory prizeStrategySplit, uint8 prizeSplitIndex) external onlyOwner {
     require(prizeSplitIndex < _prizeSplits.length, "PrizeSplit/nonexistent-prizesplit");
-    require(prizeStrategySplit.token <= 1, "PrizeSplit/invalid-prizesplit-token");
     require(prizeStrategySplit.target != address(0), "PrizeSplit/invalid-prizesplit-target");
-    
+
     // Update the prize split config
     _prizeSplits[prizeSplitIndex] = prizeStrategySplit;
 
@@ -130,7 +125,7 @@ abstract contract PrizeSplit is Ownable {
     require(totalPercentage <= 1000, "PrizeSplit/invalid-prizesplit-percentage-total");
 
     // Emit updated prize split config
-    emit PrizeSplitSet(prizeStrategySplit.target, prizeStrategySplit.percentage, prizeStrategySplit.token, prizeSplitIndex);
+    emit PrizeSplitSet(prizeStrategySplit.target, prizeStrategySplit.percentage, prizeSplitIndex);
   }
 
   /**
@@ -173,7 +168,7 @@ abstract contract PrizeSplit is Ownable {
       uint256 _splitAmount = _getPrizeSplitAmount(_prizeTemp, split.percentage);
 
       // Award the prize split distribution amount.
-      _awardPrizeSplitAmount(split.target, _splitAmount, split.token);
+      _awardPrizeSplitAmount(split.target, _splitAmount);
 
       // Update the remaining prize amount after distributing the prize split percentage.
       prize = prize - _splitAmount;

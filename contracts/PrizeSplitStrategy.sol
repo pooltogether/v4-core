@@ -65,16 +65,15 @@ contract PrizeSplitStrategy is PrizeSplit {
   /* ============ Internal Functions ============ */
 
   /**
-    * @notice Award ticket or sponsorship tokens to prize split recipient.
-    * @dev Award ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
-    * @param user Recipient of minted tokens
-    * @param amount Amount of minted tokens
-    * @param tokenIndex Index (0 or 1) of a token in the prizePool.tokens mapping
+    * @notice Award ticket tokens to prize split recipient.
+    * @dev Award ticket tokens to prize split recipient via the linked PrizePool contract.
+    * @param _to Recipient of minted tokens.
+    * @param _amount Amount of minted tokens.
   */
-  function _awardPrizeSplitAmount(address user, uint256 amount, uint8 tokenIndex) override internal {
-    IControlledToken _token = prizePool.tokenAtIndex(tokenIndex);
-    prizePool.award(user, amount, _token);
-    emit PrizeSplitAwarded(user, amount, _token);
+  function _awardPrizeSplitAmount(address _to, uint256 _amount) override internal {
+    IControlledToken _ticket = prizePool.ticket();
+    prizePool.award(_to, _amount);
+    emit PrizeSplitAwarded(_to, _amount, _ticket);
   }
 
 }

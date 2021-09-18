@@ -17,7 +17,7 @@ contract ControlledToken is ERC20Permit, IControlledToken {
   /// @notice ERC20 controlled token decimals.
   uint8 private _decimals;
 
-  /// @notice Initializes the Controlled Token with Token Details and the Controller
+  /// @notice Deploy the Controlled Token with Token Details and the Controller
   /// @param _name The name of the Token
   /// @param _symbol The symbol for the Token
   /// @param decimals_ The number of decimals for the Token
@@ -37,7 +37,7 @@ contract ControlledToken is ERC20Permit, IControlledToken {
     require(decimals_ > 0, "ControlledToken/decimals-gt-zero");
     _decimals = decimals_;
 
-    emit Initialized(
+    emit Deployed(
       _name,
       _symbol,
       _decimals,

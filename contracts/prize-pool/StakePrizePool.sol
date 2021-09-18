@@ -10,17 +10,18 @@ contract StakePrizePool is PrizePool {
 
   IERC20 private stakeToken;
 
-  /// @notice Initializes the Prize Pool and Yield Service with the required contract connections
-  /// @param _controlledTokens Array of addresses for the Ticket and Sponsorship Tokens controlled by the Prize Pool
+  /// @dev Emitted when stake prize pool is deployed
+  event Deployed(IERC20 indexed stakeToken);
+
+  /// @notice Deploy the Prize Pool and Yield Service with the required contract connections
   /// @param _stakeToken Address of the stake token
   constructor (
-    IControlledToken[] memory _controlledTokens,
     IERC20 _stakeToken
-  )
-    PrizePool(_controlledTokens)
-  {
+  ) PrizePool() {
     require(address(_stakeToken) != address(0), "StakePrizePool/stake-token-not-zero-address");
     stakeToken = _stakeToken;
+
+    emit Deployed(_stakeToken);
   }
 
   /// @notice Determines whether the passed token can be transferred out as an external award.

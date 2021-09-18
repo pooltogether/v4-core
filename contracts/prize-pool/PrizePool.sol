@@ -26,10 +26,10 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   using ERC165Checker for address;
 
   /// @notice Semver Version
-  string constant public VERSION = "3.4.0";
+  string constant public VERSION = "4.0.0";
 
-  /// @dev An array of all the controlled tokens
-  IControlledToken[] internal _tokens;
+  /// @dev Prize Pool ticket. Can only be set once by calling `setTicket()`.
+  IControlledToken public override ticket;
 
   /// @dev The Prize Strategy that this Prize Pool is bound to.
   address public prizeStrategy;
@@ -43,20 +43,8 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @dev the The awardable balance
   uint256 internal _currentAwardBalance;
 
-  /// @notice Initializes the Prize Pool
-  /// @param _controlledTokens Array of ControlledTokens that are controlled by this Prize Pool.
-  constructor (
-    IControlledToken[] memory _controlledTokens
-  ) Ownable() ReentrancyGuard()
-  {
-    uint256 controlledTokensLength = _controlledTokens.length;
-    _tokens = new IControlledToken[](controlledTokensLength);
-
-    for (uint256 i = 0; i < controlledTokensLength; i++) {
-      IControlledToken controlledToken = _controlledTokens[i];
-      _addControlledToken(controlledToken, i);
-    }
-
+  /// @notice Deploy the Prize Pool
+  constructor () Ownable() ReentrancyGuard() {
     _setLiquidityCap(type(uint256).max);
   }
 
@@ -72,14 +60,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     return _balance();
   }
 
-  /// @dev Returns the address of a token in the _tokens array.
-  /// @return Address of token
-  function tokenAtIndex(uint256 tokenIndex) external override view returns (IControlledToken) {
-    IControlledToken[] memory __tokens = _tokens;
-    require(tokenIndex < __tokens.length, "PrizePool/invalid-token-index");
-    return __tokens[tokenIndex];
-  }
-
   /// @dev Checks with the Prize Pool if a specific token type may be awarded as an external prize
   /// @param _externalToken The address of the token to check
   /// @return True if the token may be awarded, false otherwise
@@ -88,57 +68,55 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   }
 
   /// @notice Deposit assets into the Prize Pool in exchange for tokens
-  /// @param to The address receiving the newly minted tokens
-  /// @param amount The amount of assets to deposit
-  /// @param controlledToken The address of the type of token the user is minting
+  /// @param _to The address receiving the newly minted tokens
+  /// @param _amount The amount of assets to deposit
   function depositTo(
-    address to,
-    uint256 amount,
-    IControlledToken controlledToken
+    address _to,
+    uint256 _amount
   )
     external override
     nonReentrant
-    onlyControlledToken(controlledToken)
-    canAddLiquidity(amount)
+    canAddLiquidity(_amount)
   {
-    address operator = _msgSender();
+    address _operator = _msgSender();
 
-    require(_canDeposit(operator, amount), "PrizePool/exceeds-balance-cap");
+    require(_canDeposit(_operator, _amount), "PrizePool/exceeds-balance-cap");
 
-    _mint(to, amount, controlledToken);
+    IControlledToken _ticket = ticket;
 
-    _token().safeTransferFrom(operator, address(this), amount);
-    _supply(amount);
+    _mint(_to, _amount, _ticket);
 
-    emit Deposited(operator, to, controlledToken, amount);
+    _token().safeTransferFrom(_operator, address(this), _amount);
+    _supply(_amount);
+
+    emit Deposited(_operator, _to, _ticket, _amount);
   }
 
-  /// @notice Withdraw assets from the Prize Pool instantly.  A fairness fee may be charged for an early exit.
-  /// @param from The address to redeem tokens from.
-  /// @param amount The amount of tokens to redeem for assets.
-  /// @param controlledToken The address of the token to redeem (i.e. ticket or sponsorship)
-  /// @return The actual exit fee paid
+  /// @notice Withdraw assets from the Prize Pool.
+  /// @param _from The address to redeem tokens from.
+  /// @param _amount The _amount of tokens to redeem for assets.
+  /// @return The actual amount redeemed.
   function withdrawFrom(
-    address from,
-    uint256 amount,
-    IControlledToken controlledToken
+    address _from,
+    uint256 _amount
   )
     external override
     nonReentrant
-    onlyControlledToken(controlledToken)
     returns (uint256)
   {
+    IControlledToken _ticket = ticket;
+
     // burn the tickets
-    controlledToken.controllerBurnFrom(_msgSender(), from, amount);
+    _ticket.controllerBurnFrom(_msgSender(), _from, _amount);
 
     // redeem the tickets
-    uint256 redeemed = _redeem(amount);
+    uint256 _redeemed = _redeem(_amount);
 
-    _token().safeTransfer(from, redeemed);
+    _token().safeTransfer(_from, _redeemed);
 
-    emit Withdrawal(_msgSender(), from, controlledToken, amount, redeemed);
+    emit Withdrawal(_msgSender(), _from, _ticket, _amount, _redeemed);
 
-    return redeemed;
+    return _redeemed;
   }
 
   /// @notice Returns the balance that is available to award.
@@ -151,11 +129,11 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @notice Captures any available interest as award balance.
   /// @return The total amount of assets to be awarded for the current prize
   function captureAwardBalance() external override nonReentrant returns (uint256) {
-    uint256 tokenTotalSupply = _tokenTotalSupply();
+    uint256 ticketTotalSupply = _ticketTotalSupply();
 
     // it's possible for the balance to be slightly less due to rounding errors in the underlying yield source
     uint256 currentBalance = _balance();
-    uint256 totalInterest = (currentBalance > tokenTotalSupply) ? currentBalance - tokenTotalSupply : 0;
+    uint256 totalInterest = (currentBalance > ticketTotalSupply) ? currentBalance - ticketTotalSupply : 0;
     uint256 unaccountedPrizeBalance = (totalInterest > _currentAwardBalance) ? totalInterest - _currentAwardBalance : 0;
 
     if (unaccountedPrizeBalance > 0) {
@@ -171,15 +149,12 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @dev The amount awarded must be less than the awardBalance()
   /// @param _to The address of the winner that receives the award
   /// @param _amount The amount of assets to be awarded
-  /// @param _controlledToken The address of the asset token being awarded
   function award(
     address _to,
-    uint256 _amount,
-    IControlledToken _controlledToken
+    uint256 _amount
   )
     external override
     onlyPrizeStrategy
-    onlyControlledToken(_controlledToken)
   {
     if (_amount == 0) {
       return;
@@ -188,9 +163,11 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     require(_amount <= _currentAwardBalance, "PrizePool/award-exceeds-avail");
     _currentAwardBalance = _currentAwardBalance - _amount;
 
-    _mint(_to, _amount, _controlledToken);
+    IControlledToken _ticket = ticket;
 
-    emit Awarded(_to, _controlledToken, _amount);
+    _mint(_to, _amount, _ticket);
+
+    emit Awarded(_to, _ticket, _amount);
   }
 
   /// @notice Called by the Prize-Strategy to transfer out external ERC20 tokens
@@ -327,15 +304,18 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     emit LiquidityCapSet(_liquidityCap);
   }
 
-  /// @notice Adds a new controlled token
-  /// @param _controlledToken The controlled token to add.
-  /// @param _index The index to add the controlledToken
-  function _addControlledToken(IControlledToken _controlledToken, uint256 _index) internal {
-    require(address(_controlledToken) != address(0), "PrizePool/controlledToken-not-zero-address");
+  /// @notice Set prize pool ticket.
+  /// @param _ticket Address of the ticket to set.
+  /// @return True if ticket has been successfully set.
+  function setTicket(IControlledToken _ticket) external override onlyOwner returns (bool) {
+    require(address(_ticket) != address(0), "PrizePool/ticket-not-zero-address");
+    require(address(ticket) == address(0), "PrizePool/ticket-already-set");
 
-    _tokens[_index] = _controlledToken;
+    ticket = _ticket;
 
-    emit ControlledTokenAdded(_controlledToken);
+    emit TicketSet(_ticket);
+
+    return true;
   }
 
   /// @notice Sets the prize strategy of the prize pool.  Only callable by the owner.
@@ -354,12 +334,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     emit PrizeStrategySet(_prizeStrategy);
   }
 
-  /// @notice An array of the Tokens controlled by the Prize Pool (ie. Tickets, Sponsorship)
-  /// @return An array of controlled token addresses
-  function tokens() external override view returns (IControlledToken[] memory) {
-    return _tokens;
-  }
-
   /// @dev Gets the current time as represented by the current block
   /// @return The timestamp of the current block
   function _currentTime() internal virtual view returns (uint256) {
@@ -369,7 +343,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @notice The total of all controlled tokens
   /// @return The current total of all tokens
   function accountedBalance() external override view returns (uint256) {
-    return _tokenTotalSupply();
+    return _ticketTotalSupply();
   }
 
   /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
@@ -390,18 +364,10 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     return IERC721Receiver.onERC721Received.selector;
   }
 
-  /// @notice The total of all controlled tokens
-  /// @return The current total of all tokens
-  function _tokenTotalSupply() internal view returns (uint256) {
-    uint256 total;
-    IControlledToken[] memory tokens = _tokens;
-    uint256 tokensLength = tokens.length;
-
-    for(uint256 i = 0; i < tokensLength; i++){
-      total = total + IERC20(tokens[i]).totalSupply();
-    }
-
-    return total;
+  /// @notice The current total of tickets.
+  /// @return Ticket total supply.
+  function _ticketTotalSupply() internal view returns (uint256) {
+    return ticket.totalSupply();
   }
 
   /// @dev Checks if `user` can deposit in the Prize Pool based on the current balance cap.
@@ -409,7 +375,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @param _amount The amount of tokens to be deposited into the Prize Pool.
   /// @return True if the Prize Pool can receive the specified `amount` of tokens.
   function _canDeposit(address _user, uint256 _amount) internal view returns (bool) {
-    IControlledToken _ticket = _tokens[0];
+    IControlledToken _ticket = ticket;
     uint256 _balanceCap = balanceCap[address(_ticket)];
 
     if (_balanceCap == type(uint256).max) return true;
@@ -423,27 +389,25 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   function _canAddLiquidity(uint256 _amount) internal view returns (bool) {
     uint256 _liquidityCap = liquidityCap;
     if(_liquidityCap == type(uint256).max) return true;
-    return (_tokenTotalSupply() + _amount <= _liquidityCap);
+    return (_ticketTotalSupply() + _amount <= _liquidityCap);
   }
 
   /// @dev Checks if a specific token is controlled by the Prize Pool
-  /// @param controlledToken The address of the token to check
+  /// @param _controlledToken The address of the token to check
   /// @return True if the token is a controlled token, false otherwise
-  function _isControlled(IControlledToken controlledToken) internal view returns (bool) {
-    IControlledToken[] memory tokens = _tokens; // SLOAD
-    uint256 tokensLength = tokens.length;
-
-    for(uint256 i = 0; i < tokensLength; i++) {
-      if(tokens[i] == controlledToken) return true;
+  function _isControlled(IControlledToken _controlledToken) internal view returns (bool) {
+    if (ticket == _controlledToken) {
+      return true;
     }
+
     return false;
   }
 
   /// @dev Checks if a specific token is controlled by the Prize Pool
-  /// @param controlledToken The address of the token to check
+  /// @param _controlledToken The address of the token to check
   /// @return True if the token is a controlled token, false otherwise
-  function isControlled(IControlledToken controlledToken) external view returns (bool) {
-    return _isControlled(controlledToken);
+  function isControlled(IControlledToken _controlledToken) external view returns (bool) {
+    return _isControlled(_controlledToken);
   }
 
   /// @notice Determines whether the passed token can be transferred out as an external award.
@@ -469,13 +433,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @param redeemAmount The amount of yield-bearing tokens to be redeemed
   /// @return The actual amount of tokens that were redeemed.
   function _redeem(uint256 redeemAmount) internal virtual returns (uint256);
-
-  /// @dev Function modifier to ensure usage of tokens controlled by the Prize Pool
-  /// @param controlledToken The address of the token to check
-  modifier onlyControlledToken(IControlledToken controlledToken) {
-    require(_isControlled(controlledToken), "PrizePool/unknown-token");
-    _;
-  }
 
   /// @dev Function modifier to ensure caller is the prize-strategy
   modifier onlyPrizeStrategy() {

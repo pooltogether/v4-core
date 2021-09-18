@@ -23,7 +23,6 @@ describe('PrizePool', function () {
   // Set as `any` cause types are conflicting between the different path for ethers
   let prizePool: any;
   let prizePool2: any;
-  let multiTokenPrizePool: any;
 
   let yieldSourceStub: MockContract;
 
@@ -33,7 +32,6 @@ describe('PrizePool', function () {
   let erc721tokenMock: MockContract;
 
   let ticket: Contract;
-  let sponsorship: Contract;
 
   let compLike: MockContract;
 
@@ -41,7 +39,6 @@ describe('PrizePool', function () {
     walletAddress: string,
     amount: BigNumber,
     token: Contract = depositToken,
-    controlledToken: Contract = ticket,
     pool: Contract = prizePool,
   ) => {
     await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, pool.address).returns();
@@ -50,7 +47,7 @@ describe('PrizePool', function () {
     await token.mint(walletAddress, amount);
 
     if (token.address === depositToken.address) {
-      return await pool.depositTo(walletAddress, amount, controlledToken.address);
+      return await pool.depositTo(walletAddress, amount);
     } else {
       return await token.transfer(pool.address, amount);
     }
@@ -83,57 +80,47 @@ describe('PrizePool', function () {
     yieldSourceStub = await deployMockContract(contractsOwner as Signer, YieldSourceStub.abi);
     await yieldSourceStub.mock.depositToken.returns(depositToken.address);
 
-    debug('deploying PrizePoolHarness...');
-
     const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
-    prizePool = await PrizePoolHarness.deploy();
+    prizePool = await PrizePoolHarness.deploy(yieldSourceStub.address);
 
     const Ticket = await getContractFactory('Ticket');
-    ticket = await Ticket.deploy();
-    await ticket.initialize('name', 'SYMBOL', 18, prizePool.address);
+    ticket = await Ticket.deploy('name', 'SYMBOL', 18, prizePool.address);
   });
 
-  describe('initialize()', () => {
+  describe('constructor()', () => {
     it('should fire the events', async () => {
-      let tx = prizePool.initializeAll([ticket.address], yieldSourceStub.address);
+      const tx = prizePool.deployTransaction;
 
-      await expect(tx).to.emit(prizePool, 'ControlledTokenAdded').withArgs(ticket.address);
       await expect(tx).to.emit(prizePool, 'LiquidityCapSet').withArgs(MaxUint256);
 
       await expect(prizePool.setPrizeStrategy(prizeStrategyManager.address))
         .to.emit(prizePool, 'PrizeStrategySet')
         .withArgs(prizeStrategyManager.address);
+
+      await expect(prizePool.setTicket(ticket.address))
+        .to.emit(prizePool, 'TicketSet')
+        .withArgs(ticket.address);
     });
   });
 
   describe('with a mocked prize pool', () => {
     beforeEach(async () => {
-      await prizePool.initializeAll([ticket.address], yieldSourceStub.address);
-
       await prizePool.setPrizeStrategy(prizeStrategyManager.address);
       await prizePool.setBalanceCap(ticket.address, MaxUint256);
+      await prizePool.setTicket(ticket.address);
     });
 
-    describe('initialize()', () => {
+    describe('constructor()', () => {
       it('should set all the vars', async () => {
         expect(await prizePool.token()).to.equal(depositToken.address);
       });
 
       it('should reject invalid params', async () => {
-        const _initArgs = [[ticket.address], yieldSourceStub.address];
-
-        let initArgs;
-
-        debug('deploying secondary prizePool...');
         const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
-        prizePool2 = await PrizePoolHarness.deploy();
+        prizePool2 = await PrizePoolHarness.deploy(yieldSourceStub.address);
 
-        debug('testing initialization of secondary prizeStrategy...');
-
-        initArgs = _initArgs.slice();
-        initArgs[0] = [AddressZero];
-        await expect(prizePool2.initializeAll(...initArgs)).to.be.revertedWith(
-          'PrizePool/controlledToken-not-zero-address',
+        await expect(prizePool2.setTicket(AddressZero)).to.be.revertedWith(
+          'PrizePool/ticket-not-zero-address',
         );
       });
     });
@@ -148,7 +135,7 @@ describe('PrizePool', function () {
         await prizePool.setLiquidityCap(liquidityCap);
 
         await expect(
-          prizePool.depositTo(wallet2.address, amount, ticket.address),
+          prizePool.depositTo(wallet2.address, amount),
         ).to.be.revertedWith('PrizePool/exceeds-liquidity-cap');
       });
 
@@ -212,7 +199,7 @@ describe('PrizePool', function () {
 
         await yieldSourceStub.mock.redeemToken.withArgs(amount).returns(amount);
 
-        await expect(prizePool.withdrawFrom(contractsOwner.address, amount, ticket.address))
+        await expect(prizePool.withdrawFrom(contractsOwner.address, amount))
           .to.emit(prizePool, 'Withdrawal')
           .withArgs(contractsOwner.address, contractsOwner.address, ticket.address, amount, amount);
       });
@@ -225,12 +212,6 @@ describe('PrizePool', function () {
         await yieldSourceStub.mock.balanceOfToken.withArgs(prizePool.address).returns(balance);
 
         expect((await call(prizePool, 'balance')).toString()).to.equal(balance);
-      });
-    });
-
-    describe('tokens()', () => {
-      it('should return all tokens', async () => {
-        expect(await prizePool.tokens()).to.deep.equal([ticket.address]);
       });
     });
 
@@ -315,84 +296,8 @@ describe('PrizePool', function () {
     });
   });
 
-  describe('with a multi-token prize pool', () => {
-    beforeEach(async () => {
-      debug('deploying PrizePoolHarness...');
-      const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
-      multiTokenPrizePool = await PrizePoolHarness.deploy();
-
-      const Ticket = await getContractFactory('Ticket');
-
-      ticket = await Ticket.deploy();
-      await ticket.initialize('name', 'SYMBOL', 18, multiTokenPrizePool.address);
-
-      const ControlledToken = await getContractFactory('ControlledToken');
-
-      sponsorship = await ControlledToken.deploy();
-      await sponsorship.initialize('Sponsorship', 'SPON', 18, multiTokenPrizePool.address);
-
-      await multiTokenPrizePool.initializeAll(
-        [ticket.address, sponsorship.address],
-        yieldSourceStub.address,
-      );
-
-      await multiTokenPrizePool.setPrizeStrategy(prizeStrategyManager.address);
-      await multiTokenPrizePool.setBalanceCap(ticket.address, MaxUint256);
-    });
-
-    describe('accountedBalance()', () => {
-      it('should return the total accounted balance for all tokens', async () => {
-        await multiTokenPrizePool.mint(
-          multiTokenPrizePool.address,
-          toWei('456'),
-          sponsorship.address,
-        );
-
-        await depositTokenIntoPrizePool(
-          contractsOwner.address,
-          toWei('123'),
-          depositToken,
-          ticket,
-          multiTokenPrizePool,
-        );
-
-        expect(await multiTokenPrizePool.accountedBalance()).to.equal(toWei('579'));
-      });
-    });
-
-    describe('depositTo()', () => {
-      it('should not revert when user deposit exceeds balance cap for sponsorship token', async () => {
-        const amount = toWei('1');
-        const balanceCap = toWei('50000');
-
-        await depositTokenIntoPrizePool(
-          contractsOwner.address,
-          balanceCap,
-          depositToken,
-          sponsorship,
-          multiTokenPrizePool,
-        );
-
-        await multiTokenPrizePool.setBalanceCap(ticket.address, balanceCap);
-
-        await expect(
-          depositTokenIntoPrizePool(
-            contractsOwner.address,
-            amount,
-            depositToken,
-            sponsorship,
-            multiTokenPrizePool,
-          ),
-        )
-          .to.emit(multiTokenPrizePool, 'Deposited')
-          .withArgs(contractsOwner.address, contractsOwner.address, sponsorship.address, amount);
-      });
-    });
-  });
-
   describe('awardExternalERC20()', () => {
     beforeEach(async () => {
-      await prizePool.initializeAll([ticket.address], yieldSourceStub.address);
       await prizePool.setPrizeStrategy(prizeStrategyManager.address);
     });
 
@@ -435,7 +340,6 @@ describe('PrizePool', function () {
 
   describe('transferExternalERC20()', () => {
     beforeEach(async () => {
-      await prizePool.initializeAll([ticket.address], yieldSourceStub.address);
       await prizePool.setPrizeStrategy(prizeStrategyManager.address);
     });
 
@@ -478,7 +382,6 @@ describe('PrizePool', function () {
 
   describe('awardExternalERC721()', () => {
     beforeEach(async () => {
-      await prizePool.initializeAll([ticket.address], yieldSourceStub.address);
       await prizePool.setPrizeStrategy(prizeStrategyManager.address);
     });
 

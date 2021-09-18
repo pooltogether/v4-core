@@ -7,16 +7,13 @@ contract PrizePoolHarness is PrizePool {
 
   uint256 public currentTime;
 
-  YieldSourceStub stubYieldSource;
+  YieldSourceStub public stubYieldSource;
 
   constructor(
-    IControlledToken[] memory _controlledTokens,
     YieldSourceStub _stubYieldSource
   )
-    PrizePool(_controlledTokens)
     public
   {
-    
     stubYieldSource = _stubYieldSource;
   }
 
