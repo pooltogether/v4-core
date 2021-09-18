@@ -90,6 +90,7 @@ async function runFindWinningRandomNumbers() {
     prize: ethers.utils.parseEther('100'),
     drawStartTimestampOffset: BigNumber.from(1),
     drawEndTimestampOffset: BigNumber.from(1),
+    maxPicksPerUser: BigNumber.from(1001),
   };
 
   const result = await findWinningNumberForUser(wallet1, wallet1.address, 3, drawSettings)

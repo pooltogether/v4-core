@@ -9,7 +9,6 @@ import "./libraries/DrawLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
-
 ///@title TsunamiDrawCalculator is an implmentation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   
@@ -169,9 +168,12 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     
     uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
     uint256[] memory masks =  _createBitMasks(_drawSettings);
+    uint256 picksLength = _picks.length;
+
+    require(picksLength <= _drawSettings.maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
 
     // for each pick find number of matching numbers and calculate prize distribution index
-    for(uint256 index  = 0; index < _picks.length; index++){
+    for(uint256 index  = 0; index < picksLength; index++){
       // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
       require(_picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
@@ -276,6 +278,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
     require(_drawSettings.numberOfPicks > 0, "DrawCalc/numberOfPicks-gt-0");
+    require(_drawSettings.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
     
     // ensure that the distributions are not gt 100%
     for(uint256 index = 0; index < distributionsLength; index++){

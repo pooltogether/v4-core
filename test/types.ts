@@ -8,6 +8,7 @@ export type TsunamiDrawCalculatorSettings = {
     prize: BigNumber;
     drawStartTimestampOffset: BigNumber;
     drawEndTimestampOffset: BigNumber;
+    maxPicksPerUser: BigNumber;
 };
 
 export type Draw = { drawId: BigNumber, winningRandomNumber: BigNumber, timestamp: BigNumber }
