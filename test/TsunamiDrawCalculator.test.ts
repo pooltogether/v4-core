@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-import { Draw, DrawSettings } from './types';
+import { Draw, TsunamiDrawCalculatorSettings } from './types';
 
 const { getSigners } = ethers;
 
@@ -75,7 +75,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe('setDrawSettings()', () => {
     it('should not allow anyone else to set', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -93,7 +93,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it('onlyOwner can setPrizeSettings', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -120,7 +120,7 @@ describe('TsunamiDrawCalculator', () => {
     });
 
     it('cannot set over 100pc of prize for distribution', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.9'),
@@ -140,7 +140,7 @@ describe('TsunamiDrawCalculator', () => {
     });
 
     it('cannot set bitRangeSize = 0', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.9'),
@@ -157,7 +157,7 @@ describe('TsunamiDrawCalculator', () => {
     });
 
     it('cannot set numberOfPicks = 0', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.9'),
@@ -192,7 +192,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe('calculateDistributionIndex()', () => {
     it('grand prize gets the full fraction at index 0', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -210,7 +210,7 @@ describe('TsunamiDrawCalculator', () => {
       expect(amount).to.equal(drawSettings.distributions[0]);
     })
     it('runner up gets part of the fraction at index 1', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -231,7 +231,7 @@ describe('TsunamiDrawCalculator', () => {
       expect(amount).to.equal(expectedPrizeFraction);
     })
     it('all distribution indexes', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.5'),
@@ -273,7 +273,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it('calculates the number of prizes at all distribution indices', async () => {
-      let drawSettings: DrawSettings = {
+      let drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.5'),
@@ -298,7 +298,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe('calculatePrizeDistributionFraction()', () => {
     it('calculates distribution index 0', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -322,7 +322,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it('calculates distribution index 1', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(2),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -350,7 +350,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it('calculates distribution index 1', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(3),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -381,7 +381,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe("createBitMasks()", () => {
     it("creates correct 6 bit masks", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(2),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -402,7 +402,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it("creates correct 4 bit masks", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(2),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -425,7 +425,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe("getDrawSettings()", () => {
     it("gets correct draw settings", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -458,7 +458,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe("calculateNumberOfUserPicks()", () => {
     it("calculates the correct number of user picks", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -477,7 +477,7 @@ describe('TsunamiDrawCalculator', () => {
       expect(userPicks).to.eq(BigNumber.from(5))
     })
     it("calculates the correct number of user picks", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -501,7 +501,7 @@ describe('TsunamiDrawCalculator', () => {
     it("calculates the correct normalized balance", async () => {
       const timestamps = [42,77]
 
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -530,7 +530,7 @@ describe('TsunamiDrawCalculator', () => {
     it("reverts when totalSupply is zero", async () => {
       const timestamps = [42,77]
 
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -556,7 +556,7 @@ describe('TsunamiDrawCalculator', () => {
     it("returns zero when the balance is very small", async () => {
       const timestamps = [42]
 
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -583,7 +583,7 @@ describe('TsunamiDrawCalculator', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
     context('with draw 0 set', () => {
-      let drawSettings: DrawSettings
+      let drawSettings: TsunamiDrawCalculatorSettings
       beforeEach(async () => {
         drawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
@@ -710,7 +710,7 @@ describe('TsunamiDrawCalculator', () => {
 
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1, totalSupply2]); 
         
-        const drawSettings2: DrawSettings = {
+        const drawSettings2: TsunamiDrawCalculatorSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
           numberOfPicks: BigNumber.from(utils.parseEther('1')),
           matchCardinality: BigNumber.from(5),
@@ -761,7 +761,7 @@ describe('TsunamiDrawCalculator', () => {
         const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
         const ticketBalance = ethers.utils.parseEther('6'); // they had 6pc of all tickets
         
-        const drawSettings: DrawSettings = {
+        const drawSettings: TsunamiDrawCalculatorSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
           numberOfPicks: BigNumber.from(1),
           matchCardinality: BigNumber.from(5),
