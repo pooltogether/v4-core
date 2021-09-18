@@ -170,7 +170,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   /**
     * @notice Convert a Draw.drawId to a Draws ring buffer index pointer. 
     * @dev    The getNewestDraw.drawId() is used to calculate a Draws ID delta position.
-    * @param drawId Draw.drawId
+    * @param _drawId Draw.drawId
     * @return Draws ring buffer index pointer
   */
   function _drawIdToDrawIndex(uint32 _drawId) internal view returns (uint32) {
@@ -185,6 +185,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   /**
     * @notice Read newest Draw from the draws ring buffer.
     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
+    * @param _nextDrawIndex Next draws ring buffer slot
     * @return DrawLib.Draw
   */
   function _getNewestDraw(uint256 _nextDrawIndex) internal view returns (DrawLib.Draw memory) {
@@ -194,7 +195,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   /**
     * @notice Push Draw onto draws ring buffer history.
     * @dev    Push new draw onto draws history via authorized manager or owner.
-    * @param draw DrawLib.Draw
+    * @param _newDraw DrawLib.Draw
     * @return Draw.drawId
   */
   function _pushDraw(DrawLib.Draw memory _newDraw) internal returns (uint32) {
@@ -213,8 +214,8 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   /**
     * @notice Set existing Draw in draws ring buffer with new parameters.
     * @dev    Updating a Draw should be used sparingly and only in the event an incorrect Draw parameter has been stored.  
-    * @param drawIndex Ring buffer index (use drawIdToDrawIndex to calculate the correct draw index)
-    * @param newDraw   DrawLib.Draw
+    * @param _drawIndex Ring buffer index (use drawIdToDrawIndex to calculate the correct draw index)
+    * @param _newDraw   DrawLib.Draw
     * @return Draw.drawId
   */
   function _setDraw(uint256 _drawIndex, DrawLib.Draw memory _newDraw) internal returns (uint32) {
