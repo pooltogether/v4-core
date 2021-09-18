@@ -17,6 +17,15 @@ import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./prize-pool/PrizePool.sol";
 
+/**
+  * @title  PoolTogether V4 DrawBeacon
+  * @author PoolTogether Inc Team
+  * @notice Manages RNG (random number generator) requests and pushing Draws onto DrawHistory.
+            The DrawBeacon has 3 major phases for requesting a random number: start, cancel and complete.
+            Once the complete phase is executed a new Draw (using nextDrawId) is pushed to the currently
+            set DrawHistory smart contracts. If the RNG service requires payment (i.e. ChainLink) the DrawBeacon
+            should have an available balance to cover the fees associated with random number generation.
+*/
 contract DrawBeacon is IDrawBeacon,
                        Ownable {
 
@@ -34,8 +43,10 @@ contract DrawBeacon is IDrawBeacon,
   /// @notice Current RNG Request
   RngRequest internal rngRequest;
 
-  /// @notice RNG Request Timeout.  In fact, this is really a "complete award" timeout.
-  /// If the rng completes the award can still be cancelled.
+  /**
+    * @notice RNG Request Timeout.  In fact, this is really a "complete draw" timeout.
+    * @dev If the rng completes the award can still be cancelled.
+   */
   uint32 public rngTimeout;
 
   /// @notice Seconds between beacon period request
@@ -44,18 +55,18 @@ contract DrawBeacon is IDrawBeacon,
   /// @notice Epoch timestamp when beacon period can start
   uint256 public beaconPeriodStartedAt;
 
-  /// @notice Next draw id to use when pushing a new draw on DrawHistory
+  /// @notice Next Draw ID to use when pushing a Draw onto DrawHistory
   uint32 public nextDrawId;
 
-  /// @notice DrawHistory contract interface
+  /// @notice DrawHistory address
   IDrawHistory public drawHistory;
 
   /* ============ Structs ============ */
 
   /**
     * @notice RNG Request
-    * @param id RNG request ID
-    * @param lockBlock Block number that the RNG request is locked
+    * @param id          RNG request ID
+    * @param lockBlock   Block number that the RNG request is locked
     * @param requestedAt Epoch when RNG is requested
   */
   struct RngRequest {
@@ -72,7 +83,7 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   modifier requireCanStartDraw() {
-    require(_isBeaconPeriodOver(), "DrawBeacon/prize-period-not-over");
+    require(_isBeaconPeriodOver(), "DrawBeacon/beacon-period-not-over");
     require(!isRngRequested(), "DrawBeacon/rng-already-requested");
     _;
   }
@@ -153,16 +164,16 @@ contract DrawBeacon is IDrawBeacon,
   /* ============ External Functions ============ */
 
   /**
-    * @notice Returns whether an draw request can be started.
-    * @return True if a draw can be started, false otherwise.
+    * @notice Returns whether an Draw request can be started.
+    * @return True if a Draw can be started, false otherwise.
    */
   function canStartDraw() external view override returns (bool) {
     return _isBeaconPeriodOver() && !isRngRequested();
   }
 
   /**
-    * @notice Returns whether an draw request can be completed.
-    * @return True if a draw can be completed, false otherwise.
+    * @notice Returns whether an Draw request can be completed.
+    * @return True if a Draw can be completed, false otherwise.
    */
   function canCompleteDraw() external view override returns (bool) {
     return isRngRequested() && isRngCompleted();
@@ -190,8 +201,7 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Completes the draw request and creates a new draw.
-    * @dev    Completes the draw request, creates a new draw on the DrawHistory and reset beacon period start.
+    * @notice Completes the Draw (RNG) request and pushes a Draw onto DrawHistory.
     *
    */
   function completeDraw() external override requireCanCompleteRngRequest {
@@ -248,8 +258,8 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice External function to set DrawHistory.
-    * @dev    External function to set DrawHistory from an authorized manager.
+    * @notice Set global DrawHistory variable.
+    * @dev    All subsequent Draw requests/completions will be pushed to the new DrawHistory.
     * @param newDrawHistory DrawHistory address
     * @return DrawHistory
   */
@@ -258,7 +268,7 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Starts the award process by starting random number request.  The beacon period must have ended.
+    * @notice Starts the Draw process by starting random number request. The previous beacon period must have ended.
     * @dev The RNG-Request-Fee is expected to be held within this contract before calling this function
    */
   function startDraw() external override requireCanStartDraw {
@@ -361,8 +371,8 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Internal function to set DrawHistory.
-    * @dev    Internal function to set DrawHistory from an authorized manager.
+    * @notice Set global DrawHistory variable.
+    * @dev    All subsequent Draw requests/completions will be pushed to the new DrawHistory.
     * @param _newDrawHistory  DrawHistory address
     * @return DrawHistory
   */
@@ -397,8 +407,8 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Create a new draw using the RNG request result.
-    * @dev    Create a new draw in the connected DrawHistory contract using the RNG request result.
+    * @notice Create a new Draw with RNG request result.
+    * @dev    Pushes new Draw onto DrawHistory and increments the nextDrawId.
     * @param randomNumber Randomly generated number
   */
   function _saveRNGRequestWithDraw(uint256 randomNumber) internal {
