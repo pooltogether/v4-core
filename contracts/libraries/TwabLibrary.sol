@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./OverflowSafeComparator.sol";
 
@@ -11,7 +11,7 @@ import "./OverflowSafeComparator.sol";
 /// @author PoolTogether Inc.
 library TwabLibrary {
   using OverflowSafeComparator for uint32;
-  using SafeCastUpgradeable for uint256;
+  using SafeCast for uint256;
 
   /// @notice The maximum number of twab entries
   uint16 public constant MAX_CARDINALITY = 65535;

@@ -1,7 +1,6 @@
-const chalk = require('chalk')
 const hardhat = require('hardhat')
 const { expect } = require('chai');
-const { call } = require('../../helpers/call');
+
 require('../../helpers/chaiMatchers');
 
 const { ethers, deployments } = hardhat
@@ -62,6 +61,7 @@ function PoolEnv() {
     let amount = toWei(tickets);
 
     let balance = await token.balanceOf(wallet.address);
+
     if (balance.lt(amount)) {
       await token.mint(wallet.address, amount, this.overrides);
     }
@@ -70,7 +70,7 @@ function PoolEnv() {
 
     debug(`Depositing... (${wallet.address}, ${amount}, ${ticket.address}, ${AddressZero})`);
 
-    await prizePool.depositTo(wallet.address, amount, ticket.address, this.overrides);
+    await prizePool.depositTo(wallet.address, amount, this.overrides);
 
     debug(`Bought tickets`);
   };
@@ -106,19 +106,22 @@ function PoolEnv() {
     let wallet = await this.wallet(user);
     let ticket = await this.ticket(wallet);
     let withdrawalAmount;
+
     if (!tickets) {
       withdrawalAmount = await ticket.balanceOf(wallet.address);
     } else {
       withdrawalAmount = toWei(tickets);
     }
+
     debug(`Withdrawing ${withdrawalAmount}...`)
     let prizePool = await this.prizePool(wallet);
+
     await prizePool.withdrawFrom(
       wallet.address,
-      withdrawalAmount,
-      ticket.address
+      withdrawalAmount
     );
-    debug('done withdraw instantly');
+
+    debug('done withdraw');
   };
 
   this.poolAccrues = async function ({ tickets }) {

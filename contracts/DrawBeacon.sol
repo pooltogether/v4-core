@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
@@ -17,14 +17,22 @@ import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./prize-pool/PrizePool.sol";
 
+/**
+  * @title  PoolTogether V4 DrawBeacon
+  * @author PoolTogether Inc Team
+  * @notice Manages RNG (random number generator) requests and pushing Draws onto DrawHistory.
+            The DrawBeacon has 3 major phases for requesting a random number: start, cancel and complete.
+            Once the complete phase is executed a new Draw (using nextDrawId) is pushed to the currently
+            set DrawHistory smart contracts. If the RNG service requires payment (i.e. ChainLink) the DrawBeacon
+            should have an available balance to cover the fees associated with random number generation.
+*/
 contract DrawBeacon is IDrawBeacon,
-                       Initializable,
-                       OwnableUpgradeable {
+                       Ownable {
 
-  using SafeCastUpgradeable for uint256;
-  using SafeERC20Upgradeable for IERC20Upgradeable;
-  using AddressUpgradeable for address;
-  using ERC165CheckerUpgradeable for address;
+  using SafeCast for uint256;
+  using SafeERC20 for IERC20;
+  using Address for address;
+  using ERC165Checker for address;
 
 
   /* ============ Variables ============ */
@@ -35,8 +43,10 @@ contract DrawBeacon is IDrawBeacon,
   /// @notice Current RNG Request
   RngRequest internal rngRequest;
 
-  /// @notice RNG Request Timeout.  In fact, this is really a "complete award" timeout.
-  /// If the rng completes the award can still be cancelled.
+  /**
+    * @notice RNG Request Timeout.  In fact, this is really a "complete draw" timeout.
+    * @dev If the rng completes the award can still be cancelled.
+   */
   uint32 public rngTimeout;
 
   /// @notice Seconds between beacon period request
@@ -45,18 +55,18 @@ contract DrawBeacon is IDrawBeacon,
   /// @notice Epoch timestamp when beacon period can start
   uint256 public beaconPeriodStartedAt;
 
-  /// @notice Next draw id to use when pushing a new draw on DrawHistory
+  /// @notice Next Draw ID to use when pushing a Draw onto DrawHistory
   uint32 public nextDrawId;
 
-  /// @notice DrawHistory contract interface
+  /// @notice DrawHistory address
   IDrawHistory public drawHistory;
 
   /* ============ Structs ============ */
 
   /**
     * @notice RNG Request
-    * @param id RNG request ID
-    * @param lockBlock Block number that the RNG request is locked
+    * @param id          RNG request ID
+    * @param lockBlock   Block number that the RNG request is locked
     * @param requestedAt Epoch when RNG is requested
   */
   struct RngRequest {
@@ -73,7 +83,7 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   modifier requireCanStartDraw() {
-    require(_isBeaconPeriodOver(), "DrawBeacon/prize-period-not-over");
+    require(_isBeaconPeriodOver(), "DrawBeacon/beacon-period-not-over");
     require(!isRngRequested(), "DrawBeacon/rng-already-requested");
     _;
   }
@@ -84,26 +94,24 @@ contract DrawBeacon is IDrawBeacon,
     _;
   }
 
-  /* ============ Initialize ============ */
+  /* ============ Deploy ============ */
 
   /**
-    * @notice Initialize the DrawBeacon smart contract.
+    * @notice Deploy the DrawBeacon smart contract.
     * @param _drawHistory The address of the draw history to push draws to
     * @param _rng The RNG service to use
     * @param _beaconPeriodStart The starting timestamp of the beacon period.
     * @param _beaconPeriodSeconds The duration of the beacon period in seconds
   */
-  function initialize (
+  constructor (
     IDrawHistory _drawHistory,
     RNGInterface _rng,
     uint256 _beaconPeriodStart,
     uint256 _beaconPeriodSeconds
-  ) public initializer {
-    require(_beaconPeriodStart > 0, "DrawBeacon/rng-request-period-greater-than-zero");
+  ) {
+    require(_beaconPeriodStart > 0, "DrawBeacon/beacon-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;
-
-    __Ownable_init();
 
     _setBeaconPeriodSeconds(_beaconPeriodSeconds);
     beaconPeriodStartedAt = _beaconPeriodStart;
@@ -113,7 +121,7 @@ contract DrawBeacon is IDrawBeacon,
     // 30 min timeout
     _setRngTimeout(1800);
 
-    emit Initialized(
+    emit Deployed(
       _drawHistory,
       _rng,
       _beaconPeriodStart,
@@ -156,16 +164,16 @@ contract DrawBeacon is IDrawBeacon,
   /* ============ External Functions ============ */
 
   /**
-    * @notice Returns whether an draw request can be started.
-    * @return True if a draw can be started, false otherwise.
+    * @notice Returns whether an Draw request can be started.
+    * @return True if a Draw can be started, false otherwise.
    */
   function canStartDraw() external view override returns (bool) {
     return _isBeaconPeriodOver() && !isRngRequested();
   }
 
   /**
-    * @notice Returns whether an draw request can be completed.
-    * @return True if a draw can be completed, false otherwise.
+    * @notice Returns whether an Draw request can be completed.
+    * @return True if a Draw can be completed, false otherwise.
    */
   function canCompleteDraw() external view override returns (bool) {
     return isRngRequested() && isRngCompleted();
@@ -193,8 +201,7 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Completes the draw request and creates a new draw.
-    * @dev    Completes the draw request, creates a new draw on the DrawHistory and reset beacon period start.
+    * @notice Completes the Draw (RNG) request and pushes a Draw onto DrawHistory.
     *
    */
   function completeDraw() external override requireCanCompleteRngRequest {
@@ -251,8 +258,8 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice External function to set DrawHistory.
-    * @dev    External function to set DrawHistory from an authorized manager.
+    * @notice Set global DrawHistory variable.
+    * @dev    All subsequent Draw requests/completions will be pushed to the new DrawHistory.
     * @param newDrawHistory DrawHistory address
     * @return DrawHistory
   */
@@ -261,13 +268,13 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Starts the award process by starting random number request.  The beacon period must have ended.
+    * @notice Starts the Draw process by starting random number request. The previous beacon period must have ended.
     * @dev The RNG-Request-Fee is expected to be held within this contract before calling this function
    */
   function startDraw() external override requireCanStartDraw {
     (address feeToken, uint256 requestFee) = rng.getRequestFee();
     if (feeToken != address(0) && requestFee > 0) {
-      IERC20Upgradeable(feeToken).safeApprove(address(rng), requestFee);
+      IERC20(feeToken).safeApprove(address(rng), requestFee);
     }
 
     (uint32 requestId, uint32 lockBlock) = rng.requestRandomNumber();
@@ -285,7 +292,7 @@ contract DrawBeacon is IDrawBeacon,
   function setBeaconPeriodSeconds(uint256 beaconPeriodSeconds) external override onlyOwner requireDrawNotInProgress {
     _setBeaconPeriodSeconds(beaconPeriodSeconds);
   }
-  
+
   /**
     * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngTimeout The RNG request timeout in seconds.
@@ -312,7 +319,7 @@ contract DrawBeacon is IDrawBeacon,
     * @return The timestamp at which the next beacon period would start
    */
   function _calculateNextBeaconPeriodStartTime(uint256 currentTime) internal view returns (uint256) {
-    uint256 _beaconPeriodStartedAt = beaconPeriodStartedAt; 
+    uint256 _beaconPeriodStartedAt = beaconPeriodStartedAt;
     uint256 _beaconPeriodSeconds = beaconPeriodSeconds;
     uint256 elapsedPeriods = (currentTime - _beaconPeriodStartedAt) / (_beaconPeriodSeconds);
     return _beaconPeriodStartedAt + (elapsedPeriods * _beaconPeriodSeconds);
@@ -364,8 +371,8 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Internal function to set DrawHistory.
-    * @dev    Internal function to set DrawHistory from an authorized manager.
+    * @notice Set global DrawHistory variable.
+    * @dev    All subsequent Draw requests/completions will be pushed to the new DrawHistory.
     * @param _newDrawHistory  DrawHistory address
     * @return DrawHistory
   */
@@ -388,7 +395,7 @@ contract DrawBeacon is IDrawBeacon,
 
     emit BeaconPeriodSecondsUpdated(_beaconPeriodSeconds);
   }
-  
+
   /**
     * @notice Sets the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngTimeout The RNG request timeout in seconds.
@@ -400,8 +407,8 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /**
-    * @notice Create a new draw using the RNG request result.
-    * @dev    Create a new draw in the connected DrawHistory contract using the RNG request result.
+    * @notice Create a new Draw with RNG request result.
+    * @dev    Pushes new Draw onto DrawHistory and increments the nextDrawId.
     * @param randomNumber Randomly generated number
   */
   function _saveRNGRequestWithDraw(uint256 randomNumber) internal {

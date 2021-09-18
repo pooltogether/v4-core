@@ -14,7 +14,7 @@ interface IDrawBeacon {
     * @param rngRequestPeriodStart Timestamp when draw period starts
     * @param drawPeriodSeconds Minimum seconds between draw period
   */
-  event Initialized(
+  event Deployed(
     IDrawHistory indexed drawHistory,
     RNGInterface indexed rng,
     uint256 rngRequestPeriodStart,
@@ -30,7 +30,7 @@ interface IDrawBeacon {
 
   /**
     * @notice Emit when a draw has opened.
-    * @param operator             User address responsible for opening draw  
+    * @param operator             User address responsible for opening draw
     * @param drawPeriodStartedAt  Epoch timestamp
   */
   event BeaconPeriodStarted(
@@ -40,7 +40,7 @@ interface IDrawBeacon {
 
   /**
     * @notice Emit when a draw has started.
-    * @param operator      User address responsible for starting draw  
+    * @param operator      User address responsible for starting draw
     * @param rngRequestId  draw id
     * @param rngLockBlock  Block when draw becomes invalid
   */
@@ -52,7 +52,7 @@ interface IDrawBeacon {
 
   /**
     * @notice Emit when a draw has been cancelled.
-    * @param operator      User address responsible for cancelling draw  
+    * @param operator      User address responsible for cancelling draw
     * @param rngRequestId  draw id
     * @param rngLockBlock  Block when draw becomes invalid
   */
@@ -61,10 +61,10 @@ interface IDrawBeacon {
     uint32 indexed rngRequestId,
     uint32 rngLockBlock
   );
-  
+
   /**
     * @notice Emit when a draw has been completed.
-    * @param operator      User address responsible for completing draw  
+    * @param operator      User address responsible for completing draw
     * @param randomNumber  Random number generated from draw
   */
   event DrawCompleted(

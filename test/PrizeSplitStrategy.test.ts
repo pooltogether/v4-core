@@ -4,7 +4,7 @@ import { ethers, artifacts } from 'hardhat';
 import { Artifact } from 'hardhat/types';
 import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { Contract, ContractFactory, constants } from 'ethers';
+import { Contract, ContractFactory } from 'ethers';
 
 const { getSigners } = ethers;
 const debug = require('debug')('ptv4:PrizeSplitStrategy');
@@ -29,23 +29,22 @@ describe('PrizeSplitStrategy', () => {
     prizeSplitStrategyFactory = await ethers.getContractFactory(
       'PrizeSplitStrategy',
     );
+
     erc20MintableFactory = await ethers.getContractFactory(
       'ERC20Mintable',
     );
+
     PrizePool = await artifacts.readArtifact('PrizePool');
   });
 
   beforeEach(async () => {
-    prizeSplitStrategy = await prizeSplitStrategyFactory.deploy();
-
     debug('mocking ticket and prizePool...');
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
-    await prizePool.mock.tokenAtIndex.withArgs(0).returns(ticket.address)
-    await prizePool.mock.tokenAtIndex.withArgs(1).returns(ticket.address)
+    await prizePool.mock.ticket.returns(ticket.address);
 
-    debug('initialize prizeSplitStrategy...');
-    await prizeSplitStrategy.initialize(prizePool.address);
+    debug('deploy prizeSplitStrategy...');
+    prizeSplitStrategy = await prizeSplitStrategyFactory.deploy(prizePool.address);
   });
 
   describe('distribute()', () => {
@@ -53,19 +52,21 @@ describe('PrizeSplitStrategy', () => {
       await prizeSplitStrategy.setPrizeSplits([
         {
           target: wallet2.address,
-          percentage: 1000,
-          token: 1,
+          percentage: 1000
         },
       ])
 
       await prizePool.mock.captureAwardBalance.returns(toWei('100'))
-      await prizePool.mock.award.withArgs(wallet2.address, toWei('100'), ticket.address).returns()
+      await prizePool.mock.award.withArgs(wallet2.address, toWei('100')).returns()
+
       // Distribute Award
       const distribute = await prizeSplitStrategy.distribute()
+
       // Verify Contract Events
       await expect(distribute)
         .to.emit(prizeSplitStrategy, 'Distributed')
         .withArgs(toWei('100'))
+
       await expect(distribute)
         .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
         .withArgs(wallet2.address, toWei('100'), ticket.address)
@@ -84,20 +85,27 @@ describe('PrizeSplitStrategy', () => {
           token: 0,
         },
       ])
+
       await prizePool.mock.captureAwardBalance.returns(toWei('100'))
+
       // Mock PrizeReserve Award Sponsorhip
-      await prizePool.mock.award.withArgs(wallet2.address, toWei('50'), ticket.address).returns()
+      await prizePool.mock.award.withArgs(wallet2.address, toWei('50')).returns()
+
       // Mock Secondary Wallet Award Sponsorhip
-      await prizePool.mock.award.withArgs(wallet3.address, toWei('50'), ticket.address).returns()
+      await prizePool.mock.award.withArgs(wallet3.address, toWei('50')).returns()
+
       // Distribute Award
       const distribute = await prizeSplitStrategy.distribute()
+
       // Verify Contract Events
       await expect(distribute)
         .to.emit(prizeSplitStrategy, 'Distributed')
         .withArgs(toWei('100'))
+
       await expect(distribute)
         .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
         .withArgs(wallet2.address, toWei('50'), ticket.address)
+
       await expect(distribute)
         .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
         .withArgs(wallet3.address, toWei('50'), ticket.address)
