@@ -75,6 +75,13 @@ describe('ClaimableDraw', () => {
           .to.equal('0');
       });
     });
+
+    describe('getToken()', () => {
+      it('should succesfully read global token variable', async () => {
+        expect(await claimableDraw.getToken())
+          .to.equal(ticket.address)
+      });
+    });
   })
 
   /* =============================== */

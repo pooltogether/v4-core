@@ -28,7 +28,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   IDrawCalculator internal drawCalculator;
 
   /// @notice Ticket address
-  IERC20Upgradeable internal ticket;
+  IERC20 internal token;
 
   /// @notice Maps users => drawId => paid out balance
   mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
@@ -40,13 +40,13 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
     * @param _drawHistory DrawHistory address
   */
   constructor(
-    IERC20Upgradeable _ticket,
+    IERC20 _token,
     IDrawHistory _drawHistory,
     IDrawCalculator _drawCalculator
   ) Ownable() {
     _setDrawHistory(_drawHistory);
     _setDrawCalculator(_drawCalculator);
-    ticket = _ticket;
+    token = _token;
   }
 
   /* ============ External View Functions ============ */
@@ -80,8 +80,8 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
     * @notice Read global Ticket variable.
     * @return IERC20
   */
-  function getTicket() external override view returns (IERC20) {
-    return ticket;
+  function getToken() external override view returns (IERC20) {
+    return token;
   }
 
   function _getDrawPayoutBalanceOf(address _user, uint32 _drawId) internal view returns (uint256) {
@@ -95,7 +95,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /* ============ External Functions ============ */
 
   /**
-    * @notice Claim a user ticket payouts via a collection of draw ids and pick indices.
+    * @notice Claim a user token payouts via a collection of draw ids and pick indices. 
     * @param _user             Address of user to claim awards for. Does NOT need to be msg.sender
     * @param _drawIds          Draw IDs from global DrawHistory reference
     * @param _data             The data to pass to the draw calculator.
