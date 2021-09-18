@@ -3,16 +3,17 @@
 pragma solidity 0.8.6;
 
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
+
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 
 contract DrawHistory is IDrawHistory, OwnerOrManager {
-  
+
   /**
-    * @notice Next ring buffer index position when pushing a new draw. 
+    * @notice Next ring buffer index position when pushing a new draw.
   */
   uint32 public nextDrawIndex;
-  
+
    /**
     * @notice Total draws pushed to the draw history.
   */
@@ -28,22 +29,15 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   DrawLib.Draw[CARDINALITY] private _draws;
 
-  /* ============ Initialize ============ */
+  /* ============ Deploy ============ */
 
   /**
-    * @notice Initialize DrawHistory smart contract.
-    *
-    * @param _manager Draw manager address
+    * @notice Deploy DrawHistory smart contract.
   */
-  function initialize (
-    address _manager
-  ) public initializer {
-    __Ownable_init();
-    _setManager(_manager);
-  }
+  constructor() {}
 
   /* ============ External Functions ============ */
-  
+
   /**
     * @notice Read all draws.
     * @dev    Return all draws from the draws ring buffer.
@@ -113,23 +107,23 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   }
 
   /**
-    * @notice External function to create a new draw.
-    * @dev    External function to create a new draw from an authorized manager or owner.
+    * @notice Push new draw onto draws history.
+    * @dev    Push new draw onto draws history via authorized manager or owner.
     * @param draw Draw struct
     * @return New draw id
   */
   function pushDraw(DrawLib.Draw memory draw) external override onlyManagerOrOwner returns (uint32) {
     return _pushDraw(draw);
-  } 
+  }
 
   /**
-    * @notice External function to set an existing draw.
-    * @dev    External function to set an existing draw from an authorized manager or owner.
+    * @notice Set existing draw in draw history.
+    * @dev    Set existing draw in draw history via the owner.
     * @param drawIndex Draw index to set
     * @param newDraw   Draw struct
     * @return Draw id
   */
-  function setDraw(uint256 drawIndex, DrawLib.Draw memory newDraw) external override onlyManagerOrOwner returns (uint32) {
+  function setDraw(uint256 drawIndex, DrawLib.Draw memory newDraw) external override onlyOwner returns (uint32) {
     return _setDraw(drawIndex, newDraw);
   }
 
@@ -137,8 +131,8 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
 
   /**
     * @dev    Calculates a ring buffer position using the next index and delta index
-    * @param _nextBufferIndex Next ring buffer index 
-    * @param _deltaIndex Delta index 
+    * @param _nextBufferIndex Next ring buffer index
+    * @param _deltaIndex Delta index
     * @return Ring buffer index pointer
   */
   function _bufferPosition(uint256 _nextBufferIndex, uint32 _deltaIndex) internal pure returns (uint32) {
@@ -147,7 +141,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
 
   /**
     * @dev    Modulo index with ring buffer cardinality.
-    * @param _index Ring buffer index 
+    * @param _index Ring buffer index
     * @return Ring buffer index pointer
   */
   function _wrapCardinality(uint256 _index) internal pure returns (uint32) {
@@ -197,7 +191,7 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     nextDrawIndex = _wrapCardinality(_nextDrawIndex + 1);
     totalDraws += 1;
     return _newDraw.drawId;
-  } 
+  }
 
   /**
     * @notice Internal function to set an existing draw.
@@ -210,6 +204,6 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     _draws[_drawIndex] = _newDraw;
     emit DrawSet(_drawIndex, _newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);
     return _newDraw.drawId;
-  } 
+  }
 
 }

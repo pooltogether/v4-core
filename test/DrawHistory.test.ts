@@ -24,8 +24,9 @@ describe('DrawHistory', () => {
     const drawHistoryFactory: ContractFactory = await ethers.getContractFactory(
       'DrawHistoryHarness',
     );
+
     drawHistory = await drawHistoryFactory.deploy();
-    await drawHistory.initialize(wallet1.address);
+    await drawHistory.setManager(wallet1.address);
   });
 
   describe('wrapCardinality()', () => { // Assumes CARDINALITY OF 256
@@ -322,36 +323,24 @@ describe('DrawHistory', () => {
   });
 
   describe('setDraw()', () => {
-    it('should succeed to set existing draw', async () => {
-      await drawHistory.pushDraw(
-        {
-          drawId: 0,
-          timestamp: DRAW_SAMPLE_CONFIG.timestamp,
-          winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
-        }
-      );
-      const draw = await drawHistory.getDraw(0);
-      expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp);
-      expect(draw.winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber);
-      expect(draw.drawId).to.equal(0);
+    it('should fail to set existing draw as unauthorized account', async () => {
+      await drawHistory.pushDraw({ drawId: 0, timestamp: 1, winningRandomNumber: 1 });
+      await expect(drawHistory.connect(wallet3).setDraw(0, { drawId: 0, timestamp: 2, winningRandomNumber: 2 }))
+        .to.be.revertedWith('Ownable: caller is not the owner')
+    })
 
-      const DRAW_UPDATE_SAMPLE_CONFIG = {
-        timestamp: 2222222222,
-        winningRandomNumber: 22222,
-      };
-      await drawHistory.setDraw(
-        0,
-        {
-          drawId: 0,
-          timestamp: DRAW_UPDATE_SAMPLE_CONFIG.timestamp,
-          winningRandomNumber: DRAW_UPDATE_SAMPLE_CONFIG.winningRandomNumber
-        }
-      )
+    it('should fail to set existing draw as manager ', async () => {
+      await drawHistory.setManager(wallet2.address);
+      await drawHistory.pushDraw({ drawId: 0, timestamp: 1, winningRandomNumber: 1 });
+      await expect(drawHistory.connect(wallet2).setDraw(0, { drawId: 0, timestamp: 2, winningRandomNumber: 2 }))
+        .to.be.revertedWith('Ownable: caller is not the owner')
+    })
 
-      const drawUpdated = await drawHistory.getDraw(0);
-      expect(drawUpdated.timestamp).to.equal(DRAW_UPDATE_SAMPLE_CONFIG.timestamp);
-      expect(drawUpdated.winningRandomNumber).to.equal(DRAW_UPDATE_SAMPLE_CONFIG.winningRandomNumber);
-      expect(drawUpdated.drawId).to.equal(0);
+    it('should succeed to set existing draw as owner', async () => {
+      await drawHistory.pushDraw({ drawId: 0, timestamp: 1, winningRandomNumber: 1 });
+      await expect(drawHistory.setDraw(0, { drawId: 0, timestamp: DRAW_SAMPLE_CONFIG.timestamp, winningRandomNumber: 2 }))
+        .to.emit(drawHistory, 'DrawSet')
+        .withArgs(0, 0, DRAW_SAMPLE_CONFIG.timestamp, 2);
     });
   });
 });

@@ -20,16 +20,19 @@ describe('StakePrizePool', function () {
   let stakeToken: Contract;
 
   let ticket: Contract;
-
   let StakePrizePool: ContractFactory;
 
-  let initializeTxPromise;
+  let isConstructorTest = false;
 
-  const initializeStakePrizePool = async (stakeTokenAddress: string) => {
-    return await prizePool['initialize(address[],address)'](
-      [ticket.address],
-      stakeTokenAddress,
-    );
+  const deployStakePrizePool = async (stakeTokenAddress: string = stakeToken.address) => {
+    StakePrizePool = await hardhat.ethers.getContractFactory('StakePrizePool', wallet);
+    prizePool = await StakePrizePool.deploy(stakeTokenAddress);
+
+    const Ticket = await hardhat.ethers.getContractFactory('Ticket');
+    ticket = await Ticket.deploy('name', 'SYMBOL', 18, prizePool.address);
+
+    await prizePool.setBalanceCap(ticket.address, MaxUint256);
+    await prizePool.setTicket(ticket.address);
   };
 
   beforeEach(async () => {
@@ -37,43 +40,39 @@ describe('StakePrizePool', function () {
     debug(`using wallet ${wallet.address}`);
 
     debug('mocking tokens...');
-    const IERC20 = await hardhat.artifacts.readArtifact('IERC20Upgradeable');
+    const IERC20 = await hardhat.artifacts.readArtifact('IERC20');
     erc20token = await deployMockContract(wallet as Signer, IERC20.abi);
 
-    const IERC721 = await hardhat.artifacts.readArtifact('IERC721Upgradeable');
+    const IERC721 = await hardhat.artifacts.readArtifact('IERC721');
     erc721token = await deployMockContract(wallet as Signer, IERC721.abi);
 
     const ERC20Mintable = await hardhat.ethers.getContractFactory('ERC20Mintable');
     stakeToken = await ERC20Mintable.deploy('name', 'SSYMBOL');
 
-    debug('deploying StakePrizePool...');
-    StakePrizePool = await hardhat.ethers.getContractFactory('StakePrizePool', wallet);
-    prizePool = await StakePrizePool.deploy();
-
-    const Ticket = await hardhat.ethers.getContractFactory('Ticket');
-    ticket = await Ticket.deploy();
-    await ticket.initialize('name', 'SYMBOL', 18, prizePool.address);
-
-    initializeTxPromise = await initializeStakePrizePool(stakeToken.address);
-
-    await prizePool.setBalanceCap(ticket.address, MaxUint256);
+    if (!isConstructorTest) {
+      await deployStakePrizePool();
+    }
   });
 
-  describe('initialize()', () => {
-    beforeEach(async () => {
-      prizePool = await StakePrizePool.deploy();
+  describe('constructor()', () => {
+    before(() => {
+      isConstructorTest = true;
+    });
+
+    after(() => {
+      isConstructorTest = false;
     });
 
     it('should initialize StakePrizePool', async () => {
-      initializeTxPromise = await initializeStakePrizePool(stakeToken.address);
+      await deployStakePrizePool();
 
-      await expect(initializeTxPromise)
-        .to.emit(prizePool, 'StakePrizePoolInitialized')
+      await expect(prizePool.deployTransaction)
+        .to.emit(prizePool, 'Deployed')
         .withArgs(stakeToken.address);
     });
 
     it('should fail to initialize StakePrizePool if stakeToken is address zero', async () => {
-      await expect(initializeStakePrizePool(AddressZero)).to.be.revertedWith(
+      await expect(deployStakePrizePool(AddressZero)).to.be.revertedWith(
         'StakePrizePool/stake-token-not-zero-address',
       );
     });
@@ -86,9 +85,9 @@ describe('StakePrizePool', function () {
       await stakeToken.approve(prizePool.address, amount);
       await stakeToken.mint(wallet.address, amount);
 
-      await prizePool.depositTo(wallet.address, amount, ticket.address);
+      await prizePool.depositTo(wallet.address, amount);
 
-      await expect(prizePool.withdrawFrom(wallet.address, amount, ticket.address))
+      await expect(prizePool.withdrawFrom(wallet.address, amount))
         .to.emit(prizePool, 'Withdrawal')
         .withArgs(wallet.address, wallet.address, ticket.address, amount, amount);
     });
@@ -107,7 +106,7 @@ describe('StakePrizePool', function () {
       await stakeToken.approve(prizePool.address, amount);
       await stakeToken.mint(wallet.address, amount);
 
-      await prizePool.depositTo(wallet.address, amount, ticket.address);
+      await prizePool.depositTo(wallet.address, amount);
 
       expect(await prizePool.callStatic.balance()).to.equal(amount);
     });

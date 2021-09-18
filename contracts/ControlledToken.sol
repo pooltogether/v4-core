@@ -2,47 +2,45 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./interfaces/IControlledToken.sol";
 
 /// @title Controlled ERC20 Token
 /// @notice ERC20 Tokens with a controller for minting & burning
-contract ControlledToken is ERC20PermitUpgradeable, IControlledToken {
+contract ControlledToken is ERC20Permit, IControlledToken {
 
   /// @notice Interface to the contract responsible for controlling mint/burn
   address public override controller;
 
   /// @notice ERC20 controlled token decimals.
-  uint8 private _decimals;
+  uint8 private immutable _decimals;
 
-  /// @notice Initializes the Controlled Token with Token Details and the Controller
+  /// @notice Deploy the Controlled Token with Token Details and the Controller
   /// @param _name The name of the Token
   /// @param _symbol The symbol for the Token
   /// @param decimals_ The number of decimals for the Token
   /// @param _controller Address of the Controller contract for minting & burning
-  function initialize(
+  constructor(
     string memory _name,
     string memory _symbol,
     uint8 decimals_,
     address _controller
   )
-    public
-    virtual
-    initializer
+    ERC20Permit("PoolTogether ControlledToken")
+    ERC20(_name, _symbol)
   {
-    require(address(_controller) != address(0), "ControlledToken/controller-not-zero");
+    require(address(_controller) != address(0), "ControlledToken/controller-not-zero-address");
     controller = _controller;
 
-    __ERC20_init(_name, _symbol);
-    __ERC20Permit_init("PoolTogether ControlledToken");
+    require(decimals_ > 0, "ControlledToken/decimals-gt-zero");
     _decimals = decimals_;
 
-    emit Initialized(
+    emit Deployed(
       _name,
       _symbol,
-      _decimals,
+      decimals_,
       _controller
     );
   }
