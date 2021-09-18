@@ -9,27 +9,41 @@ import "./libraries/DrawLib.sol";
 
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
-///@title TsunamiDrawCalculator is an implmentation of an IDrawCalculator
+///@title TsunamiDrawCalculator is an implementation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
+  
+  uint256 constant MAX_CARDINALITY = 256;
 
-  ///@notice Ticket associated with DrawCalculator
+  /// @notice Ticket associated with DrawCalculator
   ITicket ticket;
 
-  ///@notice ClaimableDraw associated with DrawCalculator
+  /// @notice ClaimableDraw associated with DrawCalculator
   ClaimableDraw public claimableDraw;
 
-  ///@notice storage of the TsunamiDrawCalculatorSettings associated with a drawId
-  mapping(uint32 => DrawLib.TsunamiDrawCalculatorSettings) drawSettings;
+  /// @notice The stored history of draw settings.  Stored as ring buffer.
+  DrawLib.TsunamiDrawCalculatorSettings[MAX_CARDINALITY] drawSettings;
+
+  // need to store currentIndex and actual cardinality
+  struct DrawSettingsRingBuffer {
+    uint32 lastDrawId;
+    uint32 nextIndex;
+    uint32 cardinality;
+  }
+
+  DrawSettingsRingBuffer internal ringBuffer;
 
   /* ============ Constructor ============ */
 
   ///@notice Constructor for TsunamiDrawCalculator
   ///@param _ticket Ticket associated with this DrawCalculator
   ///@param _drawSettingsManager Address of the DrawSettingsManager. Can be different from the contract owner.
-  constructor(ITicket _ticket, address _drawSettingsManager) {
+  constructor(ITicket _ticket, address _drawSettingsManager, uint32 _cardinality) {
+    require(_cardinality <= MAX_CARDINALITY, "DrawCalc/card-lte-max");
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
-
-    _setManager(_drawSettingsManager);
+    __Ownable_init();
+    ringBuffer.cardinality = _cardinality;
+    setManager(_drawSettingsManager);
+    _setClaimableDraw(_claimableDraw);
     ticket = _ticket;
 
     emit Deployed(_ticket);
@@ -59,10 +73,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     }
     require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
+    DrawSettingsRingBuffer memory _ringBuffer = ringBuffer;
 
     DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings =  new DrawLib.TsunamiDrawCalculatorSettings[](_draws.length);
     for(uint256 i = 0; i < _draws.length; i++){
-      _drawSettings[i] = drawSettings[_draws[i].drawId];
+      _drawSettings[i] = _getDrawSettings(_ringBuffer, _draws[i].drawId);
     }
 
     uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps, _drawSettings);
@@ -74,10 +89,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice Sets TsunamiDrawCalculatorSettings for a draw id. only callable by the owner or manager
   ///@param _drawId The id of the Draw
   ///@param _drawSettings The TsunamiDrawCalculatorSettings to set
-  function setDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) external onlyManagerOrOwner
-    returns (bool success)
+  function pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) external onlyManagerOrOwner
+    returns (bool success) 
   {
-    return _setDrawSettings(_drawId, _drawSettings);
+    return _pushDrawSettings(_drawId, _drawSettings);
   }
 
   ///@notice Sets TsunamiDrawCalculatorSettings for a draw id. only callable by the owner or manager
@@ -91,8 +106,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _drawId The id of the Draw
   function getDrawSettings(uint32 _drawId) external view returns(DrawLib.TsunamiDrawCalculatorSettings memory)
   {
-    DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings = drawSettings[_drawId];
-    return _drawSettings;
+    return _getDrawSettings(ringBuffer, _drawId);
   }
 
   /* ============ Internal Functions ============ */
@@ -269,29 +283,36 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@dev Distributions must be expressed with Ether decimals (1e18)
   ///@param drawId The id of the Draw
   ///@param _drawSettings TsunamiDrawCalculatorSettings struct to set
-  function _setDrawSettings(uint32 drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) internal
+  function _pushDrawSettings(uint32 drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) internal
     returns (bool)
   {
-    uint256 sumTotalDistributions = 0;
     uint256 distributionsLength = _drawSettings.distributions.length;
 
-    require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gt-distributions");
+    require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gte-distributions");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
     require(_drawSettings.numberOfPicks > 0, "DrawCalc/numberOfPicks-gt-0");
     require(_drawSettings.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
 
     // ensure that the distributions are not gt 100%
+    uint256 sumTotalDistributions = 0;
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
     }
-
     require(sumTotalDistributions <= 1 ether, "DrawCalc/distributions-gt-100%");
 
-    claimableDraw.setDrawCalculator(drawId, IDrawCalculator(address(this)));
+    DrawSettingsRingBuffer memory _ringBuffer = ringBuffer;
 
-    drawSettings[drawId] = _drawSettings; //sstore
-    emit DrawSettingsSet(drawId, _drawSettings);
+    require(_drawId == _ringBuffer.lastDrawId + 1, "DrawCalc/must-be-contig");
+    drawSettings[_ringBuffer.nextIndex] = _drawSettings;
+    _ringBuffer.nextIndex = uint32(RingBuffer.nextIndex(_ringBuffer.nextIndex, _ringBuffer.cardinality));
+    _ringBuffer.lastDrawId = _drawId;
+
+    ringBuffer = _ringBuffer;
+
+    claimableDraw.setDrawCalculator(_drawId, IDrawCalculator(address(this)));
+
+    emit DrawSettingsSet(_drawId, _drawSettings);
     return true;
   }
 
@@ -303,6 +324,15 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     claimableDraw = _claimableDraw;
     emit ClaimableDrawSet(_claimableDraw);
     return _claimableDraw;
+  }
+
+  function _getDrawSettings(DrawSettingsRingBuffer memory _ringBuffer, uint32 drawId) internal view returns (DrawLib.DrawSettings memory) {
+    require(drawId <= _ringBuffer.lastDrawId, "DrawCalc/future-draw");
+    uint32 indexOffset = _ringBuffer.lastDrawId - drawId;
+    require(indexOffset < _ringBuffer.cardinality, "DrawCalc/expired-draw");
+    uint32 mostRecent = uint32(RingBuffer.mostRecentIndex(_ringBuffer.nextIndex, _ringBuffer.cardinality));
+    uint32 index = uint32(RingBuffer.offset(mostRecent, indexOffset, _ringBuffer.cardinality));
+    return drawSettings[index];
   }
 
 }

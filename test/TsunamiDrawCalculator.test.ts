@@ -8,12 +8,12 @@ const { getSigners } = ethers;
 
 const newDebug = require('debug')
 
-export async function deployDrawCalculator(signer: any, ticketAddress: string, drawSettingsManagerAddress: string, claimableDrawAddress: string): Promise<Contract> {
+export async function deployDrawCalculator(signer: any, ticketAddress: string, manager: string, claimableDrawAddress: string, card: number): Promise<Contract> {
   const drawCalculatorFactory = await ethers.getContractFactory(
     'TsunamiDrawCalculatorHarness',
     signer,
   );
-  const drawCalculator: Contract = await drawCalculatorFactory.deploy(ticketAddress, drawSettingsManagerAddress);
+  const drawCalculator: Contract = await drawCalculatorFactory.deploy(ticketAddress, manager, card);
   await drawCalculator.setClaimableDraw(claimableDrawAddress);
 
   return drawCalculator;
@@ -52,24 +52,29 @@ describe('TsunamiDrawCalculator', () => {
     let claimableDrawArtifact = await artifacts.readArtifact('ClaimableDraw');
     claimableDraw = await deployMockContract(wallet1, claimableDrawArtifact.abi);
 
-    drawCalculator = await deployDrawCalculator(wallet1, ticket.address, wallet2.address, claimableDraw.address);
+    drawCalculator = await deployDrawCalculator(wallet1, ticket.address, wallet2.address, claimableDraw.address, 16);
   });
 
-  describe('construtor()', () => {
+  describe('constructor()', () => {
     it('should require non-zero ticket', async () => {
-      await expect(deployDrawCalculator(wallet1, ethers.constants.AddressZero, wallet2.address, claimableDraw.address)).to.be.revertedWith('DrawCalc/ticket-not-zero')
+      await expect(deployDrawCalculator(wallet1, ethers.constants.AddressZero, wallet2.address, claimableDraw.address, 16)).to.be.revertedWith('DrawCalc/ticket-not-zero')
     })
 
     it('should require non-zero manager', async () => {
-      await expect(deployDrawCalculator(wallet1, ticket.address, ethers.constants.AddressZero, claimableDraw.address)).to.be.revertedWith('Manager/manager-not-zero-address')
+      await expect(deployDrawCalculator(wallet1, ticket.address, ethers.constants.AddressZero, claimableDraw.address, 16)).to.be.revertedWith('Manager/manager-not-zero-address')
     })
 
-    it('should require non-zero draw', async () => {
-      await expect(deployDrawCalculator(wallet1, ticket.address, wallet2.address, ethers.constants.AddressZero)).to.be.revertedWith('DrawCalc/claimable-draw-not-zero-address')
+    it('should require the cardinality is less than the max', async () => {
+      await expect(drawCalculator.initialize(
+        ticket.address,
+        wallet2.address,
+        claimableDraw.address,
+        257
+        )).to.be.revertedWith('DrawCalc/card-lte-max')
     })
   })
 
-  describe('setDrawSettings()', () => {
+  describe('pushDrawSettings()', () => {
     it('should not allow anyone else to set', async () => {
       const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
@@ -86,7 +91,35 @@ describe('TsunamiDrawCalculator', () => {
         drawEndTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      await expect(drawCalculator.connect(wallet3).setDrawSettings(0, drawSettings)).to.be.revertedWith('Manager/caller-not-manager-or-owner')
+      await expect(drawCalculator.connect(wallet3).pushDrawSettings(0, drawSettings)).to.be.revertedWith('Manager/caller-not-manager-or-owner')
+    })
+
+    context('sanity checks', () => {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.6'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+          ethers.utils.parseEther('0.1'),
+        ],
+        numberOfPicks: BigNumber.from("100"),
+        bitRangeSize: BigNumber.from(4),
+        prize: ethers.utils.parseEther('1'),
+        drawStartTimestampOffset: BigNumber.from(1),
+        drawEndTimestampOffset: BigNumber.from(1),
+      };
+
+      it('should require a sane cardinality', async () => {
+        drawSettings.matchCardinality = BigNumber.from(3)
+        await expect(drawCalculator.pushDrawSettings(1, drawSettings)).to.be.revertedWith("DrawCalc/matchCardinality-gte-distributions")
+      })
+
+      it('should require a sane bit range', async () => {
+        drawSettings.matchCardinality = BigNumber.from(32) // means that bit range size max is 8
+        drawSettings.bitRangeSize = BigNumber.from(9)
+        await expect(drawCalculator.pushDrawSettings(1, drawSettings)).to.be.revertedWith("DrawCalc/bitRangeSize-too-large")
+      })
     })
 
     it('onlyOwner can setPrizeSettings', async () => {
@@ -106,15 +139,14 @@ describe('TsunamiDrawCalculator', () => {
         maxPicksPerUser: BigNumber.from(1001),
       };
 
+      await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
 
-      await claimableDraw.mock.setDrawCalculator.withArgs(0, drawCalculator.address).returns(drawCalculator.address);
-
-      expect(await drawCalculator.setDrawSettings(0, drawSettings)).to.emit(
+      expect(await drawCalculator.pushDrawSettings(1, drawSettings)).to.emit(
         drawCalculator,
         'DrawSettingsSet',
       );
 
-      await expect(drawCalculator.connect(wallet2).setDrawSettings(drawSettings)).to.be.reverted;
+      await expect(drawCalculator.connect(wallet2).pushDrawSettings(drawSettings)).to.be.reverted;
     });
 
     it('cannot set over 100pc of prize for distribution', async () => {
@@ -133,7 +165,7 @@ describe('TsunamiDrawCalculator', () => {
         drawEndTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
+      await expect(drawCalculator.pushDrawSettings(0, drawSettings)).to.be.revertedWith(
         'DrawCalc/distributions-gt-100%',
       );
     });
@@ -151,7 +183,7 @@ describe('TsunamiDrawCalculator', () => {
         drawEndTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
+      await expect(drawCalculator.pushDrawSettings(0, drawSettings)).to.be.revertedWith(
         'DrawCalc/bitRangeSize-gt-0',
       );
     });
@@ -188,7 +220,7 @@ describe('TsunamiDrawCalculator', () => {
         drawEndTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
+      await expect(drawCalculator.pushDrawSettings(0, drawSettings)).to.be.revertedWith(
         'DrawCalc/numberOfPicks-gt-0',
       );
     });
@@ -452,28 +484,27 @@ describe('TsunamiDrawCalculator', () => {
   })
 
   describe("getDrawSettings()", () => {
+    const drawSettings: TsunamiDrawCalculatorSettings = {
+      matchCardinality: BigNumber.from(5),
+      distributions: [
+        ethers.utils.parseEther('0.6'),
+        ethers.utils.parseEther('0.1'),
+        ethers.utils.parseEther('0.1'),
+        ethers.utils.parseEther('0.1'),
+      ],
+      numberOfPicks: BigNumber.from(utils.parseEther("10")),
+      bitRangeSize: BigNumber.from(4),
+      prize: ethers.utils.parseEther('1'),
+      drawStartTimestampOffset: BigNumber.from(1),
+      drawEndTimestampOffset: BigNumber.from(1),
+    };
+
     it("gets correct draw settings", async () => {
-      const drawSettings: TsunamiDrawCalculatorSettings = {
-        matchCardinality: BigNumber.from(5),
-        distributions: [
-          ethers.utils.parseEther('0.6'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-          ethers.utils.parseEther('0.1'),
-        ],
-        numberOfPicks: BigNumber.from(utils.parseEther("10")),
-        bitRangeSize: BigNumber.from(4),
-        prize: ethers.utils.parseEther('1'),
-        drawStartTimestampOffset: BigNumber.from(1),
-        drawEndTimestampOffset: BigNumber.from(1),
-        maxPicksPerUser: BigNumber.from(1001),
-      };
-
-      await claimableDraw.mock.setDrawCalculator.withArgs(70, drawCalculator.address).returns(drawCalculator.address);
-      await drawCalculator.setDrawSettings(70, drawSettings);
-
-      const result = await drawCalculator.getDrawSettings(70);
-
+      await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
+      await drawCalculator.pushDrawSettings(1, drawSettings);
+      
+      const result = await drawCalculator.getDrawSettings(1);
+      
       expect(result.matchCardinality).to.equal(drawSettings.matchCardinality)
       expect(result.bitRangeSize).to.equal(drawSettings.bitRangeSize)
       expect(result.prize).to.equal(drawSettings.prize)
@@ -482,6 +513,26 @@ describe('TsunamiDrawCalculator', () => {
       for (let i = 0; i < result.distributions.length; i++) {
         expect(result.distributions[i]).to.deep.equal(drawSettings.distributions[i])
       }
+    })
+
+    it('fails for future draw settings', async () => {
+      drawCalculator = await deployDrawCalculator(wallet1.address, ticket.address, wallet2.address, claimableDraw.address, 1);
+
+      await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
+      await drawCalculator.pushDrawSettings(1, drawSettings);
+
+      await expect(drawCalculator.getDrawSettings(2)).to.be.revertedWith('DrawCalc/future-draw')
+    })
+
+    it('fails for expired draw settings', async () => {
+      drawCalculator = await deployDrawCalculator(wallet1.address, ticket.address, wallet2.address, claimableDraw.address, 1);
+
+      await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
+      await drawCalculator.pushDrawSettings(1, drawSettings);
+      await claimableDraw.mock.setDrawCalculator.withArgs(2, drawCalculator.address).returns(drawCalculator.address);
+      await drawCalculator.pushDrawSettings(2, drawSettings);
+
+      await expect(drawCalculator.getDrawSettings(1)).to.be.revertedWith('DrawCalc/expired-draw')
     })
   })
 
@@ -617,7 +668,7 @@ describe('TsunamiDrawCalculator', () => {
   describe('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
-    context('with draw 0 set', () => {
+    context('with draw 1 set', () => {
       let drawSettings: TsunamiDrawCalculatorSettings
       beforeEach(async () => {
         drawSettings = {
@@ -630,8 +681,8 @@ describe('TsunamiDrawCalculator', () => {
           drawEndTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001),
         };
-        await claimableDraw.mock.setDrawCalculator.withArgs(0, drawCalculator.address).returns(drawCalculator.address);
-        await drawCalculator.setDrawSettings(0, drawSettings)
+        await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
+        await drawCalculator.pushDrawSettings(1, drawSettings)
       })
 
       it('should calculate and win grand prize', async () => {
@@ -655,7 +706,7 @@ describe('TsunamiDrawCalculator', () => {
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): [balance]
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
 
-        const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
 
 
         const prizesAwardable = await drawCalculator.calculate(
@@ -698,13 +749,7 @@ describe('TsunamiDrawCalculator', () => {
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): balance
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
 
-        const draw: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
-
-        const prizesAwardable = await drawCalculator.calculate(
-          wallet1.address,
-          [draw],
-          pickIndices,
-        )
+        const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0])}
 
         debug(
           'GasUsed for calculate 1000 picks(): ',
@@ -736,13 +781,13 @@ describe('TsunamiDrawCalculator', () => {
         const totalSupply2 = utils.parseEther('100');
 
 
-        const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
-        const draw2: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) }
+        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        const draw2: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) }
 
         const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
         const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawEndTimestampOffset.toNumber())
 
-        await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
+        await claimableDraw.mock.setDrawCalculator.withArgs(2, drawCalculator.address).returns(drawCalculator.address);
 
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
@@ -759,7 +804,11 @@ describe('TsunamiDrawCalculator', () => {
           maxPicksPerUser: BigNumber.from(1001),
         };
 
-        await drawCalculator.setDrawSettings(1, drawSettings2);
+        debug(`pushing settings for draw 2...`)
+
+        await drawCalculator.pushDrawSettings(2, drawSettings2);
+
+        debug(`PUSHED`)
 
 
         const prizesAwardable = await drawCalculator.calculate(
@@ -821,11 +870,11 @@ describe('TsunamiDrawCalculator', () => {
 
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1, totalSupply2]);
 
-        const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
-        const draw2: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) }
-
-        await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
-        await drawCalculator.setDrawSettings(1, drawSettings)
+        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        const draw2: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) }
+        
+        await claimableDraw.mock.setDrawCalculator.withArgs(2, drawCalculator.address).returns(drawCalculator.address);
+        await drawCalculator.pushDrawSettings(2, drawSettings)
 
         await expect(
           drawCalculator.calculate(
@@ -898,7 +947,7 @@ describe('TsunamiDrawCalculator', () => {
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): balance
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
 
-        const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(userRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(userRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
 
         const prizesAwardable = await drawCalculator.calculate(
           wallet1.address,

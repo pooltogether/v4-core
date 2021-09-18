@@ -5,6 +5,7 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./OverflowSafeComparator.sol";
+import "./RingBuffer.sol";
 
 /// @title Time-Weighted Average Balance Library
 /// @notice This library allows you to efficiently track a user's historic balance.  You can get a
@@ -42,7 +43,7 @@ library TwabLibrary {
     uint32 _time
   ) internal view returns (uint256) {
     uint16 cardinality = _minCardinality(_cardinality);
-    uint16 recentIndex = mostRecentIndex(_nextTwabIndex, cardinality);
+    uint16 recentIndex = uint16(RingBuffer.mostRecentIndex(_nextTwabIndex, cardinality));
     return getBalanceAt(_twabs, _target, _balance, recentIndex, cardinality, _time);
   }
 
@@ -61,7 +62,7 @@ library TwabLibrary {
     uint32 _time
   ) internal view returns (uint256) {
     uint16 card = _minCardinality(_cardinality);
-    uint16 recentIndex = mostRecentIndex(_nextTwabIndex, card);
+    uint16 recentIndex = uint16(RingBuffer.mostRecentIndex(_nextTwabIndex, card));
     return getAverageBalanceBetween(
       _twabs,
       _balance,
@@ -108,26 +109,6 @@ library TwabLibrary {
     uint16 cardinality;
   }
 
-  /// @notice Returns TWAB index.
-  /// @dev `twabs` is a circular buffer of `MAX_CARDINALITY` size equal to 32. So the array goes from 0 to 31.
-  /// @dev In order to navigate the circular buffer, we need to use the modulo operator.
-  /// @dev For example, if `_index` is equal to 32, `_index % MAX_CARDINALITY` will return 0 and will point to the first element of the array.
-  /// @param _index Index used to navigate through `twabs` circular buffer.
-  function wrapCardinality(uint256 _index, uint16 _cardinality) internal pure returns (uint16) {
-    return uint16(_index % _cardinality);
-  }
-
-  /// @notice Returns the index of the last recorded TWAB
-  /// @param _nextAvailableIndex The next available twab index.  This will be recorded to next.
-  /// @param _cardinality The cardinality of the TWAB history.
-  /// @return The index of the last recorded TWAB
-  function mostRecentIndex(uint256 _nextAvailableIndex, uint16 _cardinality) internal pure returns (uint16) {
-    if (_cardinality == 0) {
-      return 0;
-    }
-    return wrapCardinality(_nextAvailableIndex + uint256(_cardinality) - 1, _cardinality);
-  }
-
   /// @notice Fetches TWABs `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
   /// The result may be the same TWAB, or adjacent TWABs.
   /// @dev The answer must be contained in the array, used when the target is located within the stored TWAB.
@@ -151,7 +132,7 @@ library TwabLibrary {
 
     while (true) {
       currentIndex = (leftSide + rightSide) / 2;
-      beforeOrAt = _twabs[wrapCardinality(currentIndex, _cardinality)];
+      beforeOrAt = _twabs[uint16(RingBuffer.wrap(currentIndex, _cardinality))];
       uint32 beforeOrAtTimestamp = beforeOrAt.timestamp;
 
       // We've landed on an uninitialized timestamp, keep searching higher (more recently)
@@ -160,7 +141,7 @@ library TwabLibrary {
         continue;
       }
 
-      atOrAfter = _twabs[wrapCardinality(currentIndex + 1, _cardinality)];
+      atOrAfter = _twabs[uint16(RingBuffer.nextIndex(currentIndex, _cardinality))];
 
       bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, _time);
 
@@ -215,7 +196,10 @@ library TwabLibrary {
     }
 
     // Otherwise, both timestamps must be surrounded by twabs.
-    (Twab memory beforeOrAtStart, Twab memory afterOrAtStart) = binarySearch(_twabs, _twabIndex, _oldestTwabIndex, targetTimestamp, _cardinality, _time);
+    (
+      Twab memory beforeOrAtStart,
+      Twab memory afterOrAtStart
+    ) = binarySearch(_twabs, _twabIndex, _oldestTwabIndex, targetTimestamp, _cardinality, _time);
 
     uint224 heldBalance = (afterOrAtStart.amount - beforeOrAtStart.amount) / (afterOrAtStart.timestamp - beforeOrAtStart.timestamp);
     uint224 amount = beforeOrAtStart.amount + heldBalance * (targetTimestamp - beforeOrAtStart.timestamp);
@@ -238,7 +222,7 @@ library TwabLibrary {
     require(_endTime > _startTime, "TWAB/startTime-gt-than-endTime");
 
     // Find oldest Twab
-    uint16 oldestTwabIndex = wrapCardinality(_twabIndex + 1, _cardinality);
+    uint16 oldestTwabIndex = uint16(RingBuffer.nextIndex(_twabIndex, _cardinality));
     Twab memory oldestTwab = _twabs[oldestTwabIndex];
     // If the TWAB is not initialized we go to the beginning of the TWAB circular buffer at index 0
     if (oldestTwab.timestamp == 0) {
@@ -308,7 +292,7 @@ library TwabLibrary {
     }
 
     // Now, set before to the oldest TWAB
-    uint16 oldestTwabIndex = wrapCardinality(_twabIndex + 1, _cardinality);
+    uint16 oldestTwabIndex = uint16(RingBuffer.nextIndex(_twabIndex, _cardinality));
     beforeOrAt = _twabs[oldestTwabIndex];
 
     // If the TWAB is not initialized we go to the beginning of the TWAB circular buffer at index 0
@@ -385,7 +369,7 @@ library TwabLibrary {
     // if there are two or more records (cardinality is always one greater than # of records)
     if (cardinality > 2) {
       // get the second oldest twab
-      secondOldestTwab = _twabs[wrapCardinality(uint32(_nextTwabIndex) + 1, cardinality)];
+      secondOldestTwab = _twabs[uint16(RingBuffer.nextIndex(_nextTwabIndex, cardinality))];
     }
 
     nextCardinality = cardinality;
@@ -393,7 +377,7 @@ library TwabLibrary {
       nextCardinality = cardinality < MAX_CARDINALITY ? cardinality + 1 : MAX_CARDINALITY;
     }
 
-    nextAvailableTwabIndex = wrapCardinality(uint32(_nextTwabIndex) + 1, nextCardinality);
+    nextAvailableTwabIndex = uint16(RingBuffer.nextIndex(_nextTwabIndex, nextCardinality));
   }
 
   function nextTwabWithExpiry(
@@ -404,7 +388,7 @@ library TwabLibrary {
     uint32 _time,
     uint32 _maxLifetime
   ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, Twab memory twab, bool isNew) {
-    Twab memory newestTwab = _twabs[mostRecentIndex(_nextTwabIndex, _cardinality)];
+    Twab memory newestTwab = _twabs[uint16(RingBuffer.mostRecentIndex(_nextTwabIndex, _cardinality))];
 
     // if we're in the same block, return
     if (newestTwab.timestamp == _time) {

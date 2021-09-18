@@ -3,6 +3,7 @@
 pragma solidity 0.8.6;
 
 import "../libraries/TwabLibrary.sol";
+import "../libraries/RingBuffer.sol";
 
 /// @title OverflowSafeComparator library to share comparator functions between contracts
 /// @author PoolTogether Inc.
@@ -23,11 +24,11 @@ contract TwabLibraryExposed {
   }
 
   function wrapCardinality(uint256 _index, uint16 _cardinality) external pure returns (uint16) {
-    return TwabLibrary.wrapCardinality(_index, _cardinality);
+    return uint16(RingBuffer.wrap(_index, _cardinality));
   }
 
   function mostRecentIndex(uint256 _nextAvailableIndex, uint16 _cardinality) external pure returns (uint16) {
-    return TwabLibrary.mostRecentIndex(_nextAvailableIndex, _cardinality);
+    return uint16(RingBuffer.mostRecentIndex(_nextAvailableIndex, _cardinality));
   }
 
   /// @notice Fetches TWABs `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
