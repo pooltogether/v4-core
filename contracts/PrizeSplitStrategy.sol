@@ -56,7 +56,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
 
   /**
     * @notice Capture the award balance and distribute to prize splits.
-    * @dev    Can be executed by any wallet at any time. Generally called on a weekly/bi-weekly basis though.
+    * @dev    Can be executed by any wallet at any time. Optimal executation (minimal wasted gas) is before pushing a new Draw.
     * @return Prize captured from PrizePool
   */
   function distribute() external returns (uint256) {
