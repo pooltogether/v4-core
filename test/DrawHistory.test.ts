@@ -25,7 +25,8 @@ describe('DrawHistory', () => {
       'DrawHistoryHarness',
     );
 
-    drawHistory = await drawHistoryFactory.deploy(wallet1.address);
+    drawHistory = await drawHistoryFactory.deploy();
+    await drawHistory.setManager(wallet1.address);
   });
 
   describe('wrapCardinality()', () => { // Assumes CARDINALITY OF 256

@@ -83,10 +83,10 @@ contract DrawBeacon is IDrawBeacon,
     _;
   }
 
-  /* ============ Initialize ============ */
+  /* ============ Deploy ============ */
 
   /**
-    * @notice Initialize the DrawBeacon smart contract.
+    * @notice Deploy the DrawBeacon smart contract.
     * @param _drawHistory The address of the draw history to push draws to
     * @param _rng The RNG service to use
     * @param _beaconPeriodStart The starting timestamp of the beacon period.

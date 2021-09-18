@@ -73,7 +73,7 @@ describe('PrizePool', function () {
     const ERC721MintableContract = await getContractFactory('ERC721Mintable', contractsOwner);
     erc721Token = await ERC721MintableContract.deploy();
 
-    const IERC721 = await artifacts.readArtifact('IERC721Upgradeable');
+    const IERC721 = await artifacts.readArtifact('IERC721');
     erc721tokenMock = await deployMockContract(contractsOwner as Signer, IERC721.abi);
 
     const YieldSourceStub = await artifacts.readArtifact('YieldSourceStub');

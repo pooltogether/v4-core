@@ -97,7 +97,7 @@ contract ClaimableDraw is IClaimableDraw, OwnerOrManager {
     * @param drawId Draw ID
   */
   function getUserDrawClaim(address user, uint32 drawId) external override view returns (uint96) {
-    uint96[CARDINALITY] memory _claims = userDrawClaims[user]; // sload
+    uint96[CARDINALITY] memory _claims = _userDrawClaims[user]; // sload
     return _claims[_wrapCardinality(drawId)];
   }
 
@@ -106,14 +106,14 @@ contract ClaimableDraw is IClaimableDraw, OwnerOrManager {
     * @param user Address of user
   */
   function getUserDrawClaims(address user) external override view returns(uint96[CARDINALITY] memory) {
-    return userDrawClaims[user];
+    return _userDrawClaims[user];
   }
 
   /**
     * @notice Read global Ticket variable.
-    * @return IERC20Upgradeable
+    * @return IERC20
   */
-  function getTicket() external override view returns (IERC20Upgradeable) {
+  function getTicket() external override view returns (IERC20) {
     // return ticket;
   }
 
@@ -214,7 +214,7 @@ contract ClaimableDraw is IClaimableDraw, OwnerOrManager {
     * @param _amount Amount of tokens to transfer.
     * @return true if operation is successful.
   */
-  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external override onlyOwner returns (bool) {
+  function withdrawERC20(IERC20 _erc20Token, address _to, uint256 _amount) external override onlyOwner returns (bool) {
     require(_to != address(0), "ClaimableDraw/recipient-not-zero-address");
     require(address(_erc20Token) != address(0), "ClaimableDraw/ERC20-not-zero-address");
     _erc20Token.safeTransfer(_to, _amount);
@@ -239,10 +239,10 @@ contract ClaimableDraw is IClaimableDraw, OwnerOrManager {
     bytes calldata _data
   ) internal returns (uint256) {
     uint256 _payout;
-    uint96[CARDINALITY] memory _claims = userDrawClaims[_user];
+    uint96[CARDINALITY] memory _claims = _userDrawClaims[_user];
 
     (_payout, _claims) = _calculateDrawCollectionPayout(_user, _claims, _drawIds, _drawCalculator, _data);
-    userDrawClaims[_user] = _claims;
+    _userDrawClaims[_user] = _claims;
 
     return _payout;
   }

@@ -97,19 +97,6 @@ contract Ticket is ControlledToken, ITicket {
     return _getBalanceAt(account.twabs, account.details, _target);
   }
 
-  /// @notice Retrieves `_user` TWAB balance.
-  /// @param _target Timestamp at which the reserved TWAB should be for.
-  function _getBalanceAt(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target) internal view returns (uint256) {
-    return TwabLibrary.getBalanceAt(
-      _details.cardinality,
-      _details.nextTwabIndex,
-      _twabs,
-      _details.balance,
-      uint32(_target),
-      uint32(block.timestamp)
-    );
-  }
-
   /// @notice Calculates the average balance held by a user for given time frames.
   /// @param user The user whose balance is checked
   /// @param startTimes The start time of the time frame.
@@ -153,23 +140,6 @@ contract Ticket is ControlledToken, ITicket {
   function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
     Account storage account = userTwabs[_user];
     return _getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime));
-  }
-
-  /// @notice Calculates the average balance held by a user for a given time frame.
-  /// @param _startTime The start time of the time frame.
-  /// @param _endTime The end time of the time frame.
-  /// @return The average balance that the user held during the time frame.
-  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime)
-   internal view returns (uint256) {
-    return TwabLibrary.getAverageBalanceBetween(
-      _details.cardinality,
-      _details.nextTwabIndex,
-      _twabs,
-      _details.balance,
-      _startTime,
-      _endTime,
-      uint32(block.timestamp)
-    );
   }
 
   /// @notice Retrieves `_user` TWAB balances.
@@ -288,7 +258,7 @@ contract Ticket is ControlledToken, ITicket {
     return balances[_user];
   }
 
-  /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
+  /// @notice Overridding of the `_transfer` function of the base ERC20 contract.
   /// @dev `_sender` cannot be the zero address.
   /// @dev `_recipient` cannot be the zero address.
   /// @dev `_sender` must have a balance of at least `_amount`.
@@ -340,7 +310,7 @@ contract Ticket is ControlledToken, ITicket {
     _afterTokenTransfer(_sender, _recipient, _amount);
   }
 
-  /// @notice Overridding of the `_mint` function of the base ERC20Upgradeable contract.
+  /// @notice Overridding of the `_mint` function of the base ERC20 contract.
   /// @dev `_to` cannot be the zero address.
   /// @param _to Address that will be minted `_amount` of tokens.
   /// @param _amount Amount of tokens to be minted to `_to`.
@@ -370,7 +340,7 @@ contract Ticket is ControlledToken, ITicket {
     _afterTokenTransfer(address(0), _to, _amount);
   }
 
-  /// @notice Overridding of the `_burn` function of the base ERC20Upgradeable contract.
+  /// @notice Overridding of the `_burn` function of the base ERC20 contract.
   /// @dev `_from` cannot be the zero address.
   /// @dev `_from` must have at least `_amount` of tokens.
   /// @param _from Address that will be burned `_amount` of tokens.

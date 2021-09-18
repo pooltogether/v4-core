@@ -40,10 +40,10 @@ describe('StakePrizePool', function () {
     debug(`using wallet ${wallet.address}`);
 
     debug('mocking tokens...');
-    const IERC20 = await hardhat.artifacts.readArtifact('IERC20Upgradeable');
+    const IERC20 = await hardhat.artifacts.readArtifact('IERC20');
     erc20token = await deployMockContract(wallet as Signer, IERC20.abi);
 
-    const IERC721 = await hardhat.artifacts.readArtifact('IERC721Upgradeable');
+    const IERC721 = await hardhat.artifacts.readArtifact('IERC721');
     erc721token = await deployMockContract(wallet as Signer, IERC721.abi);
 
     const ERC20Mintable = await hardhat.ethers.getContractFactory('ERC20Mintable');

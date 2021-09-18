@@ -26,14 +26,12 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice Constructor for TsunamiDrawCalculator
   ///@param _ticket Ticket associated with this DrawCalculator
   ///@param _drawSettingsManager Address of the DrawSettingsManager. Can be different from the contract owner.
-  ///@param _claimableDraw ClaimableDraw associated with this DrawCalculator
-  constructor(ITicket _ticket, address _drawSettingsManager, ClaimableDraw _claimableDraw)
-  {
+  constructor(ITicket _ticket, address _drawSettingsManager) {
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
 
-    setManager(_drawSettingsManager);
-    _setClaimableDraw(_claimableDraw);
+    _setManager(_drawSettingsManager);
     ticket = _ticket;
+
     emit Deployed(_ticket);
   }
 

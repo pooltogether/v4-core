@@ -29,18 +29,12 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   */
   DrawLib.Draw[CARDINALITY] private _draws;
 
-  /* ============ Initialize ============ */
+  /* ============ Deploy ============ */
 
   /**
-    * @notice Initialize DrawHistory smart contract.
-    *
-    * @param _manager Draw manager address
+    * @notice Deploy DrawHistory smart contract.
   */
-  constructor(
-    address _manager
-  ) public {
-    _setManager(_manager);
-  }
+  constructor() {}
 
   /* ============ External Functions ============ */
 

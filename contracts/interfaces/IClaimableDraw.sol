@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "./IDrawHistory.sol";
 import "./IDrawCalculator.sol";
 import "../libraries/DrawLib.sol";
 
 interface IClaimableDraw {
-  
+
   /**
     * @notice Emitted when a user has claimed N draw payouts.
     * @param user        User address receiving draw claim payouts
-    * @param totalPayout Payout for N draw claims 
+    * @param totalPayout Payout for N draw claims
   */
   event ClaimedDraw (
     address indexed user,
@@ -43,7 +45,7 @@ interface IClaimableDraw {
     * @param amount Amount of tokens transferred.
   */
   event ERC20Withdrawn(
-    IERC20Upgradeable indexed token,
+    IERC20 indexed token,
     address indexed to,
     uint256 amount
   );
@@ -53,10 +55,10 @@ interface IClaimableDraw {
   function getDrawCalculator(uint32 drawId) external view returns (IDrawCalculator);
   function getDrawCalculators(uint32[] calldata drawIds) external view returns (IDrawCalculator[] memory);
   function getDrawHistory() external view returns (IDrawHistory);
-  function getTicket() external view returns (IERC20Upgradeable);
+  function getTicket() external view returns (IERC20);
   function getUserDrawClaim(address user, uint32 drawId) external view returns (uint96);
   function getUserDrawClaims(address user) external view returns(uint96[8] memory);
   function setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) external returns(IDrawCalculator);
   function setDrawHistory(IDrawHistory _drawHistory) external returns (IDrawHistory);
-  function withdrawERC20(IERC20Upgradeable _erc20Token, address _to, uint256 _amount) external returns (bool); 
+  function withdrawERC20(IERC20 _erc20Token, address _to, uint256 _amount) external returns (bool);
 }

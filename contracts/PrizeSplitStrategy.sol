@@ -35,10 +35,10 @@ contract PrizeSplitStrategy is PrizeSplit {
     IControlledToken indexed token
   );
 
-  /* ============ Initialize ============ */
+  /* ============ Deploy ============ */
 
   /**
-    * @notice Initialize the PrizeSplitStrategy smart contract.
+    * @notice Deploy the PrizeSplitStrategy smart contract.
     * @param _prizePool PrizePool contract address
   */
   constructor(

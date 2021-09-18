@@ -34,13 +34,13 @@ describe('DrawBeacon', () => {
   });
 
   beforeEach(async () => {
-    IERC20 = await artifacts.readArtifact('IERC20Upgradeable');
+    IERC20 = await artifacts.readArtifact('IERC20');
 
     debug(`using wallet ${wallet.address}`);
 
     debug(`deploy draw history...`);
     const DrawHistoryFactory = await ethers.getContractFactory('DrawHistory', wallet);
-    drawHistory = await DrawHistoryFactory.deploy(wallet.address);
+    drawHistory = await DrawHistoryFactory.deploy();
 
     debug('mocking rng...');
     const RNGInterface = await artifacts.readArtifact('RNGInterface');
