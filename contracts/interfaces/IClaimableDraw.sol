@@ -13,20 +13,20 @@ interface IClaimableDraw {
   /**
     * @notice Emitted when a user has claimed N draw payouts.
     * @param user        User address receiving draw claim payouts
-    * @param totalPayout Payout for N draw claims
+    * @param drawId      Draw id that was paid out
+    * @param payout Payout for draw
   */
   event ClaimedDraw (
     address indexed user,
-    uint256 totalPayout
+    uint32 indexed drawId,
+    uint256 payout
   );
 
   /**
-    * @notice Emitted when a DrawCalculator is linked to a Draw ID.
-    * @param drawId     Draw ID
+    * @notice Emitted when a DrawCalculator is set
     * @param calculator DrawCalculator address
   */
   event DrawCalculatorSet (
-    uint256 drawId,
     IDrawCalculator indexed calculator
   );
 
@@ -50,15 +50,12 @@ interface IClaimableDraw {
     uint256 amount
   );
 
-  function claim(address _user, uint32[][] calldata _drawIds, IDrawCalculator[] calldata _drawCalculators, bytes[] calldata _data) external returns (uint256);
-  function getCardinality() external view returns (uint16);
-  function getDrawCalculator(uint32 drawId) external view returns (IDrawCalculator);
-  function getDrawCalculators(uint32[] calldata drawIds) external view returns (IDrawCalculator[] memory);
+  function claim(address _user, uint32[] calldata _drawIds, bytes calldata _data) external returns (uint256);
+  function getDrawCalculator() external view returns (IDrawCalculator);
   function getDrawHistory() external view returns (IDrawHistory);
   function getTicket() external view returns (IERC20);
-  function getUserDrawClaim(address user, uint32 drawId) external view returns (uint96);
-  function getUserDrawClaims(address user) external view returns(uint96[8] memory);
-  function setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) external returns(IDrawCalculator);
+  function getDrawPayoutBalanceOf(address user, uint32 drawId) external view returns (uint256);
+  function setDrawCalculator(IDrawCalculator _newCalculator) external returns(IDrawCalculator);
   function setDrawHistory(IDrawHistory _drawHistory) external returns (IDrawHistory);
   function withdrawERC20(IERC20 _erc20Token, address _to, uint256 _amount) external returns (bool);
 }

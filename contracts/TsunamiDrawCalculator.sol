@@ -15,9 +15,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice Ticket associated with DrawCalculator
   ITicket ticket;
 
-  ///@notice ClaimableDraw associated with DrawCalculator
-  ClaimableDraw public claimableDraw;
-
   ///@notice storage of the TsunamiDrawCalculatorSettings associated with a drawId
   mapping(uint32 => DrawLib.TsunamiDrawCalculatorSettings) drawSettings;
 
@@ -43,7 +40,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _pickIndicesForDraws The encoded pick indices for all Draws. Expected to be just indices of winning claims. Populated values must be less than totalUserPicks.
   ///@return An array of amount of prizes awardable
   function calculate(address _user, DrawLib.Draw[] calldata _draws, bytes calldata _pickIndicesForDraws)
-    external override view returns (uint96[] memory)
+    external override view returns (uint256[] memory)
   {
 
     uint256[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint256 [][]));
@@ -80,13 +77,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return _setDrawSettings(_drawId, _drawSettings);
   }
 
-  ///@notice Sets TsunamiDrawCalculatorSettings for a draw id. only callable by the owner or manager
-  ///@param _claimableDraw The address of the ClaimableDraw to update with the updated TsunamiDrawCalculatorSettings
-  function setClaimableDraw(ClaimableDraw _claimableDraw) external onlyManagerOrOwner returns(ClaimableDraw)
-  {
-    return _setClaimableDraw(_claimableDraw);
-  }
-
   ///@notice Gets the TsunamiDrawCalculatorSettings for a draw id
   ///@param _drawId The id of the Draw
   function getDrawSettings(uint32 _drawId) external view returns(DrawLib.TsunamiDrawCalculatorSettings memory)
@@ -105,11 +95,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _drawSettings TsunamiDrawCalculatorSettings for each Draw
   function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber,
     uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws, DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings)
-    internal view returns (uint96[] memory)
+    internal view returns (uint256[] memory)
    {
 
-    uint96[] memory prizesAwardable = new uint96[](_normalizedUserBalances.length);
-
+    uint256[] memory prizesAwardable = new uint256[](_normalizedUserBalances.length);
     // calculate prizes awardable for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
       uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[drawIndex], _normalizedUserBalances[drawIndex]);
@@ -164,7 +153,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _drawSettings Params with the associated draw
   ///@return prize (if any) per Draw claim
   function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings)
-    internal view returns (uint96)
+    internal view returns (uint256)
   {
 
     uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
@@ -194,7 +183,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
       }
     }
     // return the absolute amount of prize awardable
-    return uint96((prizeFraction * _drawSettings.prize) / 1e18); // div by 1 ether as prize distributions are base 1e18
+    return (prizeFraction * _drawSettings.prize) / 1e18; // div by 1 ether as prize distributions are base 1e18
   }
 
   ///@notice Calculates the distribution index given the random numbers and masks
@@ -288,21 +277,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
     require(sumTotalDistributions <= 1 ether, "DrawCalc/distributions-gt-100%");
 
-    claimableDraw.setDrawCalculator(drawId, IDrawCalculator(address(this)));
-
     drawSettings[drawId] = _drawSettings; //sstore
     emit DrawSettingsSet(drawId, _drawSettings);
     return true;
   }
-
-  ///@notice Internal function to set the Claimable Draw address
-  ///@param _claimableDraw The address of the Claimable Draw contract to set
-  function _setClaimableDraw(ClaimableDraw _claimableDraw) internal returns(ClaimableDraw)
-  {
-    require(address(_claimableDraw) != address(0), "DrawCalc/claimable-draw-not-zero-address");
-    claimableDraw = _claimableDraw;
-    emit ClaimableDrawSet(_claimableDraw);
-    return _claimableDraw;
-  }
-
 }
