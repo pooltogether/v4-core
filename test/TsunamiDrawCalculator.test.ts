@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-import { Draw, DrawSettings } from './types';
+import { Draw, TsunamiDrawCalculatorSettings } from './types';
 
 const { getSigners } = ethers;
 
@@ -75,7 +75,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe('setDrawSettings()', () => {
     it('should not allow anyone else to set', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -88,12 +88,13 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       await expect(drawCalculator.connect(wallet3).setDrawSettings(0, drawSettings)).to.be.revertedWith('Manager/caller-not-manager-or-owner')
     })
 
     it('onlyOwner can setPrizeSettings', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -106,6 +107,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
 
       
@@ -120,7 +122,7 @@ describe('TsunamiDrawCalculator', () => {
     });
 
     it('cannot set over 100pc of prize for distribution', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.9'),
@@ -133,6 +135,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
         'DrawCalc/distributions-gt-100%',
@@ -140,7 +143,7 @@ describe('TsunamiDrawCalculator', () => {
     });
 
     it('cannot set bitRangeSize = 0', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.9'),
@@ -150,14 +153,33 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
         'DrawCalc/bitRangeSize-gt-0',
       );
     });
 
-    it('cannot set numberOfPicks = 0', async () => {
+    it('cannot set maxPicksPerUser = 0', async () => {
       const drawSettings: DrawSettings = {
+        matchCardinality: BigNumber.from(5),
+        distributions: [
+          ethers.utils.parseEther('0.9'),
+        ],
+        numberOfPicks: BigNumber.from(utils.parseEther("1")),
+        bitRangeSize: BigNumber.from(2),
+        prize: ethers.utils.parseEther('1'),
+        drawStartTimestampOffset: BigNumber.from(1),
+        drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(0),
+      };
+      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
+        'DrawCalc/maxPicksPerUser-gt-0',
+      );
+    });
+
+    it('cannot set numberOfPicks = 0', async () => {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.9'),
@@ -168,6 +190,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
         'DrawCalc/numberOfPicks-gt-0',
@@ -192,7 +215,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe('calculateDistributionIndex()', () => {
     it('grand prize gets the full fraction at index 0', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -205,12 +228,13 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const amount = await drawCalculator.calculatePrizeDistributionFraction(drawSettings, BigNumber.from(0));
       expect(amount).to.equal(drawSettings.distributions[0]);
     })
     it('runner up gets part of the fraction at index 1', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -223,6 +247,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const amount = await drawCalculator.calculatePrizeDistributionFraction(drawSettings, BigNumber.from(1));
 
@@ -231,7 +256,7 @@ describe('TsunamiDrawCalculator', () => {
       expect(amount).to.equal(expectedPrizeFraction);
     })
     it('all distribution indexes', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.5'),
@@ -244,6 +269,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       for(let numberOfMatches = 0; numberOfMatches < drawSettings.distributions.length; numberOfMatches++) {
         
@@ -273,7 +299,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it('calculates the number of prizes at all distribution indices', async () => {
-      let drawSettings: DrawSettings = {
+      let drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.5'),
@@ -286,6 +312,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       for(let distributionIndex = 0; distributionIndex < drawSettings.distributions.length; distributionIndex++) {
         const result = await drawCalculator.numberOfPrizesForIndex(drawSettings.bitRangeSize, distributionIndex);
@@ -298,7 +325,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe('calculatePrizeDistributionFraction()', () => {
     it('calculates distribution index 0', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -311,6 +338,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
 
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
@@ -322,7 +350,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it('calculates distribution index 1', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(2),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -335,6 +363,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       // 252: 1111 1100
       // 255  1111 1111
@@ -350,7 +379,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it('calculates distribution index 1', async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(3),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -363,6 +392,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       // 527: 0010 0000 1111
       // 271  0001 0000 1111
@@ -381,7 +411,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe("createBitMasks()", () => {
     it("creates correct 6 bit masks", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(2),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -394,6 +424,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       expect(bitMasks[0]).to.eq(BigNumber.from(63)) // 111111
@@ -402,7 +433,7 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it("creates correct 4 bit masks", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(2),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -415,6 +446,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       expect(bitMasks[0]).to.eq(BigNumber.from(15)) // 1111
@@ -425,7 +457,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe("getDrawSettings()", () => {
     it("gets correct draw settings", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -438,6 +470,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       
       await claimableDraw.mock.setDrawCalculator.withArgs(70, drawCalculator.address).returns(drawCalculator.address);
@@ -458,7 +491,7 @@ describe('TsunamiDrawCalculator', () => {
 
   describe("calculateNumberOfUserPicks()", () => {
     it("calculates the correct number of user picks", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -471,13 +504,14 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const normalizedUsersBalance = utils.parseEther("0.05") // has 5% of the total supply
       const userPicks = await drawCalculator.calculateNumberOfUserPicks(drawSettings, normalizedUsersBalance)
       expect(userPicks).to.eq(BigNumber.from(5))
     })
     it("calculates the correct number of user picks", async () => {
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -490,6 +524,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const normalizedUsersBalance = utils.parseEther("0.1") // has 10% of the total supply
       const userPicks = await drawCalculator.calculateNumberOfUserPicks(drawSettings, normalizedUsersBalance)
@@ -501,7 +536,7 @@ describe('TsunamiDrawCalculator', () => {
     it("calculates the correct normalized balance", async () => {
       const timestamps = [42,77]
 
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -514,6 +549,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
@@ -530,7 +566,7 @@ describe('TsunamiDrawCalculator', () => {
     it("reverts when totalSupply is zero", async () => {
       const timestamps = [42,77]
 
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -543,6 +579,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
@@ -556,7 +593,7 @@ describe('TsunamiDrawCalculator', () => {
     it("returns zero when the balance is very small", async () => {
       const timestamps = [42]
 
-      const drawSettings: DrawSettings = {
+      const drawSettings: TsunamiDrawCalculatorSettings = {
         matchCardinality: BigNumber.from(5),
         distributions: [
           ethers.utils.parseEther('0.6'),
@@ -566,6 +603,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001),
       };
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
@@ -583,7 +621,7 @@ describe('TsunamiDrawCalculator', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
     context('with draw 0 set', () => {
-      let drawSettings: DrawSettings
+      let drawSettings: TsunamiDrawCalculatorSettings
       beforeEach(async () => {
         drawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
@@ -593,6 +631,7 @@ describe('TsunamiDrawCalculator', () => {
           prize: ethers.utils.parseEther('100'),
           drawStartTimestampOffset: BigNumber.from(1),
           drawEndTimestampOffset: BigNumber.from(1),
+          maxPicksPerUser: BigNumber.from(1001),
         };
         await claimableDraw.mock.setDrawCalculator.withArgs(0, drawCalculator.address).returns(drawCalculator.address);
         await drawCalculator.setDrawSettings(0, drawSettings)
@@ -710,7 +749,7 @@ describe('TsunamiDrawCalculator', () => {
 
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1, totalSupply2]); 
         
-        const drawSettings2: DrawSettings = {
+        const drawSettings2: TsunamiDrawCalculatorSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
           numberOfPicks: BigNumber.from(utils.parseEther('1')),
           matchCardinality: BigNumber.from(5),
@@ -718,6 +757,7 @@ describe('TsunamiDrawCalculator', () => {
           prize: ethers.utils.parseEther('20'),
           drawStartTimestampOffset: BigNumber.from(1),
           drawEndTimestampOffset: BigNumber.from(1),
+          maxPicksPerUser: BigNumber.from(1001),
         };
 
         await drawCalculator.setDrawSettings(1, drawSettings2);
@@ -761,7 +801,7 @@ describe('TsunamiDrawCalculator', () => {
         const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
         const ticketBalance = ethers.utils.parseEther('6'); // they had 6pc of all tickets
         
-        const drawSettings: DrawSettings = {
+        const drawSettings: TsunamiDrawCalculatorSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
           numberOfPicks: BigNumber.from(1),
           matchCardinality: BigNumber.from(5),
@@ -769,6 +809,7 @@ describe('TsunamiDrawCalculator', () => {
           prize: ethers.utils.parseEther('100'),
           drawStartTimestampOffset: BigNumber.from(1),
           drawEndTimestampOffset: BigNumber.from(1),
+          maxPicksPerUser: BigNumber.from(1001),
         };
 
         const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
@@ -795,6 +836,53 @@ describe('TsunamiDrawCalculator', () => {
           ),
         ).to.revertedWith('DrawCalc/insufficient-user-picks');
       });
+
+      it('should revert exceeding max user picks', async () => {
+        // maxPicksPerUser is set to 2, user tries to claim with 3 picks
+        const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+        const winningRandomNumber = utils.solidityKeccak256(
+          ['bytes32', 'uint256'],
+          [winningNumber, 1],
+        );
+
+        const timestamps = [42];
+        const totalSupply1 = utils.parseEther('100');
+        const pickIndices = encoder.encode(['uint256[][]'], [[['1', '2', '3']]]);
+        const ticketBalance = ethers.utils.parseEther('6');
+        
+        const drawSettings: DrawSettings = {
+          distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
+          numberOfPicks: BigNumber.from(1),
+          matchCardinality: BigNumber.from(5),
+          bitRangeSize: BigNumber.from(4),
+          prize: ethers.utils.parseEther('100'),
+          drawStartTimestampOffset: BigNumber.from(1),
+          drawEndTimestampOffset: BigNumber.from(1),
+          maxPicksPerUser: BigNumber.from(2),
+        };
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawEndTimestampOffset.toNumber())
+
+        await ticket.mock.getAverageBalancesBetween
+          .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
+          .returns([ticketBalance]); // (user, timestamp): balance
+        
+        await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1]);   
+
+        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        
+        await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
+        await drawCalculator.setDrawSettings(1, drawSettings)
+
+        await expect(
+          drawCalculator.calculate(
+            wallet1.address,
+            [draw1],
+            pickIndices
+          ),
+        ).to.revertedWith('DrawCalc/exceeds-max-user-picks');
+      });
+
 
       it('should calculate and win nothing', async () => {
         const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);

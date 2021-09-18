@@ -153,7 +153,7 @@ function PoolEnv() {
     numberOfPicks,
     distributions,
     prize,
-
+    maxPicksPerUser
   }) {
     const drawCalculator = await this.drawCalculator()
 
@@ -165,6 +165,7 @@ function PoolEnv() {
       numberOfPicks,
       distributions,
       prize,
+      maxPicksPerUser
     }
     
     await drawCalculator.setDrawSettings(drawId, drawSettings)

@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { deployMockContract } from 'ethereum-waffle';
 import { utils, Contract, BigNumber, Wallet } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-import { Draw, DrawSettings } from '../types';
+import { Draw, TsunamiDrawCalculatorSettings } from '../types';
 
 const { getSigners } = ethers;
 const printUtils = require("./printUtils")
@@ -21,7 +21,7 @@ async function deployDrawCalculator(signer: any): Promise<Contract> {
 
 
 
-async function findWinningNumberForUser(wallet1: any, userAddress: string, matchesRequired: number, drawSettings: DrawSettings) {
+async function findWinningNumberForUser(wallet1: any, userAddress: string, matchesRequired: number, drawSettings: TsunamiDrawCalculatorSettings) {
   dim(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
   const drawCalculator: Contract = await deployDrawCalculator(wallet1)
   let ticketArtifact = await artifacts.readArtifact('Ticket')
@@ -77,7 +77,7 @@ async function runFindWinningRandomNumbers() {
   let wallet1: SignerWithAddress
   [wallet1] = await getSigners();
 
-  let drawSettings: DrawSettings = {
+  let drawSettings: TsunamiDrawCalculatorSettings = {
     matchCardinality: BigNumber.from(7),
     distributions: [
       ethers.utils.parseEther('0.2'),
@@ -90,6 +90,7 @@ async function runFindWinningRandomNumbers() {
     prize: ethers.utils.parseEther('100'),
     drawStartTimestampOffset: BigNumber.from(1),
     drawEndTimestampOffset: BigNumber.from(1),
+    maxPicksPerUser: BigNumber.from(1001),
   };
 
   const result = await findWinningNumberForUser(wallet1, wallet1.address, 3, drawSettings)
