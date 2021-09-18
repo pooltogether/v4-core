@@ -67,7 +67,7 @@ contract DrawBeacon is IDrawBeacon,
 
   /* ============ Modifiers ============ */
 
-  modifier requireAwardNotInProgress() {
+  modifier requireDrawNotInProgress() {
     _requireDrawNotInProgress();
     _;
   }
@@ -282,7 +282,7 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Allows the owner to set the beacon period in seconds.
     * @param beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
    */
-  function setBeaconPeriodSeconds(uint256 beaconPeriodSeconds) external override onlyOwner requireAwardNotInProgress {
+  function setBeaconPeriodSeconds(uint256 beaconPeriodSeconds) external override onlyOwner requireDrawNotInProgress {
     _setBeaconPeriodSeconds(beaconPeriodSeconds);
   }
   
@@ -290,7 +290,7 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngTimeout The RNG request timeout in seconds.
    */
-  function setRngTimeout(uint32 _rngTimeout) external override onlyOwner requireAwardNotInProgress {
+  function setRngTimeout(uint32 _rngTimeout) external override onlyOwner requireDrawNotInProgress {
     _setRngTimeout(_rngTimeout);
   }
 
@@ -298,7 +298,7 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Sets the RNG service that the Prize Strategy is connected to
     * @param rngService The address of the new RNG service interface
    */
-  function setRngService(RNGInterface rngService) external override onlyOwner requireAwardNotInProgress {
+  function setRngService(RNGInterface rngService) external override onlyOwner requireDrawNotInProgress {
     require(!isRngRequested(), "DrawBeacon/rng-in-flight");
     rng = rngService;
     emit RngServiceUpdated(rngService);
