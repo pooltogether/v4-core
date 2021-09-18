@@ -113,8 +113,8 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   }
 
   /**
-    * @notice External function to create a new draw.
-    * @dev    External function to create a new draw from an authorized manager or owner.
+    * @notice Push new draw onto draws history.
+    * @dev    Push new draw onto draws history via authorized manager or owner.
     * @param draw Draw struct
     * @return New draw id
   */
@@ -123,13 +123,13 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   } 
 
   /**
-    * @notice External function to set an existing draw.
-    * @dev    External function to set an existing draw from an authorized manager or owner.
+    * @notice Set existing draw in draw history.
+    * @dev    Set existing draw in draw history via the owner.
     * @param drawIndex Draw index to set
     * @param newDraw   Draw struct
     * @return Draw id
   */
-  function setDraw(uint256 drawIndex, DrawLib.Draw memory newDraw) external override onlyManagerOrOwner returns (uint32) {
+  function setDraw(uint256 drawIndex, DrawLib.Draw memory newDraw) external override onlyOwner returns (uint32) {
     return _setDraw(drawIndex, newDraw);
   }
 
