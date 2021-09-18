@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
 import "./interfaces/IPrizePool.sol";
 import "./prize-strategy/PrizeSplit.sol";
 
+/**
+  * @title  PoolTogether V4 PrizeSplitStrategy
+  * @author PoolTogether Inc Team
+  * @notice Captures PrizePool interest for PrizeReserve and secondary prize split recipients. 
+*/
 contract PrizeSplitStrategy is Initializable, PrizeSplit {
 
-  /* ============ Variables ============ */
-
   /**
-    * @notice Linked PrizePool smart contract responsible for awarding tokens.
+    * @notice PrizePool address
   */
   IPrizePool public prizePool;
 
@@ -19,7 +20,7 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
 
   /**
     * @notice Emit when a strategy captures award amount from PrizePool.
-    * @param totalPrizeCaptured  Total prize captured from PrizePool
+    * @param totalPrizeCaptured  Total prize captured from the PrizePool
   */
   event Distributed(
     uint256 totalPrizeCaptured
@@ -28,8 +29,8 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
   /**
     * @notice Emit when an individual prize split is awarded.
     * @param user          User address being awarded
-    * @param prizeAwarded  Token prize amount
-    * @param token         Token awarded address
+    * @param prizeAwarded  Awarded prize amount
+    * @param token         Token address
   */
   event PrizeSplitAwarded(
     address indexed user,
@@ -55,8 +56,8 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
 
   /**
     * @notice Capture the award balance and distribute to prize splits.
-    * @dev    Capture the award balance and award tokens using the linked PrizePool.
-    * @return Total prize amount captured via prizePool.captureAwardBalance()
+    * @dev    Can be executed by any wallet at any time. Generally called on a weekly/bi-weekly basis though.
+    * @return Prize captured from PrizePool
   */
   function distribute() external returns (uint256) {
     uint256 prize = prizePool.captureAwardBalance();
@@ -69,9 +70,9 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
 
   /**
     * @notice Award ticket or sponsorship tokens to prize split recipient.
-    * @dev Award ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
-    * @param user Recipient of minted tokens
-    * @param amount Amount of minted tokens
+    * @dev    Award ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
+    * @param user       Recipient of prize split
+    * @param amount     Prize split amount
     * @param tokenIndex Index (0 or 1) of a token in the prizePool.tokens mapping
   */
   function _awardPrizeSplitAmount(address user, uint256 amount, uint8 tokenIndex) override internal {
