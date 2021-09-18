@@ -9,7 +9,6 @@ import "./libraries/DrawLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
-
 ///@title TsunamiDrawCalculator is an implmentation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   
@@ -171,9 +170,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     uint256[] memory masks =  _createBitMasks(_drawSettings);
     uint256 picksLength = _picks.length;
 
-    // console.log("picksLength ", picksLength);
-    // console.log("picksLength ", picksLength);
-    
     require(picksLength <= _drawSettings.maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
 
     // for each pick find number of matching numbers and calculate prize distribution index

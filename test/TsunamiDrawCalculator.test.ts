@@ -617,7 +617,7 @@ describe('TsunamiDrawCalculator', () => {
   })
 
 
-  describe.only('calculate()', () => {
+  describe('calculate()', () => {
     const debug = newDebug('pt:TsunamiDrawCalculator.test.ts:calculate()')
 
     context('with draw 0 set', () => {
@@ -837,8 +837,8 @@ describe('TsunamiDrawCalculator', () => {
         ).to.revertedWith('DrawCalc/insufficient-user-picks');
       });
 
-      it.only('should revert on not enough picks for that user', async () => {
-        // the first draw the user has > 1 pick and the second draw has 0 picks (0.3/100 < 0.5 so rounds down to 0)
+      it('should revert exceeding max user picks', async () => {
+        // maxPicksPerUser is set to 2, user tries to claim with 3 picks
         const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
         const winningRandomNumber = utils.solidityKeccak256(
           ['bytes32', 'uint256'],
@@ -847,10 +847,8 @@ describe('TsunamiDrawCalculator', () => {
 
         const timestamps = [42];
         const totalSupply1 = utils.parseEther('100');
-        
-
         const pickIndices = encoder.encode(['uint256[][]'], [[['1', '2', '3']]]);
-        const ticketBalance = ethers.utils.parseEther('6'); // they had 6pc of all tickets
+        const ticketBalance = ethers.utils.parseEther('6');
         
         const drawSettings: DrawSettings = {
           distributions: [ethers.utils.parseEther('0.8'), ethers.utils.parseEther('0.2')],
@@ -860,21 +858,18 @@ describe('TsunamiDrawCalculator', () => {
           prize: ethers.utils.parseEther('100'),
           drawStartTimestampOffset: BigNumber.from(1),
           drawEndTimestampOffset: BigNumber.from(1),
-          maxPicksPerUser: BigNumber.from(1),
+          maxPicksPerUser: BigNumber.from(2),
         };
-
         const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
         const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawEndTimestampOffset.toNumber())
 
-        // const ticketBalance2 = ethers.utils.parseEther('0.3'); // they had 0.03pc of all tickets
         await ticket.mock.getAverageBalancesBetween
           .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
           .returns([ticketBalance]); // (user, timestamp): balance
         
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1]);   
 
-        const draw1: Draw = { drawId: BigNumber.from(0), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
-        
+        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
         
         await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
         await drawCalculator.setDrawSettings(1, drawSettings)
