@@ -97,7 +97,7 @@ contract DrawBeacon is IDrawBeacon,
     RNGInterface _rng,
     uint256 _beaconPeriodStart,
     uint256 _beaconPeriodSeconds
-  ) public {
+  ) {
     require(_beaconPeriodStart > 0, "DrawBeacon/beacon-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;

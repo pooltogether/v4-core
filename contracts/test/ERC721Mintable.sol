@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
  */
 contract ERC721Mintable is ERC721 {
 
-    constructor () ERC721("ERC 721", "NFT") public {
-        
+    constructor () ERC721("ERC 721", "NFT") {
+
     }
 
     /**

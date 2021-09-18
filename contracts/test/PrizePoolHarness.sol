@@ -11,9 +11,7 @@ contract PrizePoolHarness is PrizePool {
 
   constructor(
     YieldSourceStub _stubYieldSource
-  )
-    public
-  {
+  ) {
     stubYieldSource = _stubYieldSource;
   }
 
