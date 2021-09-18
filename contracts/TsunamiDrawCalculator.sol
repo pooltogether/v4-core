@@ -40,10 +40,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   constructor(ITicket _ticket, address _drawSettingsManager, uint32 _cardinality) {
     require(_cardinality <= MAX_CARDINALITY, "DrawCalc/card-lte-max");
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
-    __Ownable_init();
     ringBuffer.cardinality = _cardinality;
     setManager(_drawSettingsManager);
-    _setClaimableDraw(_claimableDraw);
     ticket = _ticket;
 
     emit Deployed(_ticket);
@@ -281,9 +279,9 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
   ///@notice Set the DrawCalculators TsunamiDrawCalculatorSettings
   ///@dev Distributions must be expressed with Ether decimals (1e18)
-  ///@param drawId The id of the Draw
+  ///@param _drawId The id of the Draw
   ///@param _drawSettings TsunamiDrawCalculatorSettings struct to set
-  function _pushDrawSettings(uint32 drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) internal
+  function _pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) internal
     returns (bool)
   {
     uint256 distributionsLength = _drawSettings.distributions.length;
@@ -303,7 +301,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
     DrawSettingsRingBuffer memory _ringBuffer = ringBuffer;
 
-    require(_drawId == _ringBuffer.lastDrawId + 1, "DrawCalc/must-be-contig");
+    require((_ringBuffer.nextIndex == 0 && _ringBuffer.lastDrawId == 0) || _drawId == _ringBuffer.lastDrawId + 1, "DrawCalc/must-be-contig");
     drawSettings[_ringBuffer.nextIndex] = _drawSettings;
     _ringBuffer.nextIndex = uint32(RingBuffer.nextIndex(_ringBuffer.nextIndex, _ringBuffer.cardinality));
     _ringBuffer.lastDrawId = _drawId;
@@ -326,7 +324,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return _claimableDraw;
   }
 
-  function _getDrawSettings(DrawSettingsRingBuffer memory _ringBuffer, uint32 drawId) internal view returns (DrawLib.DrawSettings memory) {
+  function _getDrawSettings(DrawSettingsRingBuffer memory _ringBuffer, uint32 drawId) internal view returns (DrawLib.TsunamiDrawCalculatorSettings memory) {
     require(drawId <= _ringBuffer.lastDrawId, "DrawCalc/future-draw");
     uint32 indexOffset = _ringBuffer.lastDrawId - drawId;
     require(indexOffset < _ringBuffer.cardinality, "DrawCalc/expired-draw");

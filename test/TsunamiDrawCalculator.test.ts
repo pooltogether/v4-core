@@ -63,15 +63,6 @@ describe('TsunamiDrawCalculator', () => {
     it('should require non-zero manager', async () => {
       await expect(deployDrawCalculator(wallet1, ticket.address, ethers.constants.AddressZero, claimableDraw.address, 16)).to.be.revertedWith('Manager/manager-not-zero-address')
     })
-
-    it('should require the cardinality is less than the max', async () => {
-      await expect(drawCalculator.initialize(
-        ticket.address,
-        wallet2.address,
-        claimableDraw.address,
-        257
-        )).to.be.revertedWith('DrawCalc/card-lte-max')
-    })
   })
 
   describe('pushDrawSettings()', () => {
@@ -108,6 +99,7 @@ describe('TsunamiDrawCalculator', () => {
         prize: ethers.utils.parseEther('1'),
         drawStartTimestampOffset: BigNumber.from(1),
         drawEndTimestampOffset: BigNumber.from(1),
+        maxPicksPerUser: BigNumber.from(1001)
       };
 
       it('should require a sane cardinality', async () => {
@@ -201,7 +193,7 @@ describe('TsunamiDrawCalculator', () => {
         drawEndTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(0),
       };
-      await expect(drawCalculator.setDrawSettings(0, drawSettings)).to.be.revertedWith(
+      await expect(drawCalculator.pushDrawSettings(0, drawSettings)).to.be.revertedWith(
         'DrawCalc/maxPicksPerUser-gt-0',
       );
     });
@@ -497,6 +489,7 @@ describe('TsunamiDrawCalculator', () => {
       prize: ethers.utils.parseEther('1'),
       drawStartTimestampOffset: BigNumber.from(1),
       drawEndTimestampOffset: BigNumber.from(1),
+      maxPicksPerUser: BigNumber.from(1001)
     };
 
     it("gets correct draw settings", async () => {
@@ -917,10 +910,10 @@ describe('TsunamiDrawCalculator', () => {
 
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1]);
 
-        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        const draw1: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
 
-        await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
-        await drawCalculator.setDrawSettings(1, drawSettings)
+        await claimableDraw.mock.setDrawCalculator.withArgs(2, drawCalculator.address).returns(drawCalculator.address);
+        await drawCalculator.pushDrawSettings(2, drawSettings)
 
         await expect(
           drawCalculator.calculate(
