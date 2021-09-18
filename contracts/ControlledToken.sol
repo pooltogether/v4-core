@@ -15,7 +15,7 @@ contract ControlledToken is ERC20Permit, IControlledToken {
   address public override controller;
 
   /// @notice ERC20 controlled token decimals.
-  uint8 private _decimals;
+  uint8 private immutable _decimals;
 
   /// @notice Deploy the Controlled Token with Token Details and the Controller
   /// @param _name The name of the Token
@@ -40,7 +40,7 @@ contract ControlledToken is ERC20Permit, IControlledToken {
     emit Deployed(
       _name,
       _symbol,
-      _decimals,
+      decimals_,
       _controller
     );
   }
