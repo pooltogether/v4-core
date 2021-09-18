@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
 import "./interfaces/IPrizePool.sol";
 import "./prize-strategy/PrizeSplit.sol";
 
-contract PrizeSplitStrategy is Initializable, PrizeSplit {
+contract PrizeSplitStrategy is PrizeSplit {
 
   /* ============ Variables ============ */
 
@@ -37,17 +35,16 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
     IControlledToken indexed token
   );
 
-  /* ============ Initialize ============ */
+  /* ============ Deploy ============ */
 
   /**
-    * @notice Initialize the PrizeSplitStrategy smart contract.
+    * @notice Deploy the PrizeSplitStrategy smart contract.
     * @param _prizePool PrizePool contract address
   */
-  function initialize (
+  constructor(
     IPrizePool _prizePool
-  ) external initializer {
-    __Ownable_init();
-    require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero");
+  ) {
+    require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero-address");
     prizePool = _prizePool;
   }
 
@@ -68,16 +65,15 @@ contract PrizeSplitStrategy is Initializable, PrizeSplit {
   /* ============ Internal Functions ============ */
 
   /**
-    * @notice Award ticket or sponsorship tokens to prize split recipient.
-    * @dev Award ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
-    * @param user Recipient of minted tokens
-    * @param amount Amount of minted tokens
-    * @param tokenIndex Index (0 or 1) of a token in the prizePool.tokens mapping
+    * @notice Award ticket tokens to prize split recipient.
+    * @dev Award ticket tokens to prize split recipient via the linked PrizePool contract.
+    * @param _to Recipient of minted tokens.
+    * @param _amount Amount of minted tokens.
   */
-  function _awardPrizeSplitAmount(address user, uint256 amount, uint8 tokenIndex) override internal {
-    IControlledToken _token = prizePool.tokenAtIndex(tokenIndex);
-    prizePool.award(user, amount, _token);
-    emit PrizeSplitAwarded(user, amount, _token);
+  function _awardPrizeSplitAmount(address _to, uint256 _amount) override internal {
+    IControlledToken _ticket = prizePool.ticket();
+    prizePool.award(_to, _amount);
+    emit PrizeSplitAwarded(_to, _amount, _ticket);
   }
 
 }

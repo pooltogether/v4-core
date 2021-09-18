@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
@@ -18,13 +18,12 @@ import "./libraries/DrawLib.sol";
 import "./prize-pool/PrizePool.sol";
 
 contract DrawBeacon is IDrawBeacon,
-                       Initializable,
-                       OwnableUpgradeable {
+                       Ownable {
 
-  using SafeCastUpgradeable for uint256;
-  using SafeERC20Upgradeable for IERC20Upgradeable;
-  using AddressUpgradeable for address;
-  using ERC165CheckerUpgradeable for address;
+  using SafeCast for uint256;
+  using SafeERC20 for IERC20;
+  using Address for address;
+  using ERC165Checker for address;
 
 
   /* ============ Variables ============ */
@@ -84,26 +83,24 @@ contract DrawBeacon is IDrawBeacon,
     _;
   }
 
-  /* ============ Initialize ============ */
+  /* ============ Deploy ============ */
 
   /**
-    * @notice Initialize the DrawBeacon smart contract.
+    * @notice Deploy the DrawBeacon smart contract.
     * @param _drawHistory The address of the draw history to push draws to
     * @param _rng The RNG service to use
     * @param _beaconPeriodStart The starting timestamp of the beacon period.
     * @param _beaconPeriodSeconds The duration of the beacon period in seconds
   */
-  function initialize (
+  constructor (
     IDrawHistory _drawHistory,
     RNGInterface _rng,
     uint256 _beaconPeriodStart,
     uint256 _beaconPeriodSeconds
-  ) public initializer {
-    require(_beaconPeriodStart > 0, "DrawBeacon/rng-request-period-greater-than-zero");
+  ) {
+    require(_beaconPeriodStart > 0, "DrawBeacon/beacon-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;
-
-    __Ownable_init();
 
     _setBeaconPeriodSeconds(_beaconPeriodSeconds);
     beaconPeriodStartedAt = _beaconPeriodStart;
@@ -113,7 +110,7 @@ contract DrawBeacon is IDrawBeacon,
     // 30 min timeout
     _setRngTimeout(1800);
 
-    emit Initialized(
+    emit Deployed(
       _drawHistory,
       _rng,
       _beaconPeriodStart,
@@ -267,7 +264,7 @@ contract DrawBeacon is IDrawBeacon,
   function startDraw() external override requireCanStartDraw {
     (address feeToken, uint256 requestFee) = rng.getRequestFee();
     if (feeToken != address(0) && requestFee > 0) {
-      IERC20Upgradeable(feeToken).safeApprove(address(rng), requestFee);
+      IERC20(feeToken).safeApprove(address(rng), requestFee);
     }
 
     (uint32 requestId, uint32 lockBlock) = rng.requestRandomNumber();
@@ -285,7 +282,7 @@ contract DrawBeacon is IDrawBeacon,
   function setBeaconPeriodSeconds(uint256 beaconPeriodSeconds) external override onlyOwner requireAwardNotInProgress {
     _setBeaconPeriodSeconds(beaconPeriodSeconds);
   }
-  
+
   /**
     * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngTimeout The RNG request timeout in seconds.
@@ -312,7 +309,7 @@ contract DrawBeacon is IDrawBeacon,
     * @return The timestamp at which the next beacon period would start
    */
   function _calculateNextBeaconPeriodStartTime(uint256 currentTime) internal view returns (uint256) {
-    uint256 _beaconPeriodStartedAt = beaconPeriodStartedAt; 
+    uint256 _beaconPeriodStartedAt = beaconPeriodStartedAt;
     uint256 _beaconPeriodSeconds = beaconPeriodSeconds;
     uint256 elapsedPeriods = (currentTime - _beaconPeriodStartedAt) / (_beaconPeriodSeconds);
     return _beaconPeriodStartedAt + (elapsedPeriods * _beaconPeriodSeconds);
@@ -388,7 +385,7 @@ contract DrawBeacon is IDrawBeacon,
 
     emit BeaconPeriodSecondsUpdated(_beaconPeriodSeconds);
   }
-  
+
   /**
     * @notice Sets the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
     * @param _rngTimeout The RNG request timeout in seconds.

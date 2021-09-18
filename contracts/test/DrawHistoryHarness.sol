@@ -5,6 +5,8 @@ import "../libraries/DrawLib.sol";
 
 contract DrawHistoryHarness is DrawHistory {
 
+  constructor() {}
+
   function setNextDrawIndex(uint32 _nextDrawIndex) public returns (uint256) {
     nextDrawIndex = _nextDrawIndex;
     return _nextDrawIndex;
@@ -19,10 +21,10 @@ contract DrawHistoryHarness is DrawHistory {
   }
 
   function setNextDrawIndexAndDraw(
-    uint32 nextDrawIndex, 
-    uint256 drawIndex, 
-    uint32 drawId, 
-    uint32 timestamp, 
+    uint32 nextDrawIndex,
+    uint256 drawIndex,
+    uint32 drawId,
+    uint32 timestamp,
     uint256 winningRandomNumber
   ) external returns (uint256) {
     setNextDrawIndex(nextDrawIndex);
@@ -32,9 +34,9 @@ contract DrawHistoryHarness is DrawHistory {
   }
 
   function addMultipleDraws(
-    uint256 _start, 
-    uint256 _numberOfDraws, 
-    uint32 _timestamp, 
+    uint256 _start,
+    uint256 _numberOfDraws,
+    uint32 _timestamp,
     uint256 _winningRandomNumber
   ) external returns (uint256) {
     for (uint256 index = _start; index < _numberOfDraws; index++) {

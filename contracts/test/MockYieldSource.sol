@@ -10,12 +10,12 @@ import "./ERC20Mintable.sol";
  *
  * At construction, the deployer of the contract is the only minter.
  */
-contract MockYieldSource is ERC20Upgradeable, IYieldSource {
+contract MockYieldSource is ERC20, IYieldSource {
 
   ERC20Mintable token;
 
-  constructor(string memory _name, string memory _symbol) {
-    __ERC20_init("YIELD", "YLD");
+  constructor(string memory _name, string memory _symbol) ERC20("YIELD", "YLD") {
+    
     token = new ERC20Mintable(_name, _symbol);
   }
 

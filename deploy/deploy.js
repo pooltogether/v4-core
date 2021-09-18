@@ -70,10 +70,9 @@ module.exports = async (hardhat) => {
   const { getNamedAccounts, deployments, getChainId, ethers } = hardhat;
   const { deploy } = deployments;
 
-  const harnessDisabled = !!process.env.DISABLE_HARNESS;
-
-  let { deployer, rng, admin, testnetCDai } = await getNamedAccounts();
+  let { deployer } = await getNamedAccounts();
   const chainId = parseInt(await getChainId(), 10);
+
   // 31337 is unit testing, 1337 is for coverage
   const isTestEnvironment = chainId === 31337 || chainId === 1337;
 
@@ -92,6 +91,7 @@ module.exports = async (hardhat) => {
   const rngServiceResult = await deploy('RNGServiceStub', {
     from: deployer,
   });
+
   displayResult('RNGServiceStub', rngServiceResult);
 
   yellow('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
@@ -102,97 +102,79 @@ module.exports = async (hardhat) => {
     from: deployer,
     args: ['YIELD', 'YLD'],
   });
-  displayResult('MockYieldSource', mockYieldSourceResult);
 
-  cyan('\nDeploying Ticket...');
-  const ticketResult = await deploy('Ticket', {
-    from: deployer,
-  });
-  displayResult('Ticket', ticketResult);
+  displayResult('MockYieldSource', mockYieldSourceResult);
 
   cyan('\nDeploying YieldSourcePrizePool...');
   const yieldSourcePrizePoolResult = await deploy('YieldSourcePrizePool', {
     from: deployer,
+    args: [mockYieldSourceResult.address],
   });
+
   displayResult('YieldSourcePrizePool', yieldSourcePrizePoolResult);
 
-  if (yieldSourcePrizePoolResult.newlyDeployed) {
-    cyan('\nInitializing YieldSourcePrizePool....');
-    const yieldSourcePrizePool = await ethers.getContract('YieldSourcePrizePool');
-    await yieldSourcePrizePool.initializeYieldSourcePrizePool(
-      [ticketResult.address],
-      mockYieldSourceResult.address,
-    );
-    green(`Initialized!`);
-  }
+  cyan('\nDeploying Ticket...');
+  const ticketResult = await deploy('Ticket', {
+    from: deployer,
+    args: ['Ticket', 'TICK', 18, yieldSourcePrizePoolResult.address],
+  });
 
-  if (ticketResult.newlyDeployed) {
-    cyan('\nInitializing Ticket....');
-    const ticket = await ethers.getContract('Ticket');
-    await ticket.initialize('Ticket', 'TICK', 18, yieldSourcePrizePoolResult.address);
-    green(`Initialized!`);
-  }
+  displayResult('Ticket', ticketResult);
+
+  cyan('\nsetTicket for YieldSourcePrizePool...');
+
+  const yieldSourcePrizePool = await ethers.getContract('YieldSourcePrizePool');
+
+  const setTicketResult = await yieldSourcePrizePool.setTicket(ticketResult.address);
+
+  displayResult('setTicket', setTicketResult);
 
   yellow('\nPrize Pool Setup Complete');
   yellow('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
-  cyan('\nDeploying DrawBeacon...');
-  const drawBeaconResult = await deploy('DrawBeacon', {
-    from: deployer,
-  });
-  displayResult('DrawBeacon', drawBeaconResult);
-
   cyan('\nDeploying DrawHistory...');
   const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
-    args: [],
   });
+
   displayResult('DrawHistory', drawHistoryResult);
 
-  if (drawBeaconResult.newlyDeployed) {
-    cyan('\nInitializing DrawBeacon');
-    const drawBeacon = await ethers.getContract('DrawBeacon');
-    await drawBeacon.initialize(
+  cyan('\nDeploying DrawBeacon...');
+  const drawBeaconResult = await deploy('DrawBeacon', {
+    from: deployer,
+    args: [
       drawHistoryResult.address,
       rngServiceResult.address,
       parseInt('' + new Date().getTime() / 1000),
       120, // 2 minute intervals
-    );
-    green(`initialized!`);
-  }
+    ],
+  });
 
-  if (drawHistoryResult.newlyDeployed) {
-    const drawHistory = await ethers.getContract('DrawHistory');
-    cyan('\nInitialzing DrawHistory...');
-    await drawHistory.initialize(drawBeaconResult.address);
-    green('Set!');
-  }
+  displayResult('DrawBeacon', drawBeaconResult);
+
+  cyan('\nSet DrawBeacon as manager for DrawHistory...');
+  const drawHistory = await ethers.getContract('DrawHistory');
+  await drawHistory.setManager(drawBeaconResult.address);
+  green('DrawBeacon manager set!');
 
   cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
     from: deployer,
+    args: [ticketResult.address, deployer],
   });
   displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 
   cyan('\nDeploying ClaimableDraw...');
   const claimableDrawResult = await deploy('ClaimableDraw', {
     from: deployer,
+    args: [drawCalculatorResult.address, drawHistoryResult.address],
   });
   displayResult('ClaimableDraw', claimableDrawResult);
 
-  if (claimableDrawResult.newlyDeployed) {
-    cyan('\nInitializing ClaimableDraw...');
-    const claimableDraw = await ethers.getContract('ClaimableDraw');
-    await claimableDraw.initialize(drawCalculatorResult.address, drawHistoryResult.address);
-    green(`Initialized!`);
-  }
-
-  if (drawCalculatorResult.newlyDeployed) {
-    cyan('\nInitializing TsunamiDrawCalculator...');
-    const drawCalculator = await ethers.getContract('TsunamiDrawCalculator');
-    await drawCalculator.initialize(ticketResult.address, deployer, claimableDrawResult.address);
-    green(`Initialized!`);
-  }
+  cyan('\nSet ClaimableDraw for DrawCalculator...');
+  const drawCalculator = await ethers.getContract('TsunamiDrawCalculator');
+  await drawCalculator.setClaimableDraw(claimableDrawResult.address);
+  green('ClaimableDraw set!');
 
   dim('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
   green('Contract Deployments Complete!');

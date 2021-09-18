@@ -89,23 +89,6 @@ describe('PrizeSplitStrategy', () => {
       ).to.be.revertedWith("PrizeSplit/invalid-prizesplit-percentage-total");
     });
 
-    it("should revert with invalid prize split token enum", async () => {
-      await expect(
-        prizeSplit.setPrizeSplits([
-          {
-            target: wallet2.address,
-            percentage: 500,
-            token: 2,
-          },
-          {
-            target: wallet3.address,
-            percentage: 200,
-            token: 0,
-          },
-        ])
-      ).to.be.revertedWith('PrizeSplit/invalid-prizesplit-token')
-    });
-
     it("should revert when setting a non-existent prize split config", async () => {
       await prizeSplit.setPrizeSplits([
         {
@@ -134,16 +117,14 @@ describe('PrizeSplitStrategy', () => {
         {
           target: wallet2.address,
           percentage: 50,
-          token: 0,
         },
         {
           target: wallet2.address,
           percentage: 500,
-          token: 1,
         },
       ]))
         .to.emit(prizeSplit, "PrizeSplitSet")
-        .withArgs(wallet2.address, 50, 0, 0)
+        .withArgs(wallet2.address, 50, 0)
 
       const prizeSplits = await prizeSplit.prizeSplits();
 
@@ -152,16 +133,12 @@ describe('PrizeSplitStrategy', () => {
         .to.equal(wallet2.address)
       expect(prizeSplits[0].percentage)
         .to.equal(50)
-      expect(prizeSplits[0].token)
-        .to.equal(0)
 
       // Second Prize Split
       expect(prizeSplits[1].target)
         .to.equal(wallet2.address)
       expect(prizeSplits[1].percentage)
         .to.equal(500)
-      expect(prizeSplits[1].token)
-        .to.equal(1)
     });
 
     it("should set two split prize configs and update the first prize split config", async () => {
@@ -169,19 +146,17 @@ describe('PrizeSplitStrategy', () => {
         {
           target: wallet2.address,
           percentage: 50,
-          token: 0,
         },
         {
           target: wallet2.address,
           percentage: 500,
-          token: 0,
         },
       ]);
+
       await prizeSplit.setPrizeSplit(
         {
           target: wallet2.address,
           percentage: 150,
-          token: 1,
         },
         0
       );
@@ -193,16 +168,12 @@ describe('PrizeSplitStrategy', () => {
         .to.equal(wallet2.address)
       expect(prizeSplits[0].percentage)
         .to.equal(150)
-      expect(prizeSplits[0].token)
-        .to.equal(1)
 
       // Second Prize Split
       expect(prizeSplits[1].target)
         .to.equal(wallet2.address)
       expect(prizeSplits[1].percentage)
         .to.equal(500)
-      expect(prizeSplits[1].token)
-        .to.equal(0)
     });
 
     it("should set two split prize config and add a third prize split config", async () => {
@@ -210,12 +181,10 @@ describe('PrizeSplitStrategy', () => {
         {
           target: wallet2.address,
           percentage: 50,
-          token: 0,
         },
         {
           target: wallet3.address,
           percentage: 500,
-          token: 0,
         },
       ]);
 
@@ -223,17 +192,14 @@ describe('PrizeSplitStrategy', () => {
         {
           target: wallet2.address,
           percentage: 50,
-          token: 0,
         },
         {
           target: wallet3.address,
           percentage: 500,
-          token: 0,
         },
         {
           target: wallet4.address,
           percentage: 150,
-          token: 1,
         },
       ])
 
@@ -244,25 +210,18 @@ describe('PrizeSplitStrategy', () => {
         .to.equal(wallet2.address)
       expect(prizeSplits[0].percentage)
         .to.equal(50)
-      expect(prizeSplits[0].token)
-        .to.equal(0)
 
       // Second Prize Split
       expect(prizeSplits[1].target)
         .to.equal(wallet3.address)
       expect(prizeSplits[1].percentage)
         .to.equal(500)
-      expect(prizeSplits[1].token)
-        .to.equal(0)
 
       // Third Prize Split
       expect(prizeSplits[2].target)
         .to.equal(wallet4.address)
       expect(prizeSplits[2].percentage)
         .to.equal(150)
-      expect(prizeSplits[2].token)
-        .to.equal(1)
-
     });
 
     it("should set two split prize configs, update the second prize split config and add a third prize split config", async () => {
@@ -270,12 +229,10 @@ describe('PrizeSplitStrategy', () => {
         {
           target: wallet2.address,
           percentage: 50,
-          token: 0,
         },
         {
           target: wallet3.address,
           percentage: 500,
-          token: 0,
         },
       ]);
 
@@ -283,65 +240,54 @@ describe('PrizeSplitStrategy', () => {
         {
           target: wallet2.address,
           percentage: 50,
-          token: 0,
         },
         {
           target: wallet3.address,
           percentage: 300,
-          token: 0,
         },
         {
           target: wallet4.address,
           percentage: 150,
-          token: 1,
         },
       ])
 
       const prizeSplits = await prizeSplit.prizeSplits();
+
       // First Prize Split
       expect(prizeSplits[0].target)
         .to.equal(wallet2.address)
       expect(prizeSplits[0].percentage)
         .to.equal(50)
-      expect(prizeSplits[0].token)
-        .to.equal(0)
 
       // Second Prize Split
       expect(prizeSplits[1].target)
         .to.equal(wallet3.address)
       expect(prizeSplits[1].percentage)
         .to.equal(300)
-      expect(prizeSplits[1].token)
-        .to.equal(0)
 
       // Third Prize Split
       expect(prizeSplits[2].target)
         .to.equal(wallet4.address)
       expect(prizeSplits[2].percentage)
         .to.equal(150)
-      expect(prizeSplits[2].token)
-        .to.equal(1)
     });
 
     it("should set two split prize configs, update the first and remove the second prize split config", async () => {
       await prizeSplit.setPrizeSplits([
         {
           target: wallet2.address,
-          percentage: 50,
-          token: 0,
+          percentage: 50
         },
         {
           target: wallet3.address,
-          percentage: 500,
-          token: 0,
+          percentage: 500
         },
       ]);
 
       await expect(prizeSplit.setPrizeSplits([
         {
           target: wallet2.address,
-          percentage: 400,
-          token: 0,
+          percentage: 400
         },
       ])).to.emit(prizeSplit, "PrizeSplitRemoved")
 
@@ -352,10 +298,9 @@ describe('PrizeSplitStrategy', () => {
       // First Prize Split
       expect(prizeSplits[0].target)
         .to.equal(wallet2.address)
+
       expect(prizeSplits[0].percentage)
         .to.equal(400)
-      expect(prizeSplits[0].token)
-        .to.equal(0)
     });
 
     it("should set two split prize configs and a remove all prize split configs", async () => {

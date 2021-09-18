@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
@@ -21,8 +21,8 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice The maximum number of twab entries
   uint16 public constant MAX_CARDINALITY = 65535;
 
-  using SafeERC20Upgradeable for IERC20Upgradeable;
-  using SafeCastUpgradeable for uint256;
+  using SafeERC20 for IERC20;
+  using SafeCast for uint256;
 
   /// @notice A struct containing details for an Account
   /// @param balance The current balance for an Account
@@ -45,9 +45,6 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice Record of token holders TWABs for each account.
   mapping (address => Account) internal userTwabs;
 
-  /// @notice ERC20 ticket token decimals.
-  uint8 private _decimals;
-
   /// @notice Record of tickets total supply and most recent TWAB index.
   Account internal totalSupplyTwab;
 
@@ -57,28 +54,26 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice Each address's balance
   mapping(address => uint256) balances;
 
-  /// @notice Initializes Ticket with passed parameters.
+  /* ============ Constructor ============ */
+
+  /// @notice Constructs Ticket with passed parameters.
   /// @param _name ERC20 ticket token name.
   /// @param _symbol ERC20 ticket token symbol.
   /// @param decimals_ ERC20 ticket token decimals.
-  function initialize (
-    string calldata _name,
-    string calldata _symbol,
+  /// @param _controller ERC20 ticket controller address (ie: Prize Pool address).
+  constructor (
+    string memory _name,
+    string memory _symbol,
     uint8 decimals_,
     address _controller
-  ) public virtual override initializer {
-    __ERC20_init(_name, _symbol);
-    __ERC20Permit_init("PoolTogether Ticket");
+  ) ControlledToken(
+    _name,
+    _symbol,
+    decimals_,
+    _controller
+  ){}
 
-    require(decimals_ > 0, "Ticket/decimals-gt-zero");
-    _decimals = decimals_;
-
-    require(_controller != address(0), "Ticket/controller-not-zero-address");
-
-    ControlledToken.initialize(_name, _symbol, _decimals, _controller);
-
-    emit TicketInitialized(_name, _symbol, decimals_, _controller);
-  }
+    /* ============ External Functions ============ */
 
   /// @notice Gets a users twap context.  This is a struct with their balance, next twab index, and cardinality.
   /// @param _user The user for whom to fetch the TWAB context
@@ -103,31 +98,18 @@ contract Ticket is ControlledToken, ITicket {
     return _getBalanceAt(account.twabs, account.details, _target);
   }
 
-  /// @notice Retrieves `_user` TWAB balance.
-  /// @param _target Timestamp at which the reserved TWAB should be for.
-  function _getBalanceAt(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target) internal view returns (uint256) {
-    return TwabLibrary.getBalanceAt(
-      _details.cardinality,
-      _details.nextTwabIndex,
-      _twabs,
-      _details.balance,
-      uint32(_target),
-      uint32(block.timestamp)
-    );
-  }
-
   /// @notice Calculates the average balance held by a user for given time frames.
   /// @param user The user whose balance is checked
   /// @param startTimes The start time of the time frame.
   /// @param endTimes The end time of the time frame.
   /// @return The average balance that the user held during the time frame.
-  function getAverageBalancesBetween(address user, uint32[] calldata startTimes, uint32[] calldata endTimes) external override view 
+  function getAverageBalancesBetween(address user, uint32[] calldata startTimes, uint32[] calldata endTimes) external override view
     returns (uint256[] memory)
   {
     require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
     Account storage account = userTwabs[user];
     uint256[] memory averageBalances = new uint256[](startTimes.length);
-    
+
     for (uint i = 0; i < startTimes.length; i++) {
       averageBalances[i] = _getAverageBalanceBetween(account.twabs, account.details, startTimes[i], endTimes[i]);
     }
@@ -136,7 +118,7 @@ contract Ticket is ControlledToken, ITicket {
 
   /// @notice Calculates the average total supply balance for a set of given time frames.
   /// @param startTimes Array of start times
-  /// @param endTimes Array of end times 
+  /// @param endTimes Array of end times
   /// @return The average total supplies held during the time frame.
   function getAverageTotalSuppliesBetween(uint32[] calldata startTimes, uint32[] calldata endTimes) external override view
     returns (uint256[] memory)
@@ -144,13 +126,13 @@ contract Ticket is ControlledToken, ITicket {
     require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
     Account storage _totalSupplyTwab = totalSupplyTwab;
     uint256[] memory averageTotalSupplies = new uint256[](startTimes.length);
-    
+
     for (uint i = 0; i < startTimes.length; i++) {
       averageTotalSupplies[i] = _getAverageBalanceBetween(_totalSupplyTwab.twabs, _totalSupplyTwab.details, startTimes[i], endTimes[i]);
     }
     return averageTotalSupplies;
   }
-  
+
   /// @notice Calculates the average balance held by a user for a given time frame.
   /// @param _user The user whose balance is checked
   /// @param _startTime The start time of the time frame.
@@ -159,23 +141,6 @@ contract Ticket is ControlledToken, ITicket {
   function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
     Account storage account = userTwabs[_user];
     return _getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime));
-  }
-
-  /// @notice Calculates the average balance held by a user for a given time frame.
-  /// @param _startTime The start time of the time frame.
-  /// @param _endTime The end time of the time frame.
-  /// @return The average balance that the user held during the time frame.
-  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime)
-   internal view returns (uint256) {
-    return TwabLibrary.getAverageBalanceBetween(
-      _details.cardinality,
-      _details.nextTwabIndex,
-      _twabs,
-      _details.balance,
-      _startTime,
-      _endTime,
-      uint32(block.timestamp)
-    );
   }
 
   /// @notice Retrieves `_user` TWAB balances.
@@ -223,19 +188,6 @@ contract Ticket is ControlledToken, ITicket {
   }
 
   /// @notice Returns the ERC20 ticket token balance of a ticket holder.
-  /// @return uint256 `_user` ticket token balance.
-  function _balanceOf(address _user) internal view returns (uint256) {
-    return balances[_user];
-  }
-
-  /// @notice Returns the ERC20 ticket token decimals.
-  /// @dev This value should be equal to the decimals of the token used to deposit into the pool.
-  /// @return uint8 decimals.
-  function decimals() public view virtual override returns (uint8) {
-    return _decimals;
-  }
-
-  /// @notice Returns the ERC20 ticket token balance of a ticket holder.
   /// @return uint224 `_user` ticket token balance.
   function balanceOf(address _user) public view override returns (uint256) {
     return _balanceOf(_user);
@@ -268,7 +220,46 @@ contract Ticket is ControlledToken, ITicket {
     emit Delegated(msg.sender, to);
   }
 
-  /// @notice Overridding of the `_transfer` function of the base ERC20Upgradeable contract.
+  /* ============ Internal Functions ============ */
+
+  /// @notice Calculates the average balance held by a user for a given time frame.
+  /// @param _startTime The start time of the time frame.
+  /// @param _endTime The end time of the time frame.
+  /// @return The average balance that the user held during the time frame.
+  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime)
+    internal view returns (uint256) {
+    return TwabLibrary.getAverageBalanceBetween(
+      _details.cardinality,
+      _details.nextTwabIndex,
+      _twabs,
+      _details.balance,
+      _startTime,
+      _endTime,
+      uint32(block.timestamp)
+    );
+  }
+
+  /// @notice Retrieves `_user` TWAB balance.
+  /// @param _target Timestamp at which the reserved TWAB should be for.
+  function _getBalanceAt(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target)
+    internal view returns (uint256) {
+    return TwabLibrary.getBalanceAt(
+      _details.cardinality,
+      _details.nextTwabIndex,
+      _twabs,
+      _details.balance,
+      uint32(_target),
+      uint32(block.timestamp)
+    );
+  }
+
+  /// @notice Returns the ERC20 ticket token balance of a ticket holder.
+  /// @return uint256 `_user` ticket token balance.
+  function _balanceOf(address _user) internal view returns (uint256) {
+    return balances[_user];
+  }
+
+  /// @notice Overridding of the `_transfer` function of the base ERC20 contract.
   /// @dev `_sender` cannot be the zero address.
   /// @dev `_recipient` cannot be the zero address.
   /// @dev `_sender` must have a balance of at least `_amount`.
@@ -320,7 +311,7 @@ contract Ticket is ControlledToken, ITicket {
     _afterTokenTransfer(_sender, _recipient, _amount);
   }
 
-  /// @notice Overridding of the `_mint` function of the base ERC20Upgradeable contract.
+  /// @notice Overridding of the `_mint` function of the base ERC20 contract.
   /// @dev `_to` cannot be the zero address.
   /// @param _to Address that will be minted `_amount` of tokens.
   /// @param _amount Amount of tokens to be minted to `_to`.
@@ -350,7 +341,7 @@ contract Ticket is ControlledToken, ITicket {
     _afterTokenTransfer(address(0), _to, _amount);
   }
 
-  /// @notice Overridding of the `_burn` function of the base ERC20Upgradeable contract.
+  /// @notice Overridding of the `_burn` function of the base ERC20 contract.
   /// @dev `_from` cannot be the zero address.
   /// @dev `_from` must have at least `_amount` of tokens.
   /// @param _from Address that will be burned `_amount` of tokens.
