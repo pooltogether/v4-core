@@ -60,6 +60,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _name ERC20 ticket token name.
   /// @param _symbol ERC20 ticket token symbol.
   /// @param decimals_ ERC20 ticket token decimals.
+  /// @param _controller ERC20 ticket controller address (ie: Prize Pool address).
   constructor (
     string memory _name,
     string memory _symbol,
