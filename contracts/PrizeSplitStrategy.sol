@@ -7,7 +7,12 @@ import "./prize-strategy/PrizeSplit.sol";
 /**
   * @title  PoolTogether V4 PrizeSplitStrategy
   * @author PoolTogether Inc Team
-  * @notice Captures PrizePool interest for PrizeReserve and secondary prize split recipients. 
+  * @notice Captures PrizePool interest for PrizeReserve and additional PrizeSplit recipients.
+            The PrizeSplitStrategy will have at minimum a single PrizeSplit with 100% of the captured
+            interest transfered to the PrizeReserve. Additional PrizeSplits can be added, depending on
+            the deployers requirements (i.e. percentage to charity). In contrast to previous PoolTogether
+            iterations, interest can be captured independent of a new Draw. Ideally (to save gas) interest 
+            is only captured when also distributing the captured prize(s) to applicable ClaimbableDraw(s).   
 */
 contract PrizeSplitStrategy is Initializable, PrizeSplit {
 
