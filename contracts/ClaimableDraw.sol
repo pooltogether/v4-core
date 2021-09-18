@@ -27,7 +27,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /// @notice The Draw Calculator to use
   IDrawCalculator internal drawCalculator;
 
-  /// @notice Ticket address
+  /// @notice Token address
   IERC20 internal token;
 
   /// @notice Maps users => drawId => paid out balance
