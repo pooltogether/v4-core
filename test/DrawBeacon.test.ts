@@ -403,7 +403,7 @@ describe('DrawBeacon', () => {
       it('should prevent starting an award', async () => {
         await drawBeaconBase2.setCurrentTime(100);
         await expect(drawBeaconBase2.startDraw()).to.be.revertedWith(
-          'DrawBeacon/prize-period-not-over',
+          'DrawBeacon/beacon-period-not-over',
         );
       });
     });
@@ -412,7 +412,7 @@ describe('DrawBeacon', () => {
       it('should prevent completing an award', async () => {
         await drawBeaconBase2.setCurrentTime(100);
         await expect(drawBeaconBase2.startDraw()).to.be.revertedWith(
-          'DrawBeacon/prize-period-not-over',
+          'DrawBeacon/beacon-period-not-over',
         );
       });
     });
