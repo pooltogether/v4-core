@@ -39,6 +39,14 @@ interface IClaimableDraw {
   );
 
   /**
+    * @notice Emitted when a global Ticket variable is set.
+    * @param token Token address
+  */
+  event TokenSet (
+    IERC20 indexed token
+  );
+
+  /**
     * @notice Emitted when ERC20 tokens are withdrawn from the claimable draw.
     * @param token ERC20 token transferred.
     * @param to Address that received funds.

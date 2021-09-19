@@ -28,7 +28,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   IDrawCalculator internal drawCalculator;
 
   /// @notice Token address
-  IERC20 internal token;
+  IERC20 internal immutable token;
 
   /// @notice Maps users => drawId => paid out balance
   mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
@@ -37,6 +37,8 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
 
   /**
     * @notice Initialize ClaimableDraw smart contract.
+    * @param _manager     Manager address
+    * @param _token       Token address
     * @param _drawHistory DrawHistory address
   */
   constructor(
@@ -46,7 +48,9 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   ) Ownable() {
     _setDrawHistory(_drawHistory);
     _setDrawCalculator(_drawCalculator);
+    require(address(_token) != address(0), "ClaimableDraw/token-not-zero-address" );
     token = _token;
+    emit TokenSet(_token);
   }
 
   /* ============ External View Functions ============ */
