@@ -7,7 +7,7 @@ import "./libraries/DrawLib.sol";
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
 /**
-  * @title  PoolTogether V4 DrawCalculator
+  * @title  PoolTogether V4 TsunamiDrawCalculator
   * @author PoolTogether Inc Team
   * @notice The TsunamiDrawCalculator calculates a user's claimable prize by using the combined entropy of
             Draw.randomWinningNumber, wallet address and supplied pickIndices. Prize payouts are divided
