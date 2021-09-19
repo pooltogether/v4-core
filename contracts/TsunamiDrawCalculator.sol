@@ -1,15 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./ClaimableDraw.sol";
 import "./libraries/DrawLib.sol";
-
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
-///@title TsunamiDrawCalculator is an implementation of an IDrawCalculator
+/**
+  * @title  PoolTogether V4 DrawCalculator
+  * @author PoolTogether Inc Team
+  * @notice The TsunamiDrawCalculator calculates a user's claimable prize by using the combined entropy of
+            Draw.randomWinningNumber, wallet address and supplied pickIndices. Prize payouts are divided
+            into multiple tiers: grand prize, second place, third place, etc... Prizes can be claimed
+            by supplying matching winning numbers via the user allotted pickIndices. A user with a higher
+            average weighted balance will be given a large number of pickIndices to choose from, and thus a 
+            higher chance to win the highest possible prize payouts.
+
+  
+*/
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   
   uint256 constant MAX_CARDINALITY = 256;
