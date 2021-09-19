@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-
 import "./interfaces/IPrizePool.sol";
 import "./prize-strategy/PrizeSplit.sol";
 
+/**
+  * @title  PoolTogether V4 PrizeSplitStrategy
+  * @author PoolTogether Inc Team
+  * @notice Captures PrizePool interest for PrizeReserve and additional PrizeSplit recipients.
+            The PrizeSplitStrategy will have at minimum a single PrizeSplit with 100% of the captured
+            interest transfered to the PrizeReserve. Additional PrizeSplits can be added, depending on
+            the deployers requirements (i.e. percentage to charity). In contrast to previous PoolTogether
+            iterations, interest can be captured independent of a new Draw. Ideally (to save gas) interest 
+            is only captured when also distributing the captured prize(s) to applicable ClaimbableDraw(s).   
+*/
 contract PrizeSplitStrategy is PrizeSplit {
 
-  /* ============ Variables ============ */
-
   /**
-    * @notice Linked PrizePool smart contract responsible for awarding tokens.
+    * @notice PrizePool address
   */
   IPrizePool public prizePool;
 
@@ -17,7 +24,7 @@ contract PrizeSplitStrategy is PrizeSplit {
 
   /**
     * @notice Emit when a strategy captures award amount from PrizePool.
-    * @param totalPrizeCaptured  Total prize captured from PrizePool
+    * @param totalPrizeCaptured  Total prize captured from the PrizePool
   */
   event Distributed(
     uint256 totalPrizeCaptured
@@ -26,8 +33,8 @@ contract PrizeSplitStrategy is PrizeSplit {
   /**
     * @notice Emit when an individual prize split is awarded.
     * @param user          User address being awarded
-    * @param prizeAwarded  Token prize amount
-    * @param token         Token awarded address
+    * @param prizeAwarded  Awarded prize amount
+    * @param token         Token address
   */
   event PrizeSplitAwarded(
     address indexed user,
@@ -52,8 +59,9 @@ contract PrizeSplitStrategy is PrizeSplit {
 
   /**
     * @notice Capture the award balance and distribute to prize splits.
-    * @dev    Capture the award balance and award tokens using the linked PrizePool.
-    * @return Total prize amount captured via prizePool.captureAwardBalance()
+    * @dev    Can be executed by any wallet at any time. Optimal executation (minimal wasted gas) 
+              is coordination when pushing Draw(s) to DrawHistory to cover upcoming prize distribution.
+    * @return Prize captured from PrizePool
   */
   function distribute() external returns (uint256) {
     uint256 prize = prizePool.captureAwardBalance();

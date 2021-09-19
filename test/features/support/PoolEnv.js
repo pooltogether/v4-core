@@ -147,7 +147,7 @@ function PoolEnv() {
     expect(draw.winningRandomNumber).to.equal(randomNumber)
   }
 
-  this.setDrawSettings = async function ({
+  this.pushDrawSettings = async function ({
     drawId,
     bitRangeSize,
     drawStartTimestampOffset,
@@ -171,7 +171,7 @@ function PoolEnv() {
       maxPicksPerUser
     }
     
-    await drawCalculator.setDrawSettings(drawId, drawSettings)
+    await drawCalculator.pushDrawSettings(drawId, drawSettings)
   }
 }
 
