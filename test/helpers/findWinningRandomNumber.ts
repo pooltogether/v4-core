@@ -80,10 +80,10 @@ async function runFindWinningRandomNumbers() {
   let drawSettings: TsunamiDrawCalculatorSettings = {
     matchCardinality: BigNumber.from(7),
     distributions: [
-      ethers.utils.parseEther('0.2'),
-      ethers.utils.parseEther('0.1'),
-      ethers.utils.parseEther('0.1'),
-      ethers.utils.parseEther('0.1'),
+      ethers.utils.parseUnits("0.2", 9),
+      ethers.utils.parseUnits("0.1", 9),
+      ethers.utils.parseUnits("0.1", 9),
+      ethers.utils.parseUnits("0.1", 9),
     ],
     numberOfPicks: BigNumber.from(utils.parseEther('1')),
     bitRangeSize: BigNumber.from(4),

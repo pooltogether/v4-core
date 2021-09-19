@@ -24,7 +24,7 @@ library DrawLib{
         uint32 drawEndTimestampOffset;
         uint32 maxPicksPerUser;
         uint136 numberOfPicks;
-        uint128[] distributions;
+        uint32[] distributions;
         uint256 prize;
     }
 }

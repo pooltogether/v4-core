@@ -208,7 +208,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
       }
     }
     // return the absolute amount of prize awardable
-    return uint96((prizeFraction * _drawSettings.prize) / 1e18); // div by 1 ether as prize distributions are base 1e18
+    return uint96((prizeFraction * _drawSettings.prize) / 1e9); // div by 1e9 as prize distributions are base 1e9
   }
 
   ///@notice Calculates the distribution index given the random numbers and masks
@@ -299,7 +299,8 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
     }
-    require(sumTotalDistributions <= 1 ether, "DrawCalc/distributions-gt-100%");
+
+    require(sumTotalDistributions <= 1e9, "DrawCalc/distributions-gt-100%");
 
     DrawSettingsRingBuffer memory _ringBuffer = ringBuffer;
 
