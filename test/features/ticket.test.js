@@ -40,7 +40,7 @@ describe('Tickets', () => {
     await env.poolAccrues({ tickets: 10 })
     await env.draw({ randomNumber: winningRandomNumber })
 
-    await env.setDrawSettings({
+    await env.pushDrawSettings({
       drawId: 0,
       bitRangeSize: ethers.BigNumber.from(4),
       matchCardinality: ethers.BigNumber.from(5),

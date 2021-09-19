@@ -28,7 +28,7 @@ describe('Oracle jobs', () => {
     drawEndTimestampOffset = 2
     maxPicksPerUser = 1000
     
-    await env.setDrawSettings({
+    await env.pushDrawSettings({
       drawId: 0,
       bitRangeSize,
       matchCardinality,

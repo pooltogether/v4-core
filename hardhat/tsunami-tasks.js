@@ -36,7 +36,7 @@ task('set-draw-settings')
   .addPositionalParam('prize', 'prize')
   .setAction(async function ({ address, drawId, bitRangeSize, matchCardinality, numberOfPicks, prize }) {
     const contract = await ethers.getContractAt('DrawHistory', address);
-    await contract.setDrawSettings(drawId, {
+    await contract.pushDrawSettings(drawId, {
       bitRangeSize: BigNumber.from(bitRangeSize),
       matchCardinality: BigNumber.from(matchCardinality),
       numberOfPicks: BigNumber.from(utils.parseEther(`${numberOfPicks}`)),

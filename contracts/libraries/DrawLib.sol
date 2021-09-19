@@ -19,7 +19,7 @@ library DrawLib{
     ///@param prize Total prize amount available in this draw calculator for this Draw (may vary from network to network)
     struct TsunamiDrawCalculatorSettings {
         uint8 bitRangeSize;
-        uint16 matchCardinality;
+        uint8 matchCardinality;
         uint32 drawStartTimestampOffset;
         uint32 drawEndTimestampOffset;
         uint32 maxPicksPerUser;
