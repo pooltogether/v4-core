@@ -45,7 +45,7 @@ describe('Tickets', () => {
       bitRangeSize: ethers.BigNumber.from(4),
       matchCardinality: ethers.BigNumber.from(5),
       numberOfPicks: toWei('1'),
-      distributions: [toWei('0.8'), toWei('0.2')],
+      distributions: [ethers.utils.parseUnits("0.8", 9), ethers.utils.parseUnits("0.2", 9)],
       prize: toWei('10'),
       drawStartTimestampOffset: 5,
       drawEndTimestampOffset: 1,
