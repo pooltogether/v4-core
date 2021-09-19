@@ -62,9 +62,8 @@ interface IClaimableDraw {
   function getDrawCalculator() external view returns (IDrawCalculator);
   function getDrawHistory() external view returns (IDrawHistory);
   function getDrawPayoutBalanceOf(address user, uint32 drawId) external view returns (uint256);
-  function setDrawCalculator(IDrawCalculator _newCalculator) external returns(IDrawCalculator);
   function getToken() external view returns (IERC20);
-  function setDrawCalculator(uint32 _drawId, IDrawCalculator _newCalculator) external returns(IDrawCalculator);
+  function setDrawCalculator(IDrawCalculator _newCalculator) external returns(IDrawCalculator);
   function setDrawHistory(IDrawHistory _drawHistory) external returns (IDrawHistory);
   function withdrawERC20(IERC20 _erc20Token, address _to, uint256 _amount) external returns (bool);
 }

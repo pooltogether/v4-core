@@ -37,9 +37,9 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
 
   /**
     * @notice Initialize ClaimableDraw smart contract.
-    * @param _manager     Manager address
     * @param _token       Token address
     * @param _drawHistory DrawHistory address
+    * @param _drawCalculator DrawCalculator address
   */
   constructor(
     IERC20 _token,
@@ -167,6 +167,15 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
     require(address(_drawHistory) != address(0), "ClaimableDraw/draw-history-not-zero-address");
     drawHistory = _drawHistory;
     emit DrawHistorySet(_drawHistory);
+  }
+
+  /**
+    * @notice Transfer claimed draw(s) total payout to user.
+    * @param _to      User address
+    * @param _amount  Transfer amount 
+  */
+  function _awardPayout(address _to, uint256 _amount) internal {
+    token.safeTransfer(_to, _amount);
   }
 
   /**

@@ -101,7 +101,7 @@ function PoolEnv() {
 
     debug(`Depositing... (${wallet.address}, ${amount}, ${ticket.address}, ${AddressZero})`);
 
-    await prizePool.depositTo(wallet.address, amount, ticket.address, this.overrides);
+    await prizePool.depositTo(wallet.address, amount, this.overrides);
 
     debug(`Bought tickets`);
     ticket.transfer(claimableDraw, amount);

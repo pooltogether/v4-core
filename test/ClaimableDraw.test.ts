@@ -30,6 +30,12 @@ describe('ClaimableDraw', () => {
   });
 
   beforeEach(async () => {
+    const erc20MintableFactory: ContractFactory = await ethers.getContractFactory(
+      'ERC20Mintable',
+    );
+    dai = await erc20MintableFactory.deploy('Dai Stablecoin', 'DAI');
+    ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
+
     let IDrawCalculator = await artifacts.readArtifact('IDrawCalculator');
     drawCalculator = await deployMockContract(wallet1, IDrawCalculator.abi);
 
@@ -39,15 +45,9 @@ describe('ClaimableDraw', () => {
     const claimableDrawFactory: ContractFactory = await ethers.getContractFactory(
       'ClaimableDraw',
     );
-    claimableDraw = await claimableDrawFactory.deploy(drawHistory.address, drawCalculator.address);
-
-    const erc20MintableFactory: ContractFactory = await ethers.getContractFactory(
-      'ERC20Mintable',
-    );
-    dai = await erc20MintableFactory.deploy('Dai Stablecoin', 'DAI');
-    ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
+    claimableDraw = await claimableDrawFactory.deploy(ticket.address, drawHistory.address, drawCalculator.address);
+    
     await ticket.mint(claimableDraw.address, toWei('1000'));
-    await claimableDraw.initialize(wallet1.address, ticket.address, drawHistory.address);
   });
 
   /* =============================== */
