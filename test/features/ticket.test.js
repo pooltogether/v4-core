@@ -1,5 +1,5 @@
 const { PoolEnv } = require('./support/PoolEnv');
-const ethers = require('ethers')
+const ethers = require('ethers');
 
 const toWei = (val) => ethers.utils.parseEther('' + val);
 
@@ -7,8 +7,8 @@ describe('Tickets', () => {
   let env;
 
   beforeEach(async () => {
-    env = new PoolEnv()
-    await env.ready()
+    env = new PoolEnv();
+    await env.ready();
   });
 
   it('should be possible to purchase tickets', async () => {
@@ -19,17 +19,22 @@ describe('Tickets', () => {
   });
 
   it('should be possible to withdraw tickets', async () => {
-    await env.buyTickets({ user: 1, tickets: 100 })
+    await env.buyTickets({ user: 1, tickets: 100 });
     // they deposited all of their tokens
-    await env.expectUserToHaveTokens({ user: 1, tokens: 0 })
-    await env.withdraw({ user: 1, tickets: 100 })
-    await env.expectUserToHaveTokens({ user: 1, tokens: 100 })
-  })
+    await env.expectUserToHaveTokens({ user: 1, tokens: 0 });
+    await env.withdraw({ user: 1, tickets: 100 });
+    await env.expectUserToHaveTokens({ user: 1, tokens: 100 });
+  });
 
   it('should allow a user to pull their prizes', async () => {
-    await env.buyTickets({ user: 1, tickets: 100 })
+    await env.buyTickets({ user: 1, tickets: 100 });
+    await env.buyTicketsForClaimableDraw({
+      user: 1,
+      tickets: 100,
+      claimableDraw: (await env.claimableDraw()).address,
+    });
 
-    const wallet = await env.wallet(1)
+    const wallet = await env.wallet(1);
 
     const winningNumber = ethers.utils.solidityKeccak256(['address'], [wallet.address]);
     const winningRandomNumber = ethers.utils.solidityKeccak256(
@@ -37,8 +42,8 @@ describe('Tickets', () => {
       [winningNumber, 1],
     );
 
-    await env.poolAccrues({ tickets: 10 })
-    await env.draw({ randomNumber: winningRandomNumber })
+    await env.poolAccrues({ tickets: 10 });
+    await env.draw({ randomNumber: winningRandomNumber });
 
     await env.pushDrawSettings({
       drawId: 0,
@@ -52,6 +57,6 @@ describe('Tickets', () => {
       maxPicksPerUser : 1000
     })
 
-    await env.claim({ user: 1, drawId: 0, picks: [1], prize: 10 })
-  })
+    await env.claim({ user: 1, drawId: 0, picks: [1], prize: 100 });
+  });
 });

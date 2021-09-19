@@ -167,7 +167,7 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying ClaimableDraw...');
   const claimableDrawResult = await deploy('ClaimableDraw', {
     from: deployer,
-    args: [drawHistoryResult.address, drawCalculatorResult.address],
+    args: [ticketResult.address, drawHistoryResult.address, drawCalculatorResult.address],
   });
   displayResult('ClaimableDraw', claimableDrawResult);
 

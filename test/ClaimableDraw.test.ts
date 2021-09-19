@@ -14,6 +14,7 @@ describe('ClaimableDraw', () => {
   let wallet2: any;
   let wallet3: any;
   let dai: Contract;
+  let ticket: Contract;
   let claimableDraw: Contract;
   let drawCalculator: MockContract;
   let drawHistory: MockContract;
@@ -29,6 +30,12 @@ describe('ClaimableDraw', () => {
   });
 
   beforeEach(async () => {
+    const erc20MintableFactory: ContractFactory = await ethers.getContractFactory(
+      'ERC20Mintable',
+    );
+    dai = await erc20MintableFactory.deploy('Dai Stablecoin', 'DAI');
+    ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
+
     let IDrawCalculator = await artifacts.readArtifact('IDrawCalculator');
     drawCalculator = await deployMockContract(wallet1, IDrawCalculator.abi);
 
@@ -38,12 +45,9 @@ describe('ClaimableDraw', () => {
     const claimableDrawFactory: ContractFactory = await ethers.getContractFactory(
       'ClaimableDraw',
     );
-    claimableDraw = await claimableDrawFactory.deploy(drawHistory.address, drawCalculator.address);
-
-    const erc20MintableFactory: ContractFactory = await ethers.getContractFactory(
-      'ERC20Mintable',
-    );
-    dai = await erc20MintableFactory.deploy('Dai Stablecoin', 'DAI');
+    claimableDraw = await claimableDrawFactory.deploy(ticket.address, drawHistory.address, drawCalculator.address);
+    
+    await ticket.mint(claimableDraw.address, toWei('1000'));
   });
 
   /* =============================== */
@@ -69,6 +73,13 @@ describe('ClaimableDraw', () => {
       it('should return the user payout for draw before claiming a payout', async () => {
         expect(await claimableDraw.getDrawPayoutBalanceOf(wallet1.address, 0))
           .to.equal('0');
+      });
+    });
+
+    describe('getToken()', () => {
+      it('should succesfully read global token variable', async () => {
+        expect(await claimableDraw.getToken())
+          .to.equal(ticket.address)
       });
     });
   })

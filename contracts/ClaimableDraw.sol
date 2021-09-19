@@ -27,6 +27,9 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /// @notice The Draw Calculator to use
   IDrawCalculator internal drawCalculator;
 
+  /// @notice Token address
+  IERC20 internal immutable token;
+
   /// @notice Maps users => drawId => paid out balance
   mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
 
@@ -34,14 +37,20 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
 
   /**
     * @notice Initialize ClaimableDraw smart contract.
+    * @param _token       Token address
     * @param _drawHistory DrawHistory address
+    * @param _drawCalculator DrawCalculator address
   */
   constructor(
+    IERC20 _token,
     IDrawHistory _drawHistory,
     IDrawCalculator _drawCalculator
   ) Ownable() {
     _setDrawHistory(_drawHistory);
     _setDrawCalculator(_drawCalculator);
+    require(address(_token) != address(0), "ClaimableDraw/token-not-zero-address" );
+    token = _token;
+    emit TokenSet(_token);
   }
 
   /* ============ External View Functions ============ */
@@ -75,8 +84,8 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
     * @notice Read global Ticket variable.
     * @return IERC20
   */
-  function getTicket() external override view returns (IERC20) {
-    // return ticket;
+  function getToken() external override view returns (IERC20) {
+    return token;
   }
 
   function _getDrawPayoutBalanceOf(address _user, uint32 _drawId) internal view returns (uint256) {
@@ -90,7 +99,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /* ============ External Functions ============ */
 
   /**
-    * @notice Claim a user ticket payouts via a collection of draw ids and pick indices.
+    * @notice Claim a user token payouts via a collection of draw ids and pick indices. 
     * @param _user             Address of user to claim awards for. Does NOT need to be msg.sender
     * @param _drawIds          Draw IDs from global DrawHistory reference
     * @param _data             The data to pass to the draw calculator.
@@ -114,6 +123,8 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
       totalPayout += payoutDiff;
       emit ClaimedDraw(_user, drawId, payoutDiff);
     }
+
+    _awardPayout(_user, totalPayout);
 
     return totalPayout;
   }
@@ -156,6 +167,15 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
     require(address(_drawHistory) != address(0), "ClaimableDraw/draw-history-not-zero-address");
     drawHistory = _drawHistory;
     emit DrawHistorySet(_drawHistory);
+  }
+
+  /**
+    * @notice Transfer claimed draw(s) total payout to user.
+    * @param _to      User address
+    * @param _amount  Transfer amount 
+  */
+  function _awardPayout(address _to, uint256 _amount) internal {
+    token.safeTransfer(_to, _amount);
   }
 
   /**
