@@ -2,17 +2,18 @@
 
 pragma solidity 0.8.6;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./ClaimableDraw.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBuffer.sol";
-
-import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
+import "./TsunamiDrawSettingsHistory.sol";
 
 ///@title TsunamiDrawCalculator is an implementation of an IDrawCalculator
-contract TsunamiDrawCalculator is IDrawCalculator {
+contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
 
   /**
     * @notice Emitted when a global DrawHistory variable is set.
@@ -35,8 +36,7 @@ contract TsunamiDrawCalculator is IDrawCalculator {
 
   ///@notice Constructor for TsunamiDrawCalculator
   ///@param _ticket Ticket associated with this DrawCalculator
-  ///@param _manager Address of the manager. Can be different from the contract owner.
-  constructor(ITicket _ticket, IDrawHistory _drawHistory, TsunamiDrawSettingsHistory _tsunamiDrawSettingsHistory) {
+  constructor(ITicket _ticket, IDrawHistory _drawHistory, TsunamiDrawSettingsHistory _tsunamiDrawSettingsHistory) Ownable() {
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
     require(address(_tsunamiDrawSettingsHistory) != address(0), "DrawCalc/tdsh-not-zero");
     _setDrawHistory(_drawHistory);
@@ -56,32 +56,15 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   function calculate(address _user, uint32[] calldata _drawIds, bytes calldata _pickIndicesForDraws)
     external override view returns (uint256[] memory)
   {
-    
     uint256[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint256 [][]));
     require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
     DrawLib.Draw[] memory draws = drawHistory.getDraws(_drawIds);
-
-    //now unpack Draw struct
-    uint32[] memory _timestamps = new uint32[](draws.length);
-    uint256[] memory _winningRandomNumbers = new uint256[](draws.length);
-
-    for(uint256 i = 0; i < draws.length; i++){
-      _timestamps[i] = draws[i].timestamp;
-      _winningRandomNumbers[i] = draws[i].winningRandomNumber;
-    }
-
-    DrawRingBuffer.Buffer memory _drawSettingsRingBuffer = drawSettingsRingBuffer;
-
-    DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings =  new DrawLib.TsunamiDrawCalculatorSettings[](draws.length);
-    for(uint256 i = 0; i < draws.length; i++){
-      _drawSettings[i] = _getDrawSettings(_drawSettingsRingBuffer, draws[i].drawId);
-    }
-
-    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps, _drawSettings);
+    DrawLib.TsunamiDrawSettings[] memory _drawSettings = tsunamiDrawSettingsHistory.getDrawSettings(_drawIds);
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, draws, _drawSettings);
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
-    return _calculatePrizesAwardable(userBalances, _userRandomNumber, _winningRandomNumbers, pickIndices, _drawSettings);
+    return _calculatePrizesAwardable(userBalances, _userRandomNumber, draws, pickIndices, _drawSettings);
   }
 
   /**
@@ -90,6 +73,14 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   */
   function getDrawHistory() external view returns (IDrawHistory) {
     return drawHistory;
+  }
+
+  /**
+    * @notice Read global DrawHistory variable.
+    * @return IDrawHistory
+  */
+  function getTsunamiDrawSettingsHistory() external view returns (TsunamiDrawSettingsHistory) {
+    return tsunamiDrawSettingsHistory;
   }
 
   /**
@@ -117,19 +108,18 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
   ///@param _normalizedUserBalances Number of picks the user has for each Draw
   ///@param _userRandomNumber Random number of the user to consider over draws
-  ///@param _winningRandomNumbers Winning random numbers for each Draw
+  ///@param _draws Draws
   ///@param _pickIndicesForDraws Pick indices for each Draw
   ///@param _drawSettings TsunamiDrawCalculatorSettings for each Draw
   function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber,
-    uint256[] memory _winningRandomNumbers, uint256[][] memory _pickIndicesForDraws, DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings)
+    DrawLib.Draw[] memory _draws, uint256[][] memory _pickIndicesForDraws, DrawLib.TsunamiDrawSettings[] memory _drawSettings)
     internal view returns (uint256[] memory)
    {
-
     uint256[] memory prizesAwardable = new uint256[](_normalizedUserBalances.length);
     // calculate prizes awardable for each Draw passed
-    for (uint32 drawIndex = 0; drawIndex < _winningRandomNumbers.length; drawIndex++) {
+    for (uint32 drawIndex = 0; drawIndex < _draws.length; drawIndex++) {
       uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[drawIndex], _normalizedUserBalances[drawIndex]);
-      prizesAwardable[drawIndex] = _calculate(_winningRandomNumbers[drawIndex], totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings[drawIndex]);
+      prizesAwardable[drawIndex] = _calculate(_draws[drawIndex].winningRandomNumber, totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings[drawIndex]);
     }
     return prizesAwardable;
   }
@@ -138,32 +128,32 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   ///@dev Divided by 1e18 since the normalized user balance is stored as a base 18 number
   ///@param _drawSettings The TsunamiDrawCalculatorSettings to consider
   ///@param _normalizedUserBalance The normalized user balances to consider
-  function _calculateNumberOfUserPicks(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
+  function _calculateNumberOfUserPicks(DrawLib.TsunamiDrawSettings memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
     return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether;
   }
 
   ///@notice Calculates the normalized balance of a user against the total supply for timestamps
   ///@param _user The user to consider
-  ///@param _timestamps The timestamps to consider
+  ///@param _draws The draws we are looking at
   ///@param _drawSettings The draw settings to consider (needed for draw timstamp offsets)
   ///@return An array of normalized balances
-  function _getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings) internal view returns (uint256[] memory) {
-    uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_timestamps.length);
-    uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_timestamps.length);
+  function _getNormalizedBalancesAt(address _user, DrawLib.Draw[] memory _draws, DrawLib.TsunamiDrawSettings[] memory _drawSettings) internal view returns (uint256[] memory) {
+    uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_draws.length);
+    uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_draws.length);
 
     // generate timestamps with draw cutoff offsets included
-    for (uint32 i = 0; i < _timestamps.length; i++) {
-      _timestampsWithStartCutoffTimes[i] = _timestamps[i] - _drawSettings[i].drawStartTimestampOffset;
-      _timestampsWithEndCutoffTimes[i] = _timestamps[i] - _drawSettings[i].drawEndTimestampOffset;
+    for (uint32 i = 0; i < _draws.length; i++) {
+      _timestampsWithStartCutoffTimes[i] = _draws[i].timestamp - _drawSettings[i].drawStartTimestampOffset;
+      _timestampsWithEndCutoffTimes[i] = _draws[i].timestamp - _drawSettings[i].drawEndTimestampOffset;
     }
 
     uint256[] memory balances = ticket.getAverageBalancesBetween(_user, _timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
     uint256[] memory totalSupplies = ticket.getAverageTotalSuppliesBetween(_timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);
 
-    uint256[] memory normalizedBalances = new uint256[](_timestamps.length);
+    uint256[] memory normalizedBalances = new uint256[](_draws.length);
 
     // divide balances by total supplies (normalize)
-    for (uint256 i = 0; i < _timestamps.length; i++) {
+    for (uint256 i = 0; i < _draws.length; i++) {
       require(totalSupplies[i] > 0, "DrawCalc/total-supply-zero");
       normalizedBalances[i] = balances[i] * 1 ether / totalSupplies[i];
     }
@@ -179,7 +169,7 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   ///@param _picks The users picks for that draw
   ///@param _drawSettings Params with the associated draw
   ///@return prize (if any) per Draw claim
-  function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings)
+  function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.TsunamiDrawSettings memory _drawSettings)
     internal view returns (uint256)
   {
 
@@ -241,7 +231,7 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   ///@notice helper function to create bitmasks equal to the matchCardinality
   ///@param _drawSettings The TsunamiDrawCalculatorSettings to use to calculate the masks
   ///@return An array of bitmasks
-  function _createBitMasks(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings)
+  function _createBitMasks(DrawLib.TsunamiDrawSettings memory _drawSettings)
     internal pure returns (uint256[] memory)
   {
     uint256[] memory masks = new uint256[](_drawSettings.matchCardinality);
@@ -260,7 +250,7 @@ contract TsunamiDrawCalculator is IDrawCalculator {
   ///@param _drawSettings TsunamiDrawCalculatorSettings struct for Draw
   ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
   ///@return returns the fraction of the total prize (base 1e18)
-  function _calculatePrizeDistributionFraction(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal pure returns (uint256)
+  function _calculatePrizeDistributionFraction(DrawLib.TsunamiDrawSettings memory _drawSettings, uint256 _prizeDistributionIndex) internal pure returns (uint256)
   {
     uint256 prizeDistribution = _drawSettings.distributions[_prizeDistributionIndex];
     uint256 numberOfPrizesForIndex = _numberOfPrizesForIndex(_drawSettings.bitRangeSize, _prizeDistributionIndex);
