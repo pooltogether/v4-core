@@ -167,14 +167,9 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying ClaimableDraw...');
   const claimableDrawResult = await deploy('ClaimableDraw', {
     from: deployer,
-    args: [drawCalculatorResult.address, drawHistoryResult.address],
+    args: [drawHistoryResult.address, drawCalculatorResult.address],
   });
   displayResult('ClaimableDraw', claimableDrawResult);
-
-  cyan('\nSet ClaimableDraw for DrawCalculator...');
-  const drawCalculator = await ethers.getContract('TsunamiDrawCalculator');
-  await drawCalculator.setClaimableDraw(claimableDrawResult.address);
-  green('ClaimableDraw set!');
 
   dim('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
   green('Contract Deployments Complete!');

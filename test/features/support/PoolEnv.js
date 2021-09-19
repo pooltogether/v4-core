@@ -98,7 +98,7 @@ function PoolEnv() {
     await token.mint(claimableDraw.address, toWei(prize || 10))
     const encoder = ethers.utils.defaultAbiCoder
     const pickIndices = encoder.encode(['uint256[][]'], [[picks]]);
-    await claimableDraw.claim(wallet.address, [[drawId]], [(await this.drawCalculator()).address], [pickIndices])
+    await claimableDraw.claim(wallet.address, [drawId], pickIndices)
   }
 
   this.withdraw = async function ({ user, tickets }) {

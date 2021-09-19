@@ -8,13 +8,12 @@ const { getSigners } = ethers;
 
 const newDebug = require('debug')
 
-export async function deployDrawCalculator(signer: any, ticketAddress: string, manager: string, claimableDrawAddress: string, card: number): Promise<Contract> {
+export async function deployDrawCalculator(signer: any, ticketAddress: string, manager: string, card: number): Promise<Contract> {
   const drawCalculatorFactory = await ethers.getContractFactory(
     'TsunamiDrawCalculatorHarness',
     signer,
   );
   const drawCalculator: Contract = await drawCalculatorFactory.deploy(ticketAddress, manager, card);
-  await drawCalculator.setClaimableDraw(claimableDrawAddress);
 
   return drawCalculator;
 }
@@ -36,7 +35,7 @@ function modifyTimestampsWithOffset(timestamps: number[], offset: number): numbe
 
 
 describe('TsunamiDrawCalculator', () => {
-  let drawCalculator: Contract; let ticket: MockContract; let claimableDraw: MockContract;
+  let drawCalculator: Contract; let ticket: MockContract;
   let wallet1: any;
   let wallet2: any;
   let wallet3: any;
@@ -49,19 +48,16 @@ describe('TsunamiDrawCalculator', () => {
     let ticketArtifact = await artifacts.readArtifact('Ticket');
     ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
-    let claimableDrawArtifact = await artifacts.readArtifact('ClaimableDraw');
-    claimableDraw = await deployMockContract(wallet1, claimableDrawArtifact.abi);
-
-    drawCalculator = await deployDrawCalculator(wallet1, ticket.address, wallet2.address, claimableDraw.address, 16);
+    drawCalculator = await deployDrawCalculator(wallet1, ticket.address, wallet2.address, 16);
   });
 
   describe('constructor()', () => {
     it('should require non-zero ticket', async () => {
-      await expect(deployDrawCalculator(wallet1, ethers.constants.AddressZero, wallet2.address, claimableDraw.address, 16)).to.be.revertedWith('DrawCalc/ticket-not-zero')
+      await expect(deployDrawCalculator(wallet1, ethers.constants.AddressZero, wallet2.address, 16)).to.be.revertedWith('DrawCalc/ticket-not-zero')
     })
 
     it('should require non-zero manager', async () => {
-      await expect(deployDrawCalculator(wallet1, ticket.address, ethers.constants.AddressZero, claimableDraw.address, 16)).to.be.revertedWith('Manager/manager-not-zero-address')
+      await expect(deployDrawCalculator(wallet1, ticket.address, ethers.constants.AddressZero, 16)).to.be.revertedWith('Manager/manager-not-zero-address')
     })
   })
 
@@ -131,12 +127,11 @@ describe('TsunamiDrawCalculator', () => {
         maxPicksPerUser: BigNumber.from(1001),
       };
 
-      await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
-
-      expect(await drawCalculator.pushDrawSettings(1, drawSettings)).to.emit(
-        drawCalculator,
-        'DrawSettingsSet',
-      );
+      expect(await drawCalculator.pushDrawSettings(1, drawSettings))
+        .to.emit(
+          drawCalculator,
+          'DrawSettingsSet',
+        )
 
       await expect(drawCalculator.connect(wallet2).pushDrawSettings(drawSettings)).to.be.reverted;
     });
@@ -220,20 +215,6 @@ describe('TsunamiDrawCalculator', () => {
     });
 
   });
-
-  describe('setClaimableDraw()', () => {
-    it('onlyOwnerOrManager can set', async () => {
-      await expect(drawCalculator.setClaimableDraw(claimableDraw.address)).to.emit(
-        drawCalculator,
-        'ClaimableDrawSet',
-      );
-      await expect(drawCalculator.connect(wallet3).setClaimableDraw(claimableDraw.address)).to.be.reverted;
-    })
-
-    it('cant set to zero address', async () => {
-      await expect(drawCalculator.setClaimableDraw(ethers.constants.AddressZero)).to.be.revertedWith("DrawCalc/claimable-draw-not-zero-address");
-    })
-  })
 
   describe('calculateDistributionIndex()', () => {
     it('grand prize gets the full fraction at index 0', async () => {
@@ -495,7 +476,6 @@ describe('TsunamiDrawCalculator', () => {
     };
 
     it("gets correct draw settings", async () => {
-      await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
       await drawCalculator.pushDrawSettings(1, drawSettings);
       
       const result = await drawCalculator.getDrawSettings(1);
@@ -511,20 +491,17 @@ describe('TsunamiDrawCalculator', () => {
     })
 
     it('fails for future draw settings', async () => {
-      drawCalculator = await deployDrawCalculator(wallet1.address, ticket.address, wallet2.address, claimableDraw.address, 1);
+      drawCalculator = await deployDrawCalculator(wallet1.address, ticket.address, wallet2.address, 1);
 
-      await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
       await drawCalculator.pushDrawSettings(1, drawSettings);
 
       await expect(drawCalculator.getDrawSettings(2)).to.be.revertedWith('DrawCalc/future-draw')
     })
 
     it('fails for expired draw settings', async () => {
-      drawCalculator = await deployDrawCalculator(wallet1.address, ticket.address, wallet2.address, claimableDraw.address, 1);
+      drawCalculator = await deployDrawCalculator(wallet1.address, ticket.address, wallet2.address, 1);
 
-      await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
       await drawCalculator.pushDrawSettings(1, drawSettings);
-      await claimableDraw.mock.setDrawCalculator.withArgs(2, drawCalculator.address).returns(drawCalculator.address);
       await drawCalculator.pushDrawSettings(2, drawSettings);
 
       await expect(drawCalculator.getDrawSettings(1)).to.be.revertedWith('DrawCalc/expired-draw')
@@ -679,7 +656,6 @@ describe('TsunamiDrawCalculator', () => {
           drawEndTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001),
         };
-        await claimableDraw.mock.setDrawCalculator.withArgs(1, drawCalculator.address).returns(drawCalculator.address);
         await drawCalculator.pushDrawSettings(1, drawSettings)
       })
 
@@ -785,8 +761,6 @@ describe('TsunamiDrawCalculator', () => {
         const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
         const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawEndTimestampOffset.toNumber())
 
-        await claimableDraw.mock.setDrawCalculator.withArgs(2, drawCalculator.address).returns(drawCalculator.address);
-
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1, totalSupply2]);
@@ -873,7 +847,6 @@ describe('TsunamiDrawCalculator', () => {
         const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
         const draw2: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) }
         
-        await claimableDraw.mock.setDrawCalculator.withArgs(2, drawCalculator.address).returns(drawCalculator.address);
         await drawCalculator.pushDrawSettings(2, drawSettings)
 
         await expect(
@@ -920,7 +893,6 @@ describe('TsunamiDrawCalculator', () => {
 
         const draw1: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
 
-        await claimableDraw.mock.setDrawCalculator.withArgs(2, drawCalculator.address).returns(drawCalculator.address);
         await drawCalculator.pushDrawSettings(2, drawSettings)
 
         await expect(
