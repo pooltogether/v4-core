@@ -27,7 +27,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /// @notice The Draw Calculator to use
   IDrawCalculator internal drawCalculator;
 
-  /// @notice User address to draw claims ring buffer mapping
+  /// @notice Maps users => drawId => paid out balance
   mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
 
   /* ============ Initialize ============ */
