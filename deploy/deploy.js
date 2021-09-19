@@ -132,9 +132,14 @@ module.exports = async (hardhat) => {
   yellow('\nPrize Pool Setup Complete');
   yellow('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
+  const cardinality = 8;
+
   cyan('\nDeploying DrawHistory...');
   const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
+    args: [
+      cardinality
+    ]
   });
 
   displayResult('DrawHistory', drawHistoryResult);
@@ -160,7 +165,7 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
     from: deployer,
-    args: [ticketResult.address, deployer, 16],
+    args: [ticketResult.address, deployer, cardinality],
   });
   displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 

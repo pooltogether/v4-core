@@ -40,7 +40,7 @@ describe('DrawBeacon', () => {
 
     debug(`deploy draw history...`);
     const DrawHistoryFactory = await ethers.getContractFactory('DrawHistory', wallet);
-    drawHistory = await DrawHistoryFactory.deploy();
+    drawHistory = await DrawHistoryFactory.deploy(16);
 
     debug('mocking rng...');
     const RNGInterface = await artifacts.readArtifact('RNGInterface');
@@ -286,7 +286,6 @@ describe('DrawBeacon', () => {
         .to.emit(drawHistory, 'DrawSet')
         .withArgs(
           0,
-          0,
           currentTimestamp + 1,
           1234567890,
         );
@@ -324,7 +323,6 @@ describe('DrawBeacon', () => {
       expect(await drawBeacon.completeDraw())
         .to.emit(drawHistory, 'DrawSet')
         .withArgs(
-          0,
           0,
           currentTimestamp + 1,
           '0x6c00000000000000000000000000000000000000000000000000000000000000',

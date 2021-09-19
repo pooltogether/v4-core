@@ -495,7 +495,7 @@ describe('TsunamiDrawCalculator', () => {
 
       await drawCalculator.pushDrawSettings(1, drawSettings);
 
-      await expect(drawCalculator.getDrawSettings(2)).to.be.revertedWith('DrawCalc/future-draw')
+      await expect(drawCalculator.getDrawSettings(2)).to.be.revertedWith('DRB/future-draw')
     })
 
     it('fails for expired draw settings', async () => {
@@ -504,7 +504,7 @@ describe('TsunamiDrawCalculator', () => {
       await drawCalculator.pushDrawSettings(1, drawSettings);
       await drawCalculator.pushDrawSettings(2, drawSettings);
 
-      await expect(drawCalculator.getDrawSettings(1)).to.be.revertedWith('DrawCalc/expired-draw')
+      await expect(drawCalculator.getDrawSettings(1)).to.be.revertedWith('DRB/expired-draw')
     })
   })
 

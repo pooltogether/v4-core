@@ -6,11 +6,13 @@ import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./ClaimableDraw.sol";
 import "./libraries/DrawLib.sol";
+import "./libraries/DrawRingBuffer.sol";
 
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 
 ///@title TsunamiDrawCalculator is an implementation of an IDrawCalculator
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
+  using DrawRingBuffer for DrawRingBuffer.Buffer;
   
   uint256 constant MAX_CARDINALITY = 256;
 
@@ -20,14 +22,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   /// @notice The stored history of draw settings.  Stored as ring buffer.
   DrawLib.TsunamiDrawCalculatorSettings[MAX_CARDINALITY] drawSettings;
 
-  // need to store currentIndex and actual cardinality
-  struct DrawSettingsRingBuffer {
-    uint32 lastDrawId;
-    uint32 nextIndex;
-    uint32 cardinality;
-  }
-
-  DrawSettingsRingBuffer internal ringBuffer;
+  DrawRingBuffer.Buffer internal drawSettingsRingBuffer;
 
   /* ============ Constructor ============ */
 
@@ -37,7 +32,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   constructor(ITicket _ticket, address _drawSettingsManager, uint32 _cardinality) {
     require(_cardinality <= MAX_CARDINALITY, "DrawCalc/card-lte-max");
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
-    ringBuffer.cardinality = _cardinality;
+    drawSettingsRingBuffer.cardinality = _cardinality;
     setManager(_drawSettingsManager);
     ticket = _ticket;
 
@@ -67,11 +62,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
       _winningRandomNumbers[i] = _draws[i].winningRandomNumber;
     }
 
-    DrawSettingsRingBuffer memory _ringBuffer = ringBuffer;
+    DrawRingBuffer.Buffer memory _drawSettingsRingBuffer = drawSettingsRingBuffer;
 
     DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings =  new DrawLib.TsunamiDrawCalculatorSettings[](_draws.length);
     for(uint256 i = 0; i < _draws.length; i++){
-      _drawSettings[i] = _getDrawSettings(_ringBuffer, _draws[i].drawId);
+      _drawSettings[i] = _getDrawSettings(_drawSettingsRingBuffer, _draws[i].drawId);
     }
 
     uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps, _drawSettings);
@@ -93,7 +88,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _drawId The id of the Draw
   function getDrawSettings(uint32 _drawId) external view returns(DrawLib.TsunamiDrawCalculatorSettings memory)
   {
-    return _getDrawSettings(ringBuffer, _drawId);
+    return _getDrawSettings(drawSettingsRingBuffer, _drawId);
   }
 
   /* ============ Internal Functions ============ */
@@ -288,25 +283,15 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
     require(sumTotalDistributions <= 1e9, "DrawCalc/distributions-gt-100%");
 
-    DrawSettingsRingBuffer memory _ringBuffer = ringBuffer;
-
-    require((_ringBuffer.nextIndex == 0 && _ringBuffer.lastDrawId == 0) || _drawId == _ringBuffer.lastDrawId + 1, "DrawCalc/must-be-contig");
-    drawSettings[_ringBuffer.nextIndex] = _drawSettings;
-    _ringBuffer.nextIndex = uint32(RingBuffer.nextIndex(_ringBuffer.nextIndex, _ringBuffer.cardinality));
-    _ringBuffer.lastDrawId = _drawId;
-
-    ringBuffer = _ringBuffer;
+    DrawRingBuffer.Buffer memory _drawSettingsRingBuffer = drawSettingsRingBuffer;
+    drawSettings[_drawSettingsRingBuffer.nextIndex] = _drawSettings;
+    drawSettingsRingBuffer = drawSettingsRingBuffer.push(_drawId);
 
     emit DrawSettingsSet(_drawId, _drawSettings);
     return true;
   }
 
-  function _getDrawSettings(DrawSettingsRingBuffer memory _ringBuffer, uint32 drawId) internal view returns (DrawLib.TsunamiDrawCalculatorSettings memory) {
-    require(drawId <= _ringBuffer.lastDrawId, "DrawCalc/future-draw");
-    uint32 indexOffset = _ringBuffer.lastDrawId - drawId;
-    require(indexOffset < _ringBuffer.cardinality, "DrawCalc/expired-draw");
-    uint32 mostRecent = uint32(RingBuffer.mostRecentIndex(_ringBuffer.nextIndex, _ringBuffer.cardinality));
-    uint32 index = uint32(RingBuffer.offset(mostRecent, indexOffset, _ringBuffer.cardinality));
-    return drawSettings[index];
+  function _getDrawSettings(DrawRingBuffer.Buffer memory _drawSettingsRingBuffer, uint32 drawId) internal view returns (DrawLib.TsunamiDrawCalculatorSettings memory) {
+    return drawSettings[ _drawSettingsRingBuffer.getIndex(drawId) ];
   }
 }
