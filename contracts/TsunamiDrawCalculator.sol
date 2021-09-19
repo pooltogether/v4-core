@@ -69,7 +69,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
       _timestamps[i] = _draws[i].timestamp;
       _winningRandomNumbers[i] = _draws[i].winningRandomNumber;
     }
-    require(_timestamps.length == _winningRandomNumbers.length, "DrawCalc/invalid-draw-length");
 
     DrawSettingsRingBuffer memory _ringBuffer = ringBuffer;
 
@@ -97,7 +96,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@param _claimableDraw The address of the ClaimableDraw to update with the updated TsunamiDrawCalculatorSettings
   function setClaimableDraw(ClaimableDraw _claimableDraw) external onlyManagerOrOwner returns(ClaimableDraw)
   {
-    return _setClaimableDraw(_claimableDraw);
+    require(address(_claimableDraw) != address(0), "DrawCalc/claimable-draw-not-zero-address");
+    claimableDraw = _claimableDraw;
+    emit ClaimableDrawSet(_claimableDraw);
+    return _claimableDraw;
   }
 
   ///@notice Gets the TsunamiDrawCalculatorSettings for a draw id
@@ -312,16 +314,6 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
     emit DrawSettingsSet(_drawId, _drawSettings);
     return true;
-  }
-
-  ///@notice Internal function to set the Claimable Draw address
-  ///@param _claimableDraw The address of the Claimable Draw contract to set
-  function _setClaimableDraw(ClaimableDraw _claimableDraw) internal returns(ClaimableDraw)
-  {
-    require(address(_claimableDraw) != address(0), "DrawCalc/claimable-draw-not-zero-address");
-    claimableDraw = _claimableDraw;
-    emit ClaimableDrawSet(_claimableDraw);
-    return _claimableDraw;
   }
 
   function _getDrawSettings(DrawSettingsRingBuffer memory _ringBuffer, uint32 drawId) internal view returns (DrawLib.TsunamiDrawCalculatorSettings memory) {
