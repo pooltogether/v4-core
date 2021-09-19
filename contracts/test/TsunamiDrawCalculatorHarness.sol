@@ -9,9 +9,10 @@ contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
 
   constructor(
     ITicket _ticket,
+    IDrawHistory _drawHistory,
     address _drawSettingsManager,
     uint8 _cardinality
-  ) TsunamiDrawCalculator(_ticket, _drawSettingsManager, _cardinality) { }
+  ) TsunamiDrawCalculator(_ticket, _drawHistory, _drawSettingsManager, _cardinality) { }
 
   function calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks) public view returns (uint256) {
     return _calculateDistributionIndex(_randomNumberThisPick, _winningRandomNumber, _masks);

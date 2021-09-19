@@ -4,6 +4,7 @@ pragma solidity 0.8.6;
 
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
+import "./interfaces/IDrawHistory.sol";
 import "./ClaimableDraw.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBuffer.sol";
@@ -15,6 +16,17 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   using DrawRingBuffer for DrawRingBuffer.Buffer;
   
   uint256 constant MAX_CARDINALITY = 256;
+
+  /**
+    * @notice Emitted when a global DrawHistory variable is set.
+    * @param drawHistory DrawHistory address
+  */
+  event DrawHistorySet (
+    IDrawHistory indexed drawHistory
+  );
+
+  /// @notice DrawHistory address
+  IDrawHistory internal drawHistory;
 
   /// @notice Ticket associated with DrawCalculator
   ITicket ticket;
@@ -29,11 +41,17 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   ///@notice Constructor for TsunamiDrawCalculator
   ///@param _ticket Ticket associated with this DrawCalculator
   ///@param _drawSettingsManager Address of the DrawSettingsManager. Can be different from the contract owner.
-  constructor(ITicket _ticket, address _drawSettingsManager, uint32 _cardinality) {
+  constructor(
+    ITicket _ticket,
+    IDrawHistory _drawHistory,
+    address _drawSettingsManager,
+    uint32 _cardinality
+  ) {
     require(_cardinality <= MAX_CARDINALITY, "DrawCalc/card-lte-max");
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
     drawSettingsRingBuffer.cardinality = _cardinality;
     setManager(_drawSettingsManager);
+    _setDrawHistory(_drawHistory);
     ticket = _ticket;
 
     emit Deployed(_ticket);
@@ -43,30 +61,32 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
 
   ///@notice Calulates the prize amount for a user for Multiple Draws. Typically called by a ClaimableDraw.
   ///@param _user User for which to calcualte prize amount
-  ///@param _draws draw array for which to calculate prize amounts for
+  ///@param _drawIds draw array for which to calculate prize amounts for
   ///@param _pickIndicesForDraws The encoded pick indices for all Draws. Expected to be just indices of winning claims. Populated values must be less than totalUserPicks.
   ///@return An array of amount of prizes awardable
-  function calculate(address _user, DrawLib.Draw[] calldata _draws, bytes calldata _pickIndicesForDraws)
+  function calculate(address _user, uint32[] calldata _drawIds, bytes calldata _pickIndicesForDraws)
     external override view returns (uint256[] memory)
   {
-
+    
     uint256[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint256 [][]));
-    require(pickIndices.length == _draws.length, "DrawCalc/invalid-pick-indices-length");
+    require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
+
+    DrawLib.Draw[] memory draws = drawHistory.getDraws(_drawIds);
 
     //now unpack Draw struct
-    uint32[] memory _timestamps = new uint32[](_draws.length);
-    uint256[] memory _winningRandomNumbers = new uint256[](_draws.length);
+    uint32[] memory _timestamps = new uint32[](draws.length);
+    uint256[] memory _winningRandomNumbers = new uint256[](draws.length);
 
-    for(uint256 i = 0; i < _draws.length; i++){
-      _timestamps[i] = _draws[i].timestamp;
-      _winningRandomNumbers[i] = _draws[i].winningRandomNumber;
+    for(uint256 i = 0; i < draws.length; i++){
+      _timestamps[i] = draws[i].timestamp;
+      _winningRandomNumbers[i] = draws[i].winningRandomNumber;
     }
 
     DrawRingBuffer.Buffer memory _drawSettingsRingBuffer = drawSettingsRingBuffer;
 
-    DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings =  new DrawLib.TsunamiDrawCalculatorSettings[](_draws.length);
-    for(uint256 i = 0; i < _draws.length; i++){
-      _drawSettings[i] = _getDrawSettings(_drawSettingsRingBuffer, _draws[i].drawId);
+    DrawLib.TsunamiDrawCalculatorSettings[] memory _drawSettings =  new DrawLib.TsunamiDrawCalculatorSettings[](draws.length);
+    for(uint256 i = 0; i < draws.length; i++){
+      _drawSettings[i] = _getDrawSettings(_drawSettingsRingBuffer, draws[i].drawId);
     }
 
     uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _timestamps, _drawSettings);
@@ -91,7 +111,35 @@ contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
     return _getDrawSettings(drawSettingsRingBuffer, _drawId);
   }
 
+  /**
+    * @notice Read global DrawHistory variable.
+    * @return IDrawHistory
+  */
+  function getDrawHistory() external view returns (IDrawHistory) {
+    return drawHistory;
+  }
+
+  /**
+    * @notice Set global DrawHistory reference.
+    * @param _drawHistory DrawHistory address
+    * @return New DrawHistory address
+  */
+  function setDrawHistory(IDrawHistory _drawHistory) external onlyOwner returns (IDrawHistory) {
+    _setDrawHistory(_drawHistory);
+    return _drawHistory;
+  }
+
   /* ============ Internal Functions ============ */
+
+  /**
+    * @notice Set global DrawHistory reference.
+    * @param _drawHistory DrawHistory address
+  */
+  function _setDrawHistory(IDrawHistory _drawHistory) internal {
+    require(address(_drawHistory) != address(0), "DrawCalc/dh-not-zero");
+    drawHistory = _drawHistory;
+    emit DrawHistorySet(_drawHistory);
+  }
 
   ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
   ///@param _normalizedUserBalances Number of picks the user has for each Draw

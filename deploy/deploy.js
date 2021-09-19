@@ -165,14 +165,14 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
     from: deployer,
-    args: [ticketResult.address, deployer, cardinality],
+    args: [ticketResult.address, drawHistoryResult.address, deployer, cardinality],
   });
   displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 
   cyan('\nDeploying ClaimableDraw...');
   const claimableDrawResult = await deploy('ClaimableDraw', {
     from: deployer,
-    args: [ticketResult.address, drawHistoryResult.address, drawCalculatorResult.address],
+    args: [ticketResult.address, drawCalculatorResult.address],
   });
   displayResult('ClaimableDraw', claimableDrawResult);
 
