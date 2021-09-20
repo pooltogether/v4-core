@@ -9,10 +9,8 @@ const { getSigners } = ethers;
 const newDebug = require('debug')
 
 describe('OracleTimelock', () => {
-  let wallet1: SignerWithAddress;
-  let wallet2: SignerWithAddress;
-  let wallet3: SignerWithAddress;
-  let wallet4: SignerWithAddress;
+  let wallet1: any;
+  let wallet2: any;
 
   let oracleTimelock: Contract
 
@@ -25,7 +23,7 @@ describe('OracleTimelock', () => {
   const timelockDuration = 60
 
   beforeEach(async () => {
-    [wallet1, wallet2, wallet3, wallet4] = await getSigners();
+    [wallet1, wallet2] = await getSigners();
 
     const TsunamiDrawSettingsHistory = await artifacts.readArtifact('TsunamiDrawSettingsHistory');
     tsunamiDrawSettingsHistory = await deployMockContract(wallet1, TsunamiDrawSettingsHistory.abi)
