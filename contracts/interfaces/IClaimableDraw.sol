@@ -31,14 +31,6 @@ interface IClaimableDraw {
   );
 
   /**
-    * @notice Emitted when a global DrawHistory variable is set.
-    * @param drawHistory DrawHistory address
-  */
-  event DrawHistorySet (
-    IDrawHistory indexed drawHistory
-  );
-
-  /**
     * @notice Emitted when a global Ticket variable is set.
     * @param token Token address
   */
@@ -60,10 +52,8 @@ interface IClaimableDraw {
 
   function claim(address _user, uint32[] calldata _drawIds, bytes calldata _data) external returns (uint256);
   function getDrawCalculator() external view returns (IDrawCalculator);
-  function getDrawHistory() external view returns (IDrawHistory);
   function getDrawPayoutBalanceOf(address user, uint32 drawId) external view returns (uint256);
   function getToken() external view returns (IERC20);
   function setDrawCalculator(IDrawCalculator _newCalculator) external returns(IDrawCalculator);
-  function setDrawHistory(IDrawHistory _drawHistory) external returns (IDrawHistory);
   function withdrawERC20(IERC20 _erc20Token, address _to, uint256 _amount) external returns (bool);
 }
