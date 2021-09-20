@@ -1,28 +1,46 @@
 pragma solidity 0.8.6;
 
 import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
+import "./interfaces/IOracleTimelock.sol";
+import "./libraries/OracleTimelockLib.sol";
 
-import "./TsunamiDrawSettingsHistory.sol";
-import "./interfaces/IDrawCalculator.sol";
-import "./interfaces/IDrawHistory.sol";
+/**
+  * @title  PoolTogether V4 OracleTimelock
+  * @author PoolTogether Inc Team
+  * @notice OracleTimelock(s) acts as an intermediary between multiple V4 smart contracts.
+            The OracleTimelock is responsible for pushing Draws to a DrawHistory and routing
+            claim requests from a ClaimableDraw to a DrawCalculator. The primary objective is
+            to  include a "cooldown" period for all new Draws. Allowing the correction of a
+            malicously set Draw in the unfortunate event an Owner is compromised.
+*/
+contract OracleTimelock is  IOracleTimelock, IDrawCalculator, OwnerOrManager {
 
-contract OracleTimelock is IDrawCalculator, OwnerOrManager {
+  /* ============ Global Variables ============ */
 
-  event TimelockSet(Timelock timelock);
-  event TimelockDurationSet(uint32 duration);
+  /// @notice Seconds required to elapse before newest Draw is avaible.
+  uint32 internal timelockDuration;
+  
+  /// @notice Internal DrawHistory reference.
+  IDrawHistory internal immutable drawHistory;
+  
+  /// @notice Internal DrawCalculator reference.
+  IDrawCalculator internal immutable calculator;
+  
+  /// @notice Internal TsunamiDrawSettingsHistory reference.
+  TsunamiDrawSettingsHistory internal immutable tsunamiDrawSettingsHistory;
 
-  TsunamiDrawSettingsHistory public immutable tsunamiDrawSettingsHistory;
-  IDrawHistory public immutable drawHistory;
-  IDrawCalculator public immutable calculator;
-  uint32 timelockDuration;
+  /// @notice Internal Timelock struct reference.
+  OracleTimelockLib.Timelock internal timelock;
 
-  struct Timelock {
-    uint32 drawId;
-    uint128 timestamp;
-  }
+  /* ============ Deploy ============ */
 
-  Timelock timelock;
-
+  /**
+    * @notice Initialize OracleTimelock smart contract.
+    * @param _tsunamiDrawSettingsHistory TsunamiDrawSettingsHistory address
+    * @param _drawHistory                DrawHistory address
+    * @param _calculator                 DrawCalculator address
+    * @param _timelockDuration           Elapsed seconds before new Draw is available
+  */
   constructor (
     TsunamiDrawSettingsHistory _tsunamiDrawSettingsHistory,
     IDrawHistory _drawHistory,
@@ -35,8 +53,16 @@ contract OracleTimelock is IDrawCalculator, OwnerOrManager {
     timelockDuration = _timelockDuration;
   }
 
+  /**
+    * @notice Routes claim/calculate requests between ClaimableDraw and DrawCalculator.
+    * @dev    Will enforce a "cooldown period between when a Draw is pushed and when users can start to claim prizes. 
+    * @param user    User address
+    * @param drawIds Draw.drawId
+    * @param data    Encoded pick indices
+    * @return Prizes awardable array
+  */
   function calculate(address user, uint32[] calldata drawIds, bytes calldata data) external override view returns (uint256[] memory) {
-    Timelock memory timelock = timelock;
+    OracleTimelockLib.Timelock memory timelock = timelock;
     for (uint256 i = 0; i < drawIds.length; i++) {
       // if draw id matches timelock and not expired, revert
       if (drawIds[i] == timelock.drawId) {
@@ -44,6 +70,7 @@ contract OracleTimelock is IDrawCalculator, OwnerOrManager {
       }
     }
     return calculator.calculate(user, drawIds, data);
+    
   }
 
   /**
@@ -51,57 +78,96 @@ contract OracleTimelock is IDrawCalculator, OwnerOrManager {
     * @dev    Restricts new draws by forcing a push timelock.
     * @param _draw DrawLib.Draw
   */
-  function push(DrawLib.Draw memory _draw, DrawLib.TsunamiDrawSettings memory _drawSetting) external onlyManagerOrOwner {
+  function push(DrawLib.Draw memory _draw, DrawLib.TsunamiDrawSettings memory _drawSetting) external override onlyManagerOrOwner {
     requireTimelockElapsed();
     drawHistory.pushDraw(_draw);
     tsunamiDrawSettingsHistory.pushDrawSettings(_draw.drawId, _drawSetting);
-    timelock = Timelock({
+    timelock = OracleTimelockLib.Timelock({
       drawId: _draw.drawId,
       timestamp: uint128(block.timestamp)
     });
   }
 
+  /**
+    * @notice Require the timelock "cooldown" period has elapsed
+  */
   function requireTimelockElapsed() internal view {
     require(_timelockHasElapsed(timelock), "OM/timelock-not-expired");
   }
 
-  function getTsunamiDrawSettingsHistory() external view returns (TsunamiDrawSettingsHistory) {
+  /**
+    * @notice Read internal TsunamiDrawSettingsHistory variable.
+    * @return TsunamiDrawSettingsHistory
+  */
+  function getTsunamiDrawSettingsHistory() external override view returns (TsunamiDrawSettingsHistory) {
     return tsunamiDrawSettingsHistory;
   }
 
-  function getDrawHistory() external view returns (IDrawHistory) {
+  /**
+    * @notice Read internal DrawHistory variable.
+    * @return IDrawHistory
+  */
+  function getDrawHistory() external override view returns (IDrawHistory) {
     return drawHistory;
   }
 
-  function getDrawCalculator() external view returns (IDrawCalculator) {
+  /**
+    * @notice Read internal DrawCalculator variable.
+    * @return IDrawCalculator
+  */
+  function getDrawCalculator() external override view returns (IDrawCalculator) {
     return calculator;
   }
 
-  function getTimelock() external view returns (Timelock memory) {
+  /**
+    * @notice Read internal Timelock struct.
+    * @return Timelock
+  */
+  function getTimelock() external override view returns (OracleTimelockLib.Timelock memory) {
     return timelock;
   }
 
-  function getTimelockDuration() external view returns (uint32) {
+  /**
+    * @notice Read internal timelockDuration variable.
+    * @return Seconds to pass before Draw is valid.
+  */
+  function getTimelockDuration() external override view returns (uint32) {
     return timelockDuration;
   }
 
-  function setTimelock(Timelock memory _timelock) external onlyOwner {
+  /**
+    * @notice Set new Timelock struct.
+    * @dev    Set new Timelock struct and emit TimelockSet event.
+  */
+  function setTimelock(OracleTimelockLib.Timelock memory _timelock) external override onlyOwner {
     timelock = _timelock;
 
     emit TimelockSet(_timelock);
   }
 
-  function setTimelockDuration(uint32 _timelockDuration) external onlyOwner {
+  /**
+    * @notice Set new timelockDuration.
+    * @dev    Set new timelockDuration and emit TimelockDurationSet event.
+  */
+  function setTimelockDuration(uint32 _timelockDuration) external override onlyOwner {
     timelockDuration = _timelockDuration;
 
     emit TimelockDurationSet(_timelockDuration);
   }
 
-  function hasElapsed() external view returns (bool) {
+  /**
+    * @notice Returns bool for timelockDuration elapsing. 
+    * @return True if timelockDuration, since last timelock has elapsed, false otherwse.
+  */
+  function hasElapsed() external override view returns (bool) {
     return _timelockHasElapsed(timelock);
   }
 
-  function _timelockHasElapsed(Timelock memory timelock) internal view returns (bool) {
+  /**
+    * @notice Read global DrawCalculator variable.
+    * @return IDrawCalculator
+  */
+  function _timelockHasElapsed(OracleTimelockLib.Timelock memory timelock) internal view returns (bool) {
     // If the timelock hasn't been initialized, then it's elapsed
     if (timelock.timestamp == 0) { return true; }
     // otherwise if the timelock has expired, we're good.
