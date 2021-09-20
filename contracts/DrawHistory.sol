@@ -130,8 +130,6 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
     return _newDraw.drawId;
   }
 
-  /* ============ Pure Functions ============ */
-
   /* ============ Internal Functions ============ */
 
   /**
