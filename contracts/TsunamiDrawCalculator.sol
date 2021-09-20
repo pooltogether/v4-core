@@ -93,6 +93,18 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
     return _drawHistory;
   }
 
+  /**
+    * @notice Returns a users balances expressed as a fraction of the total supply over time.
+    * @param _user The users address
+    * @param _drawIds The drawsId to consider
+    * @return Array of balances
+  */
+  function getNormalizedBalancesForDrawIds(address _user, uint32[] calldata _drawIds) external view returns (uint256[] memory) {
+    DrawLib.Draw[] memory _draws = drawHistory.getDraws(_drawIds);
+    DrawLib.TsunamiDrawSettings[] memory _drawSettings = tsunamiDrawSettingsHistory.getDrawSettings(_drawIds);
+    return _getNormalizedBalancesAt(_user, _draws, _drawSettings);
+  }
+
   /* ============ Internal Functions ============ */
 
   /**

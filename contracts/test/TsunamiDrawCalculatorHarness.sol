@@ -34,15 +34,6 @@ contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
     return _numberOfPrizesForIndex(_bitRangeSize, _prizeDistributionIndex);
   }
 
-  function getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.TsunamiDrawSettings[] calldata _drawSettings) external view returns (uint256[] memory) {
-    // nasty hack
-    DrawLib.Draw[] memory _draws = new DrawLib.Draw[](_timestamps.length);
-    for (uint256 i = 0; i < _timestamps.length; i++) {
-      _draws[i].timestamp = _timestamps[i];
-    }
-    return _getNormalizedBalancesAt(_user, _draws, _drawSettings);
-  }
-
   function calculateNumberOfUserPicks(DrawLib.TsunamiDrawSettings memory _drawSettings, uint256 _normalizedUserBalance) external view returns (uint256){
     return _calculateNumberOfUserPicks(_drawSettings, _normalizedUserBalance);
   }
