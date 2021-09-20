@@ -23,6 +23,16 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
     IDrawHistory indexed drawHistory
   );
 
+  /**
+    * @notice Holds information about whether a pick won or not
+    * @param didWin Boolean to indicate whether the pick won or not. True iff the pick won.
+    * @param distributionIndex Index of the pick
+  */
+  struct PickPrize {
+    bool didWin;
+    uint8 distributionIndex;
+  }
+
   /// @notice DrawHistory address
   IDrawHistory internal drawHistory;
 
@@ -116,41 +126,36 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
   ///@notice Returns the distribution index for a users pickIndices for a draw
   ///@param _user The user for which to calculate the distribution indices
   ///@param _pickIndices The users pick indices for a draw
-  ///@param _draw The draw for which to calculate the distribution indices
-  function checkPrizeDistributionIndicesForDraw(address _user, uint256[] calldata _pickIndices, DrawLib.Draw calldata _draw) 
-    external view returns(uint256[] memory)
+  ///@param _drawId The draw for which to calculate the distribution indices
+  function checkPrizeDistributionIndicesForDrawId(address _user, uint256[] calldata _pickIndices, uint32 _drawId) 
+    external view returns(PickPrize[] memory)
   {
-    uint32[] memory _drawIds = new uint32[](1);
-    _drawIds[0] = _draw.drawId;
+    uint32[] memory drawIds = new uint32[](1);
+    drawIds[0] = _drawId;
 
-    DrawLib.Draw[] memory _draws = new DrawLib.Draw[](1);
-    _draws[0] = _draw;
+    DrawLib.Draw[] memory _draws = drawHistory.getDraws(drawIds);
     
-    DrawLib.TsunamiDrawSettings[] memory _drawSettings = tsunamiDrawSettingsHistory.getDrawSettings(_drawIds);
-
-    uint32[] memory _timestamps = new uint32[](1);
-    _timestamps[0] = _draw.timestamp;
+    DrawLib.TsunamiDrawSettings[] memory _drawSettings = tsunamiDrawSettingsHistory.getDrawSettings(drawIds);
     
     uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _draws, _drawSettings);
     uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[0], userBalances[0]);
 
-    require(_pickIndices.length <= _drawSettings[0].maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
-    
     uint256[] memory masks =  _createBitMasks(_drawSettings[0]);
-    uint256[] memory prizeDistributionIndices = new uint256[](_pickIndices.length);
+    PickPrize[] memory pickPrizes = new PickPrize[](_pickIndices.length);
 
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
     for(uint256 i = 0; i < _pickIndices.length; i++){
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _pickIndices[i])));
       require(_pickIndices[i] < totalUserPicks, "DrawCalc/insufficient-user-picks");
-      uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _draw.winningRandomNumber, masks);
+      uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _draws[0].winningRandomNumber, masks);
 
-      if(distributionIndex < _drawSettings[0].distributions.length){
-        prizeDistributionIndices[i] = distributionIndex;
-      }
+      pickPrizes[i] = PickPrize({
+        didWin: distributionIndex < _drawSettings[0].distributions.length && _drawSettings[0].distributions[distributionIndex] > 0, 
+        distributionIndex: uint8(distributionIndex)
+      });
     }
-    return prizeDistributionIndices;
+    return pickPrizes;
   }
 
   /* ============ Internal Functions ============ */
