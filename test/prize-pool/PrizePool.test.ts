@@ -81,7 +81,7 @@ describe('PrizePool', function () {
     await yieldSourceStub.mock.depositToken.returns(depositToken.address);
 
     const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
-    prizePool = await PrizePoolHarness.deploy(yieldSourceStub.address);
+    prizePool = await PrizePoolHarness.deploy(contractsOwner.address, yieldSourceStub.address);
 
     const Ticket = await getContractFactory('Ticket');
     ticket = await Ticket.deploy('name', 'SYMBOL', 18, prizePool.address);
@@ -117,7 +117,7 @@ describe('PrizePool', function () {
 
       it('should reject invalid params', async () => {
         const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
-        prizePool2 = await PrizePoolHarness.deploy(yieldSourceStub.address);
+        prizePool2 = await PrizePoolHarness.deploy(contractsOwner.address, yieldSourceStub.address);
 
         await expect(prizePool2.setTicket(AddressZero)).to.be.revertedWith(
           'PrizePool/ticket-not-zero-address',
@@ -229,7 +229,7 @@ describe('PrizePool', function () {
       it('should not allow anyone else to change the prize strategy', async () => {
         await expect(
           prizePool.connect(wallet2 as Signer).setPrizeStrategy(wallet2.address),
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+        ).to.be.revertedWith('Ownable/caller-not-owner');
       });
     });
 
@@ -248,7 +248,7 @@ describe('PrizePool', function () {
         prizePool2 = prizePool.connect(wallet2 as Signer);
 
         await expect(prizePool2.setBalanceCap(ticket.address, toWei('50000'))).to.be.revertedWith(
-          'Ownable: caller is not the owner',
+          'Ownable/caller-not-owner',
         );
       });
     });
@@ -268,7 +268,7 @@ describe('PrizePool', function () {
         prizePool2 = prizePool.connect(wallet2 as Signer);
 
         await expect(prizePool2.setLiquidityCap(toWei('1000'))).to.be.revertedWith(
-          'Ownable: caller is not the owner',
+          'Ownable/caller-not-owner',
         );
       });
     });
@@ -286,7 +286,7 @@ describe('PrizePool', function () {
       it('should only allow the owner to delegate', async () => {
         await expect(
           prizePool.connect(wallet2 as Signer).compLikeDelegate(compLike.address, wallet2.address),
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+        ).to.be.revertedWith('Ownable/caller-not-owner');
       });
 
       it('should not delegate if the balance is zero', async () => {

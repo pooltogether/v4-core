@@ -1,6 +1,7 @@
 pragma solidity 0.8.6;
 
-import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
+
 import "./interfaces/IOracleTimelock.sol";
 import "./libraries/OracleTimelockLib.sol";
 
@@ -13,19 +14,19 @@ import "./libraries/OracleTimelockLib.sol";
             to  include a "cooldown" period for all new Draws. Allowing the correction of a
             malicously set Draw in the unfortunate event an Owner is compromised.
 */
-contract OracleTimelock is  IOracleTimelock, IDrawCalculator, OwnerOrManager {
+contract OracleTimelock is  IOracleTimelock, IDrawCalculator, Manageable {
 
   /* ============ Global Variables ============ */
 
   /// @notice Seconds required to elapse before newest Draw is avaible.
   uint32 internal timelockDuration;
-  
+
   /// @notice Internal DrawHistory reference.
   IDrawHistory internal immutable drawHistory;
-  
+
   /// @notice Internal DrawCalculator reference.
   IDrawCalculator internal immutable calculator;
-  
+
   /// @notice Internal TsunamiDrawSettingsHistory reference.
   TsunamiDrawSettingsHistory internal immutable tsunamiDrawSettingsHistory;
 
@@ -36,17 +37,19 @@ contract OracleTimelock is  IOracleTimelock, IDrawCalculator, OwnerOrManager {
 
   /**
     * @notice Initialize OracleTimelock smart contract.
+    * @param _owner                       Address of the OracleTimelock owner
     * @param _tsunamiDrawSettingsHistory TsunamiDrawSettingsHistory address
     * @param _drawHistory                DrawHistory address
     * @param _calculator                 DrawCalculator address
     * @param _timelockDuration           Elapsed seconds before new Draw is available
   */
   constructor (
+    address _owner,
     TsunamiDrawSettingsHistory _tsunamiDrawSettingsHistory,
     IDrawHistory _drawHistory,
     IDrawCalculator _calculator,
     uint32 _timelockDuration
-  ) {
+  ) Ownable(_owner) {
     tsunamiDrawSettingsHistory = _tsunamiDrawSettingsHistory;
     drawHistory = _drawHistory;
     calculator = _calculator;
@@ -55,7 +58,7 @@ contract OracleTimelock is  IOracleTimelock, IDrawCalculator, OwnerOrManager {
 
   /**
     * @notice Routes claim/calculate requests between ClaimableDraw and DrawCalculator.
-    * @dev    Will enforce a "cooldown period between when a Draw is pushed and when users can start to claim prizes. 
+    * @dev    Will enforce a "cooldown period between when a Draw is pushed and when users can start to claim prizes.
     * @param user    User address
     * @param drawIds Draw.drawId
     * @param data    Encoded pick indices
@@ -70,7 +73,7 @@ contract OracleTimelock is  IOracleTimelock, IDrawCalculator, OwnerOrManager {
       }
     }
     return calculator.calculate(user, drawIds, data);
-    
+
   }
 
   /**
@@ -156,7 +159,7 @@ contract OracleTimelock is  IOracleTimelock, IDrawCalculator, OwnerOrManager {
   }
 
   /**
-    * @notice Returns bool for timelockDuration elapsing. 
+    * @notice Returns bool for timelockDuration elapsing.
     * @return True if timelockDuration, since last timelock has elapsed, false otherwse.
   */
   function hasElapsed() external override view returns (bool) {

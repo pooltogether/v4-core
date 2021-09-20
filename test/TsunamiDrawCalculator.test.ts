@@ -13,7 +13,7 @@ export async function deployDrawCalculator(signer: any, ticketAddress: string, d
     'TsunamiDrawCalculatorHarness',
     signer,
   );
-  const drawCalculator: Contract = await drawCalculatorFactory.deploy(ticketAddress, drawHistoryAddress, drawSettingsHistoryAddress);
+  const drawCalculator: Contract = await drawCalculatorFactory.deploy(signer.address, ticketAddress, drawHistoryAddress, drawSettingsHistoryAddress);
 
   return drawCalculator;
 }
@@ -309,7 +309,7 @@ describe('TsunamiDrawCalculator', () => {
   describe('setDrawHistory()', () => {
     it('should fail to set DrawHistory by unauthorized user', async () => {
       await expect(drawCalculator.connect(wallet3).setDrawHistory(ethers.Wallet.createRandom().address))
-        .to.be.revertedWith('Ownable: caller is not the owner')
+        .to.be.revertedWith('Ownable/caller-not-owner')
     });
 
     it('should fail to set DrawHistory with zero address', async () => {
@@ -704,7 +704,7 @@ describe('TsunamiDrawCalculator', () => {
 
         const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
         const draw2: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) }
-        
+
         await drawHistory.mock.getDraws.returns([draw1, draw2])
 
         await drawSettingsHistory.mock.getDrawSettings.withArgs([1, 2]).returns([drawSettings, drawSettings])

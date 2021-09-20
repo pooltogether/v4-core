@@ -9,11 +9,12 @@ import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 contract DrawBeaconHarness is DrawBeacon {
 
   constructor(
+    address _owner,
     IDrawHistory _drawHistory,
     RNGInterface _rng,
     uint256 _beaconPeriodStart,
     uint256 _drawPeriodSeconds
-  ) DrawBeacon(_drawHistory, _rng, _beaconPeriodStart, _drawPeriodSeconds) { }
+  ) DrawBeacon(_owner, _drawHistory, _rng, _beaconPeriodStart, _drawPeriodSeconds) { }
 
   uint256 internal time;
   function setCurrentTime(uint256 _time) external {

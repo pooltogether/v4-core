@@ -3,7 +3,6 @@ import { ethers } from 'hardhat';
 import { constants, Contract, ContractFactory } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 const { getSigners } = ethers;
-const { AddressZero } = constants;
 
 describe('DrawHistory', () => {
   let wallet1: SignerWithAddress;
@@ -25,7 +24,7 @@ describe('DrawHistory', () => {
       'DrawHistoryHarness',
     );
 
-    drawHistory = await drawHistoryFactory.deploy(3);
+    drawHistory = await drawHistoryFactory.deploy(wallet1.address, 3);
     await drawHistory.setManager(wallet1.address);
   });
 
@@ -106,7 +105,7 @@ describe('DrawHistory', () => {
             winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
           }
         ),
-      ).to.be.revertedWith('Manager/caller-not-manager-or-owner');
+      ).to.be.revertedWith('Manageable/caller-not-manager');
     });
 
     it('should create a new draw and emit DrawCreated', async () => {
@@ -182,14 +181,14 @@ describe('DrawHistory', () => {
     it('should fail to set existing draw as unauthorized account', async () => {
       await drawHistory.pushDraw({ drawId: 0, timestamp: 1, winningRandomNumber: 1 });
       await expect(drawHistory.connect(wallet3).setDraw({ drawId: 0, timestamp: 2, winningRandomNumber: 2 }))
-        .to.be.revertedWith('Ownable: caller is not the owner')
+        .to.be.revertedWith('Ownable/caller-not-owner')
     })
 
     it('should fail to set existing draw as manager ', async () => {
       await drawHistory.setManager(wallet2.address);
       await drawHistory.pushDraw({ drawId: 0, timestamp: 1, winningRandomNumber: 1 });
       await expect(drawHistory.connect(wallet2).setDraw({ drawId: 0, timestamp: 2, winningRandomNumber: 2 }))
-        .to.be.revertedWith('Ownable: caller is not the owner')
+        .to.be.revertedWith('Ownable/caller-not-owner')
     })
 
     it('should succeed to set existing draw as owner', async () => {

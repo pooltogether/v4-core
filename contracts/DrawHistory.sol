@@ -2,7 +2,8 @@
 
 pragma solidity 0.8.6;
 
-import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
+
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBuffer.sol";
@@ -18,7 +19,7 @@ import "./libraries/DrawRingBuffer.sol";
             DrawHistory(s) (Matic, Optimism, Arbitrum, etc...) will receive a cross-chain message,
             duplicating the mainnet Draw configuration - enabling a prize savings liquidity network.
 */
-contract DrawHistory is IDrawHistory, OwnerOrManager {
+contract DrawHistory is IDrawHistory, Manageable {
   using DrawRingBuffer for DrawRingBuffer.Buffer;
 
   /**
@@ -42,7 +43,10 @@ contract DrawHistory is IDrawHistory, OwnerOrManager {
   /**
     * @notice Deploy DrawHistory smart contract.
   */
-  constructor(uint8 _cardinality) {
+  constructor(
+    address _owner,
+    uint8 _cardinality
+  ) Ownable(_owner) {
     drawRingBuffer.cardinality = _cardinality;
   }
 

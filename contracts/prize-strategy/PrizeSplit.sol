@@ -2,7 +2,7 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 /**
   * @title Abstract prize split contract for adding unique award distribution to static addresses.

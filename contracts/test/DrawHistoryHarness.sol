@@ -5,8 +5,10 @@ import "../libraries/DrawLib.sol";
 
 contract DrawHistoryHarness is DrawHistory {
 
-  constructor(uint8 card) DrawHistory(card) {
-  }
+  constructor(
+    address owner,
+    uint8 card
+  ) DrawHistory(owner, card) {}
 
   function addMultipleDraws(
     uint256 _start,

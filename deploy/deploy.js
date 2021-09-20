@@ -108,7 +108,7 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying YieldSourcePrizePool...');
   const yieldSourcePrizePoolResult = await deploy('YieldSourcePrizePool', {
     from: deployer,
-    args: [mockYieldSourceResult.address],
+    args: [deployer, mockYieldSourceResult.address],
   });
 
   displayResult('YieldSourcePrizePool', yieldSourcePrizePoolResult);
@@ -138,6 +138,7 @@ module.exports = async (hardhat) => {
   const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
     args: [
+      deployer,
       cardinality
     ]
   });
@@ -147,6 +148,7 @@ module.exports = async (hardhat) => {
   const tsunamiDrawSettindsHistoryResult = await deploy('TsunamiDrawSettingsHistory', {
     from: deployer,
     args: [
+      deployer,
       cardinality
     ]
   });
@@ -156,6 +158,7 @@ module.exports = async (hardhat) => {
   const drawBeaconResult = await deploy('DrawBeacon', {
     from: deployer,
     args: [
+      deployer,
       drawHistoryResult.address,
       rngServiceResult.address,
       parseInt('' + new Date().getTime() / 1000),
@@ -173,14 +176,14 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
     from: deployer,
-    args: [ticketResult.address, drawHistoryResult.address, tsunamiDrawSettindsHistoryResult.address],
+    args: [deployer, ticketResult.address, drawHistoryResult.address, tsunamiDrawSettindsHistoryResult.address],
   });
   displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 
   cyan('\nDeploying ClaimableDraw...');
   const claimableDrawResult = await deploy('ClaimableDraw', {
     from: deployer,
-    args: [ticketResult.address, drawCalculatorResult.address],
+    args: [deployer, ticketResult.address, drawCalculatorResult.address],
   });
   displayResult('ClaimableDraw', claimableDrawResult);
 

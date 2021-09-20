@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.6;
 
+import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
+
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBuffer.sol";
 
-import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
-
 ///@title TsunamiDrawSettingsHistory
-contract TsunamiDrawSettingsHistory is OwnerOrManager {
+contract TsunamiDrawSettingsHistory is Manageable {
   using DrawRingBuffer for DrawRingBuffer.Buffer;
 
   uint256 constant MAX_CARDINALITY = 256;
@@ -26,8 +26,14 @@ contract TsunamiDrawSettingsHistory is OwnerOrManager {
 
   /* ============ Constructor ============ */
 
-  ///@notice Constructor for TsunamiDrawSettingsHistory
-  constructor(uint8 _cardinality) {
+  /// @notice Constructor for TsunamiDrawSettingsHistory
+  /// @param _owner Address of the TsunamiDrawSettingsHistory owner
+  /// @param _cardinality Cardinality of the `drawSettingsRingBuffer`
+
+  constructor(
+    address _owner,
+    uint8 _cardinality
+  ) Ownable(_owner) {
     drawSettingsRingBuffer.cardinality = _cardinality;
 
     emit Deployed(_cardinality);
