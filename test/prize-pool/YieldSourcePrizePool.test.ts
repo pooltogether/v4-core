@@ -25,7 +25,7 @@ describe('YieldSourcePrizePool', function () {
 
   const deployYieldSourcePrizePool = async (yieldSourceAddress: string = yieldSource.address) => {
     YieldSourcePrizePool = await getContractFactory('YieldSourcePrizePool', wallet);
-    prizePool = await YieldSourcePrizePool.deploy(yieldSourceAddress);
+    prizePool = await YieldSourcePrizePool.deploy(wallet.address, yieldSourceAddress);
 
     const Ticket = await getContractFactory('Ticket');
     ticket = await Ticket.deploy('name', 'SYMBOL', 18, prizePool.address);
@@ -82,13 +82,13 @@ describe('YieldSourcePrizePool', function () {
 
     it('should require the yield source', async () => {
       await expect(
-        YieldSourcePrizePool.deploy(AddressZero),
+        YieldSourcePrizePool.deploy(wallet.address, AddressZero),
       ).to.be.revertedWith('YieldSourcePrizePool/yield-source-not-zero-address');
     });
 
     it('should require a valid yield source', async () => {
       await expect(
-        YieldSourcePrizePool.deploy(prizePool.address),
+        YieldSourcePrizePool.deploy(wallet.address, prizePool.address),
       ).to.be.revertedWith('YieldSourcePrizePool/invalid-yield-source');
     });
   });

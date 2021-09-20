@@ -40,7 +40,7 @@ describe('DrawBeacon', () => {
 
     debug(`deploy draw history...`);
     const DrawHistoryFactory = await ethers.getContractFactory('DrawHistory', wallet);
-    drawHistory = await DrawHistoryFactory.deploy(16);
+    drawHistory = await DrawHistoryFactory.deploy(wallet.address, 16);
 
     debug('mocking rng...');
     const RNGInterface = await artifacts.readArtifact('RNGInterface');
@@ -52,6 +52,7 @@ describe('DrawBeacon', () => {
     debug('deploying drawBeacon...');
     DrawBeaconFactory = await ethers.getContractFactory('DrawBeaconHarness', wallet);
     drawBeacon = await DrawBeaconFactory.deploy(
+      wallet.address,
       drawHistory.address,
       rng.address,
       beaconPeriodStart,
@@ -66,6 +67,7 @@ describe('DrawBeacon', () => {
   describe('constructor()', () => {
     it('should emit a Deployed event', async () => {
      const drawBeacon2 = await DrawBeaconFactory.deploy(
+        wallet.address,
         drawHistory.address,
         rng.address,
         beaconPeriodStart,
@@ -100,6 +102,7 @@ describe('DrawBeacon', () => {
     it('should reject rng request period', async () => {
       await expect(
         DrawBeaconFactory.deploy(
+          wallet.address,
           drawHistory.address,
           rng.address,
           0,
@@ -113,6 +116,7 @@ describe('DrawBeacon', () => {
     it('should reject invalid rng', async () => {
       await expect(
         DrawBeaconFactory.deploy(
+          wallet.address,
           drawHistory.address,
           AddressZero,
           beaconPeriodStart,
@@ -162,7 +166,7 @@ describe('DrawBeacon', () => {
     it('should not allow anyone but the owner to change', async () => {
       const drawBeaconWallet2 = drawBeacon.connect(wallet2);
       await expect(drawBeaconWallet2.setRngService(wallet2.address)).to.be.revertedWith(
-        'Ownable: caller is not the owner',
+        'Ownable/caller-not-owner',
       );
     });
 
@@ -374,7 +378,7 @@ describe('DrawBeacon', () => {
 
     it('should not allow non-owners to set the prize period', async () => {
       await expect(drawBeacon.connect(wallet2).setBeaconPeriodSeconds(99)).to.be.revertedWith(
-        'Ownable: caller is not the owner',
+        'Ownable/caller-not-owner',
       );
     });
   });
@@ -386,6 +390,7 @@ describe('DrawBeacon', () => {
       beaconPeriodStart = 10000;
 
       drawBeaconBase2 = await DrawBeaconFactory.deploy(
+        wallet.address,
         drawHistory.address,
         rng.address,
         beaconPeriodStart,

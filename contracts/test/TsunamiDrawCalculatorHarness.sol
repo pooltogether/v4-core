@@ -8,10 +8,11 @@ import "../libraries/DrawLib.sol";
 contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
 
   constructor(
+    address _owner,
     ITicket _ticket,
     IDrawHistory _drawHistory,
     TsunamiDrawSettingsHistory _drawSettingsHistory
-  ) TsunamiDrawCalculator(_ticket, _drawHistory, _drawSettingsHistory) { }
+  ) TsunamiDrawCalculator(_owner, _ticket, _drawHistory, _drawSettingsHistory) { }
 
   function calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks) public view returns (uint256) {
     return _calculateDistributionIndex(_randomNumberThisPick, _winningRandomNumber, _masks);

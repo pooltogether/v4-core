@@ -10,8 +10,8 @@ import "./prize-strategy/PrizeSplit.sol";
             The PrizeSplitStrategy will have at minimum a single PrizeSplit with 100% of the captured
             interest transfered to the PrizeReserve. Additional PrizeSplits can be added, depending on
             the deployers requirements (i.e. percentage to charity). In contrast to previous PoolTogether
-            iterations, interest can be captured independent of a new Draw. Ideally (to save gas) interest 
-            is only captured when also distributing the captured prize(s) to applicable ClaimbableDraw(s).   
+            iterations, interest can be captured independent of a new Draw. Ideally (to save gas) interest
+            is only captured when also distributing the captured prize(s) to applicable ClaimbableDraw(s).
 */
 contract PrizeSplitStrategy is PrizeSplit {
 
@@ -46,11 +46,13 @@ contract PrizeSplitStrategy is PrizeSplit {
 
   /**
     * @notice Deploy the PrizeSplitStrategy smart contract.
+    * @param _owner Address of the PrizeSplitStrategy owner
     * @param _prizePool PrizePool contract address
   */
   constructor(
+    address _owner,
     IPrizePool _prizePool
-  ) {
+  ) Ownable(_owner) {
     require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero-address");
     prizePool = _prizePool;
   }
@@ -59,7 +61,7 @@ contract PrizeSplitStrategy is PrizeSplit {
 
   /**
     * @notice Capture the award balance and distribute to prize splits.
-    * @dev    Can be executed by any wallet at any time. Optimal executation (minimal wasted gas) 
+    * @dev    Can be executed by any wallet at any time. Optimal executation (minimal wasted gas)
               is coordination when pushing Draw(s) to DrawHistory to cover upcoming prize distribution.
     * @return Prize captured from PrizePool
   */

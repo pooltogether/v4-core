@@ -44,7 +44,7 @@ describe('PrizeSplitStrategy', () => {
     await prizePool.mock.ticket.returns(ticket.address);
 
     debug('deploy prizeSplitStrategy...');
-    prizeSplitStrategy = await prizeSplitStrategyFactory.deploy(prizePool.address);
+    prizeSplitStrategy = await prizeSplitStrategyFactory.deploy(wallet1.address, prizePool.address);
   });
 
   describe('distribute()', () => {

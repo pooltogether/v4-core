@@ -23,7 +23,7 @@ describe('PrizeSplitStrategy', () => {
   });
 
   beforeEach(async () => {
-    prizeSplit = await prizeSplitHarnessFactory.deploy();
+    prizeSplit = await prizeSplitHarnessFactory.deploy(wallet1.address);
   });
 
   describe("setPrizeSplits()", () => {
@@ -42,7 +42,7 @@ describe('PrizeSplitStrategy', () => {
     })
 
     it("should revert when calling setPrizeSplits from a non-owner address", async () => {
-      prizeSplit = await prizeSplit.connect(wallet2);
+      prizeSplit = prizeSplit.connect(wallet2);
       await expect(prizeSplit.setPrizeSplits([
         {
           target: wallet2.address,
@@ -55,7 +55,7 @@ describe('PrizeSplitStrategy', () => {
           token: 0,
         },
       ]))
-        .to.be.revertedWith("Ownable: caller is not the owner");
+        .to.be.revertedWith("Ownable/caller-not-owner");
     })
 
     it("should revert with single prize split config is equal to or above 100% percent", async () => {

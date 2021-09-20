@@ -2,8 +2,6 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, constants, Contract, ContractFactory, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-import { Address } from 'hardhat-deploy/dist/types';
-import { Draw } from "./types"
 
 const { getSigners } = ethers;
 const { parseEther: toWei } = utils;
@@ -17,12 +15,6 @@ describe('ClaimableDraw', () => {
   let ticket: Contract;
   let claimableDraw: Contract;
   let drawCalculator: MockContract;
-
-  const DRAW_SAMPLE_CONFIG = {
-    randomNumber: 11111,
-    timestamp: 1111111111,
-    prize: toWei('10'),
-  };
 
   before(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
@@ -41,8 +33,8 @@ describe('ClaimableDraw', () => {
     const claimableDrawFactory: ContractFactory = await ethers.getContractFactory(
       'ClaimableDraw',
     );
-    claimableDraw = await claimableDrawFactory.deploy(ticket.address, drawCalculator.address);
-    
+    claimableDraw = await claimableDrawFactory.deploy(wallet1.address, ticket.address, drawCalculator.address);
+
     await ticket.mint(claimableDraw.address, toWei('1000'));
   });
 
@@ -81,7 +73,7 @@ describe('ClaimableDraw', () => {
       it('should fail to set draw calculator from unauthorized wallet', async () => {
         const claimableDrawUnauthorized = claimableDraw.connect(wallet2);
         await expect(claimableDrawUnauthorized.setDrawCalculator(AddressZero))
-          .to.be.revertedWith('Ownable: caller is not the owner');
+          .to.be.revertedWith('Ownable/caller-not-owner');
       });
 
       it('should succeed to set new draw calculator for target draw id as owner', async () => {
@@ -152,7 +144,7 @@ describe('ClaimableDraw', () => {
 
     it('should fail to withdraw ERC20 tokens as unauthorized account', async () => {
       expect(claimableDraw.connect(wallet3).withdrawERC20(dai.address, wallet1.address, withdrawAmount))
-        .to.be.revertedWith('Ownable: caller is not the owner')
+        .to.be.revertedWith('Ownable/caller-not-owner')
     });
 
     it('should fail to withdraw ERC20 tokens if recipient address is address zero', async () => {

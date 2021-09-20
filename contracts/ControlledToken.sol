@@ -83,7 +83,7 @@ contract ControlledToken is ERC20Permit, IControlledToken {
 
   /// @dev Function modifier to ensure that the caller is the controller contract
   modifier onlyController {
-    require(_msgSender() == address(controller), "ControlledToken/only-controller");
+    require(msg.sender == address(controller), "ControlledToken/only-controller");
     _;
   }
 }

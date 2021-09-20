@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { ethers, artifacts } from 'hardhat';
+import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { Draw, TsunamiDrawCalculatorSettings } from './types';
@@ -9,8 +10,8 @@ const { getSigners } = ethers;
 const newDebug = require('debug')
 
 describe('OracleTimelock', () => {
-  let wallet1: any;
-  let wallet2: any;
+  let wallet1: SignerWithAddress;
+  let wallet2: SignerWithAddress;
 
   let oracleTimelock: Contract
 
@@ -26,17 +27,18 @@ describe('OracleTimelock', () => {
     [wallet1, wallet2] = await getSigners();
 
     const TsunamiDrawSettingsHistory = await artifacts.readArtifact('TsunamiDrawSettingsHistory');
-    tsunamiDrawSettingsHistory = await deployMockContract(wallet1, TsunamiDrawSettingsHistory.abi)
+    tsunamiDrawSettingsHistory = await deployMockContract(wallet1 as Signer, TsunamiDrawSettingsHistory.abi)
 
     const DrawHistory = await artifacts.readArtifact('DrawHistory');
-    drawHistory = await deployMockContract(wallet1, DrawHistory.abi)
+    drawHistory = await deployMockContract(wallet1 as Signer, DrawHistory.abi)
 
     const IDrawCalculator = await artifacts.readArtifact('IDrawCalculator');
-    drawCalculator = await deployMockContract(wallet1, IDrawCalculator.abi)
+    drawCalculator = await deployMockContract(wallet1 as Signer, IDrawCalculator.abi)
 
     oracleTimelockFactory = await ethers.getContractFactory('OracleTimelock');
 
     oracleTimelock = await oracleTimelockFactory.deploy(
+      wallet1.address,
       tsunamiDrawSettingsHistory.address,
       drawHistory.address,
       drawCalculator.address,
@@ -71,7 +73,7 @@ describe('OracleTimelock', () => {
     })
 
     it('should not allow anyone else to set', async () => {
-      await expect(oracleTimelock.connect(wallet2).setTimelockDuration(66)).to.be.revertedWith('Ownable: caller is not the owner')
+      await expect(oracleTimelock.connect(wallet2).setTimelockDuration(66)).to.be.revertedWith('Ownable/caller-not-owner')
     })
   })
 
@@ -152,7 +154,7 @@ describe('OracleTimelock', () => {
     })
 
     it('should not allow a push from a non-owner', async () => {
-      await expect(oracleTimelock.connect(wallet2).push(draw, drawSettings)).to.be.revertedWith('Manager/caller-not-manager-or-owner')
+      await expect(oracleTimelock.connect(wallet2).push(draw, drawSettings)).to.be.revertedWith('Manageable/caller-not-manager-or-owner')
     })
 
     it('should not allow a push if a draw is still timelocked', async () => {

@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
@@ -11,11 +10,11 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
-import "./prize-pool/PrizePool.sol";
 
 /**
   * @title  PoolTogether V4 DrawBeacon
@@ -98,17 +97,19 @@ contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Deploy the DrawBeacon smart contract.
+    * @param _owner Address of the DrawBeacon owner
     * @param _drawHistory The address of the draw history to push draws to
     * @param _rng The RNG service to use
     * @param _beaconPeriodStart The starting timestamp of the beacon period.
     * @param _beaconPeriodSeconds The duration of the beacon period in seconds
   */
   constructor (
+    address _owner,
     IDrawHistory _drawHistory,
     RNGInterface _rng,
     uint256 _beaconPeriodStart,
     uint256 _beaconPeriodSeconds
-  ) {
+  ) Ownable(_owner) {
     require(_beaconPeriodStart > 0, "DrawBeacon/beacon-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
     rng = _rng;
@@ -128,7 +129,7 @@ contract DrawBeacon is IDrawBeacon,
       _beaconPeriodSeconds
     );
 
-    emit BeaconPeriodStarted(_msgSender(), _beaconPeriodStart);
+    emit BeaconPeriodStarted(msg.sender, _beaconPeriodStart);
   }
 
   /* ============ Public Functions ============ */
@@ -213,8 +214,8 @@ contract DrawBeacon is IDrawBeacon,
     // to avoid clock drift, we should calculate the start time based on the previous period start time.
     beaconPeriodStartedAt = _calculateNextBeaconPeriodStartTime(_currentTime());
 
-    emit DrawCompleted(_msgSender(), randomNumber);
-    emit BeaconPeriodStarted(_msgSender(), beaconPeriodStartedAt);
+    emit DrawCompleted(msg.sender, randomNumber);
+    emit BeaconPeriodStarted(msg.sender, beaconPeriodStartedAt);
   }
 
   /**
@@ -282,7 +283,7 @@ contract DrawBeacon is IDrawBeacon,
     rngRequest.lockBlock = lockBlock;
     rngRequest.requestedAt = _currentTime().toUint32();
 
-    emit DrawStarted(_msgSender(), requestId, lockBlock);
+    emit DrawStarted(msg.sender, requestId, lockBlock);
   }
 
   /**

@@ -43,7 +43,7 @@ describe('TsunamiDrawSettingsHistory', () => {
       'TsunamiDrawSettingsHistory',
     );
 
-    drawSettingsHistory = await drawSettingsHistoryFactory.deploy(3);
+    drawSettingsHistory = await drawSettingsHistoryFactory.deploy(wallet1.address, 3);
     await drawSettingsHistory.setManager(wallet1.address);
   });
 
@@ -101,7 +101,7 @@ describe('TsunamiDrawSettingsHistory', () => {
   describe('pushDrawSettings()', () => {
     context('sanity checks', () => {
       let drawSettings: TsunamiDrawCalculatorSettings
-      
+
       beforeEach(async () => {
         drawSettings = {
           matchCardinality: BigNumber.from(5),
@@ -144,27 +144,27 @@ describe('TsunamiDrawSettingsHistory', () => {
           'DrawCalc/bitRangeSize-gt-0',
         );
       });
-  
+
       it('cannot set maxPicksPerUser = 0', async () => {
         drawSettings.maxPicksPerUser = BigNumber.from(0)
         await expect(drawSettingsHistory.pushDrawSettings(0, drawSettings)).to.be.revertedWith(
           'DrawCalc/maxPicksPerUser-gt-0',
         );
       });
-  
+
       it('cannot set numberOfPicks = 0', async () => {
         drawSettings.numberOfPicks = BigNumber.from(0)
         await expect(drawSettingsHistory.pushDrawSettings(0, drawSettings)).to.be.revertedWith(
           'DrawCalc/numberOfPicks-gt-0',
         );
       });
-  
+
     })
 
     it('should fail to create a new draw when called from non-draw-manager', async () => {
       const claimableDrawWallet2 = drawSettingsHistory.connect(wallet2);
       await expect(claimableDrawWallet2.pushDrawSettings(0, newDrawSettings()))
-        .to.be.revertedWith('Manager/caller-not-manager-or-owner');
+        .to.be.revertedWith('Manageable/caller-not-manager-or-owner');
     });
 
     it('should create a new draw and emit DrawCreated', async () => {
@@ -207,14 +207,14 @@ describe('TsunamiDrawSettingsHistory', () => {
     it('should fail to set existing draw as unauthorized account', async () => {
       await drawSettingsHistory.pushDrawSettings(0, newDrawSettings());
       await expect(drawSettingsHistory.connect(wallet3).setDrawSetting(0, newDrawSettings()))
-        .to.be.revertedWith('Ownable: caller is not the owner')
+        .to.be.revertedWith('Ownable/caller-not-owner')
     })
 
     it('should fail to set existing draw as manager ', async () => {
       await drawSettingsHistory.setManager(wallet2.address);
       await drawSettingsHistory.pushDrawSettings(0, newDrawSettings());
       await expect(drawSettingsHistory.connect(wallet2).setDrawSetting(0, newDrawSettings()))
-        .to.be.revertedWith('Ownable: caller is not the owner')
+        .to.be.revertedWith('Ownable/caller-not-owner')
     })
 
     it('should succeed to set existing draw as owner', async () => {

@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
@@ -34,9 +34,17 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
 
   /* ============ Constructor ============ */
 
-  ///@notice Constructor for TsunamiDrawCalculator
-  ///@param _ticket Ticket associated with this DrawCalculator
-  constructor(ITicket _ticket, IDrawHistory _drawHistory, TsunamiDrawSettingsHistory _tsunamiDrawSettingsHistory) Ownable() {
+  /// @notice Constructor for TsunamiDrawCalculator
+  /// @param _owner Address of the TsunamiDrawCalculator owner
+  /// @param _ticket Ticket associated with this DrawCalculator
+  /// @param _drawHistory The address of the draw history to push draws to
+  /// @param _tsunamiDrawSettingsHistory TsunamiDrawSettingsHistory address
+  constructor(
+    address _owner,
+    ITicket _ticket,
+    IDrawHistory _drawHistory,
+    TsunamiDrawSettingsHistory _tsunamiDrawSettingsHistory
+  ) Ownable(_owner) {
     require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
     require(address(_tsunamiDrawSettingsHistory) != address(0), "DrawCalc/tdsh-not-zero");
     _setDrawHistory(_drawHistory);

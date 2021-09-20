@@ -4,7 +4,7 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IClaimableDraw.sol";
 import "./interfaces/IDrawCalculator.sol";
@@ -33,13 +33,15 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
 
   /**
     * @notice Initialize ClaimableDraw smart contract.
-    * @param _token       Token address
+    * @param _owner           Address of the ClaimableDraw owner
+    * @param _token           Token address
     * @param _drawCalculator DrawCalculator address
   */
   constructor(
+    address _owner,
     IERC20 _token,
     IDrawCalculator _drawCalculator
-  ) Ownable() {
+  ) Ownable(_owner) {
     _setDrawCalculator(_drawCalculator);
     require(address(_token) != address(0), "ClaimableDraw/token-not-zero-address" );
     token = _token;
@@ -84,7 +86,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /* ============ External Functions ============ */
 
   /**
-    * @notice Claim a user token payouts via a collection of draw ids and pick indices. 
+    * @notice Claim a user token payouts via a collection of draw ids and pick indices.
     * @param _user             Address of user to claim awards for. Does NOT need to be msg.sender
     * @param _drawIds          Draw IDs from global DrawHistory reference
     * @param _data             The data to pass to the draw calculator.
@@ -137,7 +139,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /**
     * @notice Transfer claimed draw(s) total payout to user.
     * @param _to      User address
-    * @param _amount  Transfer amount 
+    * @param _amount  Transfer amount
   */
   function _awardPayout(address _to, uint256 _amount) internal {
     token.safeTransfer(_to, _amount);

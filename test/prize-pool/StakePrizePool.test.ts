@@ -26,7 +26,7 @@ describe('StakePrizePool', function () {
 
   const deployStakePrizePool = async (stakeTokenAddress: string = stakeToken.address) => {
     StakePrizePool = await hardhat.ethers.getContractFactory('StakePrizePool', wallet);
-    prizePool = await StakePrizePool.deploy(stakeTokenAddress);
+    prizePool = await StakePrizePool.deploy(wallet.address, stakeTokenAddress);
 
     const Ticket = await hardhat.ethers.getContractFactory('Ticket');
     ticket = await Ticket.deploy('name', 'SYMBOL', 18, prizePool.address);

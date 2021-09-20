@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -11,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "../external/compound/ICompLike.sol";
 import "../interfaces/IPrizePool.sol";
@@ -44,7 +44,10 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   uint256 internal _currentAwardBalance;
 
   /// @notice Deploy the Prize Pool
-  constructor () Ownable() ReentrancyGuard() {
+  /// @param _owner Address of the Prize Pool owner
+  constructor (
+    address _owner
+  ) Ownable(_owner) ReentrancyGuard() {
     _setLiquidityCap(type(uint256).max);
   }
 
@@ -78,7 +81,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     nonReentrant
     canAddLiquidity(_amount)
   {
-    address _operator = _msgSender();
+    address _operator = msg.sender;
 
     require(_canDeposit(_operator, _amount), "PrizePool/exceeds-balance-cap");
 
@@ -107,14 +110,14 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     IControlledToken _ticket = ticket;
 
     // burn the tickets
-    _ticket.controllerBurnFrom(_msgSender(), _from, _amount);
+    _ticket.controllerBurnFrom(msg.sender, _from, _amount);
 
     // redeem the tickets
     uint256 _redeemed = _redeem(_amount);
 
     _token().safeTransfer(_from, _redeemed);
 
-    emit Withdrawal(_msgSender(), _from, _ticket, _amount, _redeemed);
+    emit Withdrawal(msg.sender, _from, _ticket, _amount, _redeemed);
 
     return _redeemed;
   }
@@ -436,7 +439,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
   /// @dev Function modifier to ensure caller is the prize-strategy
   modifier onlyPrizeStrategy() {
-    require(_msgSender() == prizeStrategy, "PrizePool/only-prizeStrategy");
+    require(msg.sender == prizeStrategy, "PrizePool/only-prizeStrategy");
     _;
   }
 
