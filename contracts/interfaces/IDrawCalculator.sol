@@ -7,9 +7,6 @@ import "../libraries/DrawLib.sol";
 
 interface IDrawCalculator {
 
-  ///@notice Emitted when the DrawParams are set/updated
-  event DrawSettingsSet(uint32 indexed drawId, DrawLib.TsunamiDrawCalculatorSettings drawSettings);
-
   ///@notice Emitted when the contract is initialized
   event Deployed(ITicket indexed ticket);
 

@@ -141,8 +141,16 @@ module.exports = async (hardhat) => {
       cardinality
     ]
   });
-
   displayResult('DrawHistory', drawHistoryResult);
+
+  cyan('\nDeploying TsunamiDrawSettingsHistory...');
+  const tsunamiDrawSettindsHistoryResult = await deploy('TsunamiDrawSettingsHistory', {
+    from: deployer,
+    args: [
+      cardinality
+    ]
+  });
+  displayResult('TsunamiDrawSettingsHistory', tsunamiDrawSettindsHistoryResult);
 
   cyan('\nDeploying DrawBeacon...');
   const drawBeaconResult = await deploy('DrawBeacon', {
@@ -165,7 +173,7 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
     from: deployer,
-    args: [ticketResult.address, drawHistoryResult.address, deployer, cardinality],
+    args: [ticketResult.address, drawHistoryResult.address, tsunamiDrawSettindsHistoryResult.address],
   });
   displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 
