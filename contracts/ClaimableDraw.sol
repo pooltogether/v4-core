@@ -11,9 +11,13 @@ import "./interfaces/IDrawCalculator.sol";
 import "./libraries/DrawLib.sol";
 
 /**
-  * @title  PoolTogether V4 DrawCalculator
+  * @title  PoolTogether V4 ClaimableDraw
   * @author PoolTogether Inc Team
-  * @notice Distributes PrizePool captured interest as individual draw payouts.
+  * @notice The ClaimableDraw distributes claimable draw prizes to users via a pull model.
+            Managing the regularly captured PrizePool interest, a ClaimableDraw is the
+            entrypoint for users to submit Draw.drawId(s) and winning pick indices.
+            Communicating with a DrawCalculator, the ClaimableDraw will determine the maximum
+            prize payout and transfer those tokens directly to a user address. 
 */
 contract ClaimableDraw is IClaimableDraw, Ownable {
   using SafeERC20 for IERC20;
