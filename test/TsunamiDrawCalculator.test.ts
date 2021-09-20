@@ -367,7 +367,7 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
-  describe("getNormalizedBalancesAt()", () => {
+  describe("getNormalizedBalancesForDrawIds()", () => {
     it("calculates the correct normalized balance", async () => {
       const timestamps = [42, 77]
 
@@ -389,10 +389,24 @@ describe('TsunamiDrawCalculator', () => {
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
 
+      const draw1: Draw = { 
+        drawId: BigNumber.from(1),
+        winningRandomNumber: BigNumber.from("1000"),
+        timestamp: BigNumber.from(timestamps[0])
+      }
+      const draw2: Draw = { 
+        drawId: BigNumber.from(2),
+        winningRandomNumber: BigNumber.from("1000"),
+        timestamp: BigNumber.from(timestamps[1])
+      }
+
+      await drawHistory.mock.getDraws.returns([draw1, draw2])
+      await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings, drawSettings])
+
       await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("20"), utils.parseEther("30")]); // (user, timestamp): [balance]
       await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("100"), utils.parseEther("600")]);
 
-      const userNormalizedBalances = await drawCalculator.getNormalizedBalancesAt(wallet1.address, timestamps, [drawSettings, drawSettings])
+      const userNormalizedBalances = await drawCalculator.getNormalizedBalancesForDrawIds(wallet1.address, [1, 2])
 
       expect(userNormalizedBalances[0]).to.eq(utils.parseEther("0.2"))
       expect(userNormalizedBalances[1]).to.eq(utils.parseEther("0.05"))
@@ -419,10 +433,24 @@ describe('TsunamiDrawCalculator', () => {
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
 
+      const draw1: Draw = { 
+        drawId: BigNumber.from(1),
+        winningRandomNumber: BigNumber.from("1000"),
+        timestamp: BigNumber.from(timestamps[0])
+      }
+      const draw2: Draw = { 
+        drawId: BigNumber.from(2),
+        winningRandomNumber: BigNumber.from("1000"),
+        timestamp: BigNumber.from(timestamps[1])
+      }
+
+      await drawHistory.mock.getDraws.returns([draw1, draw2])
+      await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings, drawSettings])
+
       await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("10"), utils.parseEther("30")]); // (user, timestamp): [balance]
       await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("0"), utils.parseEther("600")]);
 
-      await expect(drawCalculator.getNormalizedBalancesAt(wallet1.address, timestamps, [drawSettings, drawSettings])).to.be.revertedWith("DrawCalc/total-supply-zero")
+      await expect(drawCalculator.getNormalizedBalancesForDrawIds(wallet1.address, [1, 2])).to.be.revertedWith("DrawCalc/total-supply-zero")
     })
 
     it("returns zero when the balance is very small", async () => {
@@ -440,12 +468,23 @@ describe('TsunamiDrawCalculator', () => {
         drawEndTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      const draw1: Draw = { 
+        drawId: BigNumber.from(1),
+        winningRandomNumber: BigNumber.from("1000"),
+        timestamp: BigNumber.from(timestamps[0])
+      }
+
+      await drawHistory.mock.getDraws.returns([draw1])
+      await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings])
+
+
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
 
       await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("0.000000000000000001")]); // (user, timestamp): [balance]
       await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("1000")]);
-      const result = await drawCalculator.getNormalizedBalancesAt(wallet1.address, timestamps, [drawSettings, drawSettings])
+      
+      const result = await drawCalculator.getNormalizedBalancesForDrawIds(wallet1.address, [1])
 
       expect(result[0]).to.eq(BigNumber.from(0))
     })
