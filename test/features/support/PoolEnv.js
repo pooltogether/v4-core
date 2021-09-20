@@ -42,6 +42,8 @@ function PoolEnv() {
 
   this.drawHistory = async () => await ethers.getContract('DrawHistory');
 
+  this.drawSettingsHistory = async () => await ethers.getContract('TsunamiDrawSettingsHistory');
+
   this.drawCalculator = async () => await ethers.getContract('TsunamiDrawCalculator');
 
   this.claimableDraw = async (wallet) =>
@@ -190,7 +192,7 @@ function PoolEnv() {
     prize,
     maxPicksPerUser
   }) {
-    const drawCalculator = await this.drawCalculator();
+    const drawSettingsHistory = await this.drawSettingsHistory()
 
     const drawSettings = {
       bitRangeSize,
@@ -203,7 +205,7 @@ function PoolEnv() {
       maxPicksPerUser
     }
     
-    await drawCalculator.pushDrawSettings(drawId, drawSettings)
+    await drawSettingsHistory.pushDrawSettings(drawId, drawSettings)
   }
 }
 

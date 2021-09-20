@@ -9,15 +9,15 @@ contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
 
   constructor(
     ITicket _ticket,
-    address _drawSettingsManager,
-    uint8 _cardinality
-  ) TsunamiDrawCalculator(_ticket, _drawSettingsManager, _cardinality) { }
+    IDrawHistory _drawHistory,
+    TsunamiDrawSettingsHistory _drawSettingsHistory
+  ) TsunamiDrawCalculator(_ticket, _drawHistory, _drawSettingsHistory) { }
 
   function calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks) public view returns (uint256) {
     return _calculateDistributionIndex(_randomNumberThisPick, _winningRandomNumber, _masks);
   }
 
-  function createBitMasks(DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings) public view returns (uint256[] memory) {
+  function createBitMasks(DrawLib.TsunamiDrawSettings calldata _drawSettings) public view returns (uint256[] memory) {
     return _createBitMasks(_drawSettings);
   }
 
@@ -25,7 +25,7 @@ contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
   ///@param _drawSettings TsunamiDrawCalculatorSettings struct for Draw
   ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
   ///@return returns the fraction of the total prize
-  function calculatePrizeDistributionFraction(DrawLib.TsunamiDrawCalculatorSettings calldata _drawSettings, uint256 _prizeDistributionIndex) external view returns (uint256)
+  function calculatePrizeDistributionFraction(DrawLib.TsunamiDrawSettings calldata _drawSettings, uint256 _prizeDistributionIndex) external view returns (uint256)
   {
     return _calculatePrizeDistributionFraction(_drawSettings, _prizeDistributionIndex);
   }
@@ -34,11 +34,16 @@ contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
     return _numberOfPrizesForIndex(_bitRangeSize, _prizeDistributionIndex);
   }
 
-  function getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.TsunamiDrawCalculatorSettings[] calldata _drawSettings) external view returns (uint256[] memory) {
-    return _getNormalizedBalancesAt(_user, _timestamps, _drawSettings);
+  function getNormalizedBalancesAt(address _user, uint32[] memory _timestamps, DrawLib.TsunamiDrawSettings[] calldata _drawSettings) external view returns (uint256[] memory) {
+    // nasty hack
+    DrawLib.Draw[] memory _draws = new DrawLib.Draw[](_timestamps.length);
+    for (uint256 i = 0; i < _timestamps.length; i++) {
+      _draws[i].timestamp = _timestamps[i];
+    }
+    return _getNormalizedBalancesAt(_user, _draws, _drawSettings);
   }
 
-  function calculateNumberOfUserPicks(DrawLib.TsunamiDrawCalculatorSettings memory _drawSettings, uint256 _normalizedUserBalance) external view returns (uint256){
+  function calculateNumberOfUserPicks(DrawLib.TsunamiDrawSettings memory _drawSettings, uint256 _normalizedUserBalance) external view returns (uint256){
     return _calculateNumberOfUserPicks(_drawSettings, _normalizedUserBalance);
   }
 }
