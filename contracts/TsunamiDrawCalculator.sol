@@ -23,6 +23,16 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
     IDrawHistory indexed drawHistory
   );
 
+  /**
+    * @notice Holds information about whether a pick won or not
+    * @param won Boolean to indicate whether the pick won or not. True iff the pick won.
+    * @param distributionIndex Index of the pick
+  */
+  struct PickPrize {
+    bool won;
+    uint8 distributionIndex;
+  }
+
   /// @notice DrawHistory address
   IDrawHistory internal drawHistory;
 
@@ -111,6 +121,41 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
     DrawLib.Draw[] memory _draws = drawHistory.getDraws(_drawIds);
     DrawLib.TsunamiDrawSettings[] memory _drawSettings = tsunamiDrawSettingsHistory.getDrawSettings(_drawIds);
     return _getNormalizedBalancesAt(_user, _draws, _drawSettings);
+  }
+
+  ///@notice Returns the distribution index for a users pickIndices for a draw
+  ///@param _user The user for which to calculate the distribution indices
+  ///@param _pickIndices The users pick indices for a draw
+  ///@param _drawId The draw for which to calculate the distribution indices
+  function checkPrizeDistributionIndicesForDrawId(address _user, uint256[] calldata _pickIndices, uint32 _drawId) 
+    external view returns(PickPrize[] memory)
+  {
+    uint32[] memory drawIds = new uint32[](1);
+    drawIds[0] = _drawId;
+
+    DrawLib.Draw[] memory _draws = drawHistory.getDraws(drawIds);
+    
+    DrawLib.TsunamiDrawSettings[] memory _drawSettings = tsunamiDrawSettingsHistory.getDrawSettings(drawIds);
+    
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _draws, _drawSettings);
+    uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[0], userBalances[0]);
+
+    uint256[] memory masks =  _createBitMasks(_drawSettings[0]);
+    PickPrize[] memory pickPrizes = new PickPrize[](_pickIndices.length);
+
+    bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
+
+    for(uint256 i = 0; i < _pickIndices.length; i++){
+      uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _pickIndices[i])));
+      require(_pickIndices[i] < totalUserPicks, "DrawCalc/insufficient-user-picks");
+      uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _draws[0].winningRandomNumber, masks);
+
+      pickPrizes[i] = PickPrize({
+        won: distributionIndex < _drawSettings[0].distributions.length && _drawSettings[0].distributions[distributionIndex] > 0, 
+        distributionIndex: uint8(distributionIndex)
+      });
+    }
+    return pickPrizes;
   }
 
   /* ============ Internal Functions ============ */

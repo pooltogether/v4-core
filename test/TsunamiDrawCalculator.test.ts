@@ -367,7 +367,98 @@ describe('TsunamiDrawCalculator', () => {
     })
   })
 
-  describe("getNormalizedBalancesForDrawIds()", () => {
+  describe("checkPrizeDistributionIndicesForDrawId()", () => {
+    const drawSettings: TsunamiDrawCalculatorSettings = {
+      matchCardinality: BigNumber.from(5),
+      distributions: [
+        ethers.utils.parseUnits("0.6", 9),
+        ethers.utils.parseUnits("0.1", 9),
+        ethers.utils.parseUnits("0.1", 9),
+        ethers.utils.parseUnits("0.1", 9),
+      ],
+      numberOfPicks: BigNumber.from("10"),
+      bitRangeSize: BigNumber.from(4),
+      prize: ethers.utils.parseEther('1'),
+      drawStartTimestampOffset: BigNumber.from(1),
+      drawEndTimestampOffset: BigNumber.from(1),
+      maxPicksPerUser: BigNumber.from(10),
+    };
+
+    it("calculates the grand prize distribution index", async () => {
+      const timestamps = [42]
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
+      const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+      const winningRandomNumber = utils.solidityKeccak256(
+        ['bytes32', 'uint256'],
+        [winningNumber, 1],
+      );
+
+      const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      
+      
+      await drawSettingsHistory.mock.getDrawSettings.withArgs([draw.drawId]).returns([drawSettings])
+      await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw])
+
+      await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("20"), utils.parseEther("30")]); // (user, timestamp): [balance]
+      await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("100"), utils.parseEther("600")]);
+
+      const result = await drawCalculator.checkPrizeDistributionIndicesForDrawId(wallet1.address, [1], draw.drawId)
+      expect(result[0].won).to.be.true
+      expect(result[0].distributionIndex).to.equal(0)
+    })
+
+    it("no matches to return won = false", async () => {
+      const timestamps = [42]
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
+      
+      const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
+      const winningRandomNumber = utils.solidityKeccak256(
+        ['bytes32', 'uint256'],
+        [winningNumber, 1],
+      );
+
+      const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      
+      
+      await drawSettingsHistory.mock.getDrawSettings.withArgs([draw.drawId]).returns([drawSettings])
+      await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw])
+
+      await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("20"), utils.parseEther("30")]); // (user, timestamp): [balance]
+      await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("100"), utils.parseEther("600")]);
+
+      const result = await drawCalculator.checkPrizeDistributionIndicesForDrawId(wallet1.address, [1], draw.drawId)
+      
+      expect(result[0].won).to.be.false
+      expect(result[0].distributionIndex).to.equal(drawSettings.matchCardinality.toNumber())
+    })
+
+    it("reverts if user has too many picks", async () => {
+      const timestamps = [42]
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
+      
+      const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
+      const winningRandomNumber = utils.solidityKeccak256(
+        ['bytes32', 'uint256'],
+        [winningNumber, 1],
+      );
+
+      const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      
+      
+      await drawSettingsHistory.mock.getDrawSettings.withArgs([draw.drawId]).returns([drawSettings])
+      await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw])
+
+      await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("2")]); // (user, timestamp): [balance]
+      await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("10")]);
+      // 20pc of the total supply, 10 picks in the draw = 2 picks trying with 3 picks
+      await expect(drawCalculator.checkPrizeDistributionIndicesForDrawId(wallet1.address, [1, 2, 3], draw.drawId)).to.be.revertedWith('DrawCalc/insufficient-user-picks');
+      
+    })
+
+  })
+
+
+  describe("getNormalizedBalancesAt()", () => {
     it("calculates the correct normalized balance", async () => {
       const timestamps = [42, 77]
 
