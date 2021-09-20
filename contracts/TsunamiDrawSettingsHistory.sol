@@ -6,9 +6,10 @@ import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBuffer.sol";
+import "./interfaces/ITsunamiDrawSettingsHistory.sol";
 
 ///@title TsunamiDrawSettingsHistory
-contract TsunamiDrawSettingsHistory is Manageable {
+contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   using DrawRingBuffer for DrawRingBuffer.Buffer;
 
   uint256 constant MAX_CARDINALITY = 256;
@@ -42,22 +43,22 @@ contract TsunamiDrawSettingsHistory is Manageable {
   ///@notice Sets TsunamiDrawSettingsHistorySettings for a draw id. only callable by the owner or manager
   ///@param _drawId The id of the Draw
   ///@param _drawSettings The TsunamiDrawSettingsHistorySettings to set
-  function pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external onlyManagerOrOwner
-    returns (bool success)
+  function pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external override onlyManagerOrOwner
+    returns (bool)
   {
     return _pushDrawSettings(_drawId, _drawSettings);
   }
 
   ///@notice Gets the TsunamiDrawSettingsHistorySettings for a draw id
   ///@param _drawId The id of the Draw
-  function getDrawSetting(uint32 _drawId) external view returns(DrawLib.TsunamiDrawSettings memory)
+  function getDrawSetting(uint32 _drawId) external override view returns(DrawLib.TsunamiDrawSettings memory)
   {
     return _getDrawSettings(drawSettingsRingBuffer, _drawId);
   }
 
   ///@notice Gets the TsunamiDrawSettingsHistorySettings for a draw id
   ///@param _drawIds The draw ids to get the settings for
-  function getDrawSettings(uint32[] calldata _drawIds) external view returns(DrawLib.TsunamiDrawSettings[] memory)
+  function getDrawSettings(uint32[] calldata _drawIds) external override view returns(DrawLib.TsunamiDrawSettings[] memory)
   {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBuffer;
     DrawLib.TsunamiDrawSettings[] memory _drawSettings = new DrawLib.TsunamiDrawSettings[](_drawIds.length);
@@ -72,7 +73,7 @@ contract TsunamiDrawSettingsHistory is Manageable {
     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
     * @return DrawLib.TsunamiDrawSettings
   */
-  function getNewestDrawSettings() external view returns (DrawLib.TsunamiDrawSettings memory) {
+  function getNewestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory) {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBuffer;
     return drawSettings[buffer.getIndex(buffer.lastDrawId)];
   }
@@ -82,7 +83,7 @@ contract TsunamiDrawSettingsHistory is Manageable {
     * @dev    Finds the oldest Draw by comparing and/or diffing totalDraws with the cardinality.
     * @return DrawLib.TsunamiDrawSettings
   */
-  function getOldestDrawSettings() external view returns (DrawLib.TsunamiDrawSettings memory) {
+  function getOldestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory) {
     // oldest draw should be next available index, otherwise it's at 0
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBuffer;
     DrawLib.TsunamiDrawSettings memory drawSet = drawSettings[buffer.nextIndex];
@@ -97,7 +98,7 @@ contract TsunamiDrawSettingsHistory is Manageable {
     * @dev    Updating a Draw should be used sparingly and only in the event an incorrect Draw parameter has been stored.
     * @return Draw.drawId
   */
-  function setDrawSetting(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external onlyOwner returns (uint32) {
+  function setDrawSetting(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external override onlyOwner returns (uint32) {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBuffer;
     uint32 index = buffer.getIndex(_drawId);
     drawSettings[index] = _drawSettings;
