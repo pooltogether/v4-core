@@ -25,11 +25,11 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
 
   /**
     * @notice Holds information about whether a pick won or not
-    * @param didWin Boolean to indicate whether the pick won or not. True iff the pick won.
+    * @param won Boolean to indicate whether the pick won or not. True iff the pick won.
     * @param distributionIndex Index of the pick
   */
   struct PickPrize {
-    bool didWin;
+    bool won;
     uint8 distributionIndex;
   }
 
@@ -151,7 +151,7 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
       uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _draws[0].winningRandomNumber, masks);
 
       pickPrizes[i] = PickPrize({
-        didWin: distributionIndex < _drawSettings[0].distributions.length && _drawSettings[0].distributions[distributionIndex] > 0, 
+        won: distributionIndex < _drawSettings[0].distributions.length && _drawSettings[0].distributions[distributionIndex] > 0, 
         distributionIndex: uint8(distributionIndex)
       });
     }

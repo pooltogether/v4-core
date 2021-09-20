@@ -403,11 +403,11 @@ describe('TsunamiDrawCalculator', () => {
       await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("100"), utils.parseEther("600")]);
 
       const result = await drawCalculator.checkPrizeDistributionIndicesForDrawId(wallet1.address, [1], draw.drawId)
-      expect(result[0].didWin).to.be.true
+      expect(result[0].won).to.be.true
       expect(result[0].distributionIndex).to.equal(0)
     })
 
-    it("no matches to return didWin = false", async () => {
+    it("no matches to return won = false", async () => {
       const timestamps = [42]
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
@@ -428,7 +428,7 @@ describe('TsunamiDrawCalculator', () => {
 
       const result = await drawCalculator.checkPrizeDistributionIndicesForDrawId(wallet1.address, [1], draw.drawId)
       
-      expect(result[0].didWin).to.be.false
+      expect(result[0].won).to.be.false
       expect(result[0].distributionIndex).to.equal(drawSettings.matchCardinality.toNumber())
     })
 
