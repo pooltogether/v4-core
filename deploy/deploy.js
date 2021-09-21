@@ -137,20 +137,14 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying DrawHistory...');
   const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
-    args: [
-      deployer,
-      cardinality
-    ]
+    args: [deployer, cardinality],
   });
   displayResult('DrawHistory', drawHistoryResult);
 
   cyan('\nDeploying TsunamiDrawSettingsHistory...');
   const tsunamiDrawSettindsHistoryResult = await deploy('TsunamiDrawSettingsHistory', {
     from: deployer,
-    args: [
-      deployer,
-      cardinality
-    ]
+    args: [deployer, cardinality],
   });
   displayResult('TsunamiDrawSettingsHistory', tsunamiDrawSettindsHistoryResult);
 
@@ -176,7 +170,12 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
     from: deployer,
-    args: [deployer, ticketResult.address, drawHistoryResult.address, tsunamiDrawSettindsHistoryResult.address],
+    args: [
+      deployer,
+      ticketResult.address,
+      drawHistoryResult.address,
+      tsunamiDrawSettindsHistoryResult.address,
+    ],
   });
   displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 
@@ -186,6 +185,26 @@ module.exports = async (hardhat) => {
     args: [deployer, ticketResult.address, drawCalculatorResult.address],
   });
   displayResult('ClaimableDraw', claimableDrawResult);
+
+  cyan('\nDeploying PrizeSplitStrategy...');
+  const prizeSplitStrategyResult = await deploy('PrizeSplitStrategy', {
+    from: deployer,
+    args: [deployer, yieldSourcePrizePoolResult.address],
+  });
+  displayResult('PrizeSplitStrategy', prizeSplitStrategyResult);
+
+  cyan('\nConfiguring PrizeSplitStrategy...');
+  const prizeSplitStrategy = await ethers.getContract('PrizeSplitStrategy');
+  prizeSplitStrategy.setPrizeSplits([
+    {
+      target: deployer,
+      percentage: 1000, // 100%
+    },
+  ]);
+  green(
+    'PrizeSplitStrategy Configured',
+    `\nPrizeReserve: ${deployer} gets 100% of captured interest`,
+  );
 
   dim('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
   green('Contract Deployments Complete!');
