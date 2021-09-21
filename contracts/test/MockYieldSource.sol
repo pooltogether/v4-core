@@ -23,6 +23,11 @@ contract MockYieldSource is ERC20, IYieldSource {
     token.mint(address(this), amount);
   }
 
+  function sharesAndYieldTo(address to, uint256 shares, uint256 yield) external {
+    _mint(to, shares);
+    token.mint(address(this), yield);
+  }
+
   /// @notice Returns the ERC20 asset token used for deposits.
   /// @return The ERC20 asset token address.
   function depositToken() external override view returns (address) {
