@@ -21,7 +21,24 @@ describe('DrawRingBufferLib', () => {
     drawRingBufferLib = await drawRingBufferLibFactory.deploy('255');
   });
 
+  describe('isUninitialized()', () => {
+    it('should return TRUE to signal an uninitalized DrawHistory', async () => {
+      expect(await drawRingBufferLib._isUninitialized({
+        lastDrawId: 0,
+        nextIndex: 0,
+        cardinality: 256
+      })).to.eql(true)
+    })
 
+    it('should return FALSE to signal an initalized DrawHistory', async () => {
+      expect(await drawRingBufferLib._isUninitialized({
+        lastDrawId: 0,
+        nextIndex: 1,
+        cardinality: 256
+      })).to.eql(false)
+    })
+
+  })
   describe('push()', () => {
     it('should return the next valid Buffer struct assuming DrawHistory with 0 draws', async () => {
       const nextBuffer = await drawRingBufferLib._push({
