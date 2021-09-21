@@ -206,6 +206,9 @@ module.exports = async (hardhat) => {
     `\nPrizeReserve: ${deployer} gets 100% of captured interest`,
   );
 
+  cyan('\nConfiguring PrizeSplitStrategy to be YieldSource strategy...');
+  yieldSourcePrizePool.setPrizeStrategy(prizeSplitStrategyResult.address);
+
   dim('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
   green('Contract Deployments Complete!');
   dim('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
