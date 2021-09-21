@@ -293,10 +293,10 @@ contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Allows the owner to set the beacon period in seconds.
-    * @param beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
+    * @param _beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
    */
-  function setBeaconPeriodSeconds(uint256 beaconPeriodSeconds) external override onlyOwner requireDrawNotInProgress {
-    _setBeaconPeriodSeconds(beaconPeriodSeconds);
+  function setBeaconPeriodSeconds(uint256 _beaconPeriodSeconds) external override onlyOwner requireDrawNotInProgress {
+    _setBeaconPeriodSeconds(_beaconPeriodSeconds);
   }
 
   /**
