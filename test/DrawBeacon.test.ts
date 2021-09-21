@@ -289,7 +289,7 @@ describe('DrawBeacon', () => {
       )
         .to.emit(drawHistory, 'DrawSet')
         .withArgs(
-          0,
+          1,
           currentTimestamp + 1,
           1234567890,
         );
@@ -327,7 +327,7 @@ describe('DrawBeacon', () => {
       expect(await drawBeacon.completeDraw())
         .to.emit(drawHistory, 'DrawSet')
         .withArgs(
-          0,
+          1,
           currentTimestamp + 1,
           '0x6c00000000000000000000000000000000000000000000000000000000000000',
         );

@@ -54,7 +54,10 @@ contract DrawBeacon is IDrawBeacon,
   /// @notice Epoch timestamp when beacon period can start
   uint256 public beaconPeriodStartedAt;
 
-  /// @notice Next Draw ID to use when pushing a Draw onto DrawHistory
+  /**
+    * @notice Next Draw ID to use when pushing a Draw onto DrawHistory
+    * @dev Starts at 1. This way we know that no Draw has been recorded at 0.
+  */
   uint32 public nextDrawId;
 
   /// @notice DrawHistory address
@@ -121,6 +124,8 @@ contract DrawBeacon is IDrawBeacon,
 
     // 30 min timeout
     _setRngTimeout(1800);
+
+    nextDrawId = uint32(1);
 
     emit Deployed(
       _drawHistory,

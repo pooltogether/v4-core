@@ -46,7 +46,7 @@ describe('Tickets', () => {
     await env.draw({ randomNumber: winningRandomNumber });
 
     await env.pushDrawSettings({
-      drawId: 0,
+      drawId: 1,
       bitRangeSize: ethers.BigNumber.from(4),
       matchCardinality: ethers.BigNumber.from(5),
       numberOfPicks: toWei('1'),
@@ -57,6 +57,6 @@ describe('Tickets', () => {
       maxPicksPerUser : 1000
     })
 
-    await env.claim({ user: 1, drawId: 0, picks: [1], prize: 100 });
+    await env.claim({ user: 1, drawId: 1, picks: [1], prize: 100 });
   });
 });
