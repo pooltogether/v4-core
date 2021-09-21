@@ -89,17 +89,23 @@ describe('PrizePool', function () {
 
   describe('constructor()', () => {
     it('should fire the events', async () => {
-      const tx = prizePool.deployTransaction;
+      const deployTx = prizePool.deployTransaction;
 
-      await expect(tx).to.emit(prizePool, 'LiquidityCapSet').withArgs(MaxUint256);
+      await expect(deployTx).to.emit(prizePool, 'LiquidityCapSet').withArgs(MaxUint256);
 
       await expect(prizePool.setPrizeStrategy(prizeStrategyManager.address))
         .to.emit(prizePool, 'PrizeStrategySet')
         .withArgs(prizeStrategyManager.address);
 
-      await expect(prizePool.setTicket(ticket.address))
+      const setTicketTx = await prizePool.setTicket(ticket.address);
+
+      await expect(setTicketTx)
         .to.emit(prizePool, 'TicketSet')
         .withArgs(ticket.address);
+
+      await expect(setTicketTx)
+        .to.emit(prizePool, 'BalanceCapSet')
+        .withArgs(ticket.address, MaxUint256);
     });
   });
 

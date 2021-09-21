@@ -311,12 +311,16 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @param _ticket Address of the ticket to set.
   /// @return True if ticket has been successfully set.
   function setTicket(IControlledToken _ticket) external override onlyOwner returns (bool) {
-    require(address(_ticket) != address(0), "PrizePool/ticket-not-zero-address");
+    address _ticketAddress = address(_ticket);
+
+    require(_ticketAddress!= address(0), "PrizePool/ticket-not-zero-address");
     require(address(ticket) == address(0), "PrizePool/ticket-already-set");
 
     ticket = _ticket;
 
     emit TicketSet(_ticket);
+
+    _setBalanceCap(_ticketAddress, type(uint256).max);
 
     return true;
   }
