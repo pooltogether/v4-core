@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 pragma solidity 0.8.6;
-
+import "hardhat/console.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
 import "./libraries/DrawLib.sol";
@@ -71,26 +71,29 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   /**
     * @notice Read newest Draw from the draws ring buffer.
     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
-    * @return DrawLib.TsunamiDrawSettings
+    * @return newestDrawSettings DrawLib.TsunamiDrawSettings
+    * @return drawId Draw.drawId
   */
-  function getNewestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory) {
+  function getNewestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory newestDrawSettings, uint32 drawId) {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBuffer;
-    return drawSettings[buffer.getIndex(buffer.lastDrawId)];
+    return (drawSettings[buffer.getIndex(buffer.lastDrawId)], buffer.lastDrawId);
   }
 
   /**
     * @notice Read oldest Draw from the draws ring buffer.
     * @dev    Finds the oldest Draw by comparing and/or diffing totalDraws with the cardinality.
-    * @return DrawLib.TsunamiDrawSettings
+    * @return oldestDrawSettings DrawLib.TsunamiDrawSettings
+    * @return drawId Draw.drawId
   */
-  function getOldestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory) {
-    // oldest draw should be next available index, otherwise it's at 0
+  function getOldestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory oldestDrawSettings, uint32 drawId) {
+    uint32 oldestDrawId;
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBuffer;
+    // oldest draw should be next available index, otherwise it's at 0
     DrawLib.TsunamiDrawSettings memory drawSet = drawSettings[buffer.nextIndex];
     if (drawSet.matchCardinality == 0) { // if draw is not init, then use draw at 0
       drawSet = drawSettings[0];
     }
-    return drawSet;
+    return (drawSet, oldestDrawId);
   }
 
   /**

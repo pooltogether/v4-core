@@ -47,7 +47,7 @@ describe('TsunamiDrawSettingsHistory', () => {
     await drawSettingsHistory.setManager(wallet1.address);
   });
 
-  describe('getNewestDrawSettings()', () => {
+  describe.only('getNewestDrawSettings()', () => {
     it('should error when no draw history', async () => {
       await expect(drawSettingsHistory.getNewestDrawSettings()).to.be.revertedWith('DRB/future-draw')
     });
@@ -55,27 +55,28 @@ describe('TsunamiDrawSettingsHistory', () => {
     it('should get the last draw after pushing a draw', async () => {
       await drawSettingsHistory.pushDrawSettings(0, newDrawSettings(5))
       const settings = await drawSettingsHistory.getNewestDrawSettings();
-      expect(settings.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(settings.newestDrawSettings.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(settings.drawId).to.equal(0)
     });
   })
 
-  describe('getOldestDrawSettings()', () => {
+  describe.only('getOldestDrawSettings()', () => {
     it('should yield an empty draw when no history', async () => {
       const settings = await drawSettingsHistory.getOldestDrawSettings();
-      expect(settings.matchCardinality).to.equal(0)
+      expect(settings.oldestDrawSettings.matchCardinality).to.equal(0)
     });
 
     it('should yield the first draw when only one', async () => {
       await drawSettingsHistory.pushDrawSettings(2, newDrawSettings())
       const settings = await drawSettingsHistory.getOldestDrawSettings();
-      expect(settings.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(settings.oldestDrawSettings.matchCardinality).to.equal(drawSettings.matchCardinality)
     });
 
     it('should give the first draw when the buffer is not full', async () => {
       await drawSettingsHistory.pushDrawSettings(0, newDrawSettings())
       await drawSettingsHistory.pushDrawSettings(1, newDrawSettings())
       const draw = await drawSettingsHistory.getOldestDrawSettings();
-      expect(draw.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(draw.oldestDrawSettings.matchCardinality).to.equal(drawSettings.matchCardinality)
     });
 
     it('should give the first draw when the buffer is full', async () => {
@@ -83,7 +84,7 @@ describe('TsunamiDrawSettingsHistory', () => {
       await drawSettingsHistory.pushDrawSettings(1, newDrawSettings())
       await drawSettingsHistory.pushDrawSettings(2, newDrawSettings())
       const draw = await drawSettingsHistory.getOldestDrawSettings();
-      expect(draw.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(draw.oldestDrawSettings.matchCardinality).to.equal(drawSettings.matchCardinality)
     });
 
     it('should give the oldest draw when the buffer has wrapped', async () => {
@@ -94,7 +95,7 @@ describe('TsunamiDrawSettingsHistory', () => {
       await drawSettingsHistory.pushDrawSettings(3, newDrawSettings(7))
       await drawSettingsHistory.pushDrawSettings(4, newDrawSettings(8))
       const draw = await drawSettingsHistory.getOldestDrawSettings();
-      expect(draw.matchCardinality).to.equal(6)
+      expect(draw.oldestDrawSettings.matchCardinality).to.equal(6)
     });
   })
 
@@ -198,7 +199,7 @@ describe('TsunamiDrawSettingsHistory', () => {
       await drawSettingsHistory.pushDrawSettings(2, newDrawSettings(6))
       const draws = await drawSettingsHistory.getDrawSettings([0, 1, 2]);
       for (let index = 0; index < draws.length; index++) {
-        expect(draws[index].matchCardinality).to.equal(index+4);
+        expect(draws[index].matchCardinality).to.equal(index + 4);
       }
     });
   });

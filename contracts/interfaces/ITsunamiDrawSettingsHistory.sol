@@ -21,6 +21,6 @@ interface ITsunamiDrawSettingsHistory {
   function getDrawSetting(uint32 drawId) external view returns (DrawLib.TsunamiDrawSettings memory);
   function pushDrawSettings(uint32 drawId, DrawLib.TsunamiDrawSettings calldata draw) external returns(bool);
   function setDrawSetting(uint32 drawId, DrawLib.TsunamiDrawSettings calldata draw) external returns(uint32); // maybe return drawIndex
-  function getNewestDrawSettings() external view returns (DrawLib.TsunamiDrawSettings memory);
-  function getOldestDrawSettings() external view returns (DrawLib.TsunamiDrawSettings memory);
+  function getNewestDrawSettings() external view returns (DrawLib.TsunamiDrawSettings memory, uint32);
+  function getOldestDrawSettings() external view returns (DrawLib.TsunamiDrawSettings memory, uint32);
 }
