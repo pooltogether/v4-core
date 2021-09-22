@@ -53,15 +53,6 @@ contract DrawHistory is IDrawHistory, Manageable {
   /* ============ External Functions ============ */
 
   /**
-    * @notice Read all draws.
-    * @dev    Return all draws from the draws ring buffer.
-    * @return Draws array
-  */
-  function draws() external view returns(DrawLib.Draw[MAX_CARDINALITY] memory) {
-    return _draws;
-  }
-
-  /**
     * @notice Read a Draw from the draws ring buffer.
     * @dev    Read a Draw using the Draw.drawId to calculate position in the draws ring buffer.
     * @param drawId Draw.drawId
