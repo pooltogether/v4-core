@@ -1,27 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
 import "./interfaces/ITicket.sol";
 import "./ControlledToken.sol";
 
-/// @title An ERC20 token that allows you to see user's past balances, and average balance held between timestamps.
-/// @author PoolTogether Inc.
+/**
+  * @title  PoolTogether V4 Ticket
+  * @author PoolTogether Inc Team
+  * @notice The Ticket extends the standard ERC20 interface with time-weighed average balance functionality.
+            When a user is claiming draw payotus, the TsunmiDrawCalculator contract will lookup a user's
+            past balance (via the Ticket) during a Draw's lifecycle range (i.e. 7 days) and convert the past
+            balance into  a maximum number of picks. With the introduction of a TWAB (time-weighed average balance)
+            the protocol early exit-fee is no longer required. Allowing to users to enter/exit freely without penalty.
+            TWABs also faciliate on-chain "streak awards" - incentivizing user's to hold Tickets for extended periods of time.
+*/
 contract Ticket is ControlledToken, ITicket {
-  /// @notice The minimum length of time a twab should exist.
-  /// @dev Once the twab ttl expires, its storage slot is recycled.
-  uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
-  /// @notice The maximum number of twab entries
-  uint16 public constant MAX_CARDINALITY = 65535;
 
   using SafeERC20 for IERC20;
   using SafeCast for uint256;
+
+  /// @notice The minimum length of time a twab should exist.
+  /// @dev Once the twab ttl expires, its storage slot is recycled.
+  uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
+  
+  /// @notice The maximum number of twab entries
+  uint16 public constant MAX_CARDINALITY = 65535;
 
   /// @notice A struct containing details for an Account
   /// @param balance The current balance for an Account
