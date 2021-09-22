@@ -61,8 +61,6 @@ function PoolEnv() {
     let ticket = await this.ticket(wallet);
     let prizePool = await this.prizePool(wallet);
 
-    await prizePool.connect(owner).setBalanceCap(ticket.address, MaxUint256);
-
     let amount = toWei(tickets);
 
     let balance = await token.balanceOf(wallet.address);
@@ -89,8 +87,6 @@ function PoolEnv() {
     let token = await this.token(wallet);
     let ticket = await this.ticket(wallet);
     let prizePool = await this.prizePool(wallet);
-
-    await prizePool.connect(owner).setBalanceCap(ticket.address, MaxUint256);
 
     let amount = toWei(tickets);
 
@@ -204,7 +200,7 @@ function PoolEnv() {
       prize,
       maxPicksPerUser
     }
-    
+
     await drawSettingsHistory.pushDrawSettings(drawId, drawSettings)
   }
 }
