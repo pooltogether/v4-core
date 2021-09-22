@@ -91,6 +91,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     // estimate oldest drawId by using lastDrawId relative to ring buffer state.
     oldestDrawId = _calculateOldestDrawIdFromBuffer(drawSet.matchCardinality, buffer);
     // if draw is not init, then use draw at 0
+    
     if (drawSet.matchCardinality == 0) {
       drawSet = drawSettings[0];
     } 
@@ -151,7 +152,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
 
   /**
     * @dev Calculate the oldest Draw ID using the ring buffer state.
-    * @param _isWrapped Uses zero values to determine if ring buffer has looped
+    * @param _isWrapped Acts as a boolean to determine if ring buffer has looped
     * @param _buffer    Buffer state from DrawRingBuffer.Buffer)
     * @return Draw ID
    */
