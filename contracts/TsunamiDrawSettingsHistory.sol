@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 pragma solidity 0.8.6;
-import "hardhat/console.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
-
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBuffer.sol";
 import "./interfaces/ITsunamiDrawSettingsHistory.sol";
