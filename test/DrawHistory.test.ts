@@ -81,16 +81,16 @@ describe('DrawHistory', () => {
     });
 
     it('should give the first draw when the buffer is full', async () => {
-      await drawHistory.addMultipleDraws(0, 3, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      await drawHistory.addMultipleDraws(1, 3, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
       const draw = await drawHistory.getOldestDraw();
-      expect(draw.drawId).to.equal(0)
+      expect(draw.drawId).to.equal(1)
     });
 
     it('should give the oldest draw when the buffer has wrapped', async () => {
-      // buffer can only hold 3, so the oldest should be draw 2
-      await drawHistory.addMultipleDraws(0, 5, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
+      // buffer can only hold 3, so the oldest should be draw 3
+      await drawHistory.addMultipleDraws(1, 5, DRAW_SAMPLE_CONFIG.timestamp, DRAW_SAMPLE_CONFIG.winningRandomNumber);
       const draw = await drawHistory.getOldestDraw();
-      expect(draw.drawId).to.equal(2)
+      expect(draw.drawId).to.equal(3)
     });
   })
 
