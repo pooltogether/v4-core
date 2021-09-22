@@ -9,14 +9,13 @@ import "@pooltogether/owner-manager-contracts/contracts/OwnerOrManager.sol";
 /**
   * @title  PoolTogether V4 TsunamiDrawCalculator
   * @author PoolTogether Inc Team
-  * @notice The TsunamiDrawCalculator calculates a user's claimable prize by using the combined entropy of
-            Draw.randomWinningNumber, wallet address and supplied pickIndices. Prize payouts are divided
-            into multiple tiers: grand prize, second place, third place, etc... Prizes can be claimed
-            by supplying matching winning numbers via the user allotted pickIndices. A user with a higher
-            average weighted balance will be given a large number of pickIndices to choose from, and thus a 
-            higher chance to win the highest possible prize payouts.
-
-  
+  * @notice The TsunamiDrawCalculator calculates a user's prize by matching a winning random number against
+            their picks. A users picks are generated deterministically based on their address and balance
+            of tickets held. Prize payouts are divided into multiple tiers: grand prize, second place, etc... 
+            A user with a higher average weighted balance (during each draw perid) will be given a large number of
+            pickIndices to choose from, and thus a higher chance to match the randomly generated winning numbers. 
+            The TsunamiDrawCalculator will retrieve data, like average weighted balance and cost of picks per draw 
+            from the linked Ticket and TsunamiDrawSettingsHistory contracts when payouts are being calculated. 
 */
 contract TsunamiDrawCalculator is IDrawCalculator, OwnerOrManager {
   
