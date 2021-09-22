@@ -15,7 +15,7 @@ import "./ControlledToken.sol";
             When a user is claiming draw payouts, the TsunamiDrawCalculator contract will lookup a user's
             past balance (via the Ticket) during a Draw's lifecycle range (i.e. 7 days) and convert the past
             balance into  a maximum number of picks. With the introduction of a TWAB (time-weighed average balance)
-            the protocol early exit-fee is no longer required. Allowing to users to enter/exit freely without penalty.
+            the protocol early exit-fee is no longer required. Allowing users to enter/exit freely without penalty.
             TWABs also faciliate on-chain "streak awards" - incentivizing user's to hold Tickets for extended periods of time.
 */
 contract Ticket is ControlledToken, ITicket {
