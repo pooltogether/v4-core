@@ -90,10 +90,13 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBuffer;
     // oldest draw should be next available index, otherwise it's at 0
     DrawLib.TsunamiDrawSettings memory drawSet = drawSettings[buffer.nextIndex];
-    if (drawSet.matchCardinality == 0) { // if draw is not init, then use draw at 0
+    // estimate oldest drawId by using lastDrawId relative to ring buffer state.
+    oldestDrawId = _calculateOldestDrawIdFromBuffer(drawSet.matchCardinality, buffer);
+    // if draw is not init, then use draw at 0
+    if (drawSet.matchCardinality == 0) {
       drawSet = drawSettings[0];
-    }
-    return (drawSet, oldestDrawId);
+    } 
+    return (drawSet,oldestDrawId);
   }
 
   /**
@@ -118,6 +121,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   {
     uint256 distributionsLength = _drawSettings.distributions.length;
 
+    require(_drawId > 0, "DrawCalc/draw-id-gt-0");
     require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gte-distributions");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
@@ -145,5 +149,21 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     uint32 drawId
   ) internal view returns (DrawLib.TsunamiDrawSettings memory) {
     return drawSettings[_drawSettingsRingBuffer.getIndex(drawId)];
+  }
+
+  /**
+    * @dev Calculate the oldest Draw ID using the ring buffer state.
+    * @param _isWrapped Uses zero values to determine if ring buffer has looped
+    * @param _buffer    Buffer state from DrawRingBuffer.Buffer)
+    * @return Draw ID
+   */
+  function _calculateOldestDrawIdFromBuffer(uint8 _isWrapped, DrawRingBuffer.Buffer memory _buffer) internal view returns (uint32) {
+    if(_buffer.lastDrawId == 0 && _buffer.nextIndex == 0) {
+      return 0;
+    } else if (_isWrapped == 0) {
+      return (_buffer.lastDrawId - _buffer.nextIndex) + 1;
+    } else {
+      return (_buffer.lastDrawId - _buffer.cardinality) + 1;
+    }
   }
 }
