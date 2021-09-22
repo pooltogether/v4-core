@@ -12,7 +12,7 @@ import "./ControlledToken.sol";
   * @title  PoolTogether V4 Ticket
   * @author PoolTogether Inc Team
   * @notice The Ticket extends the standard ERC20 interface with time-weighed average balance functionality.
-            When a user is claiming draw payotus, the TsunmiDrawCalculator contract will lookup a user's
+            When a user is claiming draw payouts, the TsunamiDrawCalculator contract will lookup a user's
             past balance (via the Ticket) during a Draw's lifecycle range (i.e. 7 days) and convert the past
             balance into  a maximum number of picks. With the introduction of a TWAB (time-weighed average balance)
             the protocol early exit-fee is no longer required. Allowing to users to enter/exit freely without penalty.
