@@ -30,13 +30,13 @@ interface ITicket {
   event NewUserTwab(
     address indexed ticketHolder,
     address indexed user,
-    TwabLibrary.Twab newTwab
+    ObservationLib.Observation newTwab
   );
 
   /// @notice Emitted when a new total supply TWAB has been recorded.
   /// @param newTotalSupplyTwab Updated TWAB of tickets total supply after a successful total supply TWAB recording.
   event NewTotalSupplyTwab(
-    TwabLibrary.Twab newTotalSupplyTwab
+    ObservationLib.Observation newTotalSupplyTwab
   );
   
   function getBalanceAt(address user, uint256 timestamp) external view returns(uint256);
