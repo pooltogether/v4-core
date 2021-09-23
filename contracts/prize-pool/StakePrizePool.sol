@@ -6,11 +6,19 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./PrizePool.sol";
 
+/**
+  * @title  PoolTogether V4 StakePrizePool
+  * @author PoolTogether Inc Team
+  * @notice The Stake Prize Pool is a prize pool that uses an ERC20 compatible token as the underlying asset.
+  *         Users can stake their tokens to become eligible for whatever prize is defined as the prize strategy for that pool.
+*/
 contract StakePrizePool is PrizePool {
 
+  /// @notice Address of the stake token.
   IERC20 private stakeToken;
 
-  /// @dev Emitted when stake prize pool is deployed
+  /// @dev Emitted when stake prize pool is deployed.
+  /// @param stakeToken Address of the stake token.
   event Deployed(IERC20 indexed stakeToken);
 
   /// @notice Deploy the Stake Prize Pool
@@ -41,6 +49,8 @@ contract StakePrizePool is PrizePool {
     return stakeToken.balanceOf(address(this));
   }
 
+  /// @notice Returns the address of the ERC20 asset token used for deposits.
+  /// @return Address of the ERC20 asset token.
   function _token() internal override view returns (IERC20) {
     return stakeToken;
   }
