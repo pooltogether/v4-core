@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-import "../libraries/DrawRingBuffer.sol";
+import "../../libraries/DrawRingBuffer.sol";
 
 /**
-  * @title  Expose the DrawRingBufferLibrary for unit tests
+  * @title  Expose the DrawRingBufferLib for unit tests
   * @author PoolTogether Inc.
  */
-contract DrawRingBufferLibExposed {
+contract DrawRingBufferLibHarness {
   using DrawRingBuffer for DrawRingBuffer.Buffer;
-
 
   uint16 public constant MAX_CARDINALITY = 256;
   DrawRingBuffer.Buffer internal drawRingBuffer;

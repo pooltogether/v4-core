@@ -14,7 +14,7 @@ describe('DrawRingBufferLib', () => {
 
   before(async () => {
     [wallet1, wallet2] = await getSigners();
-    drawRingBufferLibFactory = await ethers.getContractFactory('DrawRingBufferLibExposed');
+    drawRingBufferLibFactory = await ethers.getContractFactory('DrawRingBufferLibHarness');
   })
 
   beforeEach(async () => {
@@ -22,7 +22,7 @@ describe('DrawRingBufferLib', () => {
   });
 
   describe('isNotInitialized()', () => {
-    it('should return TRUE to signal an uninitalized DrawHistory', async () => {
+    it('should return TRUE to signal a NOT initalized DrawHistory', async () => {
       expect(await drawRingBufferLib._isNotInitialized({
         lastDrawId: 0,
         nextIndex: 0,
