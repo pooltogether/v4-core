@@ -38,7 +38,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @param twabs The history of twabs for this account
   struct Account {
     AccountDetails details;
-    TwabLibrary.Twab[MAX_CARDINALITY] twabs;
+    ObservationLib.Observation[MAX_CARDINALITY] twabs;
   }
 
   /// @notice Record of token holders TWABs for each account.
@@ -85,7 +85,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _user The user for whom to fetch the TWAB
   /// @param _index The index of the TWAB to fetch
   /// @return The TWAB, which includes the twab amount and the timestamp.
-  function getTwab(address _user, uint16 _index) external view returns (TwabLibrary.Twab memory) {
+  function getTwab(address _user, uint16 _index) external view returns (ObservationLib.Observation memory) {
     return userTwabs[_user].twabs[_index];
   }
 
@@ -225,7 +225,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _startTime The start time of the time frame.
   /// @param _endTime The end time of the time frame.
   /// @return The average balance that the user held during the time frame.
-  function _getAverageBalanceBetween(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime)
+  function _getAverageBalanceBetween(ObservationLib.Observation[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime)
     internal view returns (uint256) {
     return TwabLibrary.getAverageBalanceBetween(
       _details.cardinality,
@@ -240,7 +240,7 @@ contract Ticket is ControlledToken, ITicket {
 
   /// @notice Retrieves `_user` TWAB balance.
   /// @param _target Timestamp at which the reserved TWAB should be for.
-  function _getBalanceAt(TwabLibrary.Twab[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target)
+  function _getBalanceAt(ObservationLib.Observation[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target)
     internal view returns (uint256) {
     return TwabLibrary.getBalanceAt(
       _details.cardinality,
@@ -323,7 +323,7 @@ contract Ticket is ControlledToken, ITicket {
 
     balances[_to] += amount;
 
-    (TwabLibrary.Twab memory totalSupply, bool tsIsNew) = increaseTwab(totalSupplyTwab, amount);
+    (ObservationLib.Observation memory totalSupply, bool tsIsNew) = increaseTwab(totalSupplyTwab, amount);
     if (tsIsNew) {
       emit NewTotalSupplyTwab(totalSupply);
     }
@@ -352,7 +352,7 @@ contract Ticket is ControlledToken, ITicket {
 
     _beforeTokenTransfer(_from, address(0), _amount);
 
-    (TwabLibrary.Twab memory tsTwab, bool tsIsNew) = decreaseTwab(
+    (ObservationLib.Observation memory tsTwab, bool tsIsNew) = decreaseTwab(
       totalSupplyTwab,
       amount,
       "ERC20: burn amount exceeds balance"
@@ -386,7 +386,7 @@ contract Ticket is ControlledToken, ITicket {
   ) internal {
     Account storage _account = userTwabs[_user];
     // console.log("_increaseUserTwab ", _user);
-    (TwabLibrary.Twab memory twab, bool isNew) = increaseTwab(_account, _amount);
+    (ObservationLib.Observation memory twab, bool isNew) = increaseTwab(_account, _amount);
     if (isNew) {
       // console.log("!!! new twab: ", twab.timestamp);
       emit NewUserTwab(_holder, _user, twab);
@@ -400,7 +400,7 @@ contract Ticket is ControlledToken, ITicket {
   ) internal {
     Account storage _account = userTwabs[_user];
     // console.log("_decreaseUserTwab ", _user);
-    (TwabLibrary.Twab memory twab, bool isNew) = decreaseTwab(_account, _amount, "ERC20: burn amount exceeds balance");
+    (ObservationLib.Observation memory twab, bool isNew) = decreaseTwab(_account, _amount, "ERC20: burn amount exceeds balance");
     if (isNew) {
       // console.log("!!! new twab: ", twab.timestamp);
       emit NewUserTwab(_holder, _user, twab);
@@ -415,7 +415,7 @@ contract Ticket is ControlledToken, ITicket {
   function increaseTwab(
     Account storage _account,
     uint256 _amount
-  ) internal returns (TwabLibrary.Twab memory twab, bool isNew) {
+  ) internal returns (ObservationLib.Observation memory twab, bool isNew) {
     uint16 nextTwabIndex;
     uint16 cardinality;
     AccountDetails memory details = _account.details;
@@ -444,7 +444,7 @@ contract Ticket is ControlledToken, ITicket {
     Account storage _account,
     uint256 _amount,
     string memory _message
-  ) internal returns (TwabLibrary.Twab memory twab, bool isNew) {
+  ) internal returns (ObservationLib.Observation memory twab, bool isNew) {
     uint16 nextTwabIndex;
     uint16 cardinality;
     AccountDetails memory details = _account.details;
