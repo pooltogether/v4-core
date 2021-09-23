@@ -11,12 +11,13 @@ import "./ControlledToken.sol";
 /**
   * @title  PoolTogether V4 Ticket
   * @author PoolTogether Inc Team
-  * @notice The Ticket extends the standard ERC20 interface with time-weighed average balance functionality.
-            When a user is claiming draw payouts, the TsunamiDrawCalculator contract will lookup a user's
-            past balance (via the Ticket) during a Draw's lifecycle range (i.e. 7 days) and convert the past
-            balance into  a maximum number of picks. With the introduction of a TWAB (time-weighed average balance)
-            the protocol early exit-fee is no longer required. Allowing users to enter/exit freely without penalty.
-            TWABs also faciliate on-chain "streak awards" - incentivizing user's to hold Tickets for extended periods of time.
+  * @notice The Ticket extends the standard ERC20 and ControlledToken interfaces with time-weighed average balance functionality.
+            The TWAB (time-weighed average balance) enables contract-to-contract lookups of a user's average balance
+            between timestamps. The timestamp/balance checkpoints are stored in a ring buffer for each user Account.
+            Historical searches of a TWAB(s) are limited to the storage of these checkpoints. A user's average balance can
+            be delegated to an alternative address. When delegating the average weighted balance is added to the delegatee
+            TWAB lookup and removed from the delegaters TWAB lookup.
+            
 */
 contract Ticket is ControlledToken, ITicket {
 
@@ -205,6 +206,13 @@ contract Ticket is ControlledToken, ITicket {
     return totalSupplyTwab.details.balance;
   }
 
+  /**
+    * @notice Delegate time-weighted average balances to an alternative address.
+    * @dev    Transfers (including mints) trigger the storage of a TWAB in delegatee(s) account, instead of the
+              targetted sender and/or recipient address(s).
+    * @dev    "to" reset the delegatee use zero address (0x000.000) 
+    * @param  to Receipient of delegated TWAB
+   */
   function delegate(address to) external virtual {
     uint224 balance = uint224(_balanceOf(msg.sender));
     address currentDelegate = delegates[msg.sender];
