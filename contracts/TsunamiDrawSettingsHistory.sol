@@ -12,7 +12,7 @@ import "./interfaces/ITsunamiDrawSettingsHistory.sol";
             DrawSettings parameters like cardinality, bitRange, distributions, number of picks
             and prize. The settings determine the specific distribution model for each individual 
             draw. Storage of the DrawSetting(s) is randled by ring buffer with a max cardinality
-            of 256 or roughly 5 years of history.
+            of 256 or roughly 5 years of history with a weekly draw cadence.
 */
 contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   using DrawRingBuffer for DrawRingBuffer.Buffer;
@@ -92,7 +92,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   }
 
   /// @inheritdoc ITsunamiDrawSettingsHistory
-  function pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external override onlyManagerOrOwner returns (bool) {
+  function pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external override onlyManagerOrOwner returns (uint32) {
     return _pushDrawSettings(_drawId, _drawSettings);
   }
 
@@ -125,9 +125,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     * @param _drawId       Draw.drawId
     * @param _drawSettings TsunamiDrawSettingsHistorySettings struct
    */
-  function _pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) internal
-    returns (bool)
-  {
+  function _pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) internal returns (uint32) {
     uint256 distributionsLength = _drawSettings.distributions.length;
 
     require(_drawId > 0, "DrawCalc/draw-id-gt-0");
@@ -150,6 +148,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     drawSettingsRingBufferData = drawSettingsRingBufferData.push(_drawId);
 
     emit DrawSettingsSet(_drawId, _drawSettings);
-    return true;
+
+    return _drawId;
   }
 }
