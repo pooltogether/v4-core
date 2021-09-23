@@ -28,18 +28,6 @@ describe('DrawHistory', () => {
     await drawHistory.setManager(wallet1.address);
   });
 
-  describe('draws()', () => {
-    it('should get all draws without history', async () => {
-      const draws = await drawHistory.draws();
-      for (let index = 0; index < draws.length; index++) {
-        const draw = draws[index];
-        expect(draw.drawId).to.equal(0)
-        expect(draw.timestamp).to.equal(0)
-        expect(draw.winningRandomNumber).to.equal(0)
-      }
-    });
-  })
-
   describe('getNewestDraw()', () => {
     it('should error when no draw history', async () => {
       await expect(drawHistory.getNewestDraw()).to.be.revertedWith('DRB/future-draw')
