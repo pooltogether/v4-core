@@ -31,7 +31,6 @@ describe('StakePrizePool', function () {
     const Ticket = await hardhat.ethers.getContractFactory('Ticket');
     ticket = await Ticket.deploy('name', 'SYMBOL', 18, prizePool.address);
 
-    await prizePool.setBalanceCap(ticket.address, MaxUint256);
     await prizePool.setTicket(ticket.address);
   };
 

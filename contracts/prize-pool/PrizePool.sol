@@ -34,8 +34,8 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @dev The Prize Strategy that this Prize Pool is bound to.
   address public prizeStrategy;
 
-  /// @dev The total amount per tokens a user can hold.
-  mapping(address => uint256) public balanceCap;
+  /// @dev The total amount of tickets a user can hold.
+  uint256 public balanceCap;
 
   /// @dev The total amount of funds that the prize pool can hold.
   uint256 public liquidityCap;
@@ -277,21 +277,19 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @notice Allows the owner to set a balance cap per `token` for the pool.
   /// @dev If a user wins, his balance can go over the cap. He will be able to withdraw the excess but not deposit.
   /// @dev Needs to be called after deploying a prize pool to be able to deposit into it.
-  /// @param _token Address of the token to set the balance cap for.
   /// @param _balanceCap New balance cap.
   /// @return True if new balance cap has been successfully set.
-  function setBalanceCap(address _token, uint256 _balanceCap) external override onlyOwner returns (bool) {
-    _setBalanceCap(_token, _balanceCap);
+  function setBalanceCap(uint256 _balanceCap) external override onlyOwner returns (bool) {
+    _setBalanceCap(_balanceCap);
     return true;
   }
 
   /// @notice Allows the owner to set a balance cap per `token` for the pool.
-  /// @param _token Address of the token to set the balance cap for.
   /// @param _balanceCap New balance cap.
-  function _setBalanceCap(address _token, uint256 _balanceCap) internal {
-    balanceCap[_token] = _balanceCap;
+  function _setBalanceCap(uint256 _balanceCap) internal {
+    balanceCap = _balanceCap;
 
-    emit BalanceCapSet(_token, _balanceCap);
+    emit BalanceCapSet(_balanceCap);
   }
 
   /// @notice Allows the owner to set a liquidity cap for the pool
@@ -311,12 +309,16 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @param _ticket Address of the ticket to set.
   /// @return True if ticket has been successfully set.
   function setTicket(IControlledToken _ticket) external override onlyOwner returns (bool) {
-    require(address(_ticket) != address(0), "PrizePool/ticket-not-zero-address");
+    address _ticketAddress = address(_ticket);
+
+    require(_ticketAddress != address(0), "PrizePool/ticket-not-zero-address");
     require(address(ticket) == address(0), "PrizePool/ticket-already-set");
 
     ticket = _ticket;
 
     emit TicketSet(_ticket);
+
+    _setBalanceCap(type(uint256).max);
 
     return true;
   }
@@ -379,7 +381,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @return True if the Prize Pool can receive the specified `amount` of tokens.
   function _canDeposit(address _user, uint256 _amount) internal view returns (bool) {
     IControlledToken _ticket = ticket;
-    uint256 _balanceCap = balanceCap[address(_ticket)];
+    uint256 _balanceCap = balanceCap;
 
     if (_balanceCap == type(uint256).max) return true;
 

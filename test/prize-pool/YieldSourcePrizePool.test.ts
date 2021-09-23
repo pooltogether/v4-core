@@ -31,7 +31,6 @@ describe('YieldSourcePrizePool', function () {
     ticket = await Ticket.deploy('name', 'SYMBOL', 18, prizePool.address);
 
     await prizePool.setPrizeStrategy(wallet2.address);
-    await prizePool.setBalanceCap(ticket.address, MaxUint256);
     await prizePool.setTicket(ticket.address);
   };
 
