@@ -14,7 +14,7 @@ library ObservationLib {
   using OverflowSafeComparator for uint32;
   using SafeCast for uint256;
 
-  /// @notice The maximum number of twab entries
+  /// @notice The maximum number of observation entries
   uint16 public constant MAX_CARDINALITY = 65535;
 
   /// @notice Time Weighted Average Balance (TWAB).
@@ -29,26 +29,26 @@ library ObservationLib {
   /// The result may be the same TWAB, or adjacent TWABs.
   /// @dev The answer must be contained in the array, used when the target is located within the stored TWAB.
   /// boundaries: older than the most recent TWAB and younger, or the same age as, the oldest TWAB.
-  /// @param _twabs List of TWABs to search through.
-  /// @param _twabIndex Index of the TWAB to start searching from.
+  /// @param _observations List of TWABs to search through.
+  /// @param _observationIndex Index of the TWAB to start searching from.
   /// @param _target Timestamp at which the reserved TWAB should be for.
   /// @return beforeOrAt TWAB recorded before, or at, the target.
   /// @return atOrAfter TWAB recorded at, or after, the target.
   function binarySearch(
-    Observation[MAX_CARDINALITY] storage _twabs,
-    uint16 _twabIndex,
+    Observation[MAX_CARDINALITY] storage _observations,
+    uint16 _observationIndex,
     uint16 _oldestObservationIndex,
     uint32 _target,
     uint16 _cardinality,
     uint32 _time
   ) internal view returns (Observation memory beforeOrAt, Observation memory atOrAfter) {
     uint256 leftSide = _oldestObservationIndex; // Oldest TWAB
-    uint256 rightSide = _twabIndex < leftSide ? leftSide + _cardinality - 1 : _twabIndex;
+    uint256 rightSide = _observationIndex < leftSide ? leftSide + _cardinality - 1 : _observationIndex;
     uint256 currentIndex;
 
     while (true) {
       currentIndex = (leftSide + rightSide) / 2;
-      beforeOrAt = _twabs[uint16(RingBuffer.wrap(currentIndex, _cardinality))];
+      beforeOrAt = _observations[uint16(RingBuffer.wrap(currentIndex, _cardinality))];
       uint32 beforeOrAtTimestamp = beforeOrAt.timestamp;
 
       // We've landed on an uninitialized timestamp, keep searching higher (more recently)
@@ -57,7 +57,7 @@ library ObservationLib {
         continue;
       }
 
-      atOrAfter = _twabs[uint16(RingBuffer.nextIndex(currentIndex, _cardinality))];
+      atOrAfter = _observations[uint16(RingBuffer.nextIndex(currentIndex, _cardinality))];
 
       bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, _time);
 
