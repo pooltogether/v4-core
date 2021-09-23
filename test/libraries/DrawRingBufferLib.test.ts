@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { Contract, ContractFactory } from 'ethers';
+import { utils, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
 
 const { getSigners } = ethers;
@@ -32,13 +32,13 @@ describe('DrawRingBufferLib', () => {
 
     it('should return FALSE to signal an initalized DrawHistory', async () => {
       expect(await drawRingBufferLib._isNotInitialized({
-        lastDrawId: 0,
+        lastDrawId: 1,
         nextIndex: 1,
         cardinality: 256
       })).to.eql(false)
     })
-
   })
+
   describe('push()', () => {
     it('should return the next valid Buffer struct assuming DrawHistory with 0 draws', async () => {
       const nextBuffer = await drawRingBufferLib._push({
@@ -121,5 +121,4 @@ describe('DrawRingBufferLib', () => {
         .to.be.revertedWith('DRB/expired-draw')
     })
   });
-
 })
