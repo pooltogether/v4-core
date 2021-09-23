@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
 
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
@@ -9,14 +10,16 @@ interface IDrawBeacon {
 
   /**
     * @notice Emit when the DrawBeacon is initialized.
-    * @param drawHistory Address of the draw history to push draws to
-    * @param rng Address of RNG service
-    * @param rngRequestPeriodStart Timestamp when draw period starts
-    * @param drawPeriodSeconds Minimum seconds between draw period
+    * @param drawHistory Address of the draw history to push draws to.
+    * @param rng Address of RNG service.
+    * @param nextDrawId Draw ID at which the DrawBeacon should start. Can't be inferior to 1.
+    * @param rngRequestPeriodStart Timestamp when draw period starts.
+    * @param drawPeriodSeconds Minimum seconds between draw period.
   */
   event Deployed(
     IDrawHistory indexed drawHistory,
     RNGInterface indexed rng,
+    uint32 nextDrawId,
     uint256 rngRequestPeriodStart,
     uint256 drawPeriodSeconds
   );

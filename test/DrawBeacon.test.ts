@@ -22,7 +22,8 @@ describe('DrawBeacon', () => {
   let rngFeeToken: MockContract;
 
   let beaconPeriodStart = now();
-  let beaconPeriodSeconds = 1000;
+  const beaconPeriodSeconds = 1000;
+  const nextDrawId = 1;
 
   const halfTime = beaconPeriodSeconds / 2;
   const overTime = beaconPeriodSeconds + 1;
@@ -55,6 +56,7 @@ describe('DrawBeacon', () => {
       wallet.address,
       drawHistory.address,
       rng.address,
+      nextDrawId,
       beaconPeriodStart,
       beaconPeriodSeconds
     );
@@ -70,6 +72,7 @@ describe('DrawBeacon', () => {
         wallet.address,
         drawHistory.address,
         rng.address,
+        nextDrawId,
         beaconPeriodStart,
         beaconPeriodSeconds
       );
@@ -80,6 +83,7 @@ describe('DrawBeacon', () => {
         .withArgs(
           drawHistory.address,
           rng.address,
+          nextDrawId,
           beaconPeriodStart,
           beaconPeriodSeconds
         );
@@ -105,6 +109,7 @@ describe('DrawBeacon', () => {
           wallet.address,
           drawHistory.address,
           rng.address,
+          nextDrawId,
           0,
           beaconPeriodSeconds
         )
@@ -119,11 +124,27 @@ describe('DrawBeacon', () => {
           wallet.address,
           drawHistory.address,
           AddressZero,
+          nextDrawId,
           beaconPeriodStart,
           beaconPeriodSeconds
         )
       ).to.be.revertedWith(
         'DrawBeacon/rng-not-zero',
+      );
+    });
+
+    it('should reject nextDrawId inferior to 1', async () => {
+      await expect(
+        DrawBeaconFactory.deploy(
+          wallet.address,
+          drawHistory.address,
+          rng.address,
+          0,
+          beaconPeriodStart,
+          beaconPeriodSeconds
+        )
+      ).to.be.revertedWith(
+        'DrawBeacon/next-draw-id-gte-one',
       );
     });
   });
@@ -393,6 +414,7 @@ describe('DrawBeacon', () => {
         wallet.address,
         drawHistory.address,
         rng.address,
+        nextDrawId,
         beaconPeriodStart,
         beaconPeriodSeconds
       );

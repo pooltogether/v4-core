@@ -103,6 +103,7 @@ contract DrawBeacon is IDrawBeacon,
     * @param _owner Address of the DrawBeacon owner
     * @param _drawHistory The address of the draw history to push draws to
     * @param _rng The RNG service to use
+    * @param _nextDrawId Draw ID at which the DrawBeacon should start. Can't be inferior to 1.
     * @param _beaconPeriodStart The starting timestamp of the beacon period.
     * @param _beaconPeriodSeconds The duration of the beacon period in seconds
   */
@@ -110,6 +111,7 @@ contract DrawBeacon is IDrawBeacon,
     address _owner,
     IDrawHistory _drawHistory,
     RNGInterface _rng,
+    uint32 _nextDrawId,
     uint256 _beaconPeriodStart,
     uint256 _beaconPeriodSeconds
   ) Ownable(_owner) {
@@ -125,11 +127,13 @@ contract DrawBeacon is IDrawBeacon,
     // 30 min timeout
     _setRngTimeout(1800);
 
-    nextDrawId = uint32(1);
+    require(_nextDrawId >= 1, "DrawBeacon/next-draw-id-gte-one");
+    nextDrawId = _nextDrawId;
 
     emit Deployed(
       _drawHistory,
       _rng,
+      _nextDrawId,
       _beaconPeriodStart,
       _beaconPeriodSeconds
     );
