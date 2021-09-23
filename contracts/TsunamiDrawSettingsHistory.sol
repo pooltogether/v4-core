@@ -73,20 +73,22 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   /// @inheritdoc ITsunamiDrawSettingsHistory
   function getOldestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory drawSettings, uint32 drawId) {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
-    // oldest draw should be next available index, otherwise it's at 0
-    DrawLib.TsunamiDrawSettings memory drawSet = _drawSettingsRingBuffer[buffer.nextIndex];
+    drawSettings = _drawSettingsRingBuffer[buffer.nextIndex];
     
     // IF the next DrawSettings.bitRangeSize == 0 the ring buffer HAS NOT looped around.
     // The DrawSettings at index 0 IS by defaut the oldest drawSettings.
-    if (drawSet.bitRangeSize == 0 && buffer.lastDrawId > 0) {
-      drawSet = _drawSettingsRingBuffer[0];
+    if (drawSettings.bitRangeSize == 0 && buffer.lastDrawId > 0) {
+      drawSettings = _drawSettingsRingBuffer[0];
       drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
     } else if (buffer.lastDrawId == 0) {
-      drawId = 0; // return 0 to indicate no drawSettings history
+      drawId = 0; // return 0 to indicate no drawSettings ring buffer history
     } else {
+      // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
+      // Sequential "guaranteedness" in handled in DrawRingBufferLib.push()
       drawId = (buffer.lastDrawId + 1) - buffer.cardinality; // 4 + 1 - 3 = 2 | [4,2,3]
     }
-    return (drawSet, drawId);
+
+    // autotmatic return with named "returns" values
   }
 
   /// @inheritdoc ITsunamiDrawSettingsHistory
