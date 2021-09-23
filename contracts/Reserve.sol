@@ -80,7 +80,7 @@ contract Reserve is IReserve, Manageable {
         }
 
         // cases where we have observations between startTimestamp and endTimestamp
-        
+        // 
 
 
 
