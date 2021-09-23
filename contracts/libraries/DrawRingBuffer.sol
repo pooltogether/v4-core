@@ -13,7 +13,7 @@ library DrawRingBuffer {
   function push(Buffer memory _buffer, uint32 _drawId) internal view returns (Buffer memory) {
     // since draws start at 0, we know we are uninitialized if nextIndex = 0 and lastDrawId = 0, since draws montonically increase
     bool bufferNotInitialized = _buffer.nextIndex == 0 && _buffer.lastDrawId == 0;
-    require(bufferNotInitialized || _drawId == _buffer.lastDrawId + 1, "DRB/must-be-contig");
+    require(bufferNotInitialized || _drawId == _buffer.lastDrawId + 1, "DRB/must-be-sequential");
     return Buffer({
       lastDrawId: _drawId,
       nextIndex: uint32(RingBuffer.nextIndex(_buffer.nextIndex, _buffer.cardinality)),
