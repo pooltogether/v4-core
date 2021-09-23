@@ -17,7 +17,6 @@ import "./ControlledToken.sol";
             Historical searches of a TWAB(s) are limited to the storage of these checkpoints. A user's average balance can
             be delegated to an alternative address. When delegating the average weighted balance is added to the delegatee
             TWAB lookup and removed from the delegaters TWAB lookup.
-            
 */
 contract Ticket is ControlledToken, ITicket {
 
