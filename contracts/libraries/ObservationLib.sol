@@ -17,7 +17,7 @@ library ObservationLib {
   /// @notice The maximum number of observation entries
   uint16 public constant MAX_CARDINALITY = 65535;
 
-  /// @notice Time Weighted Average Balance (TWAB).
+  /// @notice Time Weighted Average Balance (Observation).
   /// @param amount `amount` at `timestamp`.
   /// @param timestamp Recorded `timestamp`.
   struct Observation {
@@ -25,15 +25,15 @@ library ObservationLib {
     uint32 timestamp;
   }
 
-  /// @notice Fetches TWABs `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
-  /// The result may be the same TWAB, or adjacent TWABs.
-  /// @dev The answer must be contained in the array, used when the target is located within the stored TWAB.
-  /// boundaries: older than the most recent TWAB and younger, or the same age as, the oldest TWAB.
-  /// @param _observations List of TWABs to search through.
-  /// @param _observationIndex Index of the TWAB to start searching from.
-  /// @param _target Timestamp at which the reserved TWAB should be for.
-  /// @return beforeOrAt TWAB recorded before, or at, the target.
-  /// @return atOrAfter TWAB recorded at, or after, the target.
+  /// @notice Fetches Observations `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
+  /// The result may be the same Observation, or adjacent Observations.
+  /// @dev The answer must be contained in the array, used when the target is located within the stored Observation.
+  /// boundaries: older than the most recent Observation and younger, or the same age as, the oldest Observation.
+  /// @param _observations List of Observations to search through.
+  /// @param _observationIndex Index of the Observation to start searching from.
+  /// @param _target Timestamp at which the reserved Observation should be for.
+  /// @return beforeOrAt Observation recorded before, or at, the target.
+  /// @return atOrAfter Observation recorded at, or after, the target.
   function binarySearch(
     Observation[MAX_CARDINALITY] storage _observations,
     uint16 _observationIndex,
@@ -42,7 +42,7 @@ library ObservationLib {
     uint16 _cardinality,
     uint32 _time
   ) internal view returns (Observation memory beforeOrAt, Observation memory atOrAfter) {
-    uint256 leftSide = _oldestObservationIndex; // Oldest TWAB
+    uint256 leftSide = _oldestObservationIndex; // Oldest Observation
     uint256 rightSide = _observationIndex < leftSide ? leftSide + _cardinality - 1 : _observationIndex;
     uint256 currentIndex;
 
@@ -61,7 +61,7 @@ library ObservationLib {
 
       bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, _time);
 
-      // Check if we've found the corresponding TWAB
+      // Check if we've found the corresponding Observation
       if (targetAtOrAfter && _target.lte(atOrAfter.timestamp, _time)) {
         break;
       }
