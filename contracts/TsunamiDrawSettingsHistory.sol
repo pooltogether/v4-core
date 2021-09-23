@@ -84,7 +84,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
       drawId = 0; // return 0 to indicate no drawSettings ring buffer history
     } else {
       // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
-      // Sequential "guaranteedness" in handled in DrawRingBufferLib.push()
+      // Sequential "guaranteedness" is handled in DrawRingBufferLib.push()
       drawId = (buffer.lastDrawId + 1) - buffer.cardinality; // 4 + 1 - 3 = 2 | [4,2,3]
     }
 
