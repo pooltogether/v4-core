@@ -1,5 +1,4 @@
 const hardhat = require('hardhat')
-const chalk = require('chalk');
 const { expect } = require('chai');
 
 require('../../helpers/chaiMatchers');
@@ -127,7 +126,7 @@ function PoolEnv() {
     expect(balance).to.equal(amount);
   };
 
-  this.claim = async function ({ user, drawId, picks, prize }) {
+  this.claim = async function ({ user, drawId, picks }) {
     const wallet = await this.wallet(user);
     const claimableDraw = await this.claimableDraw(wallet);
     const encoder = ethers.utils.defaultAbiCoder;
@@ -204,7 +203,7 @@ function PoolEnv() {
       prize,
       maxPicksPerUser
     }
-    
+
     await drawSettingsHistory.pushDrawSettings(drawId, drawSettings)
   }
 }

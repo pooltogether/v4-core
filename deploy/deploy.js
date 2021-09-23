@@ -161,6 +161,7 @@ module.exports = async (hardhat) => {
       deployer,
       drawHistoryResult.address,
       rngServiceResult.address,
+      1,
       parseInt('' + new Date().getTime() / 1000),
       120, // 2 minute intervals
     ],

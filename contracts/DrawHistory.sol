@@ -42,6 +42,8 @@ contract DrawHistory is IDrawHistory, Manageable {
 
   /**
     * @notice Deploy DrawHistory smart contract.
+    * @param _owner Address of the owner of the DrawHistory.
+    * @param _cardinality Draw ring buffer cardinality.
   */
   constructor(
     address _owner,
