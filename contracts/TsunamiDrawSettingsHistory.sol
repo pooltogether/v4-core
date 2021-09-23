@@ -88,7 +88,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
       drawId = (buffer.lastDrawId + 1) - buffer.cardinality; // 4 + 1 - 3 = 2 | [4,2,3]
     }
 
-    // autotmatic return with named "returns" values
+    // automatic return with named "returns" values
   }
 
   /// @inheritdoc ITsunamiDrawSettingsHistory
