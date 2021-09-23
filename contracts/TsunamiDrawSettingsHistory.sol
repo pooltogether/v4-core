@@ -92,7 +92,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   }
 
   /// @inheritdoc ITsunamiDrawSettingsHistory
-  function pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external override onlyManagerOrOwner returns (uint32) {
+  function pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external override onlyManagerOrOwner returns (bool) {
     return _pushDrawSettings(_drawId, _drawSettings);
   }
 
@@ -125,7 +125,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     * @param _drawId       Draw.drawId
     * @param _drawSettings TsunamiDrawSettingsHistorySettings struct
    */
-  function _pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) internal returns (uint32) {
+  function _pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) internal returns (bool) {
     uint256 distributionsLength = _drawSettings.distributions.length;
 
     require(_drawId > 0, "DrawCalc/draw-id-gt-0");
@@ -149,6 +149,6 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
 
     emit DrawSettingsSet(_drawId, _drawSettings);
 
-    return _drawId;
+    return true;
   }
 }
