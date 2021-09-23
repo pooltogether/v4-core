@@ -10,134 +10,133 @@ import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 contract Reserve is IReserve, Manageable {
-
     using SafeERC20 for IERC20;
-    
     
     IERC20 public immutable token;
 
     uint224 public withdrawAccumulator;
 
-    ObservationLib.Observation[65535] public reserveAccumulator;
+    ObservationLib.Observation[65535] public reserveAccumulators;
 
-    uint16 public reserveAccumulatorCardinality;
+    uint16 public cardinality;
     
-
     /* ============ Events ============ */
+
     event Deployed(IERC20 indexed token);
 
     /* ============ Constructor ============ */
     
-    constructor(address _owner, IERC20 _token) Ownable(_owner){
-        
-        
+    constructor(address _owner, IERC20 _token) Ownable(_owner) {
         token = _token;
         emit Deployed(_token);
     }
 
     /* ============ External Functions ============ */
-    function withdrawTo(address recipient, uint256 amount) external override onlyManagerOrOwner {
-        // first checkpoint
+
+    function withdrawTo(address _recipient, uint256 _amount) external override onlyManagerOrOwner {
         _checkpoint();
 
-        token.safeTransfer(recipient, amount);
-        withdrawAccumulator += uint224(amount);
+        token.safeTransfer(_recipient, _amount);
+        withdrawAccumulator += uint224(_amount);
         
-
+        emit Withdrawn(_recipient, _amount);
     }
     
     function checkpoint() external override {
         _checkpoint();
     }    
     
-    function getReserveAccumulatedBetween(uint32 startTimestamp, uint32 endTimestamp) external override view returns (uint224) {
-        require(startTimestamp < endTimestamp, "Reserve/start-less-then-end");
+    function getReserveAccumulatedBetween(uint32 _startTimestamp, uint32 _endTimestamp) external override view returns (uint224) {
+        require(_startTimestamp < _endTimestamp, "Reserve/start-less-then-end");
         uint32 timeNow = uint32(block.timestamp);
-        uint16 _reserveAccumulatorCardinality = reserveAccumulatorCardinality;
+        uint16 _cardinality = cardinality;
 
-        uint224 _start =_getReserveAccumulatedAt(startTimestamp);
-        console.log("getReserveAccumulatedBetween::_start ", _start);
-        uint224 _end = _getReserveAccumulatedAt(endTimestamp);
-        console.log("getReserveAccumulatedBetween::_end ", _end);
+        ObservationLib.Observation memory _newestObservation;
+        if (_cardinality > 0) {
+            _newestObservation = reserveAccumulators[_cardinality - 1];
+        }
+        ObservationLib.Observation memory _oldestObservation = reserveAccumulators[0]; 
+
+        uint224 _start = _getReserveAccumulatedAt(
+            _newestObservation,
+            _oldestObservation,
+            _cardinality,
+            _startTimestamp
+        );
+        uint224 _end = _getReserveAccumulatedAt(
+            _newestObservation,
+            _oldestObservation,
+            _cardinality,
+            _endTimestamp
+        );
 
         // cases where we have observations between startTimestamp and endTimestamp
         return _end - _start;
     }
 
-    function _getReserveAccumulatedAt(uint32 timestamp) internal view returns (uint224) {
+    function getCardinality() external view returns (uint16) {
+        return cardinality;
+    }
+
+    function _getReserveAccumulatedAt(
+        ObservationLib.Observation memory _newestObservation,
+        ObservationLib.Observation memory _oldestObservation,
+        uint16 _cardinality,
+        uint32 timestamp
+    ) internal view returns (uint224) {
         uint32 timeNow = uint32(block.timestamp);
-        uint16 _reserveAccumulatorCardinality = reserveAccumulatorCardinality;
-        if (_reserveAccumulatorCardinality == 0) {
+        if (_cardinality == 0) {
             return 0;
         }
 
-        ObservationLib.Observation memory _reserveAccumulatorNewest = reserveAccumulator[_reserveAccumulatorCardinality - 1];    
-        ObservationLib.Observation memory _reserveAccumulator = reserveAccumulator[0];    
-
-        if(_reserveAccumulator.timestamp > timestamp) {
+        if(_oldestObservation.timestamp > timestamp) {
             return 0;
         }
 
-        if(_reserveAccumulatorNewest.timestamp <= timestamp) {
-            return _reserveAccumulatorNewest.amount;
+        if(_newestObservation.timestamp <= timestamp) {
+            return _newestObservation.amount;
         }
         
         (ObservationLib.Observation memory beforeOrAt, ObservationLib.Observation memory atOrAfter) = 
-            ObservationLib.binarySearch(reserveAccumulator, _reserveAccumulatorCardinality - 1, 0, timestamp, _reserveAccumulatorCardinality, timeNow);
+            ObservationLib.binarySearch(reserveAccumulators, _cardinality - 1, 0, timestamp, _cardinality, timeNow);
         
-        if(atOrAfter.timestamp == timestamp){
+        if(atOrAfter.timestamp == timestamp) {
             return atOrAfter.amount;
         }
         else {
             return beforeOrAt.amount;      
         }
     }
-    
-    function getReservesBetween(uint32[] calldata startTimestamp, uint32[] calldata endTimestamp) external override view returns (uint256[] memory){
-
-    }
 
     /* ============ Internal Functions ============ */
     function _checkpoint() internal {
-        /*
-        if (balanceOf() + withdrawal_acc > reserve_acc)
-	        Reserve_acc += (balanceOf() + withdrawal_acc - reserve_acc)
-
-        */
-
         uint256 balanceOfReserve = token.balanceOf(address(this));
         uint224 _withdrawAccumulator = withdrawAccumulator; //sload
 
+        ObservationLib.Observation memory _reserveAccumulators;
 
-        ObservationLib.Observation memory _reserveAccumulator;
+        uint256 _cardinality = cardinality;
 
-        uint256 _reserveAccumulatorCardinality = reserveAccumulatorCardinality;
-
-        if (_reserveAccumulatorCardinality > 0) {
-            _reserveAccumulator = reserveAccumulator[_reserveAccumulatorCardinality - 1]; 
+        if (_cardinality > 0) {
+            _reserveAccumulators = reserveAccumulators[_cardinality - 1]; 
         }
 
-        console.log("balanceOfReserve", balanceOfReserve);
-        console.log("_withdrawAccumulator", _withdrawAccumulator);
-        console.log("_reserveAccumulator.amount", _reserveAccumulator.amount);
-        if(balanceOfReserve + _withdrawAccumulator > _reserveAccumulator.amount){
+        if(balanceOfReserve + _withdrawAccumulator > _reserveAccumulators.amount) {
             
             uint32 now = uint32(block.timestamp);
             uint224 newReserveAccumulator = uint224(balanceOfReserve) + _withdrawAccumulator;
             
-            if(_reserveAccumulator.timestamp != now){
+            if(_reserveAccumulators.timestamp != now) {
                 // store next observation
-                reserveAccumulator[_reserveAccumulatorCardinality] = ObservationLib.Observation({
+                reserveAccumulators[_cardinality] = ObservationLib.Observation({
                     amount: newReserveAccumulator, 
                     timestamp: now
                 });
-                reserveAccumulatorCardinality++;
+                cardinality++;
             }
             else {
-                reserveAccumulator[_reserveAccumulatorCardinality - 1] = ObservationLib.Observation({
+                reserveAccumulators[_cardinality - 1] = ObservationLib.Observation({
                     amount: newReserveAccumulator, 
                     timestamp: now
                 });

@@ -28,7 +28,7 @@ describe('Reserve', () => {
     reserve = await ReserveHarnessFactory.deploy(wallet1.address, ticket.address);
   });
 
-  describe.only('checkpoint()', () => {
+  describe('checkpoint()', () => {
     it('will succeed creating checkpoint with 0 balance', async () => {
       await expect(reserve.checkpoint())
         .to.not.emit(reserve, 'Checkpoint')
@@ -66,7 +66,7 @@ describe('Reserve', () => {
         .to.emit(reserve, 'Checkpoint').withArgs(toWei('100'), 0).
         and.to.emit(reserve, 'Checkpoint').withArgs(toWei('150'), 0)
 
-      expect(await reserve.getReserveAccumulatorCardinality()).to.eq(1)
+      expect(await reserve.getCardinality()).to.eq(1)
     });
 
   })
@@ -75,7 +75,7 @@ describe('Reserve', () => {
 
   })
 
-  describe.only('getReserveAccumulatedBetween()', () => {
+  describe('getReserveAccumulatedBetween()', () => {
       
     it('start and end before observations', async() => {
       // s e [] 
