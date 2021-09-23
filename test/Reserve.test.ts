@@ -60,6 +60,7 @@ describe('Reserve', () => {
   describe('getReserveBetween()', () => {
 
   })
+
   describe('__getReserveAccumulatedAt()', () => {
     it('y', async () => {
       await expect(reserve.__getReserveAccumulatedAt()).to.be.revertedWith('DRB/future-draw')
