@@ -195,7 +195,7 @@ module.exports = async (hardhat) => {
 
   cyan('\nConfiguring PrizeSplitStrategy...');
   const prizeSplitStrategy = await ethers.getContract('PrizeSplitStrategy');
-  prizeSplitStrategy.setPrizeSplits([
+  await prizeSplitStrategy.setPrizeSplits([
     {
       target: deployer,
       percentage: 1000, // 100%
@@ -203,11 +203,11 @@ module.exports = async (hardhat) => {
   ]);
   green(
     'PrizeSplitStrategy Configured',
-    `\nPrizeReserve: ${deployer} gets 100% of captured interest`,
+    `\nPrizeReserve: ${deployer} receives 100% of captured interest`,
   );
 
   cyan('\nConfiguring PrizeSplitStrategy to be YieldSource strategy...');
-  yieldSourcePrizePool.setPrizeStrategy(prizeSplitStrategyResult.address);
+  await yieldSourcePrizePool.setPrizeStrategy(prizeSplitStrategyResult.address);
 
   dim('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
   green('Contract Deployments Complete!');
