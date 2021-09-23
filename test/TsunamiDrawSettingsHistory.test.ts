@@ -55,7 +55,7 @@ describe('TsunamiDrawSettingsHistory', () => {
     it('should get the last draw after pushing a draw', async () => {
       await drawSettingsHistory.pushDrawSettings(1, newDrawSettings(5))
       const settings = await drawSettingsHistory.getNewestDrawSettings();
-      expect(settings.newestDrawSettings.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(settings.drawSettings.matchCardinality).to.equal(drawSettings.matchCardinality)
       expect(settings.drawId).to.equal(1)
     });
   })
@@ -63,14 +63,14 @@ describe('TsunamiDrawSettingsHistory', () => {
   describe('getOldestDrawSettings()', () => {
     it('should yield an empty draw when no history', async () => {
       const draw = await drawSettingsHistory.getOldestDrawSettings();
-      expect(draw.oldestDrawSettings.matchCardinality).to.equal(0)
+      expect(draw.drawSettings.matchCardinality).to.equal(0)
       expect(draw.drawId).to.equal(0)
     });
 
     it('should yield the first draw when only one', async () => {
       await drawSettingsHistory.pushDrawSettings(5, newDrawSettings())
       const draw = await drawSettingsHistory.getOldestDrawSettings();
-      expect(draw.oldestDrawSettings.matchCardinality).to.equal(5)
+      expect(draw.drawSettings.matchCardinality).to.equal(5)
       expect(draw.drawId).to.equal(5)
     });
 
@@ -78,7 +78,7 @@ describe('TsunamiDrawSettingsHistory', () => {
       await drawSettingsHistory.pushDrawSettings(7, newDrawSettings())
       await drawSettingsHistory.pushDrawSettings(8, newDrawSettings())
       const draw = await drawSettingsHistory.getOldestDrawSettings();
-      expect(draw.oldestDrawSettings.matchCardinality).to.equal(drawSettings.matchCardinality)
+      expect(draw.drawSettings.matchCardinality).to.equal(drawSettings.matchCardinality)
       expect(draw.drawId).to.equal(7)
     });
 
@@ -87,7 +87,7 @@ describe('TsunamiDrawSettingsHistory', () => {
       await drawSettingsHistory.pushDrawSettings(10, newDrawSettings(2))
       await drawSettingsHistory.pushDrawSettings(11, newDrawSettings(3))
       const draw = await drawSettingsHistory.getOldestDrawSettings();
-      expect(draw.oldestDrawSettings.matchCardinality).to.equal(1)
+      expect(draw.drawSettings.matchCardinality).to.equal(1)
       expect(draw.drawId).to.equal(9)
     });
 
@@ -99,7 +99,7 @@ describe('TsunamiDrawSettingsHistory', () => {
       await drawSettingsHistory.pushDrawSettings(15, newDrawSettings(7))
       await drawSettingsHistory.pushDrawSettings(16, newDrawSettings(8))
       const draw = await drawSettingsHistory.getOldestDrawSettings();
-      expect(draw.oldestDrawSettings.matchCardinality).to.equal(6)
+      expect(draw.drawSettings.matchCardinality).to.equal(6)
       expect(draw.drawId).to.equal(14)
     });
 
