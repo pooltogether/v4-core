@@ -29,7 +29,7 @@ export async function deployDrawCalculator(signer: any, ticketAddress: string, d
   return drawCalculator;
 }
 
-function calculateNumberOfWinnersAtIndex(bitRangeSize: number, distributionIndex: number): number {
+function calculateNumberOfWinnersAtIndex(bitRangeSize: number, distributionIndex: number): BigNumber {
   // Prize Count = (2**bitRange)**(cardinality-numberOfMatches)
   // if not grand prize: - (2^bitRange)**(cardinality-numberOfMatches-1)
 
@@ -37,11 +37,18 @@ function calculateNumberOfWinnersAtIndex(bitRangeSize: number, distributionIndex
   if (distributionIndex > 0) {
     prizeCount -= (2 ** bitRangeSize) ** (distributionIndex - 1);
   }
-  return prizeCount;
+  return BigNumber.from(prizeCount);
 }
 
 function modifyTimestampsWithOffset(timestamps: number[], offset: number): number[] {
   return timestamps.map((timestamp: number) => timestamp - offset);
+}
+
+
+function fillDrawSettingsDistributionsWithZeroes(distributions: BigNumber[]): BigNumber[]{
+  const existingLength = distributions.length
+  const lengthOfZeroesRequired = 16 - existingLength
+  return [...distributions, ...Array(lengthOfZeroesRequired).fill(BigNumber.from(0))]
 }
 
 
@@ -118,6 +125,7 @@ describe('DrawCalculator', () => {
         endOffsetTimestamp: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
       await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings])
     })
 
@@ -133,13 +141,15 @@ describe('DrawCalculator', () => {
       expect(amount).to.equal(expectedPrizeFraction);
     })
 
-    it('all distribution indexes', async () => {
+    it.only('all distribution indexes', async () => {
       for (let numberOfMatches = 0; numberOfMatches < drawSettings.distributions.length; numberOfMatches++) {
+        console.log("numberOfMatches ", numberOfMatches)
         const distributionIndex = BigNumber.from(drawSettings.distributions.length - numberOfMatches - 1) // minus one because we start at 0
+        console.log("distributionIndex ", distributionIndex)
         const fraction = await drawCalculator.calculatePrizeDistributionFraction(drawSettings, distributionIndex);
-
-        let prizeCount = calculateNumberOfWinnersAtIndex(drawSettings.bitRangeSize.toNumber(), distributionIndex.toNumber())
-
+        console.log("fraction is ", fraction) 
+        let prizeCount:BigNumber = calculateNumberOfWinnersAtIndex(drawSettings.bitRangeSize.toNumber(), distributionIndex.toNumber())
+        console.log("prizeCount ", prizeCount)
         const expectedPrizeFraction = drawSettings.distributions[distributionIndex.toNumber()].div(prizeCount)
         expect(fraction).to.equal(expectedPrizeFraction);
       }
