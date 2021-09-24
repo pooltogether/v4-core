@@ -21,7 +21,6 @@ describe('Reserve', () => {
 
   beforeEach(async () => {
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
-
     reserve = await ReserveHarnessFactory.deploy(wallet1.address, ticket.address);
   });
 
