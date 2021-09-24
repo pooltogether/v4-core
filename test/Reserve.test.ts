@@ -92,6 +92,11 @@ describe('Reserve', () => {
         await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }])
         expect(await reserve.getReserveAccumulatedBetween(5, 6)).to.equal(0)
       })
+      it('start and end after observation', async () => {
+        // | s e
+        await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }])
+        expect(await reserve.getReserveAccumulatedBetween(6, 7)).to.equal(0)
+      })
     })
 
     context('with two observations', () => {
@@ -219,6 +224,19 @@ describe('Reserve', () => {
         .withArgs(wallet2.address, reserve.address, toWei('10'))
         .and.to.emit(reserve, 'Withdrawn')
         .withArgs(reserve.address, toWei('10'))
+    it('should emit Checkpoint event', async () => {
+      await ticket.mint(reserve.address, toWei('100'))
+      await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
+        .to.emit(reserve, 'Checkpoint')
+        .withArgs(toWei('100'), 0)
+    })
+
+    it('should emit Withdrawn event', async () => {
+      await ticket.mint(reserve.address, toWei('100'))
+      await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
+        .and.to.emit(reserve, 'Withdrawn')
+        .withArgs(wallet2.address, toWei('10'))
+      expect(await ticket.balanceOf(wallet2.address)).to.equal(toWei('10'))
     })
   })
 })
