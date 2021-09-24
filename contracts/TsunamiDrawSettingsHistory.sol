@@ -11,7 +11,7 @@ import "./interfaces/ITsunamiDrawSettingsHistory.sol";
   * @notice The TsunamiDrawSettingsHistory stores individual DrawSettings for each Draw.drawId.
             DrawSettings parameters like cardinality, bitRange, distributions, number of picks
             and prize. The settings determine the specific distribution model for each individual 
-            draw. Storage of the DrawSetting(s) is randled by ring buffer with a max cardinality
+            draw. Storage of the DrawSetting(s) is handled by ring buffer with a max cardinality
             of 256 or roughly 5 years of history with a weekly draw cadence.
 */
 contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
@@ -80,11 +80,11 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
       drawId = 0; // return 0 to indicate no drawSettings ring buffer history
     } else {
       // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
-      // Sequential "guaranteedness" in handled in DrawRingBufferLib.push()
+      // Sequential "guaranteedness" is handled in DrawRingBufferLib.push()
       drawId = (buffer.lastDrawId + 1) - buffer.cardinality; // 4 + 1 - 3 = 2 | [4,2,3]
     }
 
-    // autotmatic return with named "returns" values
+    // automatic return with named "returns" values
   }
 
   /// @inheritdoc ITsunamiDrawSettingsHistory
