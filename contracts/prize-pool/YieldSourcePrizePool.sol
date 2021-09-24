@@ -10,13 +10,22 @@ import "@pooltogether/yield-source-interface/contracts/IYieldSource.sol";
 
 import "./PrizePool.sol";
 
+/**
+  * @title  PoolTogether V4 YieldSourcePrizePool
+  * @author PoolTogether Inc Team
+  * @notice The Yield Source Prize Pool uses a yield source contract to generate prizes.
+  *         Funds that are deposited into the prize pool are then deposited into a yield source. (i.e. Aave, Compound, etc...)
+*/
 contract YieldSourcePrizePool is PrizePool {
 
   using SafeERC20 for IERC20;
   using Address for address;
 
+  /// @notice Address of the yield source.
   IYieldSource public yieldSource;
 
+  /// @dev Emitted when yield source prize pool is deployed.
+  /// @param yieldSource Address of the yield source.
   event Deployed(address indexed yieldSource);
 
   /// @notice Deploy the Prize Pool and Yield Service with the required contract connections
@@ -52,6 +61,9 @@ contract YieldSourcePrizePool is PrizePool {
     return yieldSource.balanceOfToken(address(this));
   }
 
+
+  /// @notice Returns the address of the ERC20 asset token used for deposits.
+  /// @return Address of the ERC20 asset token.
   function _token() internal override view returns (IERC20) {
     return IERC20(yieldSource.depositToken());
   }
