@@ -19,6 +19,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
 
   uint256 internal constant MAX_CARDINALITY = 256;
 
+  uint256 internal constant DISTRIUBTION_CEILING = 1e9;
   event Deployed(uint8 cardinality);
 
   /// @notice DrawSettings ring buffer history.
@@ -43,11 +44,6 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   }
 
   /* ============ External Functions ============ */
-
-  /// @inheritdoc ITsunamiDrawSettingsHistory
-  function getCardinality() external override view returns(uint256) {
-    return MAX_CARDINALITY;
-  }
 
   /// @inheritdoc ITsunamiDrawSettingsHistory
   function getDrawSetting(uint32 _drawId) external override view returns(DrawLib.TsunamiDrawSettings memory) {
@@ -77,7 +73,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     
     // IF the next DrawSettings.bitRangeSize == 0 the ring buffer HAS NOT looped around.
     // The DrawSettings at index 0 IS by defaut the oldest drawSettings.
-    if (drawSettings.bitRangeSize == 0 && buffer.lastDrawId > 0) {
+    if (drawSettings.bitRangeSize == 0) {
       drawSettings = _drawSettingsRingBuffer[0];
       drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
     } else if (buffer.lastDrawId == 0) {
@@ -141,7 +137,8 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
       sumTotalDistributions += _drawSettings.distributions[index];
     }
 
-    require(sumTotalDistributions <= 1e9, "DrawCalc/distributions-gt-100%");
+    // Each distribution amount stored as uint32 - summed can't exceed 1e9
+    require(sumTotalDistributions <= DISTRIUBTION_CEILING, "DrawCalc/distributions-gt-100%");
 
     DrawRingBuffer.Buffer memory _drawSettingsRingBufferData = drawSettingsRingBufferData;
     _drawSettingsRingBuffer[_drawSettingsRingBufferData.nextIndex] = _drawSettings;
