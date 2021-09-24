@@ -13,11 +13,13 @@ contract StakePrizePool is PrizePool {
   /// @dev Emitted when stake prize pool is deployed
   event Deployed(IERC20 indexed stakeToken);
 
-  /// @notice Deploy the Prize Pool and Yield Service with the required contract connections
+  /// @notice Deploy the Stake Prize Pool
+  /// @param _owner Address of the Stake Prize Pool owner
   /// @param _stakeToken Address of the stake token
   constructor (
+    address _owner,
     IERC20 _stakeToken
-  ) PrizePool() {
+  ) PrizePool(_owner) {
     require(address(_stakeToken) != address(0), "StakePrizePool/stake-token-not-zero-address");
     stakeToken = _stakeToken;
 

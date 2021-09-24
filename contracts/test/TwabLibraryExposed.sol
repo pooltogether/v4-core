@@ -10,11 +10,11 @@ import "../libraries/RingBuffer.sol";
 contract TwabLibraryExposed {
   uint16 public constant MAX_CARDINALITY = 65535;
 
-  using TwabLibrary for TwabLibrary.Twab[MAX_CARDINALITY];
+  using TwabLibrary for ObservationLib.Observation[MAX_CARDINALITY];
 
-  TwabLibrary.Twab[MAX_CARDINALITY] internal twabs;
+  ObservationLib.Observation[MAX_CARDINALITY] internal twabs;
 
-  function setTwabs(TwabLibrary.Twab[] calldata _twabs) external {
+  function setTwabs(ObservationLib.Observation[] calldata _twabs) external {
     for (uint256 i = 0; i < _twabs.length; i++) {
       twabs[i] = _twabs[i];
       if (_twabs[i].timestamp == 0) {
@@ -45,20 +45,20 @@ contract TwabLibraryExposed {
     uint32 _target,
     uint16 _cardinality,
     uint32 _currentTimestamp
-  ) external view returns (TwabLibrary.Twab memory beforeOrAt, TwabLibrary.Twab memory atOrAfter) {
+  ) external view returns (ObservationLib.Observation memory beforeOrAt, ObservationLib.Observation memory atOrAfter) {
     return twabs.binarySearch(_twabIndex, _oldestTwabIndex, _target, _cardinality, _currentTimestamp);
   }
 
   function calculateTwab(
-    TwabLibrary.Twab memory newestTwab,
-    TwabLibrary.Twab memory oldestTwab,
+    ObservationLib.Observation memory newestTwab,
+    ObservationLib.Observation memory oldestTwab,
     uint16 _twabIndex,
     uint16 _oldestTwabIndex,
     uint32 _targetTimestamp,
     uint224 _currentBalance,
     uint16 _cardinality,
     uint32 _currentTimestamp
-  ) external view returns (TwabLibrary.Twab memory) {
+  ) external view returns (ObservationLib.Observation memory) {
     return twabs.calculateTwab(newestTwab, oldestTwab, _twabIndex, _oldestTwabIndex, _targetTimestamp, _currentBalance, _cardinality, _currentTimestamp);
   }
 
@@ -92,10 +92,10 @@ contract TwabLibraryExposed {
   /// @param _currentBalance Current `amount`.
   /// @return New TWAB that was recorded.
   function nextTwab(
-    TwabLibrary.Twab memory _currentTwab,
+    ObservationLib.Observation memory _currentTwab,
     uint256 _currentBalance,
     uint32 _currentTimestamp
-  ) external view returns (TwabLibrary.Twab memory) {
+  ) external view returns (ObservationLib.Observation memory) {
     return TwabLibrary.nextTwab(_currentTwab, _currentBalance, _currentTimestamp);
   }
 
@@ -115,7 +115,7 @@ contract TwabLibraryExposed {
     uint16 _cardinality,
     uint32 _time,
     uint32 _maxLifetime
-  ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, TwabLibrary.Twab memory twab, bool isNew) {
+  ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, ObservationLib.Observation memory twab, bool isNew) {
     return twabs.nextTwabWithExpiry(_balance, _nextTwabIndex, _cardinality, _time, _maxLifetime);
   }
 }

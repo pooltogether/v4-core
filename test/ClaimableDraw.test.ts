@@ -2,8 +2,6 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, constants, Contract, ContractFactory, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-import { Address } from 'hardhat-deploy/dist/types';
-import { Draw } from "./types"
 
 const { getSigners } = ethers;
 const { parseEther: toWei } = utils;
@@ -17,13 +15,6 @@ describe('ClaimableDraw', () => {
   let ticket: Contract;
   let claimableDraw: Contract;
   let drawCalculator: MockContract;
-  let drawHistory: MockContract;
-
-  const DRAW_SAMPLE_CONFIG = {
-    randomNumber: 11111,
-    timestamp: 1111111111,
-    prize: toWei('10'),
-  };
 
   before(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
@@ -39,14 +30,11 @@ describe('ClaimableDraw', () => {
     let IDrawCalculator = await artifacts.readArtifact('IDrawCalculator');
     drawCalculator = await deployMockContract(wallet1, IDrawCalculator.abi);
 
-    let IDrawHistory = await artifacts.readArtifact('IDrawHistory');
-    drawHistory = await deployMockContract(wallet1, IDrawHistory.abi);
-
     const claimableDrawFactory: ContractFactory = await ethers.getContractFactory(
       'ClaimableDraw',
     );
-    claimableDraw = await claimableDrawFactory.deploy(ticket.address, drawHistory.address, drawCalculator.address);
-    
+    claimableDraw = await claimableDrawFactory.deploy(wallet1.address, ticket.address, drawCalculator.address);
+
     await ticket.mint(claimableDraw.address, toWei('1000'));
   });
 
@@ -61,13 +49,6 @@ describe('ClaimableDraw', () => {
           .to.equal(drawCalculator.address);
       });
     })
-
-    describe('getDrawHistory()', () => {
-      it('should succesfully read global DrawHistory variable', async () => {
-        expect(await claimableDraw.getDrawHistory())
-          .to.equal(drawHistory.address)
-      });
-    });
 
     describe('getDrawPayoutBalanceOf()', () => {
       it('should return the user payout for draw before claiming a payout', async () => {
@@ -88,29 +69,11 @@ describe('ClaimableDraw', () => {
   /* ======== Setter Tests ========= */
   /* =============================== */
   describe('Setter Functions', () => {
-    describe('setDrawHistory()', () => {
-      it('should fail to set DrawHistory by unauthorized user', async () => {
-        await expect(claimableDraw.connect(wallet3).setDrawHistory(ethers.Wallet.createRandom().address))
-          .to.be.revertedWith('Ownable: caller is not the owner')
-      });
-
-      it('should fail to set DrawHistory with zero address', async () => {
-        await expect(claimableDraw.setDrawHistory(AddressZero))
-          .to.be.revertedWith('ClaimableDraw/draw-history-not-zero-address')
-      });
-
-      it('should succeed to set DrawHistory as owner', async () => {
-        await expect(claimableDraw.setDrawHistory(wallet2.address))
-          .to.emit(claimableDraw, 'DrawHistorySet')
-          .withArgs(wallet2.address);
-      });
-    });
-
     describe('setDrawCalculator()', () => {
       it('should fail to set draw calculator from unauthorized wallet', async () => {
         const claimableDrawUnauthorized = claimableDraw.connect(wallet2);
         await expect(claimableDrawUnauthorized.setDrawCalculator(AddressZero))
-          .to.be.revertedWith('Ownable: caller is not the owner');
+          .to.be.revertedWith('Ownable/caller-not-owner');
       });
 
       it('should succeed to set new draw calculator for target draw id as owner', async () => {
@@ -138,18 +101,14 @@ describe('ClaimableDraw', () => {
   /* ====================================== */
   describe('claim()', () => {
     it('should succeed to claim and emit ClaimedDraw event', async () => {
-      const draw: any = { drawId: 1, winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
-      await drawHistory.mock.getDraws.withArgs([1]).returns([draw])
-      await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, [1], '0x').returns([toWei('10')])
       await expect(claimableDraw.claim(wallet1.address, [1], '0x'))
         .to.emit(claimableDraw, 'ClaimedDraw')
         .withArgs(wallet1.address, 1, toWei('10'));
     })
 
     it('should fail to claim a previously claimed prize', async () => {
-      const draw: any = { drawId: 0, winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
-      await drawHistory.mock.getDraws.withArgs([0]).returns([draw])
-      await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, [0], '0x').returns([toWei('10')])
 
       // updated
       await claimableDraw.claim(wallet1.address, [0], '0x');
@@ -160,16 +119,13 @@ describe('ClaimableDraw', () => {
     });
 
     it('should payout the difference if user claims more', async () => {
-      const draw: any = { drawId: 1, winningRandomNumber: DRAW_SAMPLE_CONFIG.randomNumber, timestamp: DRAW_SAMPLE_CONFIG.timestamp }
-      await drawHistory.mock.getDraws.withArgs([1]).returns([draw])
-
       // first time
-      await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('10')])
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, [1], '0x').returns([toWei('10')])
       await claimableDraw.claim(wallet1.address, [1], '0x');
       expect(await claimableDraw.getDrawPayoutBalanceOf(wallet1.address, 1)).to.equal(toWei('10'))
 
       // second time
-      await drawCalculator.mock.calculate.withArgs(wallet1.address, [draw], '0x').returns([toWei('20')])
+      await drawCalculator.mock.calculate.withArgs(wallet1.address, [1], '0x').returns([toWei('20')])
 
       // try again; should reward diff
       await expect(claimableDraw.claim(wallet1.address, [1], '0x'))
@@ -188,7 +144,7 @@ describe('ClaimableDraw', () => {
 
     it('should fail to withdraw ERC20 tokens as unauthorized account', async () => {
       expect(claimableDraw.connect(wallet3).withdrawERC20(dai.address, wallet1.address, withdrawAmount))
-        .to.be.revertedWith('Ownable: caller is not the owner')
+        .to.be.revertedWith('Ownable/caller-not-owner')
     });
 
     it('should fail to withdraw ERC20 tokens if recipient address is address zero', async () => {

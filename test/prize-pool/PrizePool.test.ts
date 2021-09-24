@@ -81,7 +81,7 @@ describe('PrizePool', function () {
     await yieldSourceStub.mock.depositToken.returns(depositToken.address);
 
     const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
-    prizePool = await PrizePoolHarness.deploy(yieldSourceStub.address);
+    prizePool = await PrizePoolHarness.deploy(contractsOwner.address, yieldSourceStub.address);
 
     const Ticket = await getContractFactory('Ticket');
     ticket = await Ticket.deploy('name', 'SYMBOL', 18, prizePool.address);
@@ -89,24 +89,29 @@ describe('PrizePool', function () {
 
   describe('constructor()', () => {
     it('should fire the events', async () => {
-      const tx = prizePool.deployTransaction;
+      const deployTx = prizePool.deployTransaction;
 
-      await expect(tx).to.emit(prizePool, 'LiquidityCapSet').withArgs(MaxUint256);
+      await expect(deployTx).to.emit(prizePool, 'LiquidityCapSet').withArgs(MaxUint256);
 
       await expect(prizePool.setPrizeStrategy(prizeStrategyManager.address))
         .to.emit(prizePool, 'PrizeStrategySet')
         .withArgs(prizeStrategyManager.address);
 
-      await expect(prizePool.setTicket(ticket.address))
+      const setTicketTx = await prizePool.setTicket(ticket.address);
+
+      await expect(setTicketTx)
         .to.emit(prizePool, 'TicketSet')
         .withArgs(ticket.address);
+
+      await expect(setTicketTx)
+        .to.emit(prizePool, 'BalanceCapSet')
+        .withArgs(MaxUint256);
     });
   });
 
   describe('with a mocked prize pool', () => {
     beforeEach(async () => {
       await prizePool.setPrizeStrategy(prizeStrategyManager.address);
-      await prizePool.setBalanceCap(ticket.address, MaxUint256);
       await prizePool.setTicket(ticket.address);
     });
 
@@ -117,7 +122,7 @@ describe('PrizePool', function () {
 
       it('should reject invalid params', async () => {
         const PrizePoolHarness = await getContractFactory('PrizePoolHarness', contractsOwner);
-        prizePool2 = await PrizePoolHarness.deploy(yieldSourceStub.address);
+        prizePool2 = await PrizePoolHarness.deploy(contractsOwner.address, yieldSourceStub.address);
 
         await expect(prizePool2.setTicket(AddressZero)).to.be.revertedWith(
           'PrizePool/ticket-not-zero-address',
@@ -143,7 +148,7 @@ describe('PrizePool', function () {
         const amount = toWei('1');
         const balanceCap = toWei('50000');
 
-        await prizePool.setBalanceCap(ticket.address, balanceCap);
+        await prizePool.setBalanceCap(balanceCap);
         await depositTokenIntoPrizePool(contractsOwner.address, balanceCap);
 
         await expect(depositTokenIntoPrizePool(contractsOwner.address, amount)).to.be.revertedWith(
@@ -229,7 +234,7 @@ describe('PrizePool', function () {
       it('should not allow anyone else to change the prize strategy', async () => {
         await expect(
           prizePool.connect(wallet2 as Signer).setPrizeStrategy(wallet2.address),
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+        ).to.be.revertedWith('Ownable/caller-not-owner');
       });
     });
 
@@ -237,18 +242,18 @@ describe('PrizePool', function () {
       it('should allow the owner to set the balance cap', async () => {
         const balanceCap = toWei('50000');
 
-        await expect(prizePool.setBalanceCap(ticket.address, balanceCap))
+        await expect(prizePool.setBalanceCap(balanceCap))
           .to.emit(prizePool, 'BalanceCapSet')
-          .withArgs(ticket.address, balanceCap);
+          .withArgs(balanceCap);
 
-        expect(await prizePool.balanceCap(ticket.address)).to.equal(balanceCap);
+        expect(await prizePool.balanceCap()).to.equal(balanceCap);
       });
 
       it('should not allow anyone else to call', async () => {
         prizePool2 = prizePool.connect(wallet2 as Signer);
 
-        await expect(prizePool2.setBalanceCap(ticket.address, toWei('50000'))).to.be.revertedWith(
-          'Ownable: caller is not the owner',
+        await expect(prizePool2.setBalanceCap(toWei('50000'))).to.be.revertedWith(
+          'Ownable/caller-not-owner',
         );
       });
     });
@@ -268,7 +273,7 @@ describe('PrizePool', function () {
         prizePool2 = prizePool.connect(wallet2 as Signer);
 
         await expect(prizePool2.setLiquidityCap(toWei('1000'))).to.be.revertedWith(
-          'Ownable: caller is not the owner',
+          'Ownable/caller-not-owner',
         );
       });
     });
@@ -286,7 +291,7 @@ describe('PrizePool', function () {
       it('should only allow the owner to delegate', async () => {
         await expect(
           prizePool.connect(wallet2 as Signer).compLikeDelegate(compLike.address, wallet2.address),
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+        ).to.be.revertedWith('Ownable/caller-not-owner');
       });
 
       it('should not delegate if the balance is zero', async () => {

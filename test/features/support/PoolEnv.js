@@ -1,5 +1,4 @@
 const hardhat = require('hardhat')
-const chalk = require('chalk');
 const { expect } = require('chai');
 
 require('../../helpers/chaiMatchers');
@@ -42,6 +41,8 @@ function PoolEnv() {
 
   this.drawHistory = async () => await ethers.getContract('DrawHistory');
 
+  this.drawSettingsHistory = async () => await ethers.getContract('TsunamiDrawSettingsHistory');
+
   this.drawCalculator = async () => await ethers.getContract('TsunamiDrawCalculator');
 
   this.claimableDraw = async (wallet) =>
@@ -58,8 +59,6 @@ function PoolEnv() {
     let token = await this.token(wallet);
     let ticket = await this.ticket(wallet);
     let prizePool = await this.prizePool(wallet);
-
-    await prizePool.connect(owner).setBalanceCap(ticket.address, MaxUint256);
 
     let amount = toWei(tickets);
 
@@ -87,8 +86,6 @@ function PoolEnv() {
     let token = await this.token(wallet);
     let ticket = await this.ticket(wallet);
     let prizePool = await this.prizePool(wallet);
-
-    await prizePool.connect(owner).setBalanceCap(ticket.address, MaxUint256);
 
     let amount = toWei(tickets);
 
@@ -125,7 +122,7 @@ function PoolEnv() {
     expect(balance).to.equal(amount);
   };
 
-  this.claim = async function ({ user, drawId, picks, prize }) {
+  this.claim = async function ({ user, drawId, picks }) {
     const wallet = await this.wallet(user);
     const claimableDraw = await this.claimableDraw(wallet);
     const encoder = ethers.utils.defaultAbiCoder;
@@ -190,7 +187,7 @@ function PoolEnv() {
     prize,
     maxPicksPerUser
   }) {
-    const drawCalculator = await this.drawCalculator();
+    const drawSettingsHistory = await this.drawSettingsHistory()
 
     const drawSettings = {
       bitRangeSize,
@@ -202,8 +199,8 @@ function PoolEnv() {
       prize,
       maxPicksPerUser
     }
-    
-    await drawCalculator.pushDrawSettings(drawId, drawSettings)
+
+    await drawSettingsHistory.pushDrawSettings(drawId, drawSettings)
   }
 }
 

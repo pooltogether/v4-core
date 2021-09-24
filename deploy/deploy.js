@@ -108,7 +108,7 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying YieldSourcePrizePool...');
   const yieldSourcePrizePoolResult = await deploy('YieldSourcePrizePool', {
     from: deployer,
-    args: [mockYieldSourceResult.address],
+    args: [deployer, mockYieldSourceResult.address],
   });
 
   displayResult('YieldSourcePrizePool', yieldSourcePrizePoolResult);
@@ -132,19 +132,36 @@ module.exports = async (hardhat) => {
   yellow('\nPrize Pool Setup Complete');
   yellow('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
+  const cardinality = 8;
+
   cyan('\nDeploying DrawHistory...');
   const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
+    args: [
+      deployer,
+      cardinality
+    ]
   });
-
   displayResult('DrawHistory', drawHistoryResult);
+
+  cyan('\nDeploying TsunamiDrawSettingsHistory...');
+  const tsunamiDrawSettindsHistoryResult = await deploy('TsunamiDrawSettingsHistory', {
+    from: deployer,
+    args: [
+      deployer,
+      cardinality
+    ]
+  });
+  displayResult('TsunamiDrawSettingsHistory', tsunamiDrawSettindsHistoryResult);
 
   cyan('\nDeploying DrawBeacon...');
   const drawBeaconResult = await deploy('DrawBeacon', {
     from: deployer,
     args: [
+      deployer,
       drawHistoryResult.address,
       rngServiceResult.address,
+      1,
       parseInt('' + new Date().getTime() / 1000),
       120, // 2 minute intervals
     ],
@@ -160,14 +177,14 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
     from: deployer,
-    args: [ticketResult.address, deployer, 16],
+    args: [deployer, ticketResult.address, drawHistoryResult.address, tsunamiDrawSettindsHistoryResult.address],
   });
   displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 
   cyan('\nDeploying ClaimableDraw...');
   const claimableDrawResult = await deploy('ClaimableDraw', {
     from: deployer,
-    args: [ticketResult.address, drawHistoryResult.address, drawCalculatorResult.address],
+    args: [deployer, ticketResult.address, drawCalculatorResult.address],
   });
   displayResult('ClaimableDraw', claimableDrawResult);
 

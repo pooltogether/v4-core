@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
 
 import "../prize-pool/PrizePool.sol";
@@ -10,8 +12,9 @@ contract PrizePoolHarness is PrizePool {
   YieldSourceStub public stubYieldSource;
 
   constructor(
+    address _owner,
     YieldSourceStub _stubYieldSource
-  ) {
+  ) PrizePool(_owner) {
     stubYieldSource = _stubYieldSource;
   }
 

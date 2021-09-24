@@ -20,10 +20,12 @@ contract YieldSourcePrizePool is PrizePool {
   event Deployed(address indexed yieldSource);
 
   /// @notice Deploy the Prize Pool and Yield Service with the required contract connections
+  /// @param _owner Address of the Yield Source Prize Pool owner
   /// @param _yieldSource Address of the yield source
   constructor (
+    address _owner,
     IYieldSource _yieldSource
-  ) PrizePool() {
+  ) PrizePool(_owner) {
     require(address(_yieldSource) != address(0), "YieldSourcePrizePool/yield-source-not-zero-address");
 
     yieldSource = _yieldSource;

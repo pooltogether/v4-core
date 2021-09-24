@@ -4,25 +4,25 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IClaimableDraw.sol";
 import "./interfaces/IDrawCalculator.sol";
-import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 
 /**
-  * @title  PoolTogether V4 DrawCalculator
+  * @title  PoolTogether V4 ClaimableDraw
   * @author PoolTogether Inc Team
-  * @notice Distributes PrizePool captured interest as individual draw payouts.
+  * @notice The ClaimableDraw distributes claimable draw prizes to users via a pull model.
+            Managing the regularly captured PrizePool interest, a ClaimableDraw is the
+            entrypoint for users to submit Draw.drawId(s) and winning pick indices.
+            Communicating with a DrawCalculator, the ClaimableDraw will determine the maximum
+            prize payout and transfer those tokens directly to a user address. 
 */
 contract ClaimableDraw is IClaimableDraw, Ownable {
   using SafeERC20 for IERC20;
 
   /* ============ Global Variables ============ */
-
-  /// @notice DrawHistory address
-  IDrawHistory internal drawHistory;
 
   /// @notice The Draw Calculator to use
   IDrawCalculator internal drawCalculator;
@@ -37,16 +37,15 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
 
   /**
     * @notice Initialize ClaimableDraw smart contract.
-    * @param _token       Token address
-    * @param _drawHistory DrawHistory address
+    * @param _owner           Address of the ClaimableDraw owner
+    * @param _token           Token address
     * @param _drawCalculator DrawCalculator address
   */
   constructor(
+    address _owner,
     IERC20 _token,
-    IDrawHistory _drawHistory,
     IDrawCalculator _drawCalculator
-  ) Ownable() {
-    _setDrawHistory(_drawHistory);
+  ) Ownable(_owner) {
     _setDrawCalculator(_drawCalculator);
     require(address(_token) != address(0), "ClaimableDraw/token-not-zero-address" );
     token = _token;
@@ -61,14 +60,6 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   */
   function getDrawCalculator() external override view returns (IDrawCalculator) {
     return drawCalculator;
-  }
-
-  /**
-    * @notice Read global DrawHistory variable.
-    * @return IDrawHistory
-  */
-  function getDrawHistory() external override view returns (IDrawHistory) {
-    return drawHistory;
   }
 
   /**
@@ -99,7 +90,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   /* ============ External Functions ============ */
 
   /**
-    * @notice Claim a user token payouts via a collection of draw ids and pick indices. 
+    * @notice Claim a user token payouts via a collection of draw ids and pick indices.
     * @param _user             Address of user to claim awards for. Does NOT need to be msg.sender
     * @param _drawIds          Draw IDs from global DrawHistory reference
     * @param _data             The data to pass to the draw calculator.
@@ -108,7 +99,7 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   function claim(address _user, uint32[] calldata _drawIds, bytes calldata _data) external override returns (uint256) {
     uint256 totalPayout;
 
-    uint256[] memory drawPayouts = drawCalculator.calculate(_user, drawHistory.getDraws(_drawIds), _data);  // CALL
+    uint256[] memory drawPayouts = drawCalculator.calculate(_user, _drawIds, _data);  // CALL
     for (uint256 payoutIndex = 0; payoutIndex < drawPayouts.length; payoutIndex++) {
       uint32 drawId = _drawIds[payoutIndex];
       uint256 payout = drawPayouts[payoutIndex];
@@ -150,29 +141,9 @@ contract ClaimableDraw is IClaimableDraw, Ownable {
   }
 
   /**
-    * @notice Set global DrawHistory reference.
-    * @param _drawHistory DrawHistory address
-    * @return New DrawHistory address
-  */
-  function setDrawHistory(IDrawHistory _drawHistory) external override onlyOwner returns (IDrawHistory) {
-    _setDrawHistory(_drawHistory);
-    return _drawHistory;
-  }
-
-  /**
-    * @notice Set global DrawHistory reference.
-    * @param _drawHistory DrawHistory address
-  */
-  function _setDrawHistory(IDrawHistory _drawHistory) internal {
-    require(address(_drawHistory) != address(0), "ClaimableDraw/draw-history-not-zero-address");
-    drawHistory = _drawHistory;
-    emit DrawHistorySet(_drawHistory);
-  }
-
-  /**
     * @notice Transfer claimed draw(s) total payout to user.
     * @param _to      User address
-    * @param _amount  Transfer amount 
+    * @param _amount  Transfer amount
   */
   function _awardPayout(address _to, uint256 _amount) internal {
     token.safeTransfer(_to, _amount);

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./OverflowSafeComparator.sol";
 import "./RingBuffer.sol";
+import "./ObservationLib.sol";
 
 /// @title Time-Weighted Average Balance Library
 /// @notice This library allows you to efficiently track a user's historic balance.  You can get a
@@ -16,14 +17,6 @@ library TwabLibrary {
 
   /// @notice The maximum number of twab entries
   uint16 public constant MAX_CARDINALITY = 65535;
-
-  /// @notice Time Weighted Average Balance (TWAB).
-  /// @param amount `amount` at `timestamp`.
-  /// @param timestamp Recorded `timestamp`.
-  struct Twab {
-    uint224 amount;
-    uint32 timestamp;
-  }
 
   /// @notice Ensures the passed cardinality is a minimum of 1
   /// @param _cardinality The cardinality to ensure a floor of 1
@@ -37,7 +30,7 @@ library TwabLibrary {
   function getBalanceAt(
     uint16 _cardinality,
     uint16 _nextTwabIndex,
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint224 _balance,
     uint32 _target,
     uint32 _time
@@ -55,7 +48,7 @@ library TwabLibrary {
   function getAverageBalanceBetween(
     uint16 _cardinality,
     uint16 _nextTwabIndex,
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint224 _balance,
     uint32 _startTime,
     uint32 _endTime,
@@ -86,10 +79,10 @@ library TwabLibrary {
     uint224 _balance,
     uint16 _nextTwabIndex,
     uint16 _cardinality,
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint32 _time,
     uint32 _ttl
-  ) internal returns (uint16 nextTwabIndex, uint16 cardinality, Twab memory twab, bool isNew) {
+  ) internal returns (uint16 nextTwabIndex, uint16 cardinality, ObservationLib.Observation memory twab, bool isNew) {
     (nextTwabIndex, cardinality, twab, isNew) = nextTwabWithExpiry(
       _twabs,
       _balance,
@@ -119,13 +112,13 @@ library TwabLibrary {
   /// @return beforeOrAt TWAB recorded before, or at, the target.
   /// @return atOrAfter TWAB recorded at, or after, the target.
   function binarySearch(
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint16 _twabIndex,
     uint16 _oldestTwabIndex,
     uint32 _target,
     uint16 _cardinality,
     uint32 _time
-  ) internal view returns (Twab memory beforeOrAt, Twab memory atOrAfter) {
+  ) internal view returns (ObservationLib.Observation memory beforeOrAt, ObservationLib.Observation memory atOrAfter) {
     uint256 leftSide = _oldestTwabIndex; // Oldest TWAB
     uint256 rightSide = _twabIndex < leftSide ? leftSide + _cardinality - 1 : _twabIndex;
     uint256 currentIndex;
@@ -161,19 +154,19 @@ library TwabLibrary {
   /// @notice Calculates the TWAB for a given timestamp.  It interpolates as necessary.
   /// @param _twabs The TWAB history
   function calculateTwab(
-    Twab[MAX_CARDINALITY] storage _twabs,
-    Twab memory newestTwab,
-    Twab memory oldestTwab,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation memory newestTwab,
+    ObservationLib.Observation memory oldestTwab,
     uint16 _twabIndex,
     uint16 _oldestTwabIndex,
     uint32 targetTimestamp,
     uint224 _currentBalance,
     uint16 _cardinality,
     uint32 _time
-  ) internal view returns (Twab memory) {
+  ) internal view returns (ObservationLib.Observation memory) {
     // If `targetTimestamp` is chronologically after the newest TWAB, we extrapolate a new one
     if (newestTwab.timestamp.lt(targetTimestamp, _time)) {
-      return Twab({
+      return ObservationLib.Observation({
         amount: newestTwab.amount + _currentBalance*(targetTimestamp - newestTwab.timestamp),
         timestamp: targetTimestamp
       });
@@ -189,7 +182,7 @@ library TwabLibrary {
 
     // If `targetTimestamp` is chronologically before the oldest TWAB, we create a zero twab
     if (targetTimestamp.lt(oldestTwab.timestamp, _time)) {
-      return Twab({
+      return ObservationLib.Observation({
         amount: 0,
         timestamp: targetTimestamp
       });
@@ -197,21 +190,21 @@ library TwabLibrary {
 
     // Otherwise, both timestamps must be surrounded by twabs.
     (
-      Twab memory beforeOrAtStart,
-      Twab memory afterOrAtStart
+      ObservationLib.Observation memory beforeOrAtStart,
+      ObservationLib.Observation memory afterOrAtStart
     ) = binarySearch(_twabs, _twabIndex, _oldestTwabIndex, targetTimestamp, _cardinality, _time);
 
     uint224 heldBalance = (afterOrAtStart.amount - beforeOrAtStart.amount) / (afterOrAtStart.timestamp - beforeOrAtStart.timestamp);
     uint224 amount = beforeOrAtStart.amount + heldBalance * (targetTimestamp - beforeOrAtStart.timestamp);
 
-    return Twab({
+    return ObservationLib.Observation({
       amount: amount,
       timestamp: targetTimestamp
     });
   }
 
   function getAverageBalanceBetween(
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint224 _currentBalance,
     uint16 _twabIndex,
     uint32 _startTime,
@@ -223,7 +216,7 @@ library TwabLibrary {
 
     // Find oldest Twab
     uint16 oldestTwabIndex = uint16(RingBuffer.nextIndex(_twabIndex, _cardinality));
-    Twab memory oldestTwab = _twabs[oldestTwabIndex];
+    ObservationLib.Observation memory oldestTwab = _twabs[oldestTwabIndex];
     // If the TWAB is not initialized we go to the beginning of the TWAB circular buffer at index 0
     if (oldestTwab.timestamp == 0) {
       oldestTwabIndex = 0;
@@ -246,20 +239,20 @@ library TwabLibrary {
   }
 
   function _getAverageBalanceBetween(
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint224 _currentBalance,
     AvgHelper memory helper,
-    Twab memory _oldestTwab,
+    ObservationLib.Observation memory _oldestTwab,
     uint32 _time
   ) private view returns (uint256) {
     uint32 endTime = helper.endTime > _time ? _time : helper.endTime;
 
-    Twab memory newestTwab = _twabs[helper.twabIndex];
+    ObservationLib.Observation memory newestTwab = _twabs[helper.twabIndex];
 
-    Twab memory startTwab = calculateTwab(
+    ObservationLib.Observation memory startTwab = calculateTwab(
       _twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, helper.startTime, _currentBalance, helper.cardinality, _time
     );
-    Twab memory endTwab = calculateTwab(
+    ObservationLib.Observation memory endTwab = calculateTwab(
       _twabs, newestTwab, _oldestTwab, helper.twabIndex, helper.oldestTwabIndex, endTime, _currentBalance, helper.cardinality, _time
     );
 
@@ -274,7 +267,7 @@ library TwabLibrary {
   /// @param _twabIndex Most recent TWAB index recorded.
   /// @return uint256 TWAB amount at `_target`.
   function getBalanceAt(
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint32 _target,
     uint256 _currentBalance,
     uint16 _twabIndex,
@@ -283,8 +276,8 @@ library TwabLibrary {
   ) internal view returns (uint256) {
     uint32 targetTimestamp = _target > _time ? _time : _target;
 
-    Twab memory afterOrAt;
-    Twab memory beforeOrAt = _twabs[_twabIndex];
+    ObservationLib.Observation memory afterOrAt;
+    ObservationLib.Observation memory beforeOrAt = _twabs[_twabIndex];
 
     // If `targetTimestamp` is chronologically after the newest TWAB, we can simply return the current balance
     if (beforeOrAt.timestamp.lte(targetTimestamp, _time)) {
@@ -320,19 +313,19 @@ library TwabLibrary {
   /// @param _currentBalance Current `amount`.
   /// @return New TWAB that was recorded.
   function nextTwab(
-    Twab memory _currentTwab,
+    ObservationLib.Observation memory _currentTwab,
     uint256 _currentBalance,
     uint32 _time
-  ) internal pure returns (Twab memory) {
+  ) internal pure returns (ObservationLib.Observation memory) {
     // New twab amount = last twab amount (or zero) + (current amount * elapsed seconds)
-    return Twab({
+    return ObservationLib.Observation({
       amount: (uint256(_currentTwab.amount) + (_currentBalance * (_time.checkedSub(_currentTwab.timestamp, _time)))).toUint224(),
       timestamp: _time
     });
   }
 
   function calculateNextWithExpiry(
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint16 _nextTwabIndex,
     uint16 _cardinality,
     uint32 _time,
@@ -365,7 +358,7 @@ library TwabLibrary {
     A: when current time - second oldest twab >= time to live
     */
 
-    Twab memory secondOldestTwab;
+    ObservationLib.Observation memory secondOldestTwab;
     // if there are two or more records (cardinality is always one greater than # of records)
     if (cardinality > 2) {
       // get the second oldest twab
@@ -381,14 +374,14 @@ library TwabLibrary {
   }
 
   function nextTwabWithExpiry(
-    Twab[MAX_CARDINALITY] storage _twabs,
+    ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     uint224 _balance,
     uint16 _nextTwabIndex,
     uint16 _cardinality,
     uint32 _time,
     uint32 _maxLifetime
-  ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, Twab memory twab, bool isNew) {
-    Twab memory newestTwab = _twabs[uint16(RingBuffer.mostRecentIndex(_nextTwabIndex, _cardinality))];
+  ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, ObservationLib.Observation memory twab, bool isNew) {
+    ObservationLib.Observation memory newestTwab = _twabs[uint16(RingBuffer.mostRecentIndex(_nextTwabIndex, _cardinality))];
 
     // if we're in the same block, return
     if (newestTwab.timestamp == _time) {
@@ -397,7 +390,7 @@ library TwabLibrary {
 
     (nextAvailableTwabIndex, nextCardinality) = calculateNextWithExpiry(_twabs, _nextTwabIndex, _cardinality, _time, _maxLifetime);
 
-    Twab memory newTwab = nextTwab(
+    ObservationLib.Observation memory newTwab = nextTwab(
       newestTwab,
       _balance,
       _time

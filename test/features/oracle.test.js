@@ -13,7 +13,7 @@ describe('Oracle jobs', () => {
 
   it('should be able to trigger the beacon', async () => {
     await env.draw({ randomNumber: 1 })
-    await env.expectDrawRandomNumber({ drawId: 0, randomNumber: 1 })
+    await env.expectDrawRandomNumber({ drawId: 1, randomNumber: 1 })
   });
 
   it('should be able to push new draw settings', async () => {
@@ -27,9 +27,9 @@ describe('Oracle jobs', () => {
     drawStartTimestampOffset = 1
     drawEndTimestampOffset = 2
     maxPicksPerUser = 1000
-    
+
     await env.pushDrawSettings({
-      drawId: 0,
+      drawId: 1,
       bitRangeSize,
       matchCardinality,
       drawStartTimestampOffset,
