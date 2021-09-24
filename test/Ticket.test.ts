@@ -58,7 +58,7 @@ describe('Ticket', () => {
 
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
     ticket = await deployTicketContract(ticketName, ticketSymbol, ticketDecimals, prizePool.address);
-    prizePool.mock.balanceCap.withArgs(ticket.address).returns(MaxUint256);
+    prizePool.mock.balanceCap.returns(MaxUint256);
   });
 
   describe('constructor()', () => {
@@ -290,7 +290,7 @@ describe('Ticket', () => {
       );
     });
   });
-  
+
   describe('getAverageTotalSupplyBetween()', () => {
 
     const balanceBefore = toWei('1000');
@@ -445,7 +445,7 @@ describe('Ticket', () => {
       debug(`minted ${ethers.utils.formatEther(balanceBefore)} @ timestamp ${timestamp}`)
       // console.log(`Minted at time ${timestamp}`)
     });
-    
+
     it('should revert on unequal lenght inputs', async () => {
       const drawStartTimestamp = timestamp
       const drawEndTimestamp = timestamp

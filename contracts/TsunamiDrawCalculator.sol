@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
-
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawHistory.sol";
@@ -12,7 +9,17 @@ import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBuffer.sol";
 import "./TsunamiDrawSettingsHistory.sol";
 
-///@title TsunamiDrawCalculator is an implementation of an IDrawCalculator
+/**
+  * @title  PoolTogether V4 TsunamiDrawCalculator
+  * @author PoolTogether Inc Team
+  * @notice The TsunamiDrawCalculator calculates a user's prize by matching a winning random number against
+            their picks. A users picks are generated deterministically based on their address and balance
+            of tickets held. Prize payouts are divided into multiple tiers: grand prize, second place, etc... 
+            A user with a higher average weighted balance (during each draw perid) will be given a large number of
+            pickIndices to choose from, and thus a higher chance to match the randomly generated winning numbers. 
+            The TsunamiDrawCalculator will retrieve data, like average weighted balance and cost of picks per draw 
+            from the linked Ticket and TsunamiDrawSettingsHistory contracts when payouts are being calculated. 
+*/
 contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
 
   /**

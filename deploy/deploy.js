@@ -137,20 +137,14 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying DrawHistory...');
   const drawHistoryResult = await deploy('DrawHistory', {
     from: deployer,
-    args: [
-      deployer,
-      cardinality
-    ]
+    args: [deployer, cardinality],
   });
   displayResult('DrawHistory', drawHistoryResult);
 
   cyan('\nDeploying TsunamiDrawSettingsHistory...');
   const tsunamiDrawSettindsHistoryResult = await deploy('TsunamiDrawSettingsHistory', {
     from: deployer,
-    args: [
-      deployer,
-      cardinality
-    ]
+    args: [deployer, cardinality],
   });
   displayResult('TsunamiDrawSettingsHistory', tsunamiDrawSettindsHistoryResult);
 
@@ -161,6 +155,7 @@ module.exports = async (hardhat) => {
       deployer,
       drawHistoryResult.address,
       rngServiceResult.address,
+      1,
       parseInt('' + new Date().getTime() / 1000),
       120, // 2 minute intervals
     ],
@@ -176,7 +171,12 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying TsunamiDrawCalculator...');
   const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
     from: deployer,
-    args: [deployer, ticketResult.address, drawHistoryResult.address, tsunamiDrawSettindsHistoryResult.address],
+    args: [
+      deployer,
+      ticketResult.address,
+      drawHistoryResult.address,
+      tsunamiDrawSettindsHistoryResult.address,
+    ],
   });
   displayResult('TsunamiDrawCalculator', drawCalculatorResult);
 
@@ -186,6 +186,29 @@ module.exports = async (hardhat) => {
     args: [deployer, ticketResult.address, drawCalculatorResult.address],
   });
   displayResult('ClaimableDraw', claimableDrawResult);
+
+  cyan('\nDeploying PrizeSplitStrategy...');
+  const prizeSplitStrategyResult = await deploy('PrizeSplitStrategy', {
+    from: deployer,
+    args: [deployer, yieldSourcePrizePoolResult.address],
+  });
+  displayResult('PrizeSplitStrategy', prizeSplitStrategyResult);
+
+  cyan('\nConfiguring PrizeSplitStrategy...');
+  const prizeSplitStrategy = await ethers.getContract('PrizeSplitStrategy');
+  await prizeSplitStrategy.setPrizeSplits([
+    {
+      target: deployer,
+      percentage: 1000, // 100%
+    },
+  ]);
+  green(
+    'PrizeSplitStrategy Configured',
+    `\nPrizeReserve: ${deployer} receives 100% of captured interest`,
+  );
+
+  cyan('\nConfiguring PrizeSplitStrategy to be YieldSource strategy...');
+  await yieldSourcePrizePool.setPrizeStrategy(prizeSplitStrategyResult.address);
 
   dim('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
   green('Contract Deployments Complete!');
