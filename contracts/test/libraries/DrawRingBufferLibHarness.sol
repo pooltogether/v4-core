@@ -23,9 +23,9 @@ contract DrawRingBufferLibHarness {
   function _getIndex(DrawRingBuffer.Buffer memory _buffer, uint32 _drawId) external view returns (uint32) {
     return DrawRingBuffer.getIndex(_buffer, _drawId);
   }
-  
-  function _isNotInitialized(DrawRingBuffer.Buffer memory _buffer) external view returns (bool) {
-    return DrawRingBuffer.isNotInitialized(_buffer);
+
+  function _isInitialized(DrawRingBuffer.Buffer memory _buffer) external view returns (bool) {
+    return DrawRingBuffer.isInitialized(_buffer);
   }
 
 }
