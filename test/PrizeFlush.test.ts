@@ -31,6 +31,7 @@ describe('PrizeFlush', () => {
     prizeFlushFactory = await ethers.getContractFactory('PrizeFlush');
     reserveFactory = await ethers.getContractFactory('ReserveHarness');
     prizeSplitStrategyFactory = await ethers.getContractFactory('PrizeSplitStrategy');
+
     let PrizeSplitStrategy = await artifacts.readArtifact('PrizeSplitStrategy');
     strategy = await deployMockContract(wallet1 as Signer, PrizeSplitStrategy.abi);
   });
@@ -38,18 +39,29 @@ describe('PrizeFlush', () => {
   beforeEach(async () => {
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
     reserve = await reserveFactory.deploy(wallet1.address, ticket.address);
-    prizeFlush = await prizeFlushFactory.deploy(wallet1.address, DESTINATION, reserve.address, strategy.address);
+    prizeFlush = await prizeFlushFactory.deploy(
+      wallet1.address,
+      DESTINATION,
+      strategy.address,
+      reserve.address
+    );
     await reserve.setManager(prizeFlush.address)
   });
 
 
   describe('flush()', () => {
-    it('should flush prizes', async () => {
-      // await strategy.mock.distribute.returns(toWei('100'))
-      // await ticket.mint(reserve.address, toWei('100'))
-      // expect(prizeFlush.flush())
-      //   .to.emit(prizeFlush, 'Flushed')
-      //   .withArgs(wallet2.address, toWei('100'))
+    it('should fail to withdrawTo if negative balance on reserve', async () => {
+      await strategy.mock.distribute.returns(toWei('0'))
+      await expect(prizeFlush.flush())
+        .to.not.emit(prizeFlush, 'Flushed')
+    })
+
+    it('should flush prizes if positive balance on reserve.', async () => {
+      await strategy.mock.distribute.returns(toWei('100'))
+      await ticket.mint(reserve.address, toWei('100'))
+      await expect(prizeFlush.flush())
+        .to.emit(prizeFlush, 'Flushed')
+        .and.to.emit(reserve, 'Withdrawn')
     })
   })
 })

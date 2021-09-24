@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IPrizeFlush.sol";
 
 /**
-  * @title  PoolTogether V4 Reserve
+  * @title  PoolTogether V4 PrizeFlush
   * @author PoolTogether Inc Team
   * @notice The PrizeFlush is a helper library to facilate interest distribution. 
 */
@@ -50,10 +50,12 @@ contract PrizeFlush is IPrizeFlush, Manageable {
   }
 
   /* ============ External Functions ============ */
+
+  // @inheritdoc 
   function getDestination() external view override returns (address) {
     return destination;
   }
-
+  
   function getReserve() external view override returns (IReserve) {
     return reserve;
   }
@@ -76,10 +78,12 @@ contract PrizeFlush is IPrizeFlush, Manageable {
     IERC20 _token     = _reserve.getToken();
     uint256 _amount   = _token.balanceOf(address(_reserve));
 
-    // Create checkpoint and transfers new total balance to DrawPrizes
-    _reserve.withdrawTo(destination, _token.balanceOf(address(_reserve)));
+    if(_amount > 0) {
+      // Create checkpoint and transfers new total balance to DrawPrizes
+      _reserve.withdrawTo(destination, _token.balanceOf(address(_reserve)));
 
-    emit Flushed(destination, _amount);
+      emit Flushed(destination, _amount);
+    }
   }
 
 }
