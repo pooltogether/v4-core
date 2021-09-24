@@ -31,7 +31,7 @@ describe('TwabLibrary', () => {
       beforeEach(async () => {
         await twabLib.setTwabs([{ amount: 0, timestamp }])
       });
-  
+
       it('should return an average of zero for pre-history requests', async () => {
         // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
         expect(await twabLib.getAverageBalanceBetween(currentBalance, 0, timestamp - 100, timestamp - 50, cardinality, currentTime)).to.equal(toWei('0'));
@@ -41,18 +41,18 @@ describe('TwabLibrary', () => {
         // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
         expect(await twabLib.getAverageBalanceBetween(currentBalance, 0, timestamp - 100, timestamp, cardinality, currentTime)).to.equal(toWei('0'));
       });
-  
+
       it('should not project into the future', async () => {
         // at this time the user has held 1000 tokens for zero seconds
         // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
         expect(await twabLib.getAverageBalanceBetween(currentBalance, 0, timestamp - 50, timestamp + 50, cardinality, timestamp)).to.equal(toWei('0'))
       })
-  
+
       it('should return half the minted balance when the duration is centered over first twab', async () => {
         // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
         expect(await twabLib.getAverageBalanceBetween(currentBalance, 0, timestamp - 50, timestamp + 50, cardinality, currentTime)).to.equal(toWei('500'))
       })
-  
+
       it('should return an accurate average when the range is after the last twab', async () => {
         // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 51}`)
         expect(await twabLib.getAverageBalanceBetween(currentBalance, 0, timestamp + 50, timestamp + 51, cardinality, currentTime)).to.equal(toWei('1000'))
@@ -190,12 +190,12 @@ describe('TwabLibrary', () => {
 
     describe('with problematic query', () => {
 
-      let account1 = { balance: 0.0, nextTwabIndex: 2, cardinality: 3}
+      let account1 = { balance: 0.0, nextTwabIndex: 2, cardinality: 3 }
       let twabs1 = [
         { amount: 0, timestamp: 1630713395 },
         { amount: '100000000000000000000', timestamp: 1630713396 }
       ]
-  
+
       beforeEach(async () => {
         await twabLib.setTwabs(twabs1)
       })
@@ -209,7 +209,7 @@ describe('TwabLibrary', () => {
           parseInt('' + (new Date().getTime() / 1000) + 1000)
         )).to.equal(toWei('100'))
       })
-  
+
     })
   })
 

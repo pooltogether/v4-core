@@ -172,6 +172,7 @@ describe('TsunamiDrawSettingsHistory', () => {
         );
       });
 
+
     })
 
     it('should fail to create a new draw when called from non-draw-manager', async () => {

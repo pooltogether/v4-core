@@ -66,7 +66,6 @@ interface IPrizePool {
 
   /// @dev Event emitted when the Balance Cap is set
   event BalanceCapSet(
-    address token,
     uint256 balanceCap
   );
 
@@ -162,11 +161,10 @@ interface IPrizePool {
   )
     external;
 
-  /// @notice Allows the owner to set a balance cap for the pool.
-  /// @param _token Address of the token to set the balance cap for.
+  /// @notice Allows the owner to set a ticket balance cap for the pool.
   /// @param _balanceCap New balance cap.
   /// @return True if new balance cap has been successfully set.
-  function setBalanceCap(address _token, uint256 _balanceCap) external returns (bool);
+  function setBalanceCap(uint256 _balanceCap) external returns (bool);
 
   /// @notice Allows the Governor to set a cap on the amount of liquidity that he pool can hold
   /// @param _liquidityCap The new liquidity cap for the prize pool

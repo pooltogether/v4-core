@@ -128,7 +128,6 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gte-distributions");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
-    require(_drawSettings.numberOfPicks > 0, "DrawCalc/numberOfPicks-gt-0");
     require(_drawSettings.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
 
     // ensure that the distributions are not gt 100%

@@ -42,6 +42,8 @@ contract DrawHistory is IDrawHistory, Manageable {
 
   /**
     * @notice Deploy DrawHistory smart contract.
+    * @param _owner Address of the owner of the DrawHistory.
+    * @param _cardinality Draw ring buffer cardinality.
   */
   constructor(
     address _owner,
@@ -51,15 +53,6 @@ contract DrawHistory is IDrawHistory, Manageable {
   }
 
   /* ============ External Functions ============ */
-
-  /**
-    * @notice Read all draws.
-    * @dev    Return all draws from the draws ring buffer.
-    * @return Draws array
-  */
-  function draws() external view returns(DrawLib.Draw[MAX_CARDINALITY] memory) {
-    return _draws;
-  }
 
   /**
     * @notice Read a Draw from the draws ring buffer.

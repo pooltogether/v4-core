@@ -12,9 +12,10 @@ contract DrawBeaconHarness is DrawBeacon {
     address _owner,
     IDrawHistory _drawHistory,
     RNGInterface _rng,
+    uint32 _nextDrawId,
     uint256 _beaconPeriodStart,
     uint256 _drawPeriodSeconds
-  ) DrawBeacon(_owner, _drawHistory, _rng, _beaconPeriodStart, _drawPeriodSeconds) { }
+  ) DrawBeacon(_owner, _drawHistory, _rng, _nextDrawId, _beaconPeriodStart, _drawPeriodSeconds) { }
 
   uint256 internal time;
   function setCurrentTime(uint256 _time) external {

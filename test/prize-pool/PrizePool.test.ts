@@ -89,24 +89,29 @@ describe('PrizePool', function () {
 
   describe('constructor()', () => {
     it('should fire the events', async () => {
-      const tx = prizePool.deployTransaction;
+      const deployTx = prizePool.deployTransaction;
 
-      await expect(tx).to.emit(prizePool, 'LiquidityCapSet').withArgs(MaxUint256);
+      await expect(deployTx).to.emit(prizePool, 'LiquidityCapSet').withArgs(MaxUint256);
 
       await expect(prizePool.setPrizeStrategy(prizeStrategyManager.address))
         .to.emit(prizePool, 'PrizeStrategySet')
         .withArgs(prizeStrategyManager.address);
 
-      await expect(prizePool.setTicket(ticket.address))
+      const setTicketTx = await prizePool.setTicket(ticket.address);
+
+      await expect(setTicketTx)
         .to.emit(prizePool, 'TicketSet')
         .withArgs(ticket.address);
+
+      await expect(setTicketTx)
+        .to.emit(prizePool, 'BalanceCapSet')
+        .withArgs(MaxUint256);
     });
   });
 
   describe('with a mocked prize pool', () => {
     beforeEach(async () => {
       await prizePool.setPrizeStrategy(prizeStrategyManager.address);
-      await prizePool.setBalanceCap(ticket.address, MaxUint256);
       await prizePool.setTicket(ticket.address);
     });
 
@@ -143,7 +148,7 @@ describe('PrizePool', function () {
         const amount = toWei('1');
         const balanceCap = toWei('50000');
 
-        await prizePool.setBalanceCap(ticket.address, balanceCap);
+        await prizePool.setBalanceCap(balanceCap);
         await depositTokenIntoPrizePool(contractsOwner.address, balanceCap);
 
         await expect(depositTokenIntoPrizePool(contractsOwner.address, amount)).to.be.revertedWith(
@@ -237,17 +242,17 @@ describe('PrizePool', function () {
       it('should allow the owner to set the balance cap', async () => {
         const balanceCap = toWei('50000');
 
-        await expect(prizePool.setBalanceCap(ticket.address, balanceCap))
+        await expect(prizePool.setBalanceCap(balanceCap))
           .to.emit(prizePool, 'BalanceCapSet')
-          .withArgs(ticket.address, balanceCap);
+          .withArgs(balanceCap);
 
-        expect(await prizePool.balanceCap(ticket.address)).to.equal(balanceCap);
+        expect(await prizePool.balanceCap()).to.equal(balanceCap);
       });
 
       it('should not allow anyone else to call', async () => {
         prizePool2 = prizePool.connect(wallet2 as Signer);
 
-        await expect(prizePool2.setBalanceCap(ticket.address, toWei('50000'))).to.be.revertedWith(
+        await expect(prizePool2.setBalanceCap(toWei('50000'))).to.be.revertedWith(
           'Ownable/caller-not-owner',
         );
       });
