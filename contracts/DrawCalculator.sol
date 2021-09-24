@@ -40,6 +40,9 @@ contract DrawCalculator is IDrawCalculator, Ownable {
   /// @notice The stored history of draw settings.  Stored as ring buffer.
   PrizeDistributionHistory immutable prizeDistributionHistory;
 
+  /// @notice The distributions array length
+  uint8 public constant DISTRIBUTIONS_LENGTH = 16;
+
   /* ============ Constructor ============ */
 
   /// @notice Constructor for DrawCalculator
@@ -256,6 +259,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     uint256[] memory masks =  _createBitMasks(_drawSettings);
     uint256 picksLength = _picks.length;
 
+    uint8 maxWinningDistributionIndex = 0;
+
     require(picksLength <= _drawSettings.maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
 
     // for each pick find number of matching numbers and calculate prize distribution index
@@ -264,16 +269,19 @@ contract DrawCalculator is IDrawCalculator, Ownable {
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
       require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
 
-      uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
-
-      if(distributionIndex < _drawSettings.distributions.length) { // there is prize for this distribution index
+      uint8 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
+      
+      if(distributionIndex < DISTRIBUTIONS_LENGTH) { // there is prize for this distribution index
+        if(distributionIndex > maxWinningDistributionIndex){
+          maxWinningDistributionIndex = distributionIndex;
+        }
         prizeCounts[distributionIndex]++;
       }
     }
 
     // now calculate prizeFraction given prize counts
     uint256 prizeFraction = 0;
-    for(uint256 prizeCountIndex = 0; prizeCountIndex < _drawSettings.distributions.length; prizeCountIndex++) {
+    for(uint256 prizeCountIndex = 0; prizeCountIndex < maxWinningDistributionIndex; prizeCountIndex++) {
       if(prizeCounts[prizeCountIndex] > 0) {
         prizeFraction += _calculatePrizeDistributionFraction(_drawSettings, prizeCountIndex) * prizeCounts[prizeCountIndex];
       }
@@ -282,22 +290,19 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     return (prizeFraction * _drawSettings.prize) / 1e9; // div by 1e9 as prize distributions are base 1e9
   }
 
-  /**
-    * @notice Calculates the distribution index given the random numbers and masks
-    * @param _randomNumberThisPick Users random number for this Pick
-    * @param _winningRandomNumber  The winning number for this draw
-    * @param _masks                The pre-calculate bitmasks for the drawSettings
-    * @return The position within the prize distribution array (0 = top prize, 1 = runner-up prize, etc)
-  */
-  function _calculateDistributionIndex(
-    uint256 _randomNumberThisPick, 
-    uint256 _winningRandomNumber, 
-    uint256[] memory _masks
-  ) internal pure returns (uint256) {
-    uint256 numberOfMatches = 0;
-    uint256 masksLength = _masks.length;
+  ///@notice Calculates the distribution index given the random numbers and masks
+  ///@param _randomNumberThisPick users random number for this Pick
+  ///@param _winningRandomNumber The winning number for this draw
+  ///@param _masks The pre-calculate bitmasks for the drawSettings
+  ///@return The position within the prize distribution array (0 = top prize, 1 = runner-up prize, etc)
+  function _calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks)
+    internal pure returns (uint8)
+  {
 
-    for(uint256 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
+    uint8 numberOfMatches = 0;
+    uint8 masksLength = uint8(_masks.length);
+
+    for(uint8 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
       uint256 mask = _masks[matchIndex];
       if((_randomNumberThisPick & mask) != (_winningRandomNumber & mask)){
         // there are no more sequential matches since this comparison is not a match

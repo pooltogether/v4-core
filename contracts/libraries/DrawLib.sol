@@ -2,7 +2,9 @@
 
 pragma solidity 0.8.6;
 
-library DrawLib{
+import "../TsunamiDrawCalculator.sol";
+
+library DrawLib {
 
     struct Draw {
         uint256 winningRandomNumber;
@@ -11,6 +13,8 @@ library DrawLib{
         uint64 beaconPeriodStartedAt;
         uint32 beaconPeriodSeconds;
     }
+
+    uint8 public constant DISTRIBUTIONS_LENGTH = 16;
 
     ///@notice Draw settings for the tsunami draw calculator
     ///@param bitRangeSize Decimal representation of bitRangeSize
@@ -26,7 +30,8 @@ library DrawLib{
         uint32 endOffsetTimestamp;
         uint32 maxPicksPerUser;
         uint136 numberOfPicks;
-        uint32[] distributions;
+        uint32[DISTRIBUTIONS_LENGTH] distributions;
         uint256 prize;
     }
+
 }
