@@ -217,26 +217,26 @@ describe('Reserve', () => {
   describe('withdrawTo()', () => {
     it('should emit Checkpoint, Transfer and Withdrawn events', async () => {
       await ticket.mint(reserve.address, toWei('100'))
-      expect(reserve.withdrawTo(wallet2.address, toWei('10')))
-        .to.emit(reserve, 'Checkpoint')
-        .withArgs(toWei('100'), 0)
-        .and.to.emit(ticket, 'Transfer')
-        .withArgs(wallet2.address, reserve.address, toWei('10'))
-        .and.to.emit(reserve, 'Withdrawn')
-        .withArgs(reserve.address, toWei('10'))
-    it('should emit Checkpoint event', async () => {
-      await ticket.mint(reserve.address, toWei('100'))
       await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
         .to.emit(reserve, 'Checkpoint')
-        .withArgs(toWei('100'), 0)
+        .and.to.emit(ticket, 'Transfer')
+        .and.to.emit(reserve, 'Withdrawn')
+
+      it('should emit Checkpoint event', async () => {
+        await ticket.mint(reserve.address, toWei('100'))
+        await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
+          .to.emit(reserve, 'Checkpoint')
+          .withArgs(toWei('100'), 0)
+      })
+
+      it('should emit Withdrawn event', async () => {
+        await ticket.mint(reserve.address, toWei('100'))
+        await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
+          .and.to.emit(reserve, 'Withdrawn')
+          .withArgs(wallet2.address, toWei('10'))
+        expect(await ticket.balanceOf(wallet2.address)).to.equal(toWei('10'))
+      })
     })
 
-    it('should emit Withdrawn event', async () => {
-      await ticket.mint(reserve.address, toWei('100'))
-      await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
-        .and.to.emit(reserve, 'Withdrawn')
-        .withArgs(wallet2.address, toWei('10'))
-      expect(await ticket.balanceOf(wallet2.address)).to.equal(toWei('10'))
-    })
   })
 })
