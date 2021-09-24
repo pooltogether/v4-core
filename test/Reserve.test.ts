@@ -21,7 +21,6 @@ describe('Reserve', () => {
 
   beforeEach(async () => {
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
-
     reserve = await ReserveHarnessFactory.deploy(wallet1.address, ticket.address);
   });
 
@@ -93,7 +92,6 @@ describe('Reserve', () => {
         await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }])
         expect(await reserve.getReserveAccumulatedBetween(5, 6)).to.equal(0)
       })
-
       it('start and end after observation', async () => {
         // | s e
         await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }])
@@ -217,19 +215,28 @@ describe('Reserve', () => {
   })
 
   describe('withdrawTo()', () => {
-    it('should emit Checkpoint event', async () => {
+    it('should emit Checkpoint, Transfer and Withdrawn events', async () => {
       await ticket.mint(reserve.address, toWei('100'))
       await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
         .to.emit(reserve, 'Checkpoint')
-        .withArgs(toWei('100'), 0)
+        .and.to.emit(ticket, 'Transfer')
+        .and.to.emit(reserve, 'Withdrawn')
+
+      it('should emit Checkpoint event', async () => {
+        await ticket.mint(reserve.address, toWei('100'))
+        await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
+          .to.emit(reserve, 'Checkpoint')
+          .withArgs(toWei('100'), 0)
+      })
+
+      it('should emit Withdrawn event', async () => {
+        await ticket.mint(reserve.address, toWei('100'))
+        await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
+          .and.to.emit(reserve, 'Withdrawn')
+          .withArgs(wallet2.address, toWei('10'))
+        expect(await ticket.balanceOf(wallet2.address)).to.equal(toWei('10'))
+      })
     })
 
-    it('should emit Withdrawn event', async () => {
-      await ticket.mint(reserve.address, toWei('100'))
-      await expect(reserve.withdrawTo(wallet2.address, toWei('10')))
-        .and.to.emit(reserve, 'Withdrawn')
-        .withArgs(wallet2.address, toWei('10'))
-      expect(await ticket.balanceOf(wallet2.address)).to.equal(toWei('10'))
-    })
   })
 })
