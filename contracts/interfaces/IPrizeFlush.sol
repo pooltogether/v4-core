@@ -4,6 +4,12 @@ import "./IReserve.sol";
 import "./IStrategy.sol";
 
 interface IPrizeFlush {
+  // Events
   event Flushed(address indexed recipient, uint256 amount);
-  function flush(IStrategy strategy, IReserve reserve, address recipient, uint256 amount) external returns (bool);
+
+  // Functions
+  function getDestination() external view returns (address);
+  function getReserve() external view returns (IReserve);
+  function getStrategy() external view returns (IStrategy);
+  function flush() external returns (bool);
 }

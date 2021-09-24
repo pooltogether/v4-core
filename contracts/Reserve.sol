@@ -6,7 +6,6 @@ import "./libraries/ObservationLib.sol";
 import "./libraries/RingBuffer.sol";
 
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -53,6 +52,14 @@ contract Reserve is IReserve, Manageable {
      */
     function getCardinality() external view returns (uint16) {
         return cardinality;
+    }
+
+    /**
+      * @notice Read global token value.
+      * @return IERC20
+     */
+    function getToken() external view override returns (IERC20) {
+        return token;
     }
     
     /**
