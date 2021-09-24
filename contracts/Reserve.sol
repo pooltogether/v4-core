@@ -17,9 +17,9 @@ contract Reserve is IReserve, Manageable {
 
     uint224 public withdrawAccumulator;
 
-    ObservationLib.Observation[65535] public reserveAccumulators;
+    ObservationLib.Observation[65535] internal reserveAccumulators;
 
-    uint16 public cardinality;
+    uint16 internal cardinality;
     
     /* ============ Events ============ */
 

@@ -76,57 +76,83 @@ describe('Reserve', () => {
   })
 
   describe('getReserveAccumulatedBetween()', () => {
-      
-    it('start and end before observations', async() => {
-      // s e [] 
-      const observations = [
-        {
-          timestamp: 5,
-          amount: 70
-        },
-        {
-          timestamp: 8,
-          amount: 72
-        }
-      ]
-      await reserve.setObservationsAt(observations)
-      const result = await reserve.getReserveAccumulatedBetween(2, 3)
-      expect(result).to.equal(0)
-    })
-
-    it('start before and end inside', async() => {
-            // s [ e ]
-      const observations = [
-        {
-          timestamp: 5,
-          amount: 70
-        },
-        {
-          timestamp: 8,
-          amount: 72
-        }
-      ]
-      await reserve.setObservationsAt(observations)
-      const result = await reserve.getReserveAccumulatedBetween(2, 6)
-      expect(result).to.equal(70)
-    })
-
-    it('start before and end inside', async() => {
-      // s [e ]
-      const observations = [{
-          timestamp: 5,
-          amount: 70
-        },
-        {
-          timestamp: 8,
-          amount: 72
-        }]
-      await reserve.setObservationsAt(observations)
-      const result = await reserve.getReserveAccumulatedBetween(2, 5)
-      expect(result).to.equal(70)
+    context('with one observation', () => {
+      it('start and end before observations', async() => {
+        // s e |
+        await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }])
+        expect(await reserve.getReserveAccumulatedBetween(2, 3)).to.equal(0)
       })
 
+      it('start before and end at observation', async() => {
+        // s e|
+        await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }])
+        expect(await reserve.getReserveAccumulatedBetween(2, 5)).to.equal(70)
+      })
+
+      it('start and end around observation', async() => {
+        // s | e
+        await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }])
+        expect(await reserve.getReserveAccumulatedBetween(2, 6)).to.equal(70)
+      })
+
+      it('start at and end after observation', async() => {
+        // s| e
+        await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }])
+        expect(await reserve.getReserveAccumulatedBetween(5, 6)).to.equal(0)
+      })
+    })
+
+    context('with two observations', () => {
+      it('start and end before observations', async() => {
+        // s e [] 
+        const observations = [
+          {
+            timestamp: 5,
+            amount: 70
+          },
+          {
+            timestamp: 8,
+            amount: 72
+          }
+        ]
+        await reserve.setObservationsAt(observations)
+        const result = await reserve.getReserveAccumulatedBetween(2, 3)
+        expect(result).to.equal(0)
+      })
+  
       it('start before and end inside', async() => {
+        // s [ e ]
+        const observations = [
+          {
+            timestamp: 5,
+            amount: 70
+          },
+          {
+            timestamp: 8,
+            amount: 72
+          }
+        ]
+        await reserve.setObservationsAt(observations)
+        const result = await reserve.getReserveAccumulatedBetween(2, 6)
+        expect(result).to.equal(70)
+      })
+  
+      it('start before and end at first observation', async() => {
+        // s [e ]
+        const observations = [{
+            timestamp: 5,
+            amount: 70
+          },
+          {
+            timestamp: 8,
+            amount: 72
+          }]
+        await reserve.setObservationsAt(observations)
+        const result = await reserve.getReserveAccumulatedBetween(2, 5)
+        expect(result).to.equal(70)
+      })
+
+      it('start before and end at second observation', async() => {
         // s [ e]
         const observations = [{timestamp: 5,amount: 70},{timestamp: 8,amount: 72}]
 
@@ -134,17 +160,8 @@ describe('Reserve', () => {
         const result = await reserve.getReserveAccumulatedBetween(2, 8)
         expect(result).to.equal(72)
       })
-
-      it('start before and end inside', async() => {
-        // s [ e]
-        const observations = [{timestamp: 5,amount: 70},{timestamp: 8,amount: 72}]
-
-        await reserve.setObservationsAt(observations)
-        const result = await reserve.getReserveAccumulatedBetween(2, 8)
-        expect(result).to.equal(72)
-      })
-           
-      it('start before and end inside', async() => {
+    
+      it('both start and end inside', async() => {
         // [ s e ]
         const observations = [{timestamp: 5,amount: 70},{timestamp: 8,amount: 72}]
 
@@ -153,7 +170,7 @@ describe('Reserve', () => {
         expect(result).to.equal(0)
       })
 
-      it('start before and end inside', async() => {
+      it('start inside and end at second', async() => {
         // [ s e]
         const observations = [{timestamp: 5,amount: 70},{timestamp: 8,amount: 72}]
 
@@ -162,21 +179,16 @@ describe('Reserve', () => {
         expect(result).to.equal(2)
       })
 
-
-      it('start before and end inside', async() => {
+      it('start at first and end at second', async() => {
         // [s e]
-        
-
         const observations = [{timestamp: 5,amount: 70},{timestamp: 8,amount: 72}]
 
         await reserve.setObservationsAt(observations)
         const result = await reserve.getReserveAccumulatedBetween(5, 8)
         expect(result).to.equal(2) 
-        // todo: think about this behaviour -- should it be 72?
-
       })
 
-      it('start before and end inside', async() => {
+      it('start inside and end after', async() => {
         // [ s ] e
         const observations = [{timestamp: 5,amount: 70},{timestamp: 8,amount: 72}]
 
@@ -185,7 +197,7 @@ describe('Reserve', () => {
         expect(result).to.equal(2)
       })
 
-      it('start before and end inside', async() => {
+      it('start at end and end after', async() => {
         // [ s] e
         const observations = [{timestamp: 5,amount: 70},{timestamp: 8,amount: 72}]
 
@@ -194,14 +206,14 @@ describe('Reserve', () => {
         expect(result).to.equal(0)
       })
 
-      it('start before and end inside', async() => {
+      it('start after and end after', async() => {
         // [] s e 
         const observations = [{timestamp: 5,amount: 70},{timestamp: 8,amount: 72}]
 
         await reserve.setObservationsAt(observations)
         const result = await reserve.getReserveAccumulatedBetween(18, 29)
         expect(result).to.equal(0)
-      })
-
+      })  
+    })
   })
 })
