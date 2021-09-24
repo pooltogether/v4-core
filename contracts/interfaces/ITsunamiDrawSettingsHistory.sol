@@ -25,12 +25,6 @@ interface ITsunamiDrawSettingsHistory {
 
 
   /**
-    * @notice Read global MAX_CARDINALITY variable.
-    * @return MAX_CARDINALITY
-  */
-  function getCardinality() external view returns (uint256);
-
-  /**
     * @notice Read newest DrawSettings from the draws ring buffer.
     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
     * @return drawSettings DrawLib.TsunamiDrawSettings
