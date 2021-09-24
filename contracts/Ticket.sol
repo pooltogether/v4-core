@@ -1,27 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
 import "./interfaces/ITicket.sol";
 import "./ControlledToken.sol";
 
-/// @title An ERC20 token that allows you to see user's past balances, and average balance held between timestamps.
-/// @author PoolTogether Inc.
+/**
+  * @title  PoolTogether V4 Ticket
+  * @author PoolTogether Inc Team
+  * @notice The Ticket extends the standard ERC20 and ControlledToken interfaces with time-weighed average balance functionality.
+            The TWAB (time-weighed average balance) enables contract-to-contract lookups of a user's average balance
+            between timestamps. The timestamp/balance checkpoints are stored in a ring buffer for each user Account.
+            Historical searches of a TWAB(s) are limited to the storage of these checkpoints. A user's average balance can
+            be delegated to an alternative address. When delegating the average weighted balance is added to the delegatee
+            TWAB lookup and removed from the delegaters TWAB lookup.
+*/
 contract Ticket is ControlledToken, ITicket {
-  /// @notice The minimum length of time a twab should exist.
-  /// @dev Once the twab ttl expires, its storage slot is recycled.
-  uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
-  /// @notice The maximum number of twab entries
-  uint16 public constant MAX_CARDINALITY = 65535;
 
   using SafeERC20 for IERC20;
   using SafeCast for uint256;
+
+  /// @notice The minimum length of time a twab should exist.
+  /// @dev Once the twab ttl expires, its storage slot is recycled.
+  uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
+  
+  /// @notice The maximum number of twab entries
+  uint16 public constant MAX_CARDINALITY = 65535;
 
   /// @notice A struct containing details for an Account
   /// @param balance The current balance for an Account
@@ -198,6 +205,13 @@ contract Ticket is ControlledToken, ITicket {
     return totalSupplyTwab.details.balance;
   }
 
+  /**
+    * @notice Delegate time-weighted average balances to an alternative address.
+    * @dev    Transfers (including mints) trigger the storage of a TWAB in delegatee(s) account, instead of the
+              targetted sender and/or recipient address(s).
+    * @dev    "to" reset the delegatee use zero address (0x000.000) 
+    * @param  to Receipient of delegated TWAB
+   */
   function delegate(address to) external virtual {
     uint224 balance = uint224(_balanceOf(msg.sender));
     address currentDelegate = delegates[msg.sender];
