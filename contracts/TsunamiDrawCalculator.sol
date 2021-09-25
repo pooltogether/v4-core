@@ -215,8 +215,10 @@ contract TsunamiDrawCalculator is IDrawCalculator, Ownable {
 
     // generate timestamps with draw cutoff offsets included
     for (uint32 i = 0; i < _draws.length; i++) {
-      _timestampsWithStartCutoffTimes[i] = _draws[i].timestamp - _drawSettings[i].drawStartTimestampOffset;
-      _timestampsWithEndCutoffTimes[i] = _draws[i].timestamp - _drawSettings[i].drawEndTimestampOffset;
+      unchecked {
+        _timestampsWithStartCutoffTimes[i] = uint32(_draws[i].timestamp - _drawSettings[i].drawStartTimestampOffset);
+        _timestampsWithEndCutoffTimes[i] = uint32(_draws[i].timestamp - _drawSettings[i].drawEndTimestampOffset);
+      }
     }
 
     uint256[] memory balances = ticket.getAverageBalancesBetween(_user, _timestampsWithStartCutoffTimes, _timestampsWithEndCutoffTimes);

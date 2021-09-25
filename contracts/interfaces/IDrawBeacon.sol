@@ -13,15 +13,15 @@ interface IDrawBeacon {
     * @param drawHistory Address of the draw history to push draws to.
     * @param rng Address of RNG service.
     * @param nextDrawId Draw ID at which the DrawBeacon should start. Can't be inferior to 1.
-    * @param rngRequestPeriodStart Timestamp when draw period starts.
-    * @param drawPeriodSeconds Minimum seconds between draw period.
+    * @param beaconPeriodStartedAt Timestamp when beacon period starts.
+    * @param beaconPeriodSeconds Minimum seconds between draw period.
   */
   event Deployed(
     IDrawHistory indexed drawHistory,
     RNGInterface indexed rng,
     uint32 nextDrawId,
-    uint256 rngRequestPeriodStart,
-    uint256 drawPeriodSeconds
+    uint64 beaconPeriodStartedAt,
+    uint32 beaconPeriodSeconds
   );
 
   /**
@@ -34,11 +34,11 @@ interface IDrawBeacon {
   /**
     * @notice Emit when a draw has opened.
     * @param operator             User address responsible for opening draw
-    * @param drawPeriodStartedAt  Epoch timestamp
+    * @param startedAt Start timestamp
   */
   event BeaconPeriodStarted(
     address indexed operator,
-    uint256 indexed drawPeriodStartedAt
+    uint64 indexed startedAt
   );
 
   /**
@@ -96,23 +96,23 @@ interface IDrawBeacon {
     * @param drawPeriodSeconds Time between draw
   */
   event BeaconPeriodSecondsUpdated(
-    uint256 drawPeriodSeconds
+    uint32 drawPeriodSeconds
   );
 
   function canStartDraw() external view virtual returns (bool);
   function canCompleteDraw() external view virtual returns (bool);
-  function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view virtual returns (uint256);
+  function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view virtual returns (uint64);
   function cancelDraw() external virtual;
   function completeDraw() external virtual;
-  function beaconPeriodRemainingSeconds() external view virtual returns (uint256);
-  function beaconPeriodEndAt() external view virtual returns (uint256);
+  function beaconPeriodRemainingSeconds() external view virtual returns (uint32);
+  function beaconPeriodEndAt() external view virtual returns (uint64);
   function getLastRngLockBlock() external view returns (uint32);
   function getLastRngRequestId() external view returns (uint32);
   function isBeaconPeriodOver() external view returns (bool);
   function isRngCompleted() external view returns (bool);
   function isRngRequested() external view returns (bool);
   function isRngTimedOut() external view returns (bool);
-  function setBeaconPeriodSeconds(uint256 drawPeriodSeconds) external;
+  function setBeaconPeriodSeconds(uint32 drawPeriodSeconds) external;
   function setRngTimeout(uint32 _rngTimeout) external;
   function setRngService(RNGInterface rngService) external;
   function startDraw() external virtual;

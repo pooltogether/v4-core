@@ -6,8 +6,10 @@ library DrawLib{
 
     struct Draw {
         uint256 winningRandomNumber;
-        uint32 timestamp;
         uint32 drawId;
+        uint64 timestamp;
+        uint64 beaconPeriodStartedAt;
+        uint32 beaconPeriodSeconds;
     }
 
     ///@notice Draw settings for the tsunami draw calculator

@@ -13,25 +13,21 @@ contract DrawBeaconHarness is DrawBeacon {
     IDrawHistory _drawHistory,
     RNGInterface _rng,
     uint32 _nextDrawId,
-    uint256 _beaconPeriodStart,
-    uint256 _drawPeriodSeconds
+    uint64 _beaconPeriodStart,
+    uint32 _drawPeriodSeconds
   ) DrawBeacon(_owner, _drawHistory, _rng, _nextDrawId, _beaconPeriodStart, _drawPeriodSeconds) { }
 
-  uint256 internal time;
-  function setCurrentTime(uint256 _time) external {
+  uint64 internal time;
+  function setCurrentTime(uint64 _time) external {
     time = _time;
   }
 
-  function _currentTime() internal override view returns (uint256) {
+  function _currentTime() internal override view returns (uint64) {
     return time;
   }
 
   function setRngRequest(uint32 requestId, uint32 lockBlock) external {
     rngRequest.id = requestId;
     rngRequest.lockBlock = lockBlock;
-  }
-
-  function saveRNGRequestWithDraw(uint256 randomNumber) external {
-    _saveRNGRequestWithDraw(randomNumber);
   }
 }

@@ -17,7 +17,13 @@ contract DrawHistoryHarness is DrawHistory {
     uint256 _winningRandomNumber
   ) external returns (uint256) {
     for (uint256 index = _start; index <= _numberOfDraws; index++) {
-      DrawLib.Draw memory _draw = DrawLib.Draw({drawId: uint32(index), timestamp: _timestamp, winningRandomNumber: _winningRandomNumber});
+      DrawLib.Draw memory _draw = DrawLib.Draw({
+        winningRandomNumber: _winningRandomNumber,
+        drawId: uint32(index),
+        timestamp: _timestamp,
+        beaconPeriodSeconds: 10,
+        beaconPeriodStartedAt: 20
+      });
       _pushDraw(_draw);
     }
   }

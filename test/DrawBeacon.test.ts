@@ -5,7 +5,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { constants, Contract, ContractFactory, utils } from 'ethers';
 import { expect } from 'chai';
 
-const debug = require('debug')('ptv3:PoolEnv');
+const debug = require('debug')('pt:DrawBeacon.test.ts');
 
 const now = () => (new Date().getTime() / 1000) | 0;
 
@@ -16,7 +16,7 @@ describe('DrawBeacon', () => {
   let wallet: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let DrawBeaconFactory: ContractFactory
-  let drawHistory: Contract;
+  let drawHistory: MockContract;
   let drawBeacon: Contract;
   let rng: MockContract;
   let rngFeeToken: MockContract;
@@ -40,8 +40,8 @@ describe('DrawBeacon', () => {
     debug(`using wallet ${wallet.address}`);
 
     debug(`deploy draw history...`);
-    const DrawHistoryFactory = await ethers.getContractFactory('DrawHistory', wallet);
-    drawHistory = await DrawHistoryFactory.deploy(wallet.address, 16);
+    const DrawHistory = await artifacts.readArtifact('DrawHistory')
+    drawHistory = await deployMockContract(wallet as Signer, DrawHistory.abi)
 
     debug('mocking rng...');
     const RNGInterface = await artifacts.readArtifact('RNGInterface');
@@ -60,10 +60,6 @@ describe('DrawBeacon', () => {
       beaconPeriodStart,
       beaconPeriodSeconds
     );
-
-    debug('set draw history manager as draw beacon');
-    await drawHistory.setManager(drawBeacon.address)
-    debug('initialized!');
   });
 
   describe('constructor()', () => {
@@ -300,25 +296,8 @@ describe('DrawBeacon', () => {
     });
   });
 
-  describe('_saveRNGRequestWithDraw()', () => {
-    it('should succeed to create a new draw with provided random number and next block timestamp', async () => {
-      const currentTimestamp = (await ethers.provider.getBlock('latest')).timestamp
-      expect(
-        await drawBeacon.saveRNGRequestWithDraw(
-          1234567890,
-        ),
-      )
-        .to.emit(drawHistory, 'DrawSet')
-        .withArgs(
-          1,
-          currentTimestamp + 1,
-          1234567890,
-        );
-    });
-  });
-
   describe('completeDraw()', () => {
-    it('should complete the rng request and push a new draw to DrawHistory', async () => {
+    beforeEach(async () => {
       debug('Setting time');
       // ensure prize period is over
       await drawBeacon.setCurrentTime(await drawBeacon.beaconPeriodEndAt());
@@ -338,24 +317,35 @@ describe('DrawBeacon', () => {
       await rng.mock.randomNumber.returns(
         '0x6c00000000000000000000000000000000000000000000000000000000000000',
       );
+    })
 
+    it('should emit the events', async () => {
       debug('Completing rng request...');
 
-      let startedAt = await drawBeacon.beaconPeriodStartedAt();
+      const beaconPeriodEndAt = await drawBeacon.beaconPeriodEndAt()
+      const beaconPeriodStartedAt = await drawBeacon.beaconPeriodStartedAt()
 
-      // complete the rng request
-      const currentTimestamp = (await ethers.provider.getBlock('latest')).timestamp
+      await drawHistory.mock.pushDraw.withArgs([
+        '0x6c00000000000000000000000000000000000000000000000000000000000000',
+        1,
+        beaconPeriodEndAt,
+        beaconPeriodStartedAt,
+        beaconPeriodSeconds
+      ]).returns(1)
+
       expect(await drawBeacon.completeDraw())
-        .to.emit(drawHistory, 'DrawSet')
+        .to.emit(drawBeacon, 'DrawCompleted')
         .withArgs(
-          1,
-          currentTimestamp + 1,
-          '0x6c00000000000000000000000000000000000000000000000000000000000000',
-        );
+          wallet.address,
+          '0x6c00000000000000000000000000000000000000000000000000000000000000'
+        )
+        .and.to.emit(drawBeacon, 'BeaconPeriodStarted')
+        .withArgs(
+          wallet.address,
+          beaconPeriodEndAt
+        )
 
-      expect(await drawBeacon.beaconPeriodStartedAt()).to.equal(
-        startedAt.add(beaconPeriodSeconds),
-      );
+      expect(await drawBeacon.beaconPeriodStartedAt()).to.equal(beaconPeriodEndAt);
     });
   });
 
