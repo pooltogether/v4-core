@@ -14,8 +14,8 @@ library ObservationLib {
   using OverflowSafeComparator for uint32;
   using SafeCast for uint256;
 
-  /// @notice The maximum number of observation entries
-  uint16 public constant MAX_CARDINALITY = 65535;
+  /// @notice The maximum number of twab entries
+  uint24 public constant MAX_CARDINALITY = 16777215; // 2**24
 
   /// @notice Time Weighted Average Balance (Observation).
   /// @param amount `amount` at `timestamp`.
@@ -36,10 +36,10 @@ library ObservationLib {
   /// @return atOrAfter Observation recorded at, or after, the target.
   function binarySearch(
     Observation[MAX_CARDINALITY] storage _observations,
-    uint16 _observationIndex,
-    uint16 _oldestObservationIndex,
+    uint24 _observationIndex,
+    uint24 _oldestObservationIndex,
     uint32 _target,
-    uint16 _cardinality,
+    uint24 _cardinality,
     uint32 _time
   ) internal view returns (Observation memory beforeOrAt, Observation memory atOrAfter) {
     uint256 leftSide = _oldestObservationIndex; // Oldest Observation
@@ -48,7 +48,7 @@ library ObservationLib {
 
     while (true) {
       currentIndex = (leftSide + rightSide) / 2;
-      beforeOrAt = _observations[uint16(RingBuffer.wrap(currentIndex, _cardinality))];
+      beforeOrAt = _observations[uint24(RingBuffer.wrap(currentIndex, _cardinality))];
       uint32 beforeOrAtTimestamp = beforeOrAt.timestamp;
 
       // We've landed on an uninitialized timestamp, keep searching higher (more recently)
@@ -57,7 +57,7 @@ library ObservationLib {
         continue;
       }
 
-      atOrAfter = _observations[uint16(RingBuffer.nextIndex(currentIndex, _cardinality))];
+      atOrAfter = _observations[uint24(RingBuffer.nextIndex(currentIndex, _cardinality))];
 
       bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, _time);
 

@@ -21,7 +21,10 @@ contract Reserve is IReserve, Manageable {
 
     uint224 public withdrawAccumulator;
 
-    ObservationLib.Observation[65535] internal reserveAccumulators;
+    /// @notice The maximum number of twab entries
+    uint24 internal constant MAX_CARDINALITY = 16777215; // 2**24
+
+    ObservationLib.Observation[MAX_CARDINALITY] internal reserveAccumulators;
 
     uint16 internal cardinality;
     
@@ -70,7 +73,7 @@ contract Reserve is IReserve, Manageable {
      */
     function getReserveAccumulatedBetween(uint32 _startTimestamp, uint32 _endTimestamp) external override view returns (uint224) {
         require(_startTimestamp < _endTimestamp, "Reserve/start-less-then-end");
-        uint16 _cardinality = cardinality;
+        uint24 _cardinality = cardinality;
 
         ObservationLib.Observation memory _newestObservation;
         if (_cardinality > 0) {
@@ -125,7 +128,7 @@ contract Reserve is IReserve, Manageable {
     function _getReserveAccumulatedAt(
         ObservationLib.Observation memory _newestObservation,
         ObservationLib.Observation memory _oldestObservation,
-        uint16 _cardinality,
+        uint24 _cardinality,
         uint32 timestamp
     ) internal view returns (uint224) {
         uint32 timeNow = uint32(block.timestamp);
@@ -178,7 +181,7 @@ contract Reserve is IReserve, Manageable {
     }
 
     function _checkpoint() internal {
-        uint256 _cardinality = cardinality;
+        uint24 _cardinality = cardinality;
         uint256 _balanceOfReserve = token.balanceOf(address(this));
         uint224 _withdrawAccumulator = withdrawAccumulator; //sload
         ObservationLib.Observation memory _newestObservation = _getNewestObservation(_cardinality);
@@ -214,7 +217,7 @@ contract Reserve is IReserve, Manageable {
         }        
     }   
 
-    function _getNewestObservation(uint256 _cardinality) internal view returns (ObservationLib.Observation memory _observation) {
+    function _getNewestObservation(uint24 _cardinality) internal view returns (ObservationLib.Observation memory _observation) {
         if (_cardinality > 0) _observation = reserveAccumulators[_cardinality - 1]; 
     }
 
