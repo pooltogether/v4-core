@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-
-import "./interfaces/IReserve.sol";
-import "./libraries/ObservationLib.sol";
-import "./libraries/RingBuffer.sol";
-
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./interfaces/IReserve.sol";
+import "./libraries/ObservationLib.sol";
+import "./libraries/RingBuffer.sol";
 
 /**
   * @title  PoolTogether V4 Reserve
@@ -17,8 +15,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract Reserve is IReserve, Manageable {
     using SafeERC20 for IERC20;
     
+    /// @notice ERC20 token
     IERC20 public immutable token;
 
+    /// @notice Total withdraw amount from reserve
     uint224 public withdrawAccumulator;
 
     /// @notice The maximum number of twab entries
@@ -34,6 +34,11 @@ contract Reserve is IReserve, Manageable {
 
     /* ============ Constructor ============ */
     
+    /** 
+    * @notice Constructs Ticket with passed parameters.
+    * @param _owner Owner address
+    * @param _token ERC20 address
+  */
     constructor(address _owner, IERC20 _token) Ownable(_owner) {
         token = _token;
         emit Deployed(_token);
@@ -41,10 +46,7 @@ contract Reserve is IReserve, Manageable {
 
     /* ============ External Functions ============ */
     
-    /**
-      * @notice Create observation checkpoint in ring bufferr.
-      * @dev    Calculates total desposited tokens since last checkpoint and creates new accumulator checkpoint.
-     */
+    /// @inheritdoc IReserve
     function checkpoint() external override {
         _checkpoint();
     }
@@ -57,20 +59,12 @@ contract Reserve is IReserve, Manageable {
         return cardinality;
     }
 
-    /**
-      * @notice Read global token value.
-      * @return IERC20
-     */
+     /// @inheritdoc IReserve
     function getToken() external view override returns (IERC20) {
         return token;
     }
     
-    /**
-      * @notice Calculate token accumulation beween timestamp range.
-      * @dev    Search the ring buffer for two checkpoint observations and diffs accumulator amount. 
-      * @param _startTimestamp Account address 
-      * @param _endTimestamp   Transfer amount
-     */
+    /// @inheritdoc IReserve
     function getReserveAccumulatedBetween(uint32 _startTimestamp, uint32 _endTimestamp) external override view returns (uint224) {
         require(_startTimestamp < _endTimestamp, "Reserve/start-less-then-end");
         uint24 _cardinality = cardinality;
@@ -98,12 +92,7 @@ contract Reserve is IReserve, Manageable {
         return _end - _start;
     }
 
-    /**
-      * @notice Transfer Reserve token balance to recipient address.
-      * @dev    Creates checkpoint before token transfer. Increments withdrawAccumulator with amount.
-      * @param _recipient Account address 
-      * @param _amount    Transfer amount
-     */
+    /// @inheritdoc IReserve
     function withdrawTo(address _recipient, uint256 _amount) external override onlyManagerOrOwner {
         _checkpoint();
 

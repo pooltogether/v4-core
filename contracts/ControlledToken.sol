@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
 import "./interfaces/IControlledToken.sol";
 
-/// @title Controlled ERC20 Token
-/// @notice ERC20 Tokens with a controller for minting & burning
+/**
+  * @title  PoolTogether V4 Controlled ERC20 Token
+  * @author PoolTogether Inc Team
+  * @notice  ERC20 Tokens with a controller for minting & burning
+*/
 contract ControlledToken is ERC20Permit, IControlledToken {
 
   /// @notice Interface to the contract responsible for controlling mint/burn

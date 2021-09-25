@@ -61,8 +61,6 @@ describe('Reserve', () => {
       await expect(reserve.doubleCheckpoint(ticket.address, toWei("50")))
         .to.emit(reserve, 'Checkpoint').withArgs(toWei('100'), 0).
         and.to.emit(reserve, 'Checkpoint').withArgs(toWei('150'), 0)
-
-      expect(await reserve.getCardinality()).to.eq(1)
     });
 
   })

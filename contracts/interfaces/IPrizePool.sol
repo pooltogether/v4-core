@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
+import "../external/compound/ICompLike.sol";
 import "../interfaces/IControlledToken.sol";
 
-/// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.
-///       Users deposit and withdraw from this contract to participate in Prize Pool.
-/// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
-/// @dev Must be inherited to provide specific yield-bearing asset control, such as Compound cTokens
 interface IPrizePool {
 
   /// @dev Event emitted when controlled token is added
@@ -115,27 +110,32 @@ interface IPrizePool {
   /// @return The total amount of assets to be awarded for the current prize
   function captureAwardBalance() external returns (uint256);
 
+  /// @dev Checks with the Prize Pool if a specific token type may be awarded as an external prize
+  /// @param _externalToken The address of the token to check
+  /// @return True if the token may be awarded, false otherwise
+  function canAwardExternal(address _externalToken) external view returns (bool);
+
+  // @dev Returns the total underlying balance of all assets. This includes both principal and interest.
+  /// @return The underlying balance of assets
+  function balance() external returns (uint256);
+
+  /// @dev Checks if a specific token is controlled by the Prize Pool
+  /// @param _controlledToken The address of the token to check
+  /// @return True if the token is a controlled token, false otherwise
+  function isControlled(IControlledToken _controlledToken) external view returns (bool);
+
   /// @notice Called by the prize strategy to award prizes.
   /// @dev The amount awarded must be less than the awardBalance()
   /// @param to The address of the winner that receives the award
   /// @param amount The amount of assets to be awarded
-  function award(
-    address to,
-    uint256 amount
-  )
-    external;
+  function award( address to, uint256 amount) external;
 
   /// @notice Called by the Prize-Strategy to transfer out external ERC20 tokens
   /// @dev Used to transfer out tokens held by the Prize Pool.  Could be liquidated, or anything.
   /// @param to The address of the winner that receives the award
-  /// @param amount The amount of external assets to be awarded
   /// @param externalToken The address of the external asset token being awarded
-  function transferExternalERC20(
-    address to,
-    address externalToken,
-    uint256 amount
-  )
-    external;
+  /// @param amount The amount of external assets to be awarded
+  function transferExternalERC20(address to, address externalToken, uint256 amount) external;
 
   /// @notice Called by the Prize-Strategy to award external ERC20 prizes
   /// @dev Used to award any arbitrary tokens held by the Prize Pool
@@ -143,25 +143,18 @@ interface IPrizePool {
   /// @param amount The amount of external assets to be awarded
   /// @param externalToken The address of the external asset token being awarded
   function awardExternalERC20(
-    address to,
-    address externalToken,
-    uint256 amount
-  )
-    external;
+    address to, address externalToken, uint256 amount) external;
 
   /// @notice Called by the prize strategy to award external ERC721 prizes
   /// @dev Used to award any arbitrary NFTs held by the Prize Pool
   /// @param to The address of the winner that receives the award
   /// @param externalToken The address of the external NFT token being awarded
   /// @param tokenIds An array of NFT Token IDs to be transferred
-  function awardExternalERC721(
-    address to,
-    address externalToken,
-    uint256[] calldata tokenIds
-  )
-    external;
+  function awardExternalERC721(address to, address externalToken, uint256[] calldata tokenIds) external;
 
-  /// @notice Allows the owner to set a ticket balance cap for the pool.
+  /// @notice Allows the owner to set a balance cap per `token` for the pool.
+  /// @dev If a user wins, his balance can go over the cap. He will be able to withdraw the excess but not deposit.
+  /// @dev Needs to be called after deploying a prize pool to be able to deposit into it.
   /// @param _balanceCap New balance cap.
   /// @return True if new balance cap has been successfully set.
   function setBalanceCap(uint256 _balanceCap) external returns (bool);
@@ -182,6 +175,10 @@ interface IPrizePool {
   /// @dev Returns the address of the prize pool ticket.
   /// @return The address of the prize pool ticket.
   function ticket() external view returns (IControlledToken);
+  
+  /// @dev Returns the address of the prize pool ticket.
+  /// @return The address of the prize pool ticket.
+  function getTicket() external view returns (IControlledToken);
 
   /// @dev Returns the address of the underlying ERC20 asset
   /// @return The address of the asset
@@ -190,4 +187,9 @@ interface IPrizePool {
   /// @notice The total of all controlled tokens
   /// @return The current total of all tokens
   function accountedBalance() external view returns (uint256);
+
+  /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
+  /// @param _compLike The COMP-like token held by the prize pool that should be delegated
+  /// @param _to The address to delegate to
+  function compLikeDelegate(ICompLike _compLike, address _to) external;
 }

@@ -6,7 +6,7 @@ import { ethers } from 'hardhat';
 const { getSigners } = ethers;
 const { parseEther: toWei } = utils;
 
-describe('TwabLibrary', () => {
+describe('TwabLib', () => {
   let cardinality: number;
   let twabLib: Contract;
   let timeToLive: number
@@ -17,7 +17,7 @@ describe('TwabLibrary', () => {
   beforeEach(async () => {
     [wallet1, wallet2] = await getSigners();
 
-    const twabLibFactory: ContractFactory = await ethers.getContractFactory('TwabLibraryExposed');
+    const twabLibFactory: ContractFactory = await ethers.getContractFactory('TwabLibExposed');
     twabLib = await twabLibFactory.deploy();
     cardinality = await twabLib.MAX_CARDINALITY();
     timeToLive = 3600 // one hour
