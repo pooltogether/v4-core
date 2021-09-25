@@ -73,11 +73,11 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     
     // IF the next DrawSettings.bitRangeSize == 0 the ring buffer HAS NOT looped around.
     // The DrawSettings at index 0 IS by defaut the oldest drawSettings.
-    if (drawSettings.bitRangeSize == 0 && buffer.lastDrawId > 0) {
+    if (buffer.lastDrawId == 0) {
+      drawId = 0; // return 0 to indicate no drawSettings ring buffer history
+    } else if (drawSettings.bitRangeSize == 0) {
       drawSettings = _drawSettingsRingBuffer[0];
       drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
-    } else if (buffer.lastDrawId == 0) {
-      drawId = 0; // return 0 to indicate no drawSettings ring buffer history
     } else {
       // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
       // Sequential "guaranteedness" is handled in DrawRingBufferLib.push()
