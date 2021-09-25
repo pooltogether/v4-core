@@ -23,30 +23,13 @@ contract TwabLibraryExposed {
     }
   }
 
+/*
   function wrapCardinality(uint256 _index, uint16 _cardinality) external pure returns (uint16) {
     return uint16(RingBuffer.wrap(_index, _cardinality));
   }
 
   function mostRecentIndex(uint256 _nextAvailableIndex, uint16 _cardinality) external pure returns (uint16) {
     return uint16(RingBuffer.mostRecentIndex(_nextAvailableIndex, _cardinality));
-  }
-
-  /// @notice Fetches TWABs `beforeOrAt` and `atOrAfter` a `_target`, eg: where [`beforeOrAt`, `atOrAfter`] is satisfied.
-  /// The result may be the same TWAB, or adjacent TWABs.
-  /// @dev The answer must be contained in the array, used when the target is located within the stored TWAB.
-  /// boundaries: older than the most recent TWAB and younger, or the same age as, the oldest TWAB.
-  /// @param _twabIndex Index of the TWAB to start searching from.
-  /// @param _target Timestamp at which the reserved TWAB should be for.
-  /// @return beforeOrAt TWAB recorded before, or at, the target.
-  /// @return atOrAfter TWAB recorded at, or after, the target.
-  function binarySearch(
-    uint16 _twabIndex,
-    uint16 _oldestTwabIndex,
-    uint32 _target,
-    uint16 _cardinality,
-    uint32 _currentTimestamp
-  ) external view returns (ObservationLib.Observation memory beforeOrAt, ObservationLib.Observation memory atOrAfter) {
-    return twabs.binarySearch(_twabIndex, _oldestTwabIndex, _target, _cardinality, _currentTimestamp);
   }
 
   function calculateTwab(
@@ -118,4 +101,5 @@ contract TwabLibraryExposed {
   ) internal returns (uint16 nextAvailableTwabIndex, uint16 nextCardinality, ObservationLib.Observation memory twab, bool isNew) {
     return twabs.nextTwabWithExpiry(_balance, _nextTwabIndex, _cardinality, _time, _maxLifetime);
   }
+  */
 }
