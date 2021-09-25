@@ -21,36 +21,14 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
   */
   IPrizePool public prizePool;
 
-  /* ============ Events ============ */
-
-  /**
-    * @notice Emit when a strategy captures award amount from PrizePool.
-    * @param totalPrizeCaptured  Total prize captured from the PrizePool
-  */
-  event Distributed(
-    uint256 totalPrizeCaptured
-  );
-
-  /**
-    * @notice Emit when an individual prize split is awarded.
-    * @param user          User address being awarded
-    * @param prizeAwarded  Awarded prize amount
-    * @param token         Token address
-  */
-  event PrizeSplitAwarded(
-    address indexed user,
-    uint256 prizeAwarded,
-    IControlledToken indexed token
-  );
-
-  /* ============ Deploy ============ */
+  /* ============ Constructor ============ */
 
   /**
     * @notice Deploy the PrizeSplitStrategy smart contract.
-    * @param _owner Address of the PrizeSplitStrategy owner
-    * @param _prizePool PrizePool contract address
+    * @param _owner     Owner address
+    * @param _prizePool PrizePool address
   */
-  constructor(
+  constructor (
     address _owner,
     IPrizePool _prizePool
   ) Ownable(_owner) {

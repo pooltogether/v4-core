@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
 import "./interfaces/IControlledToken.sol";
 
 /// @title Controlled ERC20 Token
