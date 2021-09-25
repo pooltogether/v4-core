@@ -29,7 +29,7 @@ describe('Tickets', () => {
   // NOT a COMPLETE test. Needs to be fixed - out of scope for this PR.
   it.skip('should allow a user to pull their prizes', async () => {
     await env.buyTickets({ user: 1, tickets: 100 });
-    await env.buyTicketsForClaimableDraw({
+    await env.buyTicketsForDrawPrizes({
       user: 1,
       tickets: 100,
       claimableDraw: (await env.claimableDraw()).address,
@@ -53,8 +53,8 @@ describe('Tickets', () => {
       numberOfPicks: toWei('1'),
       distributions: [ethers.utils.parseUnits('0.8', 9), ethers.utils.parseUnits('0.2', 9)],
       prize: toWei('10'),
-      drawStartTimestampOffset: 5,
-      drawEndTimestampOffset: 10,
+      startOffsetTimestamp: 5,
+      endOffsetTimestamp: 10,
       maxPicksPerUser: 1000,
     });
 

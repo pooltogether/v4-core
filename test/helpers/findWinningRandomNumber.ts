@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { deployMockContract } from 'ethereum-waffle';
 import { utils, Contract, BigNumber, Wallet } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-import { Draw, TsunamiDrawCalculatorSettings } from '../types';
+import { Draw, DrawCalculatorSettings } from '../types';
 
 const { getSigners } = ethers;
 const printUtils = require("./printUtils")
@@ -11,7 +11,7 @@ const encoder = ethers.utils.defaultAbiCoder
 
 async function deployDrawCalculator(signer: any): Promise<Contract> {
   const drawCalculatorFactory = await ethers.getContractFactory(
-    'TsunamiDrawCalculatorHarness',
+    'DrawCalculatorHarness',
     signer,
   );
   const drawCalculator: Contract = await drawCalculatorFactory.deploy();
@@ -21,7 +21,7 @@ async function deployDrawCalculator(signer: any): Promise<Contract> {
 
 
 
-async function findWinningNumberForUser(wallet1: any, userAddress: string, matchesRequired: number, drawSettings: TsunamiDrawCalculatorSettings) {
+async function findWinningNumberForUser(wallet1: any, userAddress: string, matchesRequired: number, drawSettings: DrawCalculatorSettings) {
   dim(`searching for ${matchesRequired} winning numbers for ${userAddress} with drawSettings ${JSON.stringify(drawSettings)}..`)
   const drawCalculator: Contract = await deployDrawCalculator(wallet1)
   let ticketArtifact = await artifacts.readArtifact('Ticket')
@@ -77,7 +77,7 @@ async function runFindWinningRandomNumbers() {
   let wallet1: SignerWithAddress
   [wallet1] = await getSigners();
 
-  let drawSettings: TsunamiDrawCalculatorSettings = {
+  let drawSettings: DrawCalculatorSettings = {
     matchCardinality: BigNumber.from(7),
     distributions: [
       ethers.utils.parseUnits("0.2", 9),
@@ -88,8 +88,8 @@ async function runFindWinningRandomNumbers() {
     numberOfPicks: BigNumber.from(utils.parseEther('1')),
     bitRangeSize: BigNumber.from(4),
     prize: ethers.utils.parseEther('100'),
-    drawStartTimestampOffset: BigNumber.from(1),
-    drawEndTimestampOffset: BigNumber.from(1),
+    startOffsetTimestamp: BigNumber.from(1),
+    endOffsetTimestamp: BigNumber.from(1),
     maxPicksPerUser: BigNumber.from(1001),
   };
 

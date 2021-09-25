@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 import "../libraries/DrawLib.sol";
 
-interface ITsunamiDrawSettingsHistory {
+interface IPrizeDistributionHistory {
 
   /**
     * @notice Emit when a new draw has been created.
@@ -19,52 +19,52 @@ interface ITsunamiDrawSettingsHistory {
   /**
     * @notice Emitted when the DrawParams are set/updated
     * @param drawId       Draw id
-    * @param drawSettings DrawLib.TsunamiDrawSettings
+    * @param drawSettings DrawLib.PrizeDistribution
   */
-  event DrawSettingsSet(uint32 indexed drawId, DrawLib.TsunamiDrawSettings drawSettings);
+  event DrawSettingsSet(uint32 indexed drawId, DrawLib.PrizeDistribution drawSettings);
 
 
   /**
     * @notice Read newest DrawSettings from the draws ring buffer.
     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
-    * @return drawSettings DrawLib.TsunamiDrawSettings
+    * @return drawSettings DrawLib.PrizeDistribution
     * @return drawId Draw.drawId
   */
-  function getNewestDrawSettings() external view returns (DrawLib.TsunamiDrawSettings memory drawSettings, uint32 drawId);
+  function getNewestDrawSettings() external view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId);
 
   /**
     * @notice Read oldest DrawSettings from the draws ring buffer.
     * @dev    Finds the oldest Draw by buffer.nextIndex and buffer.lastDrawId
-    * @return drawSettings DrawLib.TsunamiDrawSettings
+    * @return drawSettings DrawLib.PrizeDistribution
     * @return drawId Draw.drawId
   */
-  function getOldestDrawSettings() external view returns (DrawLib.TsunamiDrawSettings memory drawSettings, uint32 drawId);
+  function getOldestDrawSettings() external view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId);
 
   /**
-    * @notice Gets array of TsunamiDrawSettingsHistorySettings for Draw.drawID(s)
+    * @notice Gets array of PrizeDistributionHistorySettings for Draw.drawID(s)
     * @param drawIds Draw.drawId
    */
-  function getDrawSettings(uint32[] calldata drawIds) external view returns (DrawLib.TsunamiDrawSettings[] memory);
+  function getDrawSettings(uint32[] calldata drawIds) external view returns (DrawLib.PrizeDistribution[] memory);
 
   /**
-    * @notice Gets the TsunamiDrawSettingsHistorySettings for a Draw.drawID
+    * @notice Gets the PrizeDistributionHistorySettings for a Draw.drawID
     * @param drawId Draw.drawId
    */
-  function getDrawSetting(uint32 drawId) external view returns (DrawLib.TsunamiDrawSettings memory);
+  function getDrawSetting(uint32 drawId) external view returns (DrawLib.PrizeDistribution memory);
 
   /**
-    * @notice Sets TsunamiDrawSettingsHistorySettings for a Draw.drawID.
+    * @notice Sets PrizeDistributionHistorySettings for a Draw.drawID.
     * @dev    Only callable by the owner or manager
     * @param drawId Draw.drawId
-    * @param draw   TsunamiDrawSettingsHistorySettings struct
+    * @param draw   PrizeDistributionHistorySettings struct
    */
-  function pushDrawSettings(uint32 drawId, DrawLib.TsunamiDrawSettings calldata draw) external returns(bool);
+  function pushDrawSettings(uint32 drawId, DrawLib.PrizeDistribution calldata draw) external returns(bool);
 
   /**
     * @notice Set existing Draw in draws ring buffer with new parameters.
     * @dev    Updating a Draw should be used sparingly and only in the event an incorrect Draw parameter has been stored.
     * @return Draw.drawId
   */
-  function setDrawSetting(uint32 drawId, DrawLib.TsunamiDrawSettings calldata draw) external returns(uint32); // maybe return drawIndex
+  function setDrawSetting(uint32 drawId, DrawLib.PrizeDistribution calldata draw) external returns(uint32); // maybe return drawIndex
   
 }

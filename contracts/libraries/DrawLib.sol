@@ -19,11 +19,11 @@ library DrawLib{
     ///@param maxPicksPerUser Maximum number of picks a user can make in this Draw
     ///@param distributions Array of prize distribution percentages, expressed in fraction form with base 1e18. Max sum of these <= 1 Ether. ordering: index0: grandPrize, index1: runnerUp, etc.
     ///@param prize Total prize amount available in this draw calculator for this Draw (may vary from network to network)
-    struct TsunamiDrawSettings {
+    struct PrizeDistribution {
         uint8 bitRangeSize;
         uint8 matchCardinality;
-        uint32 drawStartTimestampOffset;
-        uint32 drawEndTimestampOffset;
+        uint32 startOffsetTimestamp;
+        uint32 endOffsetTimestamp;
         uint32 maxPicksPerUser;
         uint136 numberOfPicks;
         uint32[] distributions;
