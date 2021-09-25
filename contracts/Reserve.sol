@@ -26,7 +26,7 @@ contract Reserve is IReserve, Manageable {
 
     ObservationLib.Observation[MAX_CARDINALITY] internal reserveAccumulators;
 
-    uint16 internal cardinality;
+    uint24 internal cardinality;
     
     /* ============ Events ============ */
 
@@ -53,7 +53,7 @@ contract Reserve is IReserve, Manageable {
       * @notice Read global CARDINALITY value.
       * @return Ring buffer range (i.e. CARDINALITY) 
      */
-    function getCardinality() external view returns (uint16) {
+    function getCardinality() external view returns (uint24) {
         return cardinality;
     }
 
