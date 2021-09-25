@@ -196,20 +196,24 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     }
     return prizesAwardable;
   }
-
-  ///@notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
-  ///@dev Divided by 1e18 since the normalized user balance is stored as a base 18 number
-  ///@param _drawSettings The DrawCalculatorSettings to consider
-  ///@param _normalizedUserBalance The normalized user balances to consider
+  
+  /**
+    * @notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
+    * @dev Divided by 1e18 since the normalized user balance is stored as a base 18 number
+    * @param _drawSettings The DrawCalculatorSettings to consider
+    * @param _normalizedUserBalance The normalized user balances to consider
+  */
   function _calculateNumberOfUserPicks(DrawLib.PrizeDistribution memory _drawSettings, uint256 _normalizedUserBalance) internal view returns (uint256) {
     return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether;
   }
 
-  ///@notice Calculates the normalized balance of a user against the total supply for timestamps
-  ///@param _user The user to consider
-  ///@param _draws The draws we are looking at
-  ///@param _drawSettings The draw settings to consider (needed for draw timstamp offsets)
-  ///@return An array of normalized balances
+  /**
+    * @notice Calculates the normalized balance of a user against the total supply for timestamps
+    * @param _user The user to consider
+    * @param _draws The draws we are looking at
+    * @param _drawSettings The draw settings to consider (needed for draw timstamp offsets)
+    * @return An array of normalized balances
+  */
   function _getNormalizedBalancesAt(address _user, DrawLib.Draw[] memory _draws, DrawLib.PrizeDistribution[] memory _drawSettings) internal view returns (uint256[] memory) {
     uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_draws.length);
     uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_draws.length);
@@ -236,15 +240,16 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     return normalizedBalances;
   }
 
-
-  ///@notice calculates the prize amount per Draw per users pick
-  ///@param _winningRandomNumber The Draw's winningRandomNumber
-  ///@param totalUserPicks The number of picks the user gets for the Draw
-  ///@param _userRandomNumber the users randomNumber for that draw
-  ///@param _picks The users picks for that draw
-  ///@param _drawSettings Params with the associated draw
-  ///@return prize (if any) per Draw claim
-  function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.PrizeDistribution memory _drawSettings)
+  /**
+    * @notice calculates the prize amount per Draw per users pick
+    * @param _winningRandomNumber The Draw's winningRandomNumber
+    * @param _totalUserPicks      The number of picks the user gets for the Draw
+    * @param _userRandomNumber    The users randomNumber for that draw
+    * @param _picks               The users picks for that draw
+    * @param _drawSettings        DrawLib.PrizeDistribution
+    * @return prize (if any) per Draw claim
+  */
+  function _calculate(uint256 _winningRandomNumber, uint256 _totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.PrizeDistribution memory _drawSettings)
     internal view returns (uint256)
   {
 
@@ -278,15 +283,18 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     return (prizeFraction * _drawSettings.prize) / 1e9; // div by 1e9 as prize distributions are base 1e9
   }
 
-  ///@notice Calculates the distribution index given the random numbers and masks
-  ///@param _randomNumberThisPick users random number for this Pick
-  ///@param _winningRandomNumber The winning number for this draw
-  ///@param _masks The pre-calculate bitmasks for the drawSettings
-  ///@return The position within the prize distribution array (0 = top prize, 1 = runner-up prize, etc)
-  function _calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks)
-    internal pure returns (uint256)
-  {
-
+  /**
+    * @notice Calculates the distribution index given the random numbers and masks
+    * @param _randomNumberThisPick Users random number for this Pick
+    * @param _winningRandomNumber  The winning number for this draw
+    * @param _masks                The pre-calculate bitmasks for the drawSettings
+    * @return The position within the prize distribution array (0 = top prize, 1 = runner-up prize, etc)
+  */
+  function _calculateDistributionIndex(
+    uint256 _randomNumberThisPick, 
+    uint256 _winningRandomNumber, 
+    uint256[] memory _masks
+  ) internal pure returns (uint256) {
     uint256 numberOfMatches = 0;
     uint256 masksLength = _masks.length;
 
