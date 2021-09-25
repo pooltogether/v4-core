@@ -16,8 +16,6 @@ import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 
-import "hardhat/console.sol";
-
 /**
   * @title  PoolTogether V4 DrawBeacon
   * @author PoolTogether Inc Team
@@ -50,7 +48,8 @@ contract DrawBeacon is IDrawBeacon,
     * @notice RNG Request Timeout.  In fact, this is really a "complete draw" timeout.
     * @dev If the rng completes the award can still be cancelled.
    */
-  uint32 public rngTimeout; // first four words of mem end here
+  uint32 public rngTimeout;
+  // first four words of mem end here
 
   /// @notice Seconds between beacon period request
   uint32 public beaconPeriodSeconds;
@@ -169,9 +168,7 @@ contract DrawBeacon is IDrawBeacon,
       return false;
     } else {
       uint64 time = _currentTime();
-      unchecked {
-        return rngTimeout + rngRequest.requestedAt < time;
-      }
+      return rngTimeout + rngRequest.requestedAt < time;
     }
   }
 
