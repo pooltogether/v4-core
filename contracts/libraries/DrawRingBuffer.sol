@@ -27,7 +27,6 @@ library DrawRingBuffer {
   /// @return The new buffer.
   function push(Buffer memory _buffer, uint32 _drawId) internal view returns (Buffer memory) {
     require(!isInitialized(_buffer) || _drawId == _buffer.lastDrawId + 1, "DRB/must-be-contig");
-
     return Buffer({
       lastDrawId: _drawId,
       nextIndex: uint32(RingBuffer.nextIndex(_buffer.nextIndex, _buffer.cardinality)),
