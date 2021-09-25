@@ -30,15 +30,6 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     IDrawHistory indexed drawHistory
   );
 
-  /**
-    * @notice Holds information about whether a pick won or not
-    * @param won Boolean to indicate whether the pick won or not. True iff the pick won.
-    * @param distributionIndex Index of the pick
-  */
-  struct PickPrize {
-    bool won;
-    uint8 distributionIndex;
-  }
 
   /// @notice DrawHistory address
   IDrawHistory internal drawHistory;
@@ -73,11 +64,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
   /* ============ External Functions ============ */
 
-  ///@notice Calulates the prize amount for a user for Multiple Draws. Typically called by a DrawPrizes.
-  ///@param _user User for which to calcualte prize amount
-  ///@param _drawIds draw array for which to calculate prize amounts for
-  ///@param _pickIndicesForDraws The encoded pick indices for all Draws. Expected to be just indices of winning claims. Populated values must be less than totalUserPicks.
-  ///@return An array of amount of prizes awardable
+  /// @inheritdoc IDrawCalculator
   function calculate(address _user, uint32[] calldata _drawIds, bytes calldata _pickIndicesForDraws)
     external override view returns (uint256[] memory)
   {
@@ -92,51 +79,31 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     return _calculatePrizesAwardable(userBalances, _userRandomNumber, draws, pickIndices, _drawSettings);
   }
 
-  /**
-    * @notice Read global DrawHistory variable.
-    * @return IDrawHistory
-  */
-  function getDrawHistory() external view returns (IDrawHistory) {
+  /// @inheritdoc IDrawCalculator
+  function getDrawHistory() external view override returns (IDrawHistory) {
     return drawHistory;
   }
 
-  /**
-    * @notice Read global DrawHistory variable.
-    * @return IDrawHistory
-  */
-  function getPrizeDistributionHistory() external view returns (PrizeDistributionHistory) {
+  /// @inheritdoc IDrawCalculator
+  function getPrizeDistributionHistory() external view override returns (PrizeDistributionHistory) {
     return tsunamiDrawSettingsHistory;
   }
 
-  /**
-    * @notice Set global DrawHistory reference.
-    * @param _drawHistory DrawHistory address
-    * @return New DrawHistory address
-  */
-  function setDrawHistory(IDrawHistory _drawHistory) external onlyOwner returns (IDrawHistory) {
+  /// @inheritdoc IDrawCalculator
+  function setDrawHistory(IDrawHistory _drawHistory) external override onlyOwner returns (IDrawHistory) {
     _setDrawHistory(_drawHistory);
     return _drawHistory;
   }
 
-  /**
-    * @notice Returns a users balances expressed as a fraction of the total supply over time.
-    * @param _user The users address
-    * @param _drawIds The drawsId to consider
-    * @return Array of balances
-  */
-  function getNormalizedBalancesForDrawIds(address _user, uint32[] calldata _drawIds) external view returns (uint256[] memory) {
+  /// @inheritdoc IDrawCalculator
+  function getNormalizedBalancesForDrawIds(address _user, uint32[] calldata _drawIds) external view override returns (uint256[] memory) {
     DrawLib.Draw[] memory _draws = drawHistory.getDraws(_drawIds);
     DrawLib.PrizeDistribution[] memory _drawSettings = tsunamiDrawSettingsHistory.getDrawSettings(_drawIds);
     return _getNormalizedBalancesAt(_user, _draws, _drawSettings);
   }
 
-  ///@notice Returns the distribution index for a users pickIndices for a draw
-  ///@param _user The user for which to calculate the distribution indices
-  ///@param _pickIndices The users pick indices for a draw
-  ///@param _drawId The draw for which to calculate the distribution indices
-  function checkPrizeDistributionIndicesForDrawId(address _user, uint256[] calldata _pickIndices, uint32 _drawId) 
-    external view returns(PickPrize[] memory)
-  {
+  /// @inheritdoc IDrawCalculator
+  function checkPrizeDistributionIndicesForDrawId(address _user, uint256[] calldata _pickIndices, uint32 _drawId) external view override returns(PickPrize[] memory) {
     uint32[] memory drawIds = new uint32[](1);
     drawIds[0] = _drawId;
 
