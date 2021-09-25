@@ -1,19 +1,30 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { constants, Contract, ContractFactory } from 'ethers';
+import { Contract, ContractFactory } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 const { getSigners } = ethers;
+
+const DRAW_SAMPLE_CONFIG = {
+  timestamp: 1111111111,
+  winningRandomNumber: 11111,
+};
+
+function newDraw(overrides: any) {
+  return {
+    drawId: 1,
+    timestamp: DRAW_SAMPLE_CONFIG.timestamp,
+    winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber,
+    beaconPeriodStartedAt: 0,
+    beaconPeriodSeconds: 1,
+    ...overrides
+  }
+}
 
 describe('DrawHistory', () => {
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let wallet3: SignerWithAddress;
   let drawHistory: Contract;
-
-  const DRAW_SAMPLE_CONFIG = {
-    timestamp: 1111111111,
-    winningRandomNumber: 11111,
-  };
 
   before(async () => {
     [wallet1, wallet2, wallet3] = await getSigners();
@@ -34,13 +45,7 @@ describe('DrawHistory', () => {
     });
 
     it('should get the last draw after pushing a draw', async () => {
-      await drawHistory.pushDraw(
-        {
-          drawId: 1,
-          timestamp: DRAW_SAMPLE_CONFIG.timestamp,
-          winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
-        }
-      )
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }))
       const draw = await drawHistory.getNewestDraw();
       expect(draw.drawId).to.equal(1)
       expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp)
@@ -57,7 +62,7 @@ describe('DrawHistory', () => {
     });
 
     it('should yield the first draw when only one', async () => {
-      await drawHistory.pushDraw({ drawId: 2, timestamp: DRAW_SAMPLE_CONFIG.timestamp, winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber })
+      await drawHistory.pushDraw(newDraw({ drawId: 2 }))
       const draw = await drawHistory.getOldestDraw();
       expect(draw.drawId).to.equal(2)
     });
@@ -86,43 +91,30 @@ describe('DrawHistory', () => {
     it('should fail to create a new draw when called from non-draw-manager', async () => {
       const claimableDrawWallet2 = drawHistory.connect(wallet2);
       await expect(
-        claimableDrawWallet2.pushDraw(
-          {
-            drawId: 1,
-            timestamp: DRAW_SAMPLE_CONFIG.timestamp,
-            winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
-          }
-        ),
-      ).to.be.revertedWith('Manageable/caller-not-manager');
+        claimableDrawWallet2.pushDraw(newDraw({ drawId: 1 }))
+      ).to.be.revertedWith('Manageable/caller-not-manager')
     });
 
     it('should create a new draw and emit DrawCreated', async () => {
       await expect(
-        await drawHistory.pushDraw(
-          {
-            drawId: 1,
-            timestamp: DRAW_SAMPLE_CONFIG.timestamp,
-            winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
-          }
-        ),
+        await drawHistory.pushDraw(newDraw({ drawId: 1 })),
       )
         .to.emit(drawHistory, 'DrawSet')
         .withArgs(
           1,
-          DRAW_SAMPLE_CONFIG.timestamp,
-          DRAW_SAMPLE_CONFIG.winningRandomNumber,
+          [
+            DRAW_SAMPLE_CONFIG.winningRandomNumber,
+            1,
+            DRAW_SAMPLE_CONFIG.timestamp,
+            0,
+            1
+          ]
         );
     });
 
     it('should create 8 new draws and return valid next draw id', async () => {
       for (let index = 1; index <= 8; index++) {
-        await drawHistory.pushDraw(
-          {
-            drawId: index,
-            timestamp: DRAW_SAMPLE_CONFIG.timestamp,
-            winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
-          }
-        );
+        await drawHistory.pushDraw(newDraw({ drawId: index }));
 
         const currentDraw = await drawHistory.getDraw(index);
         expect(currentDraw.winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber);
@@ -136,13 +128,7 @@ describe('DrawHistory', () => {
     });
 
     it('should read the recently created draw struct', async () => {
-      await drawHistory.pushDraw(
-        {
-          drawId: 1,
-          timestamp: DRAW_SAMPLE_CONFIG.timestamp,
-          winningRandomNumber: DRAW_SAMPLE_CONFIG.winningRandomNumber
-        }
-      );
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }))
       const draw = await drawHistory.getDraw(1);
       expect(draw.timestamp).to.equal(DRAW_SAMPLE_CONFIG.timestamp);
       expect(draw.winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber);
@@ -169,23 +155,24 @@ describe('DrawHistory', () => {
 
   describe('setDraw()', () => {
     it('should fail to set existing draw as unauthorized account', async () => {
-      await drawHistory.pushDraw({ drawId: 1, timestamp: 1, winningRandomNumber: 1 });
-      await expect(drawHistory.connect(wallet3).setDraw({ drawId: 1, timestamp: 2, winningRandomNumber: 2 }))
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }))
+      await expect(drawHistory.connect(wallet3).setDraw(newDraw({ drawId: 1, timestamp: 2, winningRandomNumber: 2 })))
         .to.be.revertedWith('Ownable/caller-not-owner')
     })
 
     it('should fail to set existing draw as manager ', async () => {
       await drawHistory.setManager(wallet2.address);
-      await drawHistory.pushDraw({ drawId: 1, timestamp: 1, winningRandomNumber: 1 });
-      await expect(drawHistory.connect(wallet2).setDraw({ drawId: 1, timestamp: 2, winningRandomNumber: 2 }))
+      await drawHistory.pushDraw(newDraw({ drawId: 1, timestamp: 1, winningRandomNumber: 1 }));
+      await expect(drawHistory.connect(wallet2).setDraw(newDraw({ drawId: 1, timestamp: 2, winningRandomNumber: 2 })))
         .to.be.revertedWith('Ownable/caller-not-owner')
     })
 
     it('should succeed to set existing draw as owner', async () => {
-      await drawHistory.pushDraw({ drawId: 1, timestamp: 1, winningRandomNumber: 1 });
-      await expect(drawHistory.setDraw({ drawId: 1, timestamp: DRAW_SAMPLE_CONFIG.timestamp, winningRandomNumber: 2 }))
+      await drawHistory.pushDraw(newDraw({ drawId: 1, timestamp: 1, winningRandomNumber: 1 }));
+      const draw = newDraw({ drawId: 1, timestamp: DRAW_SAMPLE_CONFIG.timestamp, winningRandomNumber: 2 })
+      await expect(drawHistory.setDraw(draw))
         .to.emit(drawHistory, 'DrawSet')
-        .withArgs(1, DRAW_SAMPLE_CONFIG.timestamp, 2);
-    });
+        .withArgs(1, [2, 1, DRAW_SAMPLE_CONFIG.timestamp, 0, 1]);
+      });
   });
 });

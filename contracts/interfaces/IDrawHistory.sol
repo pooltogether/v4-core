@@ -4,17 +4,15 @@ pragma solidity 0.8.6;
 import "../libraries/DrawLib.sol";
 
 interface IDrawHistory {
-  
+
   /**
     * @notice Emit when a new draw has been created.
-    * @param drawId       Draw id
-    * @param timestamp    Epoch timestamp when the draw is created.
-    * @param winningRandomNumber Randomly generated number used to calculate draw winning numbers
+    * @param drawId Draw id
+    * @param draw The Draw struct
   */
   event DrawSet (
-    uint32 drawId,
-    uint32 timestamp,
-    uint256 winningRandomNumber
+    uint32 indexed drawId,
+    DrawLib.Draw draw
   );
 
   function getDraws(uint32[] calldata drawIds) external view returns (DrawLib.Draw[] memory);

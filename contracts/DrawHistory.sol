@@ -123,7 +123,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     DrawRingBuffer.Buffer memory buffer = drawRingBuffer;
     uint32 index = buffer.getIndex(_newDraw.drawId);
     _draws[index] = _newDraw;
-    emit DrawSet(_newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);
+    emit DrawSet(_newDraw.drawId, _newDraw);
     return _newDraw.drawId;
   }
 
@@ -159,7 +159,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     DrawRingBuffer.Buffer memory _buffer = drawRingBuffer;
     _draws[_buffer.nextIndex] = _newDraw;
     drawRingBuffer = _buffer.push(_newDraw.drawId);
-    emit DrawSet(_newDraw.drawId, _newDraw.timestamp, _newDraw.winningRandomNumber);
+    emit DrawSet(_newDraw.drawId, _newDraw);
     return _newDraw.drawId;
   }
 

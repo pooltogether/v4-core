@@ -8,6 +8,17 @@ const { getSigners } = ethers;
 
 const newDebug = require('debug')
 
+function newDraw(overrides: any): Draw {
+  return {
+    drawId: 1,
+    timestamp: 0,
+    winningRandomNumber: 2,
+    beaconPeriodStartedAt: 0,
+    beaconPeriodSeconds: 1,
+    ...overrides
+  }
+}
+
 export async function deployDrawCalculator(signer: any, ticketAddress: string, drawHistoryAddress: string, drawSettingsHistoryAddress: string): Promise<Contract> {
   const drawCalculatorFactory = await ethers.getContractFactory(
     'TsunamiDrawCalculatorHarness',
@@ -394,7 +405,7 @@ describe('TsunamiDrawCalculator', () => {
         [winningNumber, 1],
       );
 
-      const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      
+      const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      )
       
       await drawSettingsHistory.mock.getDrawSettings.withArgs([draw.drawId]).returns([drawSettings])
       await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw])
@@ -418,7 +429,7 @@ describe('TsunamiDrawCalculator', () => {
         [winningNumber, 1],
       );
 
-      const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      
+      const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      )
       
       await drawSettingsHistory.mock.getDrawSettings.withArgs([draw.drawId]).returns([drawSettings])
       await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw])
@@ -443,7 +454,7 @@ describe('TsunamiDrawCalculator', () => {
         [winningNumber, 1],
       );
 
-      const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      
+      const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }      )
       
       await drawSettingsHistory.mock.getDrawSettings.withArgs([draw.drawId]).returns([drawSettings])
       await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw])
@@ -480,16 +491,17 @@ describe('TsunamiDrawCalculator', () => {
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
 
-      const draw1: Draw = { 
+      const draw1: Draw = newDraw({ 
         drawId: BigNumber.from(1),
         winningRandomNumber: BigNumber.from("1000"),
         timestamp: BigNumber.from(timestamps[0])
-      }
-      const draw2: Draw = { 
+      })
+
+      const draw2: Draw = newDraw({ 
         drawId: BigNumber.from(2),
         winningRandomNumber: BigNumber.from("1000"),
         timestamp: BigNumber.from(timestamps[1])
-      }
+      })
 
       await drawHistory.mock.getDraws.returns([draw1, draw2])
       await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings, drawSettings])
@@ -524,16 +536,16 @@ describe('TsunamiDrawCalculator', () => {
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.drawStartTimestampOffset.toNumber())
 
-      const draw1: Draw = { 
+      const draw1: Draw = newDraw({ 
         drawId: BigNumber.from(1),
         winningRandomNumber: BigNumber.from("1000"),
         timestamp: BigNumber.from(timestamps[0])
-      }
-      const draw2: Draw = { 
+      })
+      const draw2: Draw = newDraw({ 
         drawId: BigNumber.from(2),
         winningRandomNumber: BigNumber.from("1000"),
         timestamp: BigNumber.from(timestamps[1])
-      }
+      })
 
       await drawHistory.mock.getDraws.returns([draw1, draw2])
       await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings, drawSettings])
@@ -559,11 +571,11 @@ describe('TsunamiDrawCalculator', () => {
         drawEndTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      const draw1: Draw = { 
+      const draw1: Draw = newDraw({ 
         drawId: BigNumber.from(1),
         winningRandomNumber: BigNumber.from("1000"),
         timestamp: BigNumber.from(timestamps[0])
-      }
+      })
 
       await drawHistory.mock.getDraws.returns([draw1])
       await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings])
@@ -626,7 +638,7 @@ describe('TsunamiDrawCalculator', () => {
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): [balance]
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
 
-        const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
         await drawHistory.mock.getDraws.returns([draw])
 
         const prizesAwardable = await drawCalculator.calculate(
@@ -669,7 +681,7 @@ describe('TsunamiDrawCalculator', () => {
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): balance
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
 
-        const draw: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0])}
+        const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0])})
         await drawHistory.mock.getDraws.returns([draw])
 
         debug(
@@ -702,8 +714,8 @@ describe('TsunamiDrawCalculator', () => {
         const totalSupply2 = utils.parseEther('100');
 
 
-        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
-        const draw2: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) }
+        const draw1: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
+        const draw2: Draw = newDraw({ drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) })
 
         await drawHistory.mock.getDraws.returns([draw1, draw2])
 
@@ -793,8 +805,8 @@ describe('TsunamiDrawCalculator', () => {
 
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1, totalSupply2]);
 
-        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
-        const draw2: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) }
+        const draw1: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
+        const draw2: Draw = newDraw({ drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[1]) })
 
         await drawHistory.mock.getDraws.returns([draw1, draw2])
 
@@ -842,7 +854,7 @@ describe('TsunamiDrawCalculator', () => {
 
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply1]);
 
-        const draw1: Draw = { drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        const draw1: Draw = newDraw({ drawId: BigNumber.from(2), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
 
         await drawHistory.mock.getDraws.returns([draw1])
 
@@ -873,7 +885,7 @@ describe('TsunamiDrawCalculator', () => {
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): balance
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
 
-        const draw1: Draw = { drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(userRandomNumber), timestamp: BigNumber.from(timestamps[0]) }
+        const draw1: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(userRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
 
         await drawHistory.mock.getDraws.returns([draw1])
 

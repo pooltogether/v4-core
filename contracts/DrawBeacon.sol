@@ -16,6 +16,8 @@ import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 
+import "hardhat/console.sol";
+
 /**
   * @title  PoolTogether V4 DrawBeacon
   * @author PoolTogether Inc Team
@@ -33,7 +35,6 @@ contract DrawBeacon is IDrawBeacon,
   using Address for address;
   using ERC165Checker for address;
 
-
   /* ============ Variables ============ */
 
   /// @notice RNG contract interface
@@ -42,17 +43,20 @@ contract DrawBeacon is IDrawBeacon,
   /// @notice Current RNG Request
   RngRequest internal rngRequest;
 
+  /// @notice DrawHistory address
+  IDrawHistory public drawHistory;
+
   /**
     * @notice RNG Request Timeout.  In fact, this is really a "complete draw" timeout.
     * @dev If the rng completes the award can still be cancelled.
    */
-  uint32 public rngTimeout;
+  uint32 public rngTimeout; // first four words of mem end here
 
   /// @notice Seconds between beacon period request
-  uint256 public beaconPeriodSeconds;
+  uint32 public beaconPeriodSeconds;
 
   /// @notice Epoch timestamp when beacon period can start
-  uint256 public beaconPeriodStartedAt;
+  uint64 public beaconPeriodStartedAt;
 
   /**
     * @notice Next Draw ID to use when pushing a Draw onto DrawHistory
@@ -60,21 +64,18 @@ contract DrawBeacon is IDrawBeacon,
   */
   uint32 public nextDrawId;
 
-  /// @notice DrawHistory address
-  IDrawHistory public drawHistory;
-
   /* ============ Structs ============ */
 
   /**
     * @notice RNG Request
     * @param id          RNG request ID
     * @param lockBlock   Block number that the RNG request is locked
-    * @param requestedAt Epoch when RNG is requested
+    * @param requestedAt Time when RNG is requested
   */
   struct RngRequest {
     uint32 id;
     uint32 lockBlock;
-    uint32 requestedAt;
+    uint64 requestedAt;
   }
 
   /* ============ Modifiers ============ */
@@ -112,8 +113,8 @@ contract DrawBeacon is IDrawBeacon,
     IDrawHistory _drawHistory,
     RNGInterface _rng,
     uint32 _nextDrawId,
-    uint256 _beaconPeriodStart,
-    uint256 _beaconPeriodSeconds
+    uint64 _beaconPeriodStart,
+    uint32 _beaconPeriodSeconds
   ) Ownable(_owner) {
     require(_beaconPeriodStart > 0, "DrawBeacon/beacon-period-greater-than-zero");
     require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
@@ -167,7 +168,10 @@ contract DrawBeacon is IDrawBeacon,
     if (rngRequest.requestedAt == 0) {
       return false;
     } else {
-      return _currentTime() > uint256(rngTimeout) + rngRequest.requestedAt;
+      uint64 time = _currentTime();
+      unchecked {
+        return rngTimeout + rngRequest.requestedAt < time;
+      }
     }
   }
 
@@ -195,8 +199,8 @@ contract DrawBeacon is IDrawBeacon,
     * @param currentTime The timestamp to use as the current time
     * @return The timestamp at which the next beacon period would start
    */
-  function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view override returns (uint256) {
-    return _calculateNextBeaconPeriodStartTime(currentTime);
+  function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view override returns (uint64) {
+    return _calculateNextBeaconPeriodStartTime(beaconPeriodStartedAt, beaconPeriodSeconds, uint64(currentTime));
   }
 
   /**
@@ -212,26 +216,40 @@ contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Completes the Draw (RNG) request and pushes a Draw onto DrawHistory.
-    *
    */
   function completeDraw() external override requireCanCompleteRngRequest {
     uint256 randomNumber = rng.randomNumber(rngRequest.id);
+    uint32 _nextDrawId = nextDrawId;
+    uint64 _beaconPeriodStartedAt = beaconPeriodStartedAt;
+    uint32 _beaconPeriodSeconds = beaconPeriodSeconds;
+    uint64 _time = _currentTime();
+
+    DrawLib.Draw memory _draw = DrawLib.Draw({
+      winningRandomNumber: randomNumber,
+      drawId: _nextDrawId,
+      timestamp: _time,
+      beaconPeriodStartedAt: _beaconPeriodStartedAt,
+      beaconPeriodSeconds: _beaconPeriodSeconds
+    });
+
+    drawHistory.pushDraw(_draw);
+    
+    // to avoid clock drift, we should calculate the start time based on the previous period start time.
+    _beaconPeriodStartedAt = _calculateNextBeaconPeriodStartTime(_beaconPeriodStartedAt, _beaconPeriodSeconds, _time);
+    beaconPeriodStartedAt = _beaconPeriodStartedAt;
+    nextDrawId = _nextDrawId + 1;
+
     delete rngRequest;
 
-    _saveRNGRequestWithDraw(randomNumber);
-
-    // to avoid clock drift, we should calculate the start time based on the previous period start time.
-    beaconPeriodStartedAt = _calculateNextBeaconPeriodStartTime(_currentTime());
-
     emit DrawCompleted(msg.sender, randomNumber);
-    emit BeaconPeriodStarted(msg.sender, beaconPeriodStartedAt);
+    emit BeaconPeriodStarted(msg.sender, _beaconPeriodStartedAt);
   }
 
   /**
     * @notice Returns the number of seconds remaining until the beacon period can be complete.
     * @return The number of seconds remaining until the beacon period can be complete.
    */
-  function beaconPeriodRemainingSeconds() external view override returns (uint256) {
+  function beaconPeriodRemainingSeconds() external view override returns (uint32) {
     return _beaconPeriodRemainingSeconds();
   }
 
@@ -239,7 +257,7 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Returns the timestamp at which the beacon period ends
     * @return The timestamp at which the beacon period ends.
    */
-  function beaconPeriodEndAt() external view override returns (uint256) {
+  function beaconPeriodEndAt() external view override returns (uint64) {
     return _beaconPeriodEndAt();
   }
 
@@ -290,7 +308,7 @@ contract DrawBeacon is IDrawBeacon,
     (uint32 requestId, uint32 lockBlock) = rng.requestRandomNumber();
     rngRequest.id = requestId;
     rngRequest.lockBlock = lockBlock;
-    rngRequest.requestedAt = _currentTime().toUint32();
+    rngRequest.requestedAt = _currentTime();
 
     emit DrawStarted(msg.sender, requestId, lockBlock);
   }
@@ -299,8 +317,8 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Allows the owner to set the beacon period in seconds.
     * @param _beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
    */
-  function setBeaconPeriodSeconds(uint256 _beaconPeriodSeconds) external override onlyOwner requireDrawNotInProgress {
-    _setBeaconPeriodSeconds(_beaconPeriodSeconds);
+  function setBeaconPeriodSeconds(uint32 _beaconPeriodSeconds) external override onlyOwner requireDrawNotInProgress {
+    _setBeaconPeriodSeconds (_beaconPeriodSeconds);
   }
 
   /**
@@ -325,13 +343,13 @@ contract DrawBeacon is IDrawBeacon,
 
   /**
     * @notice Calculates when the next beacon period will start
-    * @param currentTime The timestamp to use as the current time
+    * @param _beaconPeriodStartedAt The timestamp at which the beacon period started
+    * @param _beaconPeriodSeconds The duration of the beacon period in seconds
+    * @param _currentTime The timestamp to use as the current time
     * @return The timestamp at which the next beacon period would start
    */
-  function _calculateNextBeaconPeriodStartTime(uint256 currentTime) internal view returns (uint256) {
-    uint256 _beaconPeriodStartedAt = beaconPeriodStartedAt;
-    uint256 _beaconPeriodSeconds = beaconPeriodSeconds;
-    uint256 elapsedPeriods = (currentTime - _beaconPeriodStartedAt) / (_beaconPeriodSeconds);
+  function _calculateNextBeaconPeriodStartTime(uint64 _beaconPeriodStartedAt, uint32 _beaconPeriodSeconds, uint64 _currentTime) internal view returns (uint64) {
+    uint64 elapsedPeriods = (_currentTime - _beaconPeriodStartedAt) / _beaconPeriodSeconds;
     return _beaconPeriodStartedAt + (elapsedPeriods * _beaconPeriodSeconds);
   }
 
@@ -339,15 +357,15 @@ contract DrawBeacon is IDrawBeacon,
     * @notice returns the current time.  Used for testing.
     * @return The current time (block.timestamp)
    */
-  function _currentTime() internal virtual view returns (uint256) {
-    return block.timestamp;
+  function _currentTime() internal virtual view returns (uint64) {
+    return uint64(block.timestamp);
   }
 
   /**
     * @notice Returns the timestamp at which the beacon period ends
     * @return The timestamp at which the beacon period ends
    */
-  function _beaconPeriodEndAt() internal view returns (uint256) {
+  function _beaconPeriodEndAt() internal view returns (uint64) {
     return beaconPeriodStartedAt + beaconPeriodSeconds;
   }
 
@@ -355,13 +373,13 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Returns the number of seconds remaining until the prize can be awarded.
     * @return The number of seconds remaining until the prize can be awarded.
    */
-  function _beaconPeriodRemainingSeconds() internal view returns (uint256) {
-    uint256 endAt = _beaconPeriodEndAt();
-    uint256 time = _currentTime();
-    if (time > endAt) {
+  function _beaconPeriodRemainingSeconds() internal view returns (uint32) {
+    uint64 endAt = _beaconPeriodEndAt();
+    uint64 time = _currentTime();
+    if (endAt <= time) {
       return 0;
     }
-    return endAt - time;
+    return uint256(endAt - time).toUint32();
   }
 
   /**
@@ -369,7 +387,8 @@ contract DrawBeacon is IDrawBeacon,
     * @return True if the beacon period is over, false otherwise
    */
   function _isBeaconPeriodOver() internal view returns (bool) {
-    return _currentTime() >= _beaconPeriodEndAt();
+    uint64 time = _currentTime();
+    return _beaconPeriodEndAt() <= time;
   }
 
   /**
@@ -399,7 +418,7 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Sets the beacon period in seconds.
     * @param _beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
    */
-  function _setBeaconPeriodSeconds(uint256 _beaconPeriodSeconds) internal {
+  function _setBeaconPeriodSeconds(uint32 _beaconPeriodSeconds) internal {
     require(_beaconPeriodSeconds > 0, "DrawBeacon/beacon-period-greater-than-zero");
     beaconPeriodSeconds = _beaconPeriodSeconds;
 
@@ -414,17 +433,6 @@ contract DrawBeacon is IDrawBeacon,
     require(_rngTimeout > 60, "DrawBeacon/rng-timeout-gt-60-secs");
     rngTimeout = _rngTimeout;
     emit RngTimeoutSet(_rngTimeout);
-  }
-
-  /**
-    * @notice Create a new Draw with RNG request result.
-    * @dev    Pushes new Draw onto DrawHistory and increments the nextDrawId.
-    * @param randomNumber Randomly generated number
-  */
-  function _saveRNGRequestWithDraw(uint256 randomNumber) internal {
-    DrawLib.Draw memory _draw = DrawLib.Draw({drawId: nextDrawId, timestamp: uint32(block.timestamp), winningRandomNumber: randomNumber});
-    drawHistory.pushDraw(_draw);
-    nextDrawId += 1;
   }
 
 }
