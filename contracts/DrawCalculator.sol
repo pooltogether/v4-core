@@ -65,9 +65,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
   /* ============ External Functions ============ */
 
   /// @inheritdoc IDrawCalculator
-  function calculate(address _user, uintyar32[] calldata _drawIds, bytes calldata _pickIndicesForDraws)
-    external override view returns (uint256[] memory)
-  {
+  function calculate(
+    address _user, uint32[] calldata _drawIds, 
+    bytes calldata _pickIndicesForDraws
+  ) external override view returns (uint256[] memory) {
     uint256[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint256 [][]));
     require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
@@ -172,12 +173,11 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
   /**
     * @notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
-    * @param _drawHistory DrawHistory address
-    * @param _normalizedUserBalances Number of picks the user has for each Draw
+    * @param _normalizedUserBalances User TWABs for each draw settings perods
     * @param _userRandomNumber       Random number of the user to consider over draws
     * @param _draws                  Draws
-    * @param _pickIndicesForDraws Pick indices for each Draw
-    * @param _drawSettings DrawCalculatorSettings for each Draw
+    * @param _pickIndicesForDraws    Pick indices for each Draw
+    * @param _drawSettings           DrawCalculatorSettings for each Draw
     * @return Awardable prizes list
   */
   function _calculatePrizesAwardable(
