@@ -28,13 +28,20 @@ task('push-draw')
   });
 
 task('set-draw-settings')
-  .addPositionalParam('address', 'TsunamiDrawCalculator address')
+  .addPositionalParam('address', 'DrawCalculator address')
   .addPositionalParam('drawId', 'drawId')
   .addPositionalParam('bitRangeSize', 'bitRangeSize')
   .addPositionalParam('matchCardinality', 'matchCardinality')
   .addPositionalParam('numberOfPicks', 'numberOfPicks')
   .addPositionalParam('prize', 'prize')
-  .setAction(async function ({ address, drawId, bitRangeSize, matchCardinality, numberOfPicks, prize }) {
+  .setAction(async function ({
+    address,
+    drawId,
+    bitRangeSize,
+    matchCardinality,
+    numberOfPicks,
+    prize,
+  }) {
     const contract = await ethers.getContractAt('DrawHistory', address);
     await contract.pushDrawSettings(drawId, {
       bitRangeSize: BigNumber.from(bitRangeSize),

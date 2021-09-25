@@ -141,12 +141,12 @@ module.exports = async (hardhat) => {
   });
   displayResult('DrawHistory', drawHistoryResult);
 
-  cyan('\nDeploying TsunamiDrawSettingsHistory...');
-  const tsunamiDrawSettindsHistoryResult = await deploy('TsunamiDrawSettingsHistory', {
+  cyan('\nDeploying PrizeDistributionHistory...');
+  const tsunamiDrawSettindsHistoryResult = await deploy('PrizeDistributionHistory', {
     from: deployer,
     args: [deployer, cardinality],
   });
-  displayResult('TsunamiDrawSettingsHistory', tsunamiDrawSettindsHistoryResult);
+  displayResult('PrizeDistributionHistory', tsunamiDrawSettindsHistoryResult);
 
   cyan('\nDeploying DrawBeacon...');
   const drawBeaconResult = await deploy('DrawBeacon', {
@@ -168,8 +168,8 @@ module.exports = async (hardhat) => {
   await drawHistory.setManager(drawBeaconResult.address);
   green('DrawBeacon manager set!');
 
-  cyan('\nDeploying TsunamiDrawCalculator...');
-  const drawCalculatorResult = await deploy('TsunamiDrawCalculator', {
+  cyan('\nDeploying DrawCalculator...');
+  const drawCalculatorResult = await deploy('DrawCalculator', {
     from: deployer,
     args: [
       deployer,
@@ -178,14 +178,14 @@ module.exports = async (hardhat) => {
       tsunamiDrawSettindsHistoryResult.address,
     ],
   });
-  displayResult('TsunamiDrawCalculator', drawCalculatorResult);
+  displayResult('DrawCalculator', drawCalculatorResult);
 
-  cyan('\nDeploying ClaimableDraw...');
-  const claimableDrawResult = await deploy('ClaimableDraw', {
+  cyan('\nDeploying DrawPrizes...');
+  const claimableDrawResult = await deploy('DrawPrizes', {
     from: deployer,
     args: [deployer, ticketResult.address, drawCalculatorResult.address],
   });
-  displayResult('ClaimableDraw', claimableDrawResult);
+  displayResult('DrawPrizes', claimableDrawResult);
 
   cyan('\nDeploying PrizeSplitStrategy...');
   const prizeSplitStrategyResult = await deploy('PrizeSplitStrategy', {

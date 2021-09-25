@@ -1,13 +1,13 @@
 import { BigNumber } from "ethers"
 
-export type TsunamiDrawCalculatorSettings = {
+export type DrawCalculatorSettings = {
     matchCardinality: BigNumber;
     numberOfPicks: BigNumber;
     distributions: BigNumber[];
     bitRangeSize: BigNumber;
     prize: BigNumber;
-    drawStartTimestampOffset: BigNumber;
-    drawEndTimestampOffset: BigNumber;
+    startOffsetTimestamp: BigNumber;
+    endOffsetTimestamp: BigNumber;
     maxPicksPerUser: BigNumber;
 };
 

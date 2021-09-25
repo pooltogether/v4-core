@@ -2,31 +2,31 @@
 
 pragma solidity 0.8.6;
 
-import "../TsunamiDrawCalculator.sol";
+import "../DrawCalculator.sol";
 import "../libraries/DrawLib.sol";
 
-contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
+contract DrawCalculatorHarness is DrawCalculator {
 
   constructor(
     address _owner,
     ITicket _ticket,
     IDrawHistory _drawHistory,
-    TsunamiDrawSettingsHistory _drawSettingsHistory
-  ) TsunamiDrawCalculator(_owner, _ticket, _drawHistory, _drawSettingsHistory) { }
+    PrizeDistributionHistory _drawSettingsHistory
+  ) DrawCalculator(_owner, _ticket, _drawHistory, _drawSettingsHistory) { }
 
   function calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks) public view returns (uint256) {
     return _calculateDistributionIndex(_randomNumberThisPick, _winningRandomNumber, _masks);
   }
 
-  function createBitMasks(DrawLib.TsunamiDrawSettings calldata _drawSettings) public view returns (uint256[] memory) {
+  function createBitMasks(DrawLib.PrizeDistribution calldata _drawSettings) public view returns (uint256[] memory) {
     return _createBitMasks(_drawSettings);
   }
 
-  ///@notice Calculates the expected prize fraction per TsunamiDrawCalculatorSettings and prizeDistributionIndex
-  ///@param _drawSettings TsunamiDrawCalculatorSettings struct for Draw
+  ///@notice Calculates the expected prize fraction per DrawCalculatorSettings and prizeDistributionIndex
+  ///@param _drawSettings DrawCalculatorSettings struct for Draw
   ///@param _prizeDistributionIndex Index of the prize distribution array to calculate
   ///@return returns the fraction of the total prize
-  function calculatePrizeDistributionFraction(DrawLib.TsunamiDrawSettings calldata _drawSettings, uint256 _prizeDistributionIndex) external view returns (uint256)
+  function calculatePrizeDistributionFraction(DrawLib.PrizeDistribution calldata _drawSettings, uint256 _prizeDistributionIndex) external view returns (uint256)
   {
     return _calculatePrizeDistributionFraction(_drawSettings, _prizeDistributionIndex);
   }
@@ -35,7 +35,7 @@ contract TsunamiDrawCalculatorHarness is TsunamiDrawCalculator {
     return _numberOfPrizesForIndex(_bitRangeSize, _prizeDistributionIndex);
   }
 
-  function calculateNumberOfUserPicks(DrawLib.TsunamiDrawSettings memory _drawSettings, uint256 _normalizedUserBalance) external view returns (uint256){
+  function calculateNumberOfUserPicks(DrawLib.PrizeDistribution memory _drawSettings, uint256 _normalizedUserBalance) external view returns (uint256){
     return _calculateNumberOfUserPicks(_drawSettings, _normalizedUserBalance);
   }
 }

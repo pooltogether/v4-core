@@ -3,18 +3,18 @@ pragma solidity 0.8.6;
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBuffer.sol";
-import "./interfaces/ITsunamiDrawSettingsHistory.sol";
+import "./interfaces/IPrizeDistributionHistory.sol";
 
 /**
-  * @title  PoolTogether V4 TsunamiDrawSettingsHistory
+  * @title  PoolTogether V4 PrizeDistributionHistory
   * @author PoolTogether Inc Team
-  * @notice The TsunamiDrawSettingsHistory stores individual DrawSettings for each Draw.drawId.
+  * @notice The PrizeDistributionHistory stores individual DrawSettings for each Draw.drawId.
             DrawSettings parameters like cardinality, bitRange, distributions, number of picks
             and prize. The settings determine the specific distribution model for each individual 
             draw. Storage of the DrawSetting(s) is handled by ring buffer with a max cardinality
             of 256 or roughly 5 years of history with a weekly draw cadence.
 */
-contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
+contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   using DrawRingBuffer for DrawRingBuffer.Buffer;
 
   uint256 internal constant MAX_CARDINALITY = 256;
@@ -23,7 +23,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   event Deployed(uint8 cardinality);
 
   /// @notice DrawSettings ring buffer history.
-  DrawLib.TsunamiDrawSettings[MAX_CARDINALITY] internal _drawSettingsRingBuffer;
+  DrawLib.PrizeDistribution[MAX_CARDINALITY] internal _drawSettingsRingBuffer;
 
   /// @notice Ring buffer data (nextIndex, lastDrawId, cardinality)
   DrawRingBuffer.Buffer internal drawSettingsRingBufferData;
@@ -31,8 +31,8 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   /* ============ Constructor ============ */
 
   /**
-    * @notice Constructor for TsunamiDrawSettingsHistory
-    * @param _owner Address of the TsunamiDrawSettingsHistory owner
+    * @notice Constructor for PrizeDistributionHistory
+    * @param _owner Address of the PrizeDistributionHistory owner
     * @param _cardinality Cardinality of the `drawSettingsRingBufferData`
    */
   constructor(
@@ -45,29 +45,29 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
 
   /* ============ External Functions ============ */
 
-  /// @inheritdoc ITsunamiDrawSettingsHistory
-  function getDrawSetting(uint32 _drawId) external override view returns(DrawLib.TsunamiDrawSettings memory) {
+  /// @inheritdoc IPrizeDistributionHistory
+  function getDrawSetting(uint32 _drawId) external override view returns(DrawLib.PrizeDistribution memory) {
     return _getDrawSettings(drawSettingsRingBufferData, _drawId);
   }
 
-  /// @inheritdoc ITsunamiDrawSettingsHistory
-  function getDrawSettings(uint32[] calldata _drawIds) external override view returns(DrawLib.TsunamiDrawSettings[] memory) {
+  /// @inheritdoc IPrizeDistributionHistory
+  function getDrawSettings(uint32[] calldata _drawIds) external override view returns(DrawLib.PrizeDistribution[] memory) {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
-    DrawLib.TsunamiDrawSettings[] memory _drawSettings = new DrawLib.TsunamiDrawSettings[](_drawIds.length);
+    DrawLib.PrizeDistribution[] memory _drawSettings = new DrawLib.PrizeDistribution[](_drawIds.length);
     for (uint256 i = 0; i < _drawIds.length; i++) {
       _drawSettings[i] = _getDrawSettings(buffer, _drawIds[i]);
     }
     return _drawSettings;
   }
 
-  /// @inheritdoc ITsunamiDrawSettingsHistory
-  function getNewestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory drawSettings, uint32 drawId) {
+  /// @inheritdoc IPrizeDistributionHistory
+  function getNewestDrawSettings() external override view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId) {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
     return (_drawSettingsRingBuffer[buffer.getIndex(buffer.lastDrawId)], buffer.lastDrawId);
   }
 
-  /// @inheritdoc ITsunamiDrawSettingsHistory
-  function getOldestDrawSettings() external override view returns (DrawLib.TsunamiDrawSettings memory drawSettings, uint32 drawId) {
+  /// @inheritdoc IPrizeDistributionHistory
+  function getOldestDrawSettings() external override view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId) {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
     drawSettings = _drawSettingsRingBuffer[buffer.nextIndex];
     
@@ -87,13 +87,13 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     // automatic return with named "returns" values
   }
 
-  /// @inheritdoc ITsunamiDrawSettingsHistory
-  function pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external override onlyManagerOrOwner returns (bool) {
+  /// @inheritdoc IPrizeDistributionHistory
+  function pushDrawSettings(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) external override onlyManagerOrOwner returns (bool) {
     return _pushDrawSettings(_drawId, _drawSettings);
   }
 
-  /// @inheritdoc ITsunamiDrawSettingsHistory
-  function setDrawSetting(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) external override onlyOwner returns (uint32) {
+  /// @inheritdoc IPrizeDistributionHistory
+  function setDrawSetting(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) external override onlyOwner returns (uint32) {
     DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
     uint32 index = buffer.getIndex(_drawId);
     _drawSettingsRingBuffer[index] = _drawSettings;
@@ -105,23 +105,23 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
   /* ============ Internal Functions ============ */
   
   /**
-    * @notice Gets the TsunamiDrawSettingsHistorySettings for a Draw.drawID
+    * @notice Gets the PrizeDistributionHistorySettings for a Draw.drawID
     * @param _drawSettingsRingBufferData DrawRingBuffer.Buffer
     * @param drawId Draw.drawId
    */
   function _getDrawSettings(
     DrawRingBuffer.Buffer memory _drawSettingsRingBufferData,
     uint32 drawId
-  ) internal view returns (DrawLib.TsunamiDrawSettings memory) {
+  ) internal view returns (DrawLib.PrizeDistribution memory) {
     return _drawSettingsRingBuffer[_drawSettingsRingBufferData.getIndex(drawId)];
   }
 
   /**
-    * @notice Set newest TsunamiDrawSettingsHistorySettings in ring buffer storage.
+    * @notice Set newest PrizeDistributionHistorySettings in ring buffer storage.
     * @param _drawId       Draw.drawId
-    * @param _drawSettings TsunamiDrawSettingsHistorySettings struct
+    * @param _drawSettings PrizeDistributionHistorySettings struct
    */
-  function _pushDrawSettings(uint32 _drawId, DrawLib.TsunamiDrawSettings calldata _drawSettings) internal returns (bool) {
+  function _pushDrawSettings(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) internal returns (bool) {
     uint256 distributionsLength = _drawSettings.distributions.length;
 
     require(_drawId > 0, "DrawCalc/draw-id-gt-0");

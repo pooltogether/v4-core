@@ -8,7 +8,7 @@ import "./IDrawHistory.sol";
 import "./IDrawCalculator.sol";
 import "../libraries/DrawLib.sol";
 
-interface IClaimableDraw {
+interface IDrawPrizes {
 
   /**
     * @notice Emitted when a user has claimed N draw payouts.

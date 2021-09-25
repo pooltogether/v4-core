@@ -2,10 +2,10 @@ import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { BigNumber, constants, Contract, ContractFactory } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { TsunamiDrawCalculatorSettings } from './types';
+import { DrawCalculatorSettings } from './types';
 const { getSigners } = ethers;
 
-describe('TsunamiDrawSettingsHistory', () => {
+describe('PrizeDistributionHistory', () => {
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let wallet3: SignerWithAddress;
@@ -16,14 +16,14 @@ describe('TsunamiDrawSettingsHistory', () => {
     winningRandomNumber: 11111,
   };
 
-  const drawSettings: TsunamiDrawCalculatorSettings = {
+  const drawSettings: DrawCalculatorSettings = {
     matchCardinality: BigNumber.from(5),
     numberOfPicks: ethers.utils.parseEther('1'),
     distributions: [ethers.utils.parseUnits('0.5', 9)],
     bitRangeSize: BigNumber.from(3),
     prize: ethers.utils.parseEther('100'),
-    drawStartTimestampOffset: BigNumber.from(0),
-    drawEndTimestampOffset: BigNumber.from(3600),
+    startOffsetTimestamp: BigNumber.from(0),
+    endOffsetTimestamp: BigNumber.from(3600),
     maxPicksPerUser: BigNumber.from(10)
   }
 
@@ -40,7 +40,7 @@ describe('TsunamiDrawSettingsHistory', () => {
 
   beforeEach(async () => {
     const drawSettingsHistoryFactory: ContractFactory = await ethers.getContractFactory(
-      'TsunamiDrawSettingsHistory',
+      'PrizeDistributionHistory',
     );
 
     drawSettingsHistory = await drawSettingsHistoryFactory.deploy(wallet1.address, 3);
@@ -103,7 +103,7 @@ describe('TsunamiDrawSettingsHistory', () => {
       expect(draw.drawId).to.equal(14)
     });
 
-    // @TODO: Create TsunamiDrawSettingsHistory harness smart contract to expose
+    // @TODO: Create PrizeDistributionHistory harness smart contract to expose
     describe('_estimateDrawId()', () => {
       it('should return Draw ID 0 when no history', async () => {
 
@@ -113,7 +113,7 @@ describe('TsunamiDrawSettingsHistory', () => {
 
   describe('pushDrawSettings()', () => {
     context('sanity checks', () => {
-      let drawSettings: TsunamiDrawCalculatorSettings
+      let drawSettings: DrawCalculatorSettings
 
       beforeEach(async () => {
         drawSettings = {
@@ -127,8 +127,8 @@ describe('TsunamiDrawSettingsHistory', () => {
           numberOfPicks: BigNumber.from("100"),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('1'),
-          drawStartTimestampOffset: BigNumber.from(1),
-          drawEndTimestampOffset: BigNumber.from(1),
+          startOffsetTimestamp: BigNumber.from(1),
+          endOffsetTimestamp: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001)
         };
       })
