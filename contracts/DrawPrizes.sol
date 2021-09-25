@@ -26,9 +26,9 @@ contract DrawPrizes is IDrawPrizes, Ownable {
 
   /// @notice The Draw Calculator to use
   IDrawCalculator internal drawCalculator;
-
+  
   /// @notice Token address
-  IERC20 internal immutable token;
+  IERC20          internal immutable token;
 
   /// @notice Maps users => drawId => paid out balance
   mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
@@ -52,53 +52,11 @@ contract DrawPrizes is IDrawPrizes, Ownable {
     emit TokenSet(_token);
   }
 
-  /* ============ External View Functions ============ */
-
-  /**
-    * @notice Read DrawCalculator
-    * @return IDrawCalculator
-  */
-  function getDrawCalculator() external override view returns (IDrawCalculator) {
-    return drawCalculator;
-  }
-
-  /**
-    * @notice Get the amount that a user has already been paid out for a draw
-    * @param user   User address
-    * @param drawId Draw ID
-  */
-  function getDrawPayoutBalanceOf(address user, uint32 drawId) external override view returns (uint256) {
-    return _getDrawPayoutBalanceOf(user, drawId);
-  }
-
-  /**
-    * @notice Read global Ticket variable.
-    * @return IERC20
-  */
-  function getToken() external override view returns (IERC20) {
-    return token;
-  }
-
-  function _getDrawPayoutBalanceOf(address _user, uint32 _drawId) internal view returns (uint256) {
-    return userDrawPayouts[_user][_drawId];
-  }
-
-  function _setDrawPayoutBalanceOf(address _user, uint32 _drawId, uint256 _payout) internal {
-    userDrawPayouts[_user][_drawId] = _payout;
-  }
-
   /* ============ External Functions ============ */
 
-  /**
-    * @notice Claim a user token payouts via a collection of draw ids and pick indices.
-    * @param _user             Address of user to claim awards for. Does NOT need to be msg.sender
-    * @param _drawIds          Draw IDs from global DrawHistory reference
-    * @param _data             The data to pass to the draw calculator.
-    * @return Actual claim payout.  If the user has previously claimed a draw, this may be less.
-  */
+  /// @inheritdoc IDrawPrizes
   function claim(address _user, uint32[] calldata _drawIds, bytes calldata _data) external override returns (uint256) {
     uint256 totalPayout;
-
     uint256[] memory drawPayouts = drawCalculator.calculate(_user, _drawIds, _data);  // CALL
     for (uint256 payoutIndex = 0; payoutIndex < drawPayouts.length; payoutIndex++) {
       uint32 drawId = _drawIds[payoutIndex];
@@ -120,14 +78,36 @@ contract DrawPrizes is IDrawPrizes, Ownable {
     return totalPayout;
   }
 
-  /**
-    * @notice Sets DrawCalculator reference for individual draw id.
-    * @param _newCalculator  DrawCalculator address
-    * @return New DrawCalculator address
-  */
+  /// @inheritdoc IDrawPrizes
+  function getDrawCalculator() external override view returns (IDrawCalculator) {
+    return drawCalculator;
+  }
+
+  /// @inheritdoc IDrawPrizes
+  function getDrawPayoutBalanceOf(address user, uint32 drawId) external override view returns (uint256) {
+    return _getDrawPayoutBalanceOf(user, drawId);
+  }
+
+  /// @inheritdoc IDrawPrizes
+  function getToken() external override view returns (IERC20) {
+    return token;
+  }
+
+  /// @inheritdoc IDrawPrizes
   function setDrawCalculator(IDrawCalculator _newCalculator) external override onlyOwner returns (IDrawCalculator) {
     _setDrawCalculator(_newCalculator);
     return _newCalculator;
+  }
+
+  
+  /* ============ Internal Functions ============ */
+
+  function _getDrawPayoutBalanceOf(address _user, uint32 _drawId) internal view returns (uint256) {
+    return userDrawPayouts[_user][_drawId];
+  }
+
+  function _setDrawPayoutBalanceOf(address _user, uint32 _drawId, uint256 _payout) internal {
+    userDrawPayouts[_user][_drawId] = _payout;
   }
 
   /**

@@ -51,42 +51,43 @@ contract PrizeFlush is IPrizeFlush, Manageable {
 
   /* ============ External Functions ============ */
 
-  // @inheritdoc 
+  /// @inheritdoc IPrizeFlush
   function getDestination() external view override returns (address) {
     return destination;
   }
   
+  /// @inheritdoc IPrizeFlush
   function getReserve() external view override returns (IReserve) {
     return reserve;
   }
 
+  /// @inheritdoc IPrizeFlush
   function getStrategy() external view override returns (IStrategy) {
     return strategy;
   }
 
+  /// @inheritdoc IPrizeFlush
   function setDestination(address _destination) external onlyOwner override returns (address) {
     require(_destination != address(0), "Flush/destination-not-zero-address");
     destination = _destination;
     return _destination;
   }
   
+  /// @inheritdoc IPrizeFlush
   function setReserve(IReserve _reserve) external override onlyOwner returns (IReserve) {
     require(address(_reserve) != address(0), "Flush/reserve-not-zero-address");
     reserve = _reserve;
     return reserve;
   }
 
+  /// @inheritdoc IPrizeFlush
   function setStrategy(IStrategy _strategy) external override onlyOwner returns (IStrategy) {
     require(address(_strategy) != address(0), "Flush/strategy-not-zero-address");
     strategy = _strategy;
     return _strategy;
   }
-
-  /**
-    * @notice Migrate interest from PrizePool to DrawPrizes in single transaction.
-    * @dev    Captures interest, checkpoint data and transfers tokens to final destination.
-    * 
-   */
+  
+  /// @inheritdoc IPrizeFlush
   function flush() external override onlyManagerOrOwner returns (bool) {
     strategy.distribute();
 
