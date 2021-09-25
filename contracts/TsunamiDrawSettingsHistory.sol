@@ -73,7 +73,7 @@ contract TsunamiDrawSettingsHistory is ITsunamiDrawSettingsHistory, Manageable {
     
     // IF the next DrawSettings.bitRangeSize == 0 the ring buffer HAS NOT looped around.
     // The DrawSettings at index 0 IS by defaut the oldest drawSettings.
-    if (drawSettings.bitRangeSize == 0) {
+    if (drawSettings.bitRangeSize == 0 && buffer.lastDrawId > 0) {
       drawSettings = _drawSettingsRingBuffer[0];
       drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
     } else if (buffer.lastDrawId == 0) {

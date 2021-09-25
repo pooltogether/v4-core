@@ -165,14 +165,6 @@ describe('TsunamiDrawSettingsHistory', () => {
         );
       });
 
-      it('cannot set numberOfPicks = 0', async () => {
-        drawSettings.numberOfPicks = BigNumber.from(0)
-        await expect(drawSettingsHistory.pushDrawSettings(1, drawSettings)).to.be.revertedWith(
-          'DrawCalc/numberOfPicks-gt-0',
-        );
-      });
-
-
     })
 
     it('should fail to create a new draw when called from non-draw-manager', async () => {
