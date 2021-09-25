@@ -196,7 +196,6 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     }
     return prizesAwardable;
   }
-  
   /**
     * @notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
     * @dev Divided by 1e18 since the normalized user balance is stored as a base 18 number
@@ -263,7 +262,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     for(uint256 index  = 0; index < picksLength; index++){
       // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
-      require(_picks[index] < totalUserPicks, "DrawCalc/insufficient-user-picks");
+      require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
 
       uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
 

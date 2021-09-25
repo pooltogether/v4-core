@@ -22,20 +22,13 @@ import "./libraries/DrawRingBuffer.sol";
 contract DrawHistory is IDrawHistory, Manageable {
   using DrawRingBuffer for DrawRingBuffer.Buffer;
 
-  /**
-    * @notice Draws ring buffer length.
-    * @dev    Once the number of draws created matches the cardinality, previous draws will be overwritten.
-  */
+  /// @notice Draws ring buffer max length.
   uint16 public constant MAX_CARDINALITY = 256;
 
-  /**
-    * @notice Draws ring buffer array.
-  */
+  /// @notice Draws ring buffer array.
   DrawLib.Draw[MAX_CARDINALITY] private _draws;
 
-  /**
-   * @notice Holds ring buffer information
-   */
+  /// @notice Holds ring buffer information
   DrawRingBuffer.Buffer internal drawRingBuffer;
 
   /* ============ Deploy ============ */
@@ -54,22 +47,12 @@ contract DrawHistory is IDrawHistory, Manageable {
 
   /* ============ External Functions ============ */
 
-  /**
-    * @notice Read a Draw from the draws ring buffer.
-    * @dev    Read a Draw using the Draw.drawId to calculate position in the draws ring buffer.
-    * @param drawId Draw.drawId
-    * @return DrawLib.Draw
-  */
+  /// @inheritdoc IDrawHistory
   function getDraw(uint32 drawId) external view override returns(DrawLib.Draw memory) {
     return _draws[_drawIdToDrawIndex(drawRingBuffer, drawId)];
   }
 
-  /**
-    * @notice Read multiple Draws from the draws ring buffer.
-    * @dev    Read multiple Draws using each Draw.drawId to calculate position in the draws ring buffer.
-    * @param drawIds Array of Draw.drawIds
-    * @return DrawLib.Draw[]
-  */
+  /// @inheritdoc IDrawHistory
   function getDraws(uint32[] calldata drawIds) external view override returns(DrawLib.Draw[] memory) {
     DrawLib.Draw[] memory draws = new DrawLib.Draw[](drawIds.length);
     DrawRingBuffer.Buffer memory buffer = drawRingBuffer;
@@ -79,21 +62,13 @@ contract DrawHistory is IDrawHistory, Manageable {
     return draws;
   }
 
-  /**
-    * @notice Read newest Draw from the draws ring buffer.
-    * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
-    * @return DrawLib.Draw
-  */
-  function getNewestDraw() external view returns (DrawLib.Draw memory) {
+  /// @inheritdoc IDrawHistory
+  function getNewestDraw() external view override returns (DrawLib.Draw memory) {
     return _getNewestDraw(drawRingBuffer);
   }
 
-  /**
-    * @notice Read oldest Draw from the draws ring buffer.
-    * @dev    Finds the oldest Draw by comparing and/or diffing totalDraws with the cardinality.
-    * @return DrawLib.Draw
-  */
-  function getOldestDraw() external view returns (DrawLib.Draw memory) {
+  /// @inheritdoc IDrawHistory
+  function getOldestDraw() external view override returns (DrawLib.Draw memory) {
     // oldest draw should be next available index, otherwise it's at 0
     DrawRingBuffer.Buffer memory buffer = drawRingBuffer;
     DrawLib.Draw memory draw = _draws[buffer.nextIndex];
@@ -103,22 +78,12 @@ contract DrawHistory is IDrawHistory, Manageable {
     return draw;
   }
 
-  /**
-    * @notice Push Draw onto draws ring buffer history.
-    * @dev    Push new draw onto draws history via authorized manager or owner.
-    * @param _draw DrawLib.Draw
-    * @return Draw.drawId
-  */
+  /// @inheritdoc IDrawHistory
   function pushDraw(DrawLib.Draw memory _draw) external override onlyManagerOrOwner returns (uint32) {
     return _pushDraw(_draw);
   }
 
-  /**
-    * @notice Set existing Draw in draws ring buffer with new parameters.
-    * @dev    Updating a Draw should be used sparingly and only in the event an incorrect Draw parameter has been stored.
-    * @param _newDraw   DrawLib.Draw
-    * @return Draw.drawId
-  */
+  /// @inheritdoc IDrawHistory
   function setDraw(DrawLib.Draw memory _newDraw) external override onlyOwner returns (uint32) {
     DrawRingBuffer.Buffer memory buffer = drawRingBuffer;
     uint32 index = buffer.getIndex(_newDraw.drawId);
@@ -141,7 +106,7 @@ contract DrawHistory is IDrawHistory, Manageable {
 
   /**
     * @notice Read newest Draw from the draws ring buffer.
-    * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
+    * @dev    Uses the lastDrawId to calculate the most recently added Draw.
     * @param _buffer Draw ring buffer
     * @return DrawLib.Draw
   */
@@ -151,7 +116,7 @@ contract DrawHistory is IDrawHistory, Manageable {
 
   /**
     * @notice Push Draw onto draws ring buffer history.
-    * @dev    Push new draw onto draws history via authorized manager or owner.
+    * @dev    Push new draw onto draws list via authorized manager or owner.
     * @param _newDraw DrawLib.Draw
     * @return Draw.drawId
   */
