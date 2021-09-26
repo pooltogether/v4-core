@@ -30,24 +30,6 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice The maximum number of twab entries
   uint16 public constant MAX_CARDINALITY = 65535;
 
-  /// @notice A struct containing details for an Account
-  /// @param balance The current balance for an Account
-  /// @param nextTwabIndex The next available index to store a new twab
-  /// @param cardinality The number of recorded twabs (plus one!)
-  struct AccountDetails {
-    uint224 balance;
-    uint16 nextTwabIndex;
-    uint16 cardinality;
-  }
-
-  /// @notice Combines account details with their twab history
-  /// @param details The account details
-  /// @param twabs The history of twabs for this account
-  struct Account {
-    AccountDetails details;
-    ObservationLib.Observation[MAX_CARDINALITY] twabs;
-  }
-
   /// @notice Record of token holders TWABs for each account.
   mapping (address => Account) internal userTwabs;
 
@@ -55,10 +37,10 @@ contract Ticket is ControlledToken, ITicket {
   Account internal totalSupplyTwab;
 
   /// @notice Mapping of delegates.  Each address can delegate their ticket power to another.
-  mapping(address => address) delegates;
+  mapping(address => address) internal delegates;
 
   /// @notice Each address's balance
-  mapping(address => uint256) balances;
+  mapping(address => uint256) internal balances;
 
   /* ============ Constructor ============ */
 
@@ -81,54 +63,60 @@ contract Ticket is ControlledToken, ITicket {
 
     /* ============ External Functions ============ */
 
-  /// @notice Gets a users twap context.  This is a struct with their balance, next twab index, and cardinality.
-  /// @param _user The user for whom to fetch the TWAB context
-  /// @return The TWAB context, which includes { balance, nextTwabIndex, cardinality }
-  function getAccountDetails(address _user) external view returns (AccountDetails memory) {
+  /// @inheritdoc ITicket
+  function getAccountDetails(address _user) external override view returns (AccountDetails memory) {
     return userTwabs[_user].details;
   }
 
-  /// @notice Gets the TWAB at a specific index for a user.
-  /// @param _user The user for whom to fetch the TWAB
-  /// @param _index The index of the TWAB to fetch
-  /// @return The TWAB, which includes the twab amount and the timestamp.
-  function getTwab(address _user, uint16 _index) external view returns (ObservationLib.Observation memory) {
+  /// @inheritdoc ITicket
+  function getTwab(address _user, uint16 _index) external override view returns (ObservationLib.Observation memory) {
     return userTwabs[_user].twabs[_index];
   }
 
-  /// @notice Retrieves `_user` TWAB balance.
-  /// @param _user Address of the user whose TWAB is being fetched.
-  /// @param _target Timestamp at which the reserved TWAB should be for.
+  /// @inheritdoc ITicket 
   function getBalanceAt(address _user, uint256 _target) external override view returns (uint256) {
     Account storage account = userTwabs[_user];
     return _getBalanceAt(account.twabs, account.details, _target);
   }
 
-  /// @notice Calculates the average balance held by a user for given time frames.
-  /// @param user The user whose balance is checked
-  /// @param startTimes The start time of the time frame.
-  /// @param endTimes The end time of the time frame.
-  /// @return The average balance that the user held during the time frame.
-  function getAverageBalancesBetween(address user, uint32[] calldata startTimes, uint32[] calldata endTimes) external override view
-    returns (uint256[] memory)
-  {
+  /// @inheritdoc ITicket
+  function getBalancesAt(address _user, uint32[] calldata _targets) external override view returns (uint256[] memory) {
+    uint256 length = _targets.length;
+    uint256[] memory balances = new uint256[](length);
+    Account storage twabContext = userTwabs[_user];
+    AccountDetails memory details = twabContext.details;
+    for(uint256 i = 0; i < length; i++) {
+      balances[i] = _getBalanceAt(twabContext.twabs, details, _targets[i]);
+    }
+    return balances;
+  }
+
+  /// @inheritdoc ITicket
+  function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
+    Account storage account = userTwabs[_user];
+    return _getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime));
+  }
+
+  /// @inheritdoc ITicket
+  function getAverageBalancesBetween(
+    address user, 
+    uint32[] calldata startTimes, 
+    uint32[] calldata endTimes
+  ) external override view returns (uint256[] memory) {
     require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
     Account storage account = userTwabs[user];
     uint256[] memory averageBalances = new uint256[](startTimes.length);
-
     for (uint i = 0; i < startTimes.length; i++) {
       averageBalances[i] = _getAverageBalanceBetween(account.twabs, account.details, startTimes[i], endTimes[i]);
     }
     return averageBalances;
   }
 
-  /// @notice Calculates the average total supply balance for a set of given time frames.
-  /// @param startTimes Array of start times
-  /// @param endTimes Array of end times
-  /// @return The average total supplies held during the time frame.
-  function getAverageTotalSuppliesBetween(uint32[] calldata startTimes, uint32[] calldata endTimes) external override view
-    returns (uint256[] memory)
-  {
+  /// @inheritdoc ITicket
+  function getAverageTotalSuppliesBetween(
+    uint32[] calldata startTimes, 
+    uint32[] calldata endTimes
+  ) external override view returns (uint256[] memory) {
     require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
     Account storage _totalSupplyTwab = totalSupplyTwab;
     uint256[] memory averageTotalSupplies = new uint256[](startTimes.length);
@@ -139,44 +127,13 @@ contract Ticket is ControlledToken, ITicket {
     return averageTotalSupplies;
   }
 
-  /// @notice Calculates the average balance held by a user for a given time frame.
-  /// @param _user The user whose balance is checked
-  /// @param _startTime The start time of the time frame.
-  /// @param _endTime The end time of the time frame.
-  /// @return The average balance that the user held during the time frame.
-  function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
-    Account storage account = userTwabs[_user];
-    return _getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime));
-  }
-
-  /// @notice Retrieves `_user` TWAB balances.
-  /// @param _user Address of the user whose TWABs are being fetched.
-  /// @param _targets Timestamps at which the reserved TWABs should be for.
-  /// @return uint256[] `_user` TWAB balances.
-  function getBalancesAt(address _user, uint32[] calldata _targets) external override view returns (uint256[] memory) {
-    uint256 length = _targets.length;
-    uint256[] memory balances = new uint256[](length);
-
-    Account storage twabContext = userTwabs[_user];
-    AccountDetails memory details = twabContext.details;
-
-    for(uint256 i = 0; i < length; i++) {
-      balances[i] = _getBalanceAt(twabContext.twabs, details, _targets[i]);
-    }
-
-    return balances;
-  }
-
-  /// @notice Retrieves ticket TWAB `totalSupply`.
-  /// @param _target Timestamp at which the reserved TWAB should be for.
+  /// @inheritdoc ITicket
   function getTotalSupply(uint32 _target) override external view returns (uint256) {
     return _getBalanceAt(totalSupplyTwab.twabs, totalSupplyTwab.details, _target);
   }
 
-  /// @notice Retrieves ticket TWAB `totalSupplies`.
-  /// @param _targets Timestamps at which the reserved TWABs should be for.
-  /// @return uint256[] ticket TWAB `totalSupplies`.
-  function getTotalSupplies(uint32[] calldata _targets) external view override returns (uint256[] memory){
+  /// @inheritdoc ITicket
+  function getTotalSupplies(uint32[] calldata _targets) external override view returns (uint256[] memory){
     uint256 length = _targets.length;
     uint256[] memory totalSupplies = new uint256[](length);
 
@@ -195,7 +152,7 @@ contract Ticket is ControlledToken, ITicket {
 
   /// @notice Returns the ERC20 ticket token balance of a ticket holder.
   /// @return uint224 `_user` ticket token balance.
-  function balanceOf(address _user) public view override returns (uint256) {
+  function balanceOf(address _user) public override view returns (uint256) {
     return _balanceOf(_user);
   }
 
