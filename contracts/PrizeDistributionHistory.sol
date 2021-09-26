@@ -83,8 +83,6 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
       // Sequential "guaranteedness" is handled in DrawRingBufferLib.push()
       drawId = (buffer.lastDrawId + 1) - buffer.cardinality; // 4 + 1 - 3 = 2 | [4,2,3]
     }
-
-    // automatic return with named "returns" values
   }
 
   /// @inheritdoc IPrizeDistributionHistory

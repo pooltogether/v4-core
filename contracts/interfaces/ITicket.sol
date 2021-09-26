@@ -3,19 +3,23 @@ pragma solidity 0.8.6;
 import "../libraries/TwabLibrary.sol";
 interface ITicket {
 
-  /// @notice A struct containing details for an Account
-  /// @param balance The current balance for an Account
-  /// @param nextTwabIndex The next available index to store a new twab
-  /// @param cardinality The number of recorded twabs (plus one!)
+  /**  
+    * @notice A struct containing details for an Account
+    * @param balance The current balance for an Account
+    * @param nextTwabIndex The next available index to store a new twab
+    * @param cardinality The number of recorded twabs (plus one!)
+  */
   struct AccountDetails {
     uint224 balance;
     uint16 nextTwabIndex;
     uint16 cardinality;
   }
 
-  /// @notice Combines account details with their twab history
-  /// @param details The account details
-  /// @param twabs The history of twabs for this account
+  /**  
+    * @notice Combines account details with their twab history
+    * @param details The account details
+    * @param twabs The history of twabs for this account
+  */
   struct Account {
     AccountDetails details;
     ObservationLib.Observation[65535] twabs;
