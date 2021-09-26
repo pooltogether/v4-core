@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-
-import "./interfaces/IReserve.sol";
-import "./libraries/ObservationLib.sol";
-import "./libraries/RingBuffer.sol";
-
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./interfaces/IReserve.sol";
+import "./libraries/ObservationLib.sol";
+import "./libraries/RingBuffer.sol";
 
 /**
   * @title  PoolTogether V4 Reserve

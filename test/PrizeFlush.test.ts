@@ -99,13 +99,13 @@ describe('PrizeFlush', () => {
 
   describe('Core', () => {
     describe('flush()', () => {
-      it('should fail to withdrawTo if zero balance on reserve', async () => {
+      it('should fail to call withdrawTo if zero balance on reserve', async () => {
         await strategy.mock.distribute.returns(toWei('0'))
         await expect(prizeFlush.flush())
           .to.not.emit(prizeFlush, 'Flushed')
       })
 
-      it('should flush prizes if positive balance on reserve.', async () => {
+      it('should succeed to call withdrawTo prizes if positive balance on reserve.', async () => {
         await strategy.mock.distribute.returns(toWei('100'))
         await ticket.mint(reserve.address, toWei('100'))
         await expect(prizeFlush.flush())

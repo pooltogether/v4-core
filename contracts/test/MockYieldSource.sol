@@ -1,7 +1,5 @@
 pragma solidity 0.8.6;
-
 import "@pooltogether/yield-source-interface/contracts/IYieldSource.sol";
-
 import "./ERC20Mintable.sol";
 
 /**

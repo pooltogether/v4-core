@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
+import "./DrawPrizes.sol";
+import "./PrizeDistributionHistory.sol";
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawHistory.sol";
-import "./DrawPrizes.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBufferLib.sol";
-import "./PrizeDistributionHistory.sol";
 
 /**
   * @title  PoolTogether V4 DrawCalculator

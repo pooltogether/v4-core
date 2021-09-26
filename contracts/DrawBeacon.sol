@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
@@ -11,7 +9,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
-
 import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";

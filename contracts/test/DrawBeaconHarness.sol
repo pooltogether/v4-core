@@ -1,11 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-
+import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "../DrawBeacon.sol";
 import "../interfaces/IDrawHistory.sol";
 
-import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
-
-/* solium-disable security/no-block-members */
 contract DrawBeaconHarness is DrawBeacon {
 
   constructor(
