@@ -44,11 +44,13 @@ contract Ticket is ControlledToken, ITicket {
 
   /* ============ Constructor ============ */
 
-  /// @notice Constructs Ticket with passed parameters.
-  /// @param _name ERC20 ticket token name.
-  /// @param _symbol ERC20 ticket token symbol.
-  /// @param decimals_ ERC20 ticket token decimals.
-  /// @param _controller ERC20 ticket controller address (ie: Prize Pool address).
+  /** 
+    * @notice Constructs Ticket with passed parameters.
+    * @param _name ERC20 ticket token name.
+    * @param _symbol ERC20 ticket token symbol.
+    * @param decimals_ ERC20 ticket token decimals.
+    * @param _controller ERC20 ticket controller address (ie: Prize Pool address).
+  */
   constructor (
     string memory _name,
     string memory _symbol,
@@ -61,7 +63,7 @@ contract Ticket is ControlledToken, ITicket {
     _controller
   ){}
 
-    /* ============ External Functions ============ */
+  /* ============ External Functions ============ */
 
   /// @inheritdoc ITicket
   function getAccountDetails(address _user) external override view returns (AccountDetails memory) {
@@ -73,7 +75,6 @@ contract Ticket is ControlledToken, ITicket {
     return userTwabs[_user].twabs[_index];
   }
 
-  /// @inheritdoc ITicket 
   function getBalanceAt(address _user, uint256 _target) external override view returns (uint256) {
     Account storage account = userTwabs[_user];
     return _getBalanceAt(account.twabs, account.details, _target);
