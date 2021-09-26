@@ -58,10 +58,6 @@ $ git clone https://github.com/pooltogether/pooltogether-contract-tsunami
 $ yarn
 ```
 
-```sh$ 
-npm install
-```
-
 We use [direnv](https://direnv.net/) to manage environment variables.  You'll likely need to install it.
 
 ```sh
