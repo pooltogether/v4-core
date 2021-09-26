@@ -11,7 +11,7 @@ import "./ObservationLib.sol";
 /// @title Time-Weighted Average Balance Library
 /// @notice This library allows you to efficiently track a user's historic balance.  You can get a
 /// @author PoolTogether Inc.
-library TwabLibrary {
+library TwabLib {
   using OverflowSafeComparator for uint32;
   using SafeCast for uint256;
 

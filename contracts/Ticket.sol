@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./libraries/OverflowSafeComparator.sol";
-import "./libraries/TwabLibrary.sol";
+import "./libraries/TwabLib.sol";
 import "./interfaces/ITicket.sol";
 import "./ControlledToken.sol";
 
@@ -199,7 +199,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @return The average balance that the user held during the time frame.
   function _getAverageBalanceBetween(ObservationLib.Observation[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint32 _startTime, uint32 _endTime)
     internal view returns (uint256) {
-    return TwabLibrary.getAverageBalanceBetween(
+    return TwabLib.getAverageBalanceBetween(
       _details.cardinality,
       _details.nextTwabIndex,
       _twabs,
@@ -214,7 +214,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function _getBalanceAt(ObservationLib.Observation[MAX_CARDINALITY] storage _twabs, AccountDetails memory _details, uint256 _target)
     internal view returns (uint256) {
-    return TwabLibrary.getBalanceAt(
+    return TwabLib.getBalanceAt(
       _details.cardinality,
       _details.nextTwabIndex,
       _twabs,
@@ -387,7 +387,7 @@ contract Ticket is ControlledToken, ITicket {
     uint16 nextTwabIndex;
     uint16 cardinality;
     AccountDetails memory details = _account.details;
-    (nextTwabIndex, cardinality, twab, isNew) = TwabLibrary.update(
+    (nextTwabIndex, cardinality, twab, isNew) = TwabLib.update(
       details.balance,
       details.nextTwabIndex,
       details.cardinality,
@@ -417,7 +417,7 @@ contract Ticket is ControlledToken, ITicket {
     uint16 cardinality;
     AccountDetails memory details = _account.details;
     require(details.balance >= _amount, _message);
-    (nextTwabIndex, cardinality, twab, isNew) = TwabLibrary.update(
+    (nextTwabIndex, cardinality, twab, isNew) = TwabLib.update(
       details.balance,
       details.nextTwabIndex,
       details.cardinality,

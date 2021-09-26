@@ -2,15 +2,15 @@
 
 pragma solidity 0.8.6;
 
-import "../libraries/TwabLibrary.sol";
+import "../libraries/TwabLib.sol";
 import "../libraries/RingBuffer.sol";
 
 /// @title OverflowSafeComparator library to share comparator functions between contracts
 /// @author PoolTogether Inc.
-contract TwabLibraryExposed {
+contract TwabLibExposed {
   uint16 public constant MAX_CARDINALITY = 65535;
 
-  using TwabLibrary for ObservationLib.Observation[MAX_CARDINALITY];
+  using TwabLib for ObservationLib.Observation[MAX_CARDINALITY];
 
   ObservationLib.Observation[MAX_CARDINALITY] internal twabs;
 
@@ -96,7 +96,7 @@ contract TwabLibraryExposed {
     uint256 _currentBalance,
     uint32 _currentTimestamp
   ) external view returns (ObservationLib.Observation memory) {
-    return TwabLibrary.nextTwab(_currentTwab, _currentBalance, _currentTimestamp);
+    return TwabLib.nextTwab(_currentTwab, _currentBalance, _currentTimestamp);
   }
 
   function calculateNextWithExpiry(
