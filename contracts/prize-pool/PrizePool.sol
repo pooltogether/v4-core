@@ -96,6 +96,11 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   }
 
   /// @inheritdoc IPrizePool
+  function getTicket() external override view returns (IControlledToken) {
+    return ticket;
+  }
+
+  /// @inheritdoc IPrizePool
   function captureAwardBalance() external override nonReentrant returns (uint256) {
     uint256 ticketTotalSupply = _ticketTotalSupply();
 

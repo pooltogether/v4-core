@@ -174,6 +174,10 @@ interface IPrizePool {
   /// @dev Returns the address of the prize pool ticket.
   /// @return The address of the prize pool ticket.
   function ticket() external view returns (IControlledToken);
+  
+  /// @dev Returns the address of the prize pool ticket.
+  /// @return The address of the prize pool ticket.
+  function getTicket() external view returns (IControlledToken);
 
   /// @dev Returns the address of the underlying ERC20 asset
   /// @return The address of the asset
