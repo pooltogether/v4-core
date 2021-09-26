@@ -1,25 +1,93 @@
-# PoolTogether Tsunami Prize Strategy Contracts
+# PoolTogether V4 Strategy Contracts
 
 [![Coverage Status](https://coveralls.io/repos/github/pooltogether/<NAME_OF_NEW_REPO>/badge.svg?branch=master)](https://coveralls.io/github/pooltogether/pooltogether-proxy-factory?branch=master)
 
 ![Tests](https://github.com/pooltogether/pooltogether-contract-tsunami/actions/workflows/main.yml/badge.svg)
 
+*Smart Contracts*
 
-## Tasks
+- [DrawBeacon](pooltogether/pooltogether-contract-tsunami)
+- DrawCalculator
+- DrawHistory
+- DrawPrizes
+- PrizeFlush
+- PrizeSplitStrategy
+- Reserve
 
-### Push Draw
 
-yarn hardhat push-draw [DRAW_HISTORY_ADDRESS] [DRAW_ID] [TIMESTAMP] [WINNING_RANDOM_NUMBER]
-yarn hardhat push-draw 0x4B13F387aBb597ce43f92B9Dd0e8Bc90fd44F5F8 0 1631071104 0101010101
+# Getting Started
 
-### Set Draw Settings
+The project is made available as a NPM package.
 
-The distributions params are defined in `hardhat/drawSettingsDistributions.js` since passing in arrays in the console isn't supported.
+```sh
+$ yarn add @pooltogether/pooltogether-contracts
+```
 
-yarn hardhat push-draw [TSUNAMI_DRAWCALCULATOR_ADDRESS] [DRAW_ID] [BIT_RANGE_SIZE] [MATCH_CARDINAlITY] [PICK_COST] [PRIZE]
-yarn hardhat set-draw-settings 0xEbF30c049645795805bb96F2176767ED889b8e97 0 4 5 1 1
+The repo can be cloned from Github for contributions.
 
-### Deposit To
+```sh
+$ git clone https://github.com/pooltogether/pooltogether-contract-tsunami
+```
 
-yarn hardhat push-draw [PRIZE_POOL_ADDRESS] [TO] [AMOUNT] [CONTROLLED_TOKEN]
-yarn hardhat push-draw 0x4EE4Ac12335450FDE022279Cd9bF3Be33F6b1A59 0x0000000000000000000000000000000000000000 0 0xf298711CbA45926fE7758197a8ef7A877b4A2dDA
+```sh
+$ yarn
+```
+
+```sh$ 
+npm install
+```
+
+We use [direnv](https://direnv.net/) to manage environment variables.  You'll likely need to install it.
+
+```sh
+cp .envrc.example .envrv
+```
+
+To run fork scripts, deploy or perform any operation with a mainnet/testnet node you will need an Infura API key.
+
+# Testing
+
+We use [Hardhat](https://hardhat.dev) and [hardhat-deploy](https://github.com/wighawag/hardhat-deploy)
+
+To run unit & integration tests:
+
+```sh
+$ yarn test
+```
+
+To run coverage:
+
+```sh
+$ yarn coverage
+```
+
+# Fork Testing
+
+Ensure your environment variables are set up.  Make sure your Alchemy URL is set.  Now start a local fork:
+
+```sh
+$ yarn start-fork
+```
+
+Setup account impersonation and transfer eth:
+
+```sh
+$ ./scripts/setup.sh
+```
+
+# Deployment
+
+## Deploy Locally
+
+Start a local node and deploy the top-level contracts:
+
+```bash
+$ yarn start
+```
+
+NOTE: When you run this command it will reset the local blockchain.
+
+
+## Overview
+
+The V4 PoolTogether smart contracts facilitate a "pull" based system to claim interst prize payouts
