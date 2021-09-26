@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 import "./libraries/DrawLib.sol";
-import "./libraries/DrawRingBuffer.sol";
+import "./libraries/DrawRingBufferLib.sol";
 import "./interfaces/IPrizeDistributionHistory.sol";
 
 /**
@@ -15,7 +15,7 @@ import "./interfaces/IPrizeDistributionHistory.sol";
             of 256 or roughly 5 years of history with a weekly draw cadence.
 */
 contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
-  using DrawRingBuffer for DrawRingBuffer.Buffer;
+  using DrawRingBufferLib for DrawRingBufferLib.Buffer;
 
   uint256 internal constant MAX_CARDINALITY = 256;
 
@@ -26,7 +26,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   DrawLib.PrizeDistribution[MAX_CARDINALITY] internal _drawSettingsRingBuffer;
 
   /// @notice Ring buffer data (nextIndex, lastDrawId, cardinality)
-  DrawRingBuffer.Buffer internal drawSettingsRingBufferData;
+  DrawRingBufferLib.Buffer internal drawSettingsRingBufferData;
 
   /* ============ Constructor ============ */
 
@@ -52,7 +52,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
   /// @inheritdoc IPrizeDistributionHistory
   function getDrawSettings(uint32[] calldata _drawIds) external override view returns(DrawLib.PrizeDistribution[] memory) {
-    DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
+    DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
     DrawLib.PrizeDistribution[] memory _drawSettings = new DrawLib.PrizeDistribution[](_drawIds.length);
     for (uint256 i = 0; i < _drawIds.length; i++) {
       _drawSettings[i] = _getDrawSettings(buffer, _drawIds[i]);
@@ -62,13 +62,13 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
   /// @inheritdoc IPrizeDistributionHistory
   function getNewestDrawSettings() external override view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId) {
-    DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
+    DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
     return (_drawSettingsRingBuffer[buffer.getIndex(buffer.lastDrawId)], buffer.lastDrawId);
   }
 
   /// @inheritdoc IPrizeDistributionHistory
   function getOldestDrawSettings() external override view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId) {
-    DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
+    DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
     drawSettings = _drawSettingsRingBuffer[buffer.nextIndex];
     
     // IF the next DrawSettings.bitRangeSize == 0 the ring buffer HAS NOT looped around.
@@ -80,7 +80,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
       drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
     } else {
       // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
-      // Sequential "guaranteedness" is handled in DrawRingBufferLib.push()
+      // Sequential "guaranteedness" is handled in DrawRingBufferLibLib.push()
       drawId = (buffer.lastDrawId + 1) - buffer.cardinality; // 4 + 1 - 3 = 2 | [4,2,3]
     }
   }
@@ -92,7 +92,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
   /// @inheritdoc IPrizeDistributionHistory
   function setDrawSetting(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) external override onlyOwner returns (uint32) {
-    DrawRingBuffer.Buffer memory buffer = drawSettingsRingBufferData;
+    DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
     uint32 index = buffer.getIndex(_drawId);
     _drawSettingsRingBuffer[index] = _drawSettings;
     emit DrawSettingsSet(_drawId, _drawSettings);
@@ -104,11 +104,11 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   
   /**
     * @notice Gets the PrizeDistributionHistorySettings for a Draw.drawID
-    * @param _drawSettingsRingBufferData DrawRingBuffer.Buffer
+    * @param _drawSettingsRingBufferData DrawRingBufferLib.Buffer
     * @param drawId Draw.drawId
    */
   function _getDrawSettings(
-    DrawRingBuffer.Buffer memory _drawSettingsRingBufferData,
+    DrawRingBufferLib.Buffer memory _drawSettingsRingBufferData,
     uint32 drawId
   ) internal view returns (DrawLib.PrizeDistribution memory) {
     return _drawSettingsRingBuffer[_drawSettingsRingBufferData.getIndex(drawId)];
@@ -137,7 +137,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     // Each distribution amount stored as uint32 - summed can't exceed 1e9
     require(sumTotalDistributions <= DISTRIUBTION_CEILING, "DrawCalc/distributions-gt-100%");
 
-    DrawRingBuffer.Buffer memory _drawSettingsRingBufferData = drawSettingsRingBufferData;
+    DrawRingBufferLib.Buffer memory _drawSettingsRingBufferData = drawSettingsRingBufferData;
     _drawSettingsRingBuffer[_drawSettingsRingBufferData.nextIndex] = _drawSettings;
     drawSettingsRingBufferData = drawSettingsRingBufferData.push(_drawId);
 

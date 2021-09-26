@@ -6,7 +6,7 @@ import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./DrawPrizes.sol";
 import "./libraries/DrawLib.sol";
-import "./libraries/DrawRingBuffer.sol";
+import "./libraries/DrawRingBufferLib.sol";
 import "./PrizeDistributionHistory.sol";
 
 /**

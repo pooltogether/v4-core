@@ -5,7 +5,7 @@ pragma solidity 0.8.6;
 import "./RingBuffer.sol";
 
 /// @title Library for creating and managing a draw ring buffer.
-library DrawRingBuffer {
+library DrawRingBufferLib {
 
   /// @notice Draw buffer struct.
   struct Buffer {

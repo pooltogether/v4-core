@@ -21,16 +21,16 @@ interface IReserve {
   /**
     * @notice Calculate token accumulation beween timestamp range.
     * @dev    Search the ring buffer for two checkpoint observations and diffs accumulator amount. 
-    * @param _startTimestamp Account address 
-    * @param _endTimestamp   Transfer amount
+    * @param startTimestamp Account address 
+    * @param endTimestamp   Transfer amount
     */
   function getReserveAccumulatedBetween(uint32 startTimestamp, uint32 endTimestamp) external returns (uint224);
 
   /**
     * @notice Transfer Reserve token balance to recipient address.
     * @dev    Creates checkpoint before token transfer. Increments withdrawAccumulator with amount.
-    * @param _recipient Account address 
-    * @param _amount    Transfer amount
+    * @param recipient Account address 
+    * @param amount    Transfer amount
   */
   function withdrawTo(address recipient, uint256 amount) external;
 }

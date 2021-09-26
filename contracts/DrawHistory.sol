@@ -6,7 +6,7 @@ import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
-import "./libraries/DrawRingBuffer.sol";
+import "./libraries/DrawRingBufferLib.sol";
 
 /**
   * @title  PoolTogether V4 DrawHistory
@@ -20,7 +20,7 @@ import "./libraries/DrawRingBuffer.sol";
             duplicating the mainnet Draw configuration - enabling a prize savings liquidity network.
 */
 contract DrawHistory is IDrawHistory, Manageable {
-  using DrawRingBuffer for DrawRingBuffer.Buffer;
+  using DrawRingBufferLib for DrawRingBufferLib.Buffer;
 
   /// @notice Draws ring buffer max length.
   uint16 public constant MAX_CARDINALITY = 256;
@@ -29,7 +29,7 @@ contract DrawHistory is IDrawHistory, Manageable {
   DrawLib.Draw[MAX_CARDINALITY] private _draws;
 
   /// @notice Holds ring buffer information
-  DrawRingBuffer.Buffer internal drawRingBuffer;
+  DrawRingBufferLib.Buffer internal drawRingBuffer;
 
   /* ============ Deploy ============ */
 
@@ -55,7 +55,7 @@ contract DrawHistory is IDrawHistory, Manageable {
   /// @inheritdoc IDrawHistory
   function getDraws(uint32[] calldata drawIds) external view override returns(DrawLib.Draw[] memory) {
     DrawLib.Draw[] memory draws = new DrawLib.Draw[](drawIds.length);
-    DrawRingBuffer.Buffer memory buffer = drawRingBuffer;
+    DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
     for (uint256 index = 0; index < drawIds.length; index++) {
       draws[index] = _draws[_drawIdToDrawIndex(buffer, drawIds[index])];
     }
@@ -70,7 +70,7 @@ contract DrawHistory is IDrawHistory, Manageable {
   /// @inheritdoc IDrawHistory
   function getOldestDraw() external view override returns (DrawLib.Draw memory) {
     // oldest draw should be next available index, otherwise it's at 0
-    DrawRingBuffer.Buffer memory buffer = drawRingBuffer;
+    DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
     DrawLib.Draw memory draw = _draws[buffer.nextIndex];
     if (draw.timestamp == 0) { // if draw is not init, then use draw at 0
       draw = _draws[0];
@@ -85,7 +85,7 @@ contract DrawHistory is IDrawHistory, Manageable {
 
   /// @inheritdoc IDrawHistory
   function setDraw(DrawLib.Draw memory _newDraw) external override onlyOwner returns (uint32) {
-    DrawRingBuffer.Buffer memory buffer = drawRingBuffer;
+    DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
     uint32 index = buffer.getIndex(_newDraw.drawId);
     _draws[index] = _newDraw;
     emit DrawSet(_newDraw.drawId, _newDraw);
@@ -100,7 +100,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     * @param _drawId Draw.drawId
     * @return Draws ring buffer index pointer
   */
-  function _drawIdToDrawIndex(DrawRingBuffer.Buffer memory _buffer, uint32 _drawId) internal view returns (uint32) {
+  function _drawIdToDrawIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) internal view returns (uint32) {
     return _buffer.getIndex(_drawId);
   }
 
@@ -110,7 +110,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     * @param _buffer Draw ring buffer
     * @return DrawLib.Draw
   */
-  function _getNewestDraw(DrawRingBuffer.Buffer memory _buffer) internal view returns (DrawLib.Draw memory) {
+  function _getNewestDraw(DrawRingBufferLib.Buffer memory _buffer) internal view returns (DrawLib.Draw memory) {
     return _draws[_buffer.getIndex(_buffer.lastDrawId)];
   }
 
@@ -121,7 +121,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     * @return Draw.drawId
   */
   function _pushDraw(DrawLib.Draw memory _newDraw) internal returns (uint32) {
-    DrawRingBuffer.Buffer memory _buffer = drawRingBuffer;
+    DrawRingBufferLib.Buffer memory _buffer = drawRingBuffer;
     _draws[_buffer.nextIndex] = _newDraw;
     drawRingBuffer = _buffer.push(_newDraw.drawId);
     emit DrawSet(_newDraw.drawId, _newDraw);
