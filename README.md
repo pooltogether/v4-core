@@ -6,7 +6,7 @@
 
 *Smart Contracts*
 
-- [DrawBeacon](pooltogether/pooltogether-contract-tsunami)
+- [DrawBeacon](/contracts/DrawBeacon.sol)
 - DrawCalculator
 - DrawHistory
 - DrawPrizes
