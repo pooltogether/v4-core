@@ -70,6 +70,7 @@ contract PrizeFlush is IPrizeFlush, Manageable {
   function setDestination(address _destination) external onlyOwner override returns (address) {
     require(_destination != address(0), "Flush/destination-not-zero-address");
     destination = _destination;
+    emit DestinationSet(_destination);
     return _destination;
   }
   
@@ -77,6 +78,7 @@ contract PrizeFlush is IPrizeFlush, Manageable {
   function setReserve(IReserve _reserve) external override onlyOwner returns (IReserve) {
     require(address(_reserve) != address(0), "Flush/reserve-not-zero-address");
     reserve = _reserve;
+    emit ReserveSet(_reserve);
     return reserve;
   }
 
@@ -84,6 +86,7 @@ contract PrizeFlush is IPrizeFlush, Manageable {
   function setStrategy(IStrategy _strategy) external override onlyOwner returns (IStrategy) {
     require(address(_strategy) != address(0), "Flush/strategy-not-zero-address");
     strategy = _strategy;
+    emit StrategySet(_strategy);
     return _strategy;
   }
   

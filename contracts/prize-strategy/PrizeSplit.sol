@@ -6,7 +6,7 @@ import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 /**
   * @title Abstract prize split contract for adding unique award distribution to static addresses.
-  * @author Kames Geraghty (PoolTogether Inc)
+  * @author PoolTogether Inc Team
 */
 abstract contract PrizeSplit is Ownable {
 

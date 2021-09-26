@@ -14,7 +14,7 @@ describe('DrawRingBufferLibLib', () => {
 
   before(async () => {
     [wallet1, wallet2] = await getSigners();
-    DrawRingBufferLibLibFactory = await ethers.getContractFactory('DrawRingBufferLibLibHarness');
+    DrawRingBufferLibLibFactory = await ethers.getContractFactory('DrawRingBufferLibHarness');
   })
 
   beforeEach(async () => {
