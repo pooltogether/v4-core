@@ -10,6 +10,7 @@
 [![<PoolTogether>](https://circleci.com/gh/pooltogether/pooltogether-pool-contracts.svg?style=shield)](https://circleci.com/gh/pooltogether/pooltogether-contract-tsunami)
 [![Coverage Status](https://coveralls.io/repos/github/pooltogether/pooltogether-contract-tsunami/badge.svg?branch=master)](https://coveralls.io/github/pooltogether/pooltogether-contract-tsunami?branch=master)
 [![built-with openzeppelin](https://img.shields.io/badge/built%20with-OpenZeppelin-3677FF)](https://docs.openzeppelin.com/)
+[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
 
 <strong>Have questions or want the latest news?</strong>
 <br/>Join the PoolTogether Discord or follow us on Twitter:
@@ -18,7 +19,7 @@
 [![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com)
 
 **Documention**<br>
-https://docs.pooltogether.com/
+https://docs.pooltogether.com
 
 **Deplyoments**<br>
 - [Ethereum](https://docs.pooltogether.com/resources/networks/ethereum)
