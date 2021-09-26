@@ -1,18 +1,42 @@
+<p align="center">
+  <a href="https://github.com/pooltogether/pooltogether--brand-assets">
+    <img src="/banner.png" alt="PoolTogether Brand" style="max-width:100%;" width="1000">
+  </a>
+</p>
+
 # PoolTogether V4 Strategy Contracts
 
-[![Coverage Status](https://coveralls.io/repos/github/pooltogether/<NAME_OF_NEW_REPO>/badge.svg?branch=master)](https://coveralls.io/github/pooltogether/pooltogether-proxy-factory?branch=master)
 
-![Tests](https://github.com/pooltogether/pooltogether-contract-tsunami/actions/workflows/main.yml/badge.svg)
+[![<PoolTogether>](https://circleci.com/gh/pooltogether/pooltogether-pool-contracts.svg?style=shield)](https://circleci.com/gh/pooltogether/pooltogether-contract-tsunami)
+[![Coverage Status](https://coveralls.io/repos/github/pooltogether/pooltogether-contract-tsunami/badge.svg?branch=master)](https://coveralls.io/github/pooltogether/pooltogether-contract-tsunami?branch=master)
+[![built-with openzeppelin](https://img.shields.io/badge/built%20with-OpenZeppelin-3677FF)](https://docs.openzeppelin.com/)
 
-*Smart Contracts*
+<strong>Have questions or want the latest news?</strong>
+<br/>Join the PoolTogether Discord or follow us on Twitter:
 
+[![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/JFBPMxv5tr)
+[![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com)
+
+**Documention**<br>
+https://docs.pooltogether.com/
+
+**Deplyoments**<br>
+- [Ethereum](https://docs.pooltogether.com/resources/networks/ethereum)
+- [Matic](https://docs.pooltogether.com/resources/networks/matic)
+
+# Overview
 - [DrawBeacon](/contracts/DrawBeacon.sol)
-- DrawCalculator
-- DrawHistory
-- DrawPrizes
-- PrizeFlush
-- PrizeSplitStrategy
-- Reserve
+- [DrawCalculator](/contracts/DrawCalculator.sol)
+- [DrawHistory](/contracts/DrawHistory.sol)
+- [DrawPrizes](/contracts/DrawPrizes.sol)
+- [PrizeFlush](/contracts/PrizeFlush.sol)
+- [PrizeSplitStrategy](/contracts/PrizeSplitStrategy.sol)
+- [Reserve](/contracts/Reserve.sol)
+
+Periphery and supporting contracts:
+
+- https://github.com/pooltogether/v4-periphery
+- https://github.com/pooltogether/v4-oracle-timelocks
 
 
 # Getting Started
