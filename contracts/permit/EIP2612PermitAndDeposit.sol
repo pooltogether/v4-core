@@ -8,8 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../interfaces/IPrizePool.sol";
 
-import "hardhat/console.sol";
-
 /// @title Allows users to approve and deposit EIP-2612 compatible tokens into a prize pool in a single transaction.
 contract EIP2612PermitAndDeposit {
   using SafeERC20 for IERC20;
