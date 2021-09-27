@@ -1,7 +1,7 @@
 {
-  "name": "@pooltogether/pooltogether-contracts-tsunami",
+  "name": "@pooltogether/v4-core",
   "version": "1.0.0-beta.1",
-  "description": "PoolTogether Tsunami Smart Contracts",
+  "description": "PoolTogether V4 Core Smart Contracts",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
