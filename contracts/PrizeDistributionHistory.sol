@@ -19,7 +19,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
   uint256 internal constant MAX_CARDINALITY = 256;
 
-  uint256 internal constant DISTRIUBTION_CEILING = 1e9;
+  uint256 internal constant DISTRIBUTION_CEILING = 1e9;
   event Deployed(uint8 cardinality);
 
   /// @notice DrawSettings ring buffer history.
@@ -120,22 +120,28 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     * @param _drawSettings PrizeDistributionHistorySettings struct
    */
   function _pushDrawSettings(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) internal returns (bool) {
-    uint256 distributionsLength = _drawSettings.distributions.length;
-
+    
     require(_drawId > 0, "DrawCalc/draw-id-gt-0");
-    require(_drawSettings.matchCardinality >= distributionsLength, "DrawCalc/matchCardinality-gte-distributions");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
     require(_drawSettings.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
 
     // ensure that the distributions are not gt 100%
     uint256 sumTotalDistributions = 0;
+    uint256 nonZeroDistributions = 0;
+    uint256 distributionsLength = _drawSettings.distributions.length;
+
     for(uint256 index = 0; index < distributionsLength; index++){
       sumTotalDistributions += _drawSettings.distributions[index];
+      if(_drawSettings.distributions[index] > 0){
+        nonZeroDistributions++;
+      }
     }
 
     // Each distribution amount stored as uint32 - summed can't exceed 1e9
-    require(sumTotalDistributions <= DISTRIUBTION_CEILING, "DrawCalc/distributions-gt-100%");
+    require(sumTotalDistributions <= DISTRIBUTION_CEILING, "DrawCalc/distributions-gt-100%");
+
+    require(_drawSettings.matchCardinality >= nonZeroDistributions, "DrawCalc/matchCardinality-gte-distributions");
 
     DrawRingBufferLib.Buffer memory _drawSettingsRingBufferData = drawSettingsRingBufferData;
     _drawSettingsRingBuffer[_drawSettingsRingBufferData.nextIndex] = _drawSettings;

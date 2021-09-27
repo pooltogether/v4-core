@@ -3,6 +3,7 @@ import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
 import { Draw, DrawCalculatorSettings } from './types';
+import { fillDrawSettingsDistributionsWithZeros } from './helpers/fillDrawSettingsDistributionsWithZeros';
 
 const { getSigners } = ethers;
 
@@ -42,14 +43,6 @@ function calculateNumberOfWinnersAtIndex(bitRangeSize: number, distributionIndex
 function modifyTimestampsWithOffset(timestamps: number[], offset: number): number[] {
   return timestamps.map((timestamp: number) => timestamp - offset);
 }
-
-
-function fillDrawSettingsDistributionsWithZeroes(distributions: BigNumber[]): BigNumber[]{
-  const existingLength = distributions.length
-  const lengthOfZeroesRequired = 16 - existingLength
-  return [...distributions, ...Array(lengthOfZeroesRequired).fill(BigNumber.from(0))]
-}
-
 
 describe('DrawCalculator', () => {
   let drawCalculator: Contract;
@@ -124,7 +117,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings])
     })
 
@@ -211,7 +204,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       const winningRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70"
@@ -237,7 +230,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       // 252: 1111 1100
       // 255  1111 1111
 
@@ -267,7 +260,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       // 527: 0010 0000 1111
       // 271  0001 0000 1111
 
@@ -300,7 +293,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       expect(bitMasks[0]).to.eq(BigNumber.from(63)) // 111111
       expect(bitMasks[1]).to.eq(BigNumber.from(4032)) // 11111100000
@@ -323,7 +316,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       expect(bitMasks[0]).to.eq(BigNumber.from(15)) // 1111
       expect(bitMasks[1]).to.eq(BigNumber.from(240)) // 11110000
@@ -366,7 +359,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const normalizedUsersBalance = utils.parseEther("0.05") // has 5% of the total supply
       const userPicks = await drawCalculator.calculateNumberOfUserPicks(drawSettings, normalizedUsersBalance)
       expect(userPicks).to.eq(BigNumber.from(5))
@@ -387,7 +380,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const normalizedUsersBalance = utils.parseEther("0.1") // has 10% of the total supply
       const userPicks = await drawCalculator.calculateNumberOfUserPicks(drawSettings, normalizedUsersBalance)
       expect(userPicks).to.eq(BigNumber.from(10000)) // 10% of numberOfPicks
@@ -410,7 +403,7 @@ describe('DrawCalculator', () => {
       endTimestampOffset: BigNumber.from(1),
       maxPicksPerUser: BigNumber.from(10),
     };
-    drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+    drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
     it("calculates the grand prize distribution index", async () => {
       const timestamps = [42]
@@ -505,7 +498,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
@@ -551,7 +544,7 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
       const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
@@ -590,6 +583,8 @@ describe('DrawCalculator', () => {
         endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
+
       const draw1: Draw = newDraw({
         drawId: BigNumber.from(1),
         winningRandomNumber: BigNumber.from("1000"),
@@ -633,7 +628,7 @@ describe('DrawCalculator', () => {
           endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001),
         };
-        drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+        drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
         await drawSettingsHistory.mock.getDrawSettings.withArgs([1]).returns([drawSettings])
       })
 
@@ -759,7 +754,7 @@ describe('DrawCalculator', () => {
           endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001),
         };
-        drawSettings2.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+        drawSettings2.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
         debug(`pushing settings for draw 2...`)
 
@@ -817,7 +812,7 @@ describe('DrawCalculator', () => {
           endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001),
         };
-        drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+        drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
         const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
         const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
@@ -869,7 +864,7 @@ describe('DrawCalculator', () => {
           endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(2),
         };
-        drawSettings.distributions = fillDrawSettingsDistributionsWithZeroes(drawSettings.distributions)
+        drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
         const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
         const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 

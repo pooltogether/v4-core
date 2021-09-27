@@ -1,5 +1,6 @@
 const { PoolEnv } = require('./support/PoolEnv');
 const ethers = require('ethers');
+const {fillDrawSettingsDistributionsWithZeros} = require('../helpers/fillDrawSettingsDistributionsWithZeros')
 
 const toWei = (val) => ethers.utils.parseEther('' + val);
 
@@ -23,6 +24,7 @@ describe('Oracle jobs', () => {
     matchCardinality = 2;
     numberOfPicks = toWei(1);
     distributions = [ethers.utils.parseUnits('1', 9)];
+    distributions = fillDrawSettingsDistributionsWithZeros(distributions)
     prize = toWei(10);
     startTimestampOffset = 1;
     endTimestampOffset = 2;
