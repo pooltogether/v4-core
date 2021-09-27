@@ -267,7 +267,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     require(picksLength <= _drawSettings.maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
 
     // for each pick find number of matching numbers and calculate prize distribution index
-    for(uint256 index = 0; index < picksLength; index++){
+    for(uint64 index = 0; index < picksLength; index++){
       // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
       require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
@@ -284,7 +284,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
     // now calculate prizeFraction given prize counts
     uint256 prizeFraction = 0;
-    for(uint256 prizeCountIndex = 0; prizeCountIndex <= maxWinningDistributionIndex; prizeCountIndex++) {
+    for(uint64 prizeCountIndex = 0; prizeCountIndex <= maxWinningDistributionIndex; prizeCountIndex++) {
       if(prizeCounts[prizeCountIndex] > 0) {
         prizeFraction += _calculatePrizeDistributionFraction(_drawSettings, prizeCountIndex) * prizeCounts[prizeCountIndex];
       }
