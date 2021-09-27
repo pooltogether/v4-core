@@ -64,12 +64,15 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
   /* ============ External Functions ============ */
 
-  /// @inheritdoc IDrawCalculator
-  function calculate(
-    address _user, uint32[] calldata _drawIds, 
-    bytes calldata _pickIndicesForDraws
-  ) external override view returns (uint256[] memory) {
-    uint256[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint256 [][]));
+  ///@notice Calulates the prize amount for a user for Multiple Draws. Typically called by a DrawPrizes.
+  ///@param _user User for which to calcualte prize amount
+  ///@param _drawIds draw array for which to calculate prize amounts for
+  ///@param _pickIndicesForDraws The encoded pick indices for all Draws. Expected to be just indices of winning claims. Populated values must be less than totalUserPicks.
+  ///@return An array of amount of prizes awardable
+  function calculate(address _user, uint32[] calldata _drawIds, bytes calldata _pickIndicesForDraws)
+    external override view returns (uint256[] memory)
+  {
+    uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
     require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
 
@@ -124,12 +127,13 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     return _getNormalizedBalancesAt(_user, _draws, _drawSettings);
   }
 
-  /// @inheritdoc IDrawCalculator
-  function checkPrizeDistributionIndicesForDrawId(
-    address _user, 
-    uint256[] calldata _pickIndices, 
-    uint32 _drawId
-  ) external view override returns(PickPrize[] memory) {
+  ///@notice Returns the distribution index for a users pickIndices for a draw
+  ///@param _user The user for which to calculate the distribution indices
+  ///@param _pickIndices The users pick indices for a draw
+  ///@param _drawId The draw for which to calculate the distribution indices
+  function checkPrizeDistributionIndicesForDrawId(address _user, uint64[] calldata _pickIndices, uint32 _drawId) 
+    external view returns(PickPrize[] memory)
+  {
     uint32[] memory drawIds = new uint32[](1);
     drawIds[0] = _drawId;
 
@@ -171,22 +175,15 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     emit DrawHistorySet(_drawHistory);
   }
 
-  /**
-    * @notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
-    * @param _normalizedUserBalances User TWABs for each draw settings perods
-    * @param _userRandomNumber       Random number of the user to consider over draws
-    * @param _draws                  Draws
-    * @param _pickIndicesForDraws    Pick indices for each Draw
-    * @param _drawSettings           DrawCalculatorSettings for each Draw
-    * @return Awardable prizes list
-  */
-  function _calculatePrizesAwardable(
-    uint256[] memory _normalizedUserBalances, 
-    bytes32 _userRandomNumber,
-    DrawLib.Draw[] memory _draws, 
-    uint256[][] memory _pickIndicesForDraws, 
-    DrawLib.PrizeDistribution[] memory _drawSettings
-  ) internal view returns (uint256[] memory)
+  ///@notice Calculates the prizes awardable foe each Draw passed. Called by calculate()
+  ///@param _normalizedUserBalances Number of picks the user has for each Draw
+  ///@param _userRandomNumber Random number of the user to consider over draws
+  ///@param _draws Draws
+  ///@param _pickIndicesForDraws Pick indices for each Draw
+  ///@param _drawSettings DrawCalculatorSettings for each Draw
+  function _calculatePrizesAwardable(uint256[] memory _normalizedUserBalances, bytes32 _userRandomNumber,
+    DrawLib.Draw[] memory _draws, uint64[][] memory _pickIndicesForDraws, DrawLib.PrizeDistribution[] memory _drawSettings)
+    internal view returns (uint256[] memory)
    {
     uint256[] memory prizesAwardable = new uint256[](_normalizedUserBalances.length);
     // calculate prizes awardable for each Draw passed
@@ -239,16 +236,16 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     return normalizedBalances;
   }
 
-  /**
-    * @notice calculates the prize amount per Draw per users pick
-    * @param _winningRandomNumber The Draw's winningRandomNumber
-    * @param _totalUserPicks      The number of picks the user gets for the Draw
-    * @param _userRandomNumber    The users randomNumber for that draw
-    * @param _picks               The users picks for that draw
-    * @param _drawSettings        DrawLib.PrizeDistribution
-    * @return prize (if any) per Draw claim
-  */
-  function _calculate(uint256 _winningRandomNumber, uint256 _totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.PrizeDistribution memory _drawSettings)
+
+  ///@notice calculates the prize amount per Draw per users pick
+  ///@param _winningRandomNumber The Draw's winningRandomNumber
+  ///@param totalUserPicks The number of picks the user gets for the Draw
+  ///@param _userRandomNumber the users randomNumber for that draw
+  ///@param _picks The users picks for that draw
+  ///@param _drawSettings Params with the associated draw
+  ///@return prize (if any) per Draw claim
+  function _calculate(uint256 _winningRandomNumber, uint256 totalUserPicks, bytes32 _userRandomNumber, uint64[] memory _picks,
+   DrawLib.PrizeDistribution memory _drawSettings)
     internal view returns (uint256)
   {
 
