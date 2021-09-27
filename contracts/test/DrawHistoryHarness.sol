@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-
 import "../DrawHistory.sol";
 import "../libraries/DrawLib.sol";
 

@@ -48,20 +48,70 @@ describe('PrizeFlush', () => {
     await reserve.setManager(prizeFlush.address)
   });
 
+  describe('Getters', () => {
+    it('should get the destination address', async () => {
+      await expect(await prizeFlush.getDestination())
+        .to.equal(DESTINATION)
+    })
+    it('should get the strategy address', async () => {
+      await expect(await prizeFlush.getStrategy())
+        .to.equal(strategy.address)
+    })
+    it('should get the reserve address', async () => {
+      await expect(await prizeFlush.getReserve())
+        .to.equal(reserve.address)
+    })
+  })
 
-  describe('flush()', () => {
-    it('should fail to withdrawTo if negative balance on reserve', async () => {
-      await strategy.mock.distribute.returns(toWei('0'))
-      await expect(prizeFlush.flush())
-        .to.not.emit(prizeFlush, 'Flushed')
+  describe('Setters', () => {
+    it('should fail to set the destination address', async () => {
+      await expect(prizeFlush.connect(wallet3).setDestination(wallet3.address))
+        .to.revertedWith('Ownable/caller-not-owner')
     })
 
-    it('should flush prizes if positive balance on reserve.', async () => {
-      await strategy.mock.distribute.returns(toWei('100'))
-      await ticket.mint(reserve.address, toWei('100'))
-      await expect(prizeFlush.flush())
-        .to.emit(prizeFlush, 'Flushed')
-        .and.to.emit(reserve, 'Withdrawn')
+    it('should set the destination address', async () => {
+      await expect(prizeFlush.setDestination(wallet3.address))
+        .to.emit(prizeFlush, 'DestinationSet')
+    })
+
+    it('should fail to set the strategy address', async () => {
+      await expect(prizeFlush.connect(wallet3).setStrategy(wallet3.address))
+        .to.revertedWith('Ownable/caller-not-owner')
+    })
+
+    it('should set the strategy address', async () => {
+      await expect(prizeFlush.setStrategy(wallet3.address))
+        .to.emit(prizeFlush, 'StrategySet')
+    })
+
+    it('should fail to set the reserve address', async () => {
+      await expect(prizeFlush.connect(wallet3).setReserve(wallet3.address))
+        .to.revertedWith('Ownable/caller-not-owner')
+    })
+
+    it('should set the reserve address', async () => {
+      await strategy.mock.distribute.returns(toWei('0'))
+      await expect(prizeFlush.setReserve(wallet3.address))
+        .to.emit(prizeFlush, 'ReserveSet')
+    })
+  })
+
+
+  describe('Core', () => {
+    describe('flush()', () => {
+      it('should fail to call withdrawTo if zero balance on reserve', async () => {
+        await strategy.mock.distribute.returns(toWei('0'))
+        await expect(prizeFlush.flush())
+          .to.not.emit(prizeFlush, 'Flushed')
+      })
+
+      it('should succeed to call withdrawTo prizes if positive balance on reserve.', async () => {
+        await strategy.mock.distribute.returns(toWei('100'))
+        await ticket.mint(reserve.address, toWei('100'))
+        await expect(prizeFlush.flush())
+          .to.emit(prizeFlush, 'Flushed')
+          .and.to.emit(reserve, 'Withdrawn')
+      })
     })
   })
 })

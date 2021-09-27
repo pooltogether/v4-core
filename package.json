@@ -3,7 +3,7 @@
   "version": "1.0.0-beta.1",
   "description": "PoolTogether V4 Core Smart Contracts",
   "main": "index.js",
-  "license": "MIT",
+  "license": "GPL-3",
   "scripts": {
     "clean": "rm -rf cache/ artifacts/",
     "docs": "solidity-docgen --solc-module solc -i contracts -o docs -t templates",
@@ -30,7 +30,6 @@
     "@openzeppelin/contracts": "^4.3.1",
     "@pooltogether/fixed-point": "1.0.0",
     "@pooltogether/owner-manager-contracts": "1.1.0",
-    "@pooltogether/pooltogether-contracts": "3.4.4",
     "@pooltogether/pooltogether-rng-contracts": "1.4.0",
     "@pooltogether/yield-source-interface": "1.0.2",
     "deploy-eip-1820": "1.0.0"

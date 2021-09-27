@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
+import "./interfaces/IStrategy.sol";
 import "./interfaces/IPrizePool.sol";
 import "./prize-strategy/PrizeSplit.sol";
 
@@ -13,43 +14,21 @@ import "./prize-strategy/PrizeSplit.sol";
             iterations, interest can be captured independent of a new Draw. Ideally (to save gas) interest
             is only captured when also distributing the captured prize(s) to applicable ClaimbableDraw(s).
 */
-contract PrizeSplitStrategy is PrizeSplit {
+contract PrizeSplitStrategy is PrizeSplit, IStrategy {
 
   /**
     * @notice PrizePool address
   */
   IPrizePool public prizePool;
 
-  /* ============ Events ============ */
-
-  /**
-    * @notice Emit when a strategy captures award amount from PrizePool.
-    * @param totalPrizeCaptured  Total prize captured from the PrizePool
-  */
-  event Distributed(
-    uint256 totalPrizeCaptured
-  );
-
-  /**
-    * @notice Emit when an individual prize split is awarded.
-    * @param user          User address being awarded
-    * @param prizeAwarded  Awarded prize amount
-    * @param token         Token address
-  */
-  event PrizeSplitAwarded(
-    address indexed user,
-    uint256 prizeAwarded,
-    IControlledToken indexed token
-  );
-
-  /* ============ Deploy ============ */
+  /* ============ Constructor ============ */
 
   /**
     * @notice Deploy the PrizeSplitStrategy smart contract.
-    * @param _owner Address of the PrizeSplitStrategy owner
-    * @param _prizePool PrizePool contract address
+    * @param _owner     Owner address
+    * @param _prizePool PrizePool address
   */
-  constructor(
+  constructor (
     address _owner,
     IPrizePool _prizePool
   ) Ownable(_owner) {
@@ -58,14 +37,9 @@ contract PrizeSplitStrategy is PrizeSplit {
   }
 
   /* ============ External Functions ============ */
-
-  /**
-    * @notice Capture the award balance and distribute to prize splits.
-    * @dev    Can be executed by any wallet at any time. Optimal executation (minimal wasted gas)
-              is coordination when pushing Draw(s) to DrawHistory to cover upcoming prize distribution.
-    * @return Prize captured from PrizePool
-  */
-  function distribute() external returns (uint256) {
+  
+  /// @inheritdoc IStrategy
+  function distribute() external override returns (uint256) {
     uint256 prize = prizePool.captureAwardBalance();
     _distributePrizeSplits(prize);
     emit Distributed(prize);

@@ -1,20 +1,17 @@
-// SPDX-License-Identifier: GPL-3.0
-
+// SPDX-License-Identifier: GPL-3.0import "./ExtendedSafeCast.sol";
 pragma solidity 0.8.6;
-
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 import "./ExtendedSafeCast.sol";
 import "./OverflowSafeComparator.sol";
 import "./RingBuffer.sol";
 import "./ObservationLib.sol";
 
 /// @title Time-Weighted Average Balance Library
-/// @notice This library allows you to track a historic balance using time-weighted observations.
+/// @notice This library allows you to efficiently track a user's historic balance.  You can get a
 /// @author PoolTogether Inc.
-library TwabLibrary {
-  using OverflowSafeComparator for uint32;
-  using ExtendedSafeCast for uint256;
+library TwabLib {
+   using OverflowSafeComparator for uint32;
+    using ExtendedSafeCast for uint256;
 
   /// @notice The maximum number of twab entries
   uint24 public constant MAX_CARDINALITY = 16777215; // 2**24
@@ -279,26 +276,18 @@ library TwabLibrary {
     uint24 cardinality = _accountDetails.cardinality > 0 ? _accountDetails.cardinality : 1;
 /*
     TTL: 100
-
     Example 1:
       next twab timestamp: 100
-
       existing twab timestamps:
       0: 10
       1: 90
-
       we should not eliminate 0 or else the history will be 10 seconds long
-
     Example 2:
-
       next twab timestamp: 105
-
       existing twab timestamps
       0: 1
       1: 5
-
       We can eliminate 0, because the history will be 100 seconds long
-
     Q: when do we eliminate the oldest twab?
     A: when current time - second oldest twab >= time to live
     */
