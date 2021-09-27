@@ -3,6 +3,8 @@ import { ethers } from 'hardhat';
 import { BigNumber, constants, Contract, ContractFactory } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { DrawCalculatorSettings } from './types';
+import { fillDrawSettingsDistributionsWithZeros } from './helpers/fillDrawSettingsDistributionsWithZeros';
+
 const { getSigners } = ethers;
 
 describe('PrizeDistributionHistory', () => {
@@ -22,10 +24,11 @@ describe('PrizeDistributionHistory', () => {
     distributions: [ethers.utils.parseUnits('0.5', 9)],
     bitRangeSize: BigNumber.from(3),
     prize: ethers.utils.parseEther('100'),
-    startOffsetTimestamp: BigNumber.from(0),
-    endOffsetTimestamp: BigNumber.from(3600),
+    startTimestampOffset: BigNumber.from(0),
+    endTimestampOffset: BigNumber.from(3600),
     maxPicksPerUser: BigNumber.from(10)
   }
+  drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
   function newDrawSettings(cardinality: number = 5): any {
     return {
@@ -44,6 +47,7 @@ describe('PrizeDistributionHistory', () => {
     );
 
     drawSettingsHistory = await drawSettingsHistoryFactory.deploy(wallet1.address, 3);
+    drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
     await drawSettingsHistory.setManager(wallet1.address);
   });
 
@@ -127,10 +131,11 @@ describe('PrizeDistributionHistory', () => {
           numberOfPicks: BigNumber.from("100"),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('1'),
-          startOffsetTimestamp: BigNumber.from(1),
-          endOffsetTimestamp: BigNumber.from(1),
+          startTimestampOffset: BigNumber.from(1),
+          endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001)
         };
+        drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       })
 
       it('should require a sane cardinality', async () => {

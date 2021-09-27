@@ -3,6 +3,7 @@ import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
 import { Draw, DrawCalculatorSettings } from './types';
+import { fillDrawSettingsDistributionsWithZeros } from './helpers/fillDrawSettingsDistributionsWithZeros';
 
 const { getSigners } = ethers;
 
@@ -29,21 +30,19 @@ export async function deployDrawCalculator(signer: any, ticketAddress: string, d
   return drawCalculator;
 }
 
-function calculateNumberOfWinnersAtIndex(bitRangeSize: number, distributionIndex: number): number {
+function calculateNumberOfWinnersAtIndex(bitRangeSize: number, distributionIndex: number): BigNumber {
   // Prize Count = (2**bitRange)**(cardinality-numberOfMatches)
   // if not grand prize: - (2^bitRange)**(cardinality-numberOfMatches-1)
-
-  let prizeCount = ((2 ** bitRangeSize) ** (distributionIndex))
+  let prizeCount = BigNumber.from(2).pow(bitRangeSize).pow(distributionIndex)
   if (distributionIndex > 0) {
-    prizeCount -= (2 ** bitRangeSize) ** (distributionIndex - 1);
+    prizeCount = prizeCount.sub(BigNumber.from((BigNumber.from(2).pow(BigNumber.from(bitRangeSize)).pow(distributionIndex - 1))))
   }
-  return prizeCount;
+  return prizeCount
 }
 
 function modifyTimestampsWithOffset(timestamps: number[], offset: number): number[] {
   return timestamps.map((timestamp: number) => timestamp - offset);
 }
-
 
 describe('DrawCalculator', () => {
   let drawCalculator: Contract;
@@ -114,10 +113,11 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings])
     })
 
@@ -135,11 +135,13 @@ describe('DrawCalculator', () => {
 
     it('all distribution indexes', async () => {
       for (let numberOfMatches = 0; numberOfMatches < drawSettings.distributions.length; numberOfMatches++) {
+        
         const distributionIndex = BigNumber.from(drawSettings.distributions.length - numberOfMatches - 1) // minus one because we start at 0
+        
         const fraction = await drawCalculator.calculatePrizeDistributionFraction(drawSettings, distributionIndex);
-
-        let prizeCount = calculateNumberOfWinnersAtIndex(drawSettings.bitRangeSize.toNumber(), distributionIndex.toNumber())
-
+        
+        let prizeCount:BigNumber = calculateNumberOfWinnersAtIndex(drawSettings.bitRangeSize.toNumber(), distributionIndex.toNumber())
+        
         const expectedPrizeFraction = drawSettings.distributions[distributionIndex.toNumber()].div(prizeCount)
         expect(fraction).to.equal(expectedPrizeFraction);
       }
@@ -172,8 +174,8 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
       for (let distributionIndex = 0; distributionIndex < drawSettings.distributions.length; distributionIndex++) {
@@ -198,10 +200,11 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       const winningRandomNumber = "0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70"
@@ -223,10 +226,11 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       // 252: 1111 1100
       // 255  1111 1111
 
@@ -252,10 +256,11 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       // 527: 0010 0000 1111
       // 271  0001 0000 1111
 
@@ -284,10 +289,11 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(6),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       expect(bitMasks[0]).to.eq(BigNumber.from(63)) // 111111
       expect(bitMasks[1]).to.eq(BigNumber.from(4032)) // 11111100000
@@ -306,10 +312,11 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from(utils.parseEther("1")),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const bitMasks = await drawCalculator.createBitMasks(drawSettings);
       expect(bitMasks[0]).to.eq(BigNumber.from(15)) // 1111
       expect(bitMasks[1]).to.eq(BigNumber.from(240)) // 11110000
@@ -348,10 +355,11 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from("100"),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const normalizedUsersBalance = utils.parseEther("0.05") // has 5% of the total supply
       const userPicks = await drawCalculator.calculateNumberOfUserPicks(drawSettings, normalizedUsersBalance)
       expect(userPicks).to.eq(BigNumber.from(5))
@@ -368,10 +376,11 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from("100000"),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
       const normalizedUsersBalance = utils.parseEther("0.1") // has 10% of the total supply
       const userPicks = await drawCalculator.calculateNumberOfUserPicks(drawSettings, normalizedUsersBalance)
       expect(userPicks).to.eq(BigNumber.from(10000)) // 10% of numberOfPicks
@@ -390,15 +399,16 @@ describe('DrawCalculator', () => {
       numberOfPicks: BigNumber.from("10"),
       bitRangeSize: BigNumber.from(4),
       prize: ethers.utils.parseEther('1'),
-      startOffsetTimestamp: BigNumber.from(1),
-      endOffsetTimestamp: BigNumber.from(1),
+      startTimestampOffset: BigNumber.from(1),
+      endTimestampOffset: BigNumber.from(1),
       maxPicksPerUser: BigNumber.from(10),
     };
+    drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
     it("calculates the grand prize distribution index", async () => {
       const timestamps = [42]
-      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
       const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
       const winningRandomNumber = utils.solidityKeccak256(
         ['bytes32', 'uint256'],
@@ -420,8 +430,8 @@ describe('DrawCalculator', () => {
 
     it("no matches to return won = false", async () => {
       const timestamps = [42]
-      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
 
       const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
       const winningRandomNumber = utils.solidityKeccak256(
@@ -445,8 +455,8 @@ describe('DrawCalculator', () => {
 
     it("reverts if user has too many picks", async () => {
       const timestamps = [42]
-      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
 
       const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
       const winningRandomNumber = utils.solidityKeccak256(
@@ -484,12 +494,13 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from("100000"),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
       const draw1: Draw = newDraw({
         drawId: BigNumber.from(1),
@@ -529,12 +540,13 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from("100000"),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
-      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
       const draw1: Draw = newDraw({
         drawId: BigNumber.from(1),
@@ -567,10 +579,12 @@ describe('DrawCalculator', () => {
         numberOfPicks: BigNumber.from("100000"),
         bitRangeSize: BigNumber.from(4),
         prize: ethers.utils.parseEther('1'),
-        startOffsetTimestamp: BigNumber.from(1),
-        endOffsetTimestamp: BigNumber.from(1),
+        startTimestampOffset: BigNumber.from(1),
+        endTimestampOffset: BigNumber.from(1),
         maxPicksPerUser: BigNumber.from(1001),
       };
+      drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
+
       const draw1: Draw = newDraw({
         drawId: BigNumber.from(1),
         winningRandomNumber: BigNumber.from("1000"),
@@ -581,8 +595,8 @@ describe('DrawCalculator', () => {
       await drawSettingsHistory.mock.getDrawSettings.returns([drawSettings])
 
 
-      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
+      const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+      const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
 
       await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("0.000000000000000001")]); // (user, timestamp): [balance]
       await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([utils.parseEther("1000")]);
@@ -610,10 +624,11 @@ describe('DrawCalculator', () => {
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('100'),
-          startOffsetTimestamp: BigNumber.from(1),
-          endOffsetTimestamp: BigNumber.from(1),
+          startTimestampOffset: BigNumber.from(1),
+          endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001),
         };
+        drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
         await drawSettingsHistory.mock.getDrawSettings.withArgs([1]).returns([drawSettings])
       })
 
@@ -629,8 +644,8 @@ describe('DrawCalculator', () => {
         const ticketBalance = utils.parseEther('10');
         const totalSupply = utils.parseEther('100');
 
-        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
 
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): [balance]
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
@@ -640,6 +655,8 @@ describe('DrawCalculator', () => {
 
         const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
         await drawHistory.mock.getDraws.returns([draw])
+
+        console.log("drawSettings are ", drawSettings)
 
         const prizesAwardable = await drawCalculator.calculate(
           wallet1.address,
@@ -675,8 +692,8 @@ describe('DrawCalculator', () => {
         const ticketBalance = utils.parseEther('1000'); // 10 percent of total supply
         // drawSettings.numberOfPicks = 10000 so user has 1000 picks
 
-        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endOffsetTimestamp.toNumber())
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): balance
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
@@ -719,8 +736,8 @@ describe('DrawCalculator', () => {
 
         await drawHistory.mock.getDraws.returns([draw1, draw2])
 
-        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endOffsetTimestamp.toNumber())
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance, ticketBalance2]); // (user, timestamp): balance
 
@@ -733,10 +750,11 @@ describe('DrawCalculator', () => {
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('20'),
-          startOffsetTimestamp: BigNumber.from(1),
-          endOffsetTimestamp: BigNumber.from(1),
+          startTimestampOffset: BigNumber.from(1),
+          endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001),
         };
+        drawSettings2.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
         debug(`pushing settings for draw 2...`)
 
@@ -790,13 +808,14 @@ describe('DrawCalculator', () => {
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('100'),
-          startOffsetTimestamp: BigNumber.from(1),
-          endOffsetTimestamp: BigNumber.from(1),
+          startTimestampOffset: BigNumber.from(1),
+          endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001),
         };
+        drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
 
-        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endOffsetTimestamp.toNumber())
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
         const ticketBalance2 = ethers.utils.parseEther('0.3'); // they had 0.03pc of all tickets
         await ticket.mock.getAverageBalancesBetween
@@ -841,12 +860,13 @@ describe('DrawCalculator', () => {
           matchCardinality: BigNumber.from(5),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('100'),
-          startOffsetTimestamp: BigNumber.from(1),
-          endOffsetTimestamp: BigNumber.from(1),
+          startTimestampOffset: BigNumber.from(1),
+          endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(2),
         };
-        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endOffsetTimestamp.toNumber())
+        drawSettings.distributions = fillDrawSettingsDistributionsWithZeros(drawSettings.distributions)
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
         await ticket.mock.getAverageBalancesBetween
           .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
@@ -879,8 +899,8 @@ describe('DrawCalculator', () => {
         const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
         const ticketBalance = utils.parseEther('10');
 
-        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startOffsetTimestamp.toNumber())
-        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endOffsetTimestamp.toNumber())
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.endTimestampOffset.toNumber())
 
         await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): balance
         await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
