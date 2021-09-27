@@ -591,6 +591,8 @@ describe('Ticket', () => {
         burnTimestamp + 1,
       ]);
 
+      debug(`Total supplies: ${totalSupplies.map((ts: any) => ethers.utils.formatEther(ts))}`)
+
       expect(totalSupplies[0]).to.equal(toWei('0'));
       expect(totalSupplies[1]).to.equal(mintAmount);
       expect(totalSupplies[2]).to.equal(mintAmount);

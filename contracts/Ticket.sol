@@ -80,7 +80,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function getBalanceAt(address _user, uint256 _target) external override view returns (uint256) {
     TwabLibrary.Account storage account = userTwabs[_user];
-    return TwabLibrary.getBalanceAt(account.twabs, account.details, uint32(_target));
+    return TwabLibrary.getBalanceAt(account.twabs, account.details, uint32(_target), uint32(block.timestamp));
   }
 
   /// @notice Calculates the average balance held by a user for given time frames.
@@ -97,7 +97,7 @@ contract Ticket is ControlledToken, ITicket {
     uint256[] memory averageBalances = new uint256[](startTimes.length);
 
     for (uint i = 0; i < startTimes.length; i++) {
-      averageBalances[i] = TwabLibrary.getAverageBalanceBetween(account.twabs, accountDetails, startTimes[i], endTimes[i]);
+      averageBalances[i] = TwabLibrary.getAverageBalanceBetween(account.twabs, accountDetails, startTimes[i], endTimes[i], uint32(block.timestamp));
     }
     return averageBalances;
   }
@@ -115,7 +115,7 @@ contract Ticket is ControlledToken, ITicket {
     uint256[] memory averageTotalSupplies = new uint256[](startTimes.length);
 
     for (uint i = 0; i < startTimes.length; i++) {
-      averageTotalSupplies[i] = TwabLibrary.getAverageBalanceBetween(account.twabs, accountDetails, startTimes[i], endTimes[i]);
+      averageTotalSupplies[i] = TwabLibrary.getAverageBalanceBetween(account.twabs, accountDetails, startTimes[i], endTimes[i], uint32(block.timestamp));
     }
     return averageTotalSupplies;
   }
@@ -127,7 +127,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @return The average balance that the user held during the time frame.
   function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
     TwabLibrary.Account storage account = userTwabs[_user];
-    return TwabLibrary.getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime));
+    return TwabLibrary.getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime), uint32(block.timestamp));
   }
 
   /// @notice Retrieves `_user` TWAB balances.
@@ -142,7 +142,7 @@ contract Ticket is ControlledToken, ITicket {
     TwabLibrary.AccountDetails memory details = twabContext.details;
 
     for(uint256 i = 0; i < length; i++) {
-      balances[i] = TwabLibrary.getBalanceAt(twabContext.twabs, details, _targets[i]);
+      balances[i] = TwabLibrary.getBalanceAt(twabContext.twabs, details, _targets[i], uint32(block.timestamp));
     }
 
     return balances;
@@ -151,7 +151,7 @@ contract Ticket is ControlledToken, ITicket {
   /// @notice Retrieves ticket TWAB `totalSupply`.
   /// @param _target Timestamp at which the reserved TWAB should be for.
   function getTotalSupply(uint32 _target) override external view returns (uint256) {
-    return TwabLibrary.getBalanceAt(totalSupplyTwab.twabs, totalSupplyTwab.details, _target);
+    return TwabLibrary.getBalanceAt(totalSupplyTwab.twabs, totalSupplyTwab.details, _target, uint32(block.timestamp));
   }
 
   /// @notice Retrieves ticket TWAB `totalSupplies`.
@@ -164,7 +164,7 @@ contract Ticket is ControlledToken, ITicket {
     TwabLibrary.AccountDetails memory details = totalSupplyTwab.details;
 
     for(uint256 i = 0; i < length; i++) {
-      totalSupplies[i] = TwabLibrary.getBalanceAt(totalSupplyTwab.twabs, details, _targets[i]);
+      totalSupplies[i] = TwabLibrary.getBalanceAt(totalSupplyTwab.twabs, details, _targets[i], uint32(block.timestamp));
     }
 
     return totalSupplies;
@@ -291,7 +291,7 @@ contract Ticket is ControlledToken, ITicket {
       TwabLibrary.AccountDetails memory accountDetails,
       ObservationLib.Observation memory totalSupply,
       bool tsIsNew
-    ) = TwabLibrary.increaseAccount(totalSupplyTwab, amount, TWAB_TIME_TO_LIVE);
+    ) = TwabLibrary.increaseBalance(totalSupplyTwab, amount, TWAB_TIME_TO_LIVE, uint32(block.timestamp));
     totalSupplyTwab.details = accountDetails;
     if (tsIsNew) {
       emit NewTotalSupplyTwab(totalSupply);
@@ -325,11 +325,12 @@ contract Ticket is ControlledToken, ITicket {
       TwabLibrary.AccountDetails memory accountDetails,
       ObservationLib.Observation memory tsTwab,
       bool tsIsNew
-    ) = TwabLibrary.decreaseAccount(
+    ) = TwabLibrary.decreaseBalance(
       totalSupplyTwab,
       amount,
       "ERC20: burn amount exceeds balance",
-      TWAB_TIME_TO_LIVE
+      TWAB_TIME_TO_LIVE,
+      uint32(block.timestamp)
     );
     totalSupplyTwab.details = accountDetails;
     if (tsIsNew) {
@@ -364,7 +365,7 @@ contract Ticket is ControlledToken, ITicket {
       TwabLibrary.AccountDetails memory accountDetails,
       ObservationLib.Observation memory twab,
       bool isNew
-    ) = TwabLibrary.increaseAccount(_account, _amount, TWAB_TIME_TO_LIVE);
+    ) = TwabLibrary.increaseBalance(_account, _amount, TWAB_TIME_TO_LIVE, uint32(block.timestamp));
     _account.details = accountDetails;
     if (isNew) {
       emit NewUserTwab(_holder, _user, twab);
@@ -381,7 +382,7 @@ contract Ticket is ControlledToken, ITicket {
       TwabLibrary.AccountDetails memory accountDetails,
       ObservationLib.Observation memory twab,
       bool isNew
-    ) = TwabLibrary.decreaseAccount(_account, _amount, "ERC20: burn amount exceeds balance", TWAB_TIME_TO_LIVE);
+    ) = TwabLibrary.decreaseBalance(_account, _amount, "ERC20: burn amount exceeds balance", TWAB_TIME_TO_LIVE, uint32(block.timestamp));
     _account.details = accountDetails;
     if (isNew) {
       emit NewUserTwab(_holder, _user, twab);

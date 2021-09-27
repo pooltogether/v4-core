@@ -42,11 +42,11 @@ contract TicketHarness is Ticket {
 
   function getBalanceTx(address _user, uint32 _target) external returns (uint256) {
     TwabLibrary.Account storage account = userTwabs[_user];
-    return TwabLibrary.getBalanceAt(account.twabs, account.details, _target);
+    return TwabLibrary.getBalanceAt(account.twabs, account.details, _target, uint32(block.timestamp));
   }
 
   function getAverageBalanceTx(address _user, uint32 _startTime, uint32 _endTime) external returns (uint256) {
     TwabLibrary.Account storage account = userTwabs[_user];
-    return TwabLibrary.getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime));
+    return TwabLibrary.getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime), uint32(block.timestamp));
   }
 }
