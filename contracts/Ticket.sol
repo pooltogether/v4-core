@@ -93,15 +93,7 @@ contract Ticket is ControlledToken, ITicket {
   function getAverageBalancesBetween(address user, uint32[] calldata startTimes, uint32[] calldata endTimes) external override view
     returns (uint256[] memory)
   {
-    require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
-    TwabLibrary.Account storage account = userTwabs[user];
-    TwabLibrary.AccountDetails storage accountDetails = account.details;
-    uint256[] memory averageBalances = new uint256[](startTimes.length);
-
-    for (uint i = 0; i < startTimes.length; i++) {
-      averageBalances[i] = TwabLibrary.getAverageBalanceBetween(account.twabs, accountDetails, startTimes[i], endTimes[i], uint32(block.timestamp));
-    }
-    return averageBalances;
+    return _getAverageBalancesBetween(userTwabs[user], startTimes, endTimes);
   }
 
   /// @notice Calculates the average total supply balance for a set of given time frames.
@@ -111,15 +103,7 @@ contract Ticket is ControlledToken, ITicket {
   function getAverageTotalSuppliesBetween(uint32[] calldata startTimes, uint32[] calldata endTimes) external override view
     returns (uint256[] memory)
   {
-    require(startTimes.length == endTimes.length, "Ticket/start-end-times-length-match");
-    TwabLibrary.Account storage account = totalSupplyTwab;
-    TwabLibrary.AccountDetails storage accountDetails = account.details;
-    uint256[] memory averageTotalSupplies = new uint256[](startTimes.length);
-
-    for (uint i = 0; i < startTimes.length; i++) {
-      averageTotalSupplies[i] = TwabLibrary.getAverageBalanceBetween(account.twabs, accountDetails, startTimes[i], endTimes[i], uint32(block.timestamp));
-    }
-    return averageTotalSupplies;
+    return _getAverageBalancesBetween(totalSupplyTwab, startTimes, endTimes);
   }
 
   /// @notice Calculates the average balance held by a user for a given time frame.
@@ -152,14 +136,14 @@ contract Ticket is ControlledToken, ITicket {
 
   /// @notice Retrieves ticket TWAB `totalSupply`.
   /// @param _target Timestamp at which the reserved TWAB should be for.
-  function getTotalSupplyAt(uint32 _target) override external view returns (uint256) {
+  function getTotalSupplyAt(uint32 _target) external override view returns (uint256) {
     return TwabLibrary.getBalanceAt(totalSupplyTwab.twabs, totalSupplyTwab.details, _target, uint32(block.timestamp));
   }
 
   /// @notice Retrieves ticket TWAB `totalSupplies`.
   /// @param _targets Timestamps at which the reserved TWABs should be for.
   /// @return uint256[] ticket TWAB `totalSupplies`.
-  function getTotalSuppliesAt(uint32[] calldata _targets) external view override returns (uint256[] memory) {
+  function getTotalSuppliesAt(uint32[] calldata _targets) external override view returns (uint256[] memory) {
     uint256 length = _targets.length;
     uint256[] memory totalSupplies = new uint256[](length);
 
@@ -222,6 +206,22 @@ contract Ticket is ControlledToken, ITicket {
   /// @return uint256 `_user` ticket token balance.
   function _balanceOf(address _user) internal view returns (uint256) {
     return balances[_user];
+  }
+
+  function _getAverageBalancesBetween(
+    TwabLibrary.Account storage _account,
+    uint32[] calldata _startTimes,
+    uint32[] calldata _endTimes
+  ) internal view returns (uint256[] memory) {
+    require(_startTimes.length == _endTimes.length, "Ticket/start-end-times-length-match");
+    TwabLibrary.AccountDetails storage accountDetails = _account.details;
+    uint256[] memory averageBalances = new uint256[](_startTimes.length);
+
+    for (uint i = 0; i < _startTimes.length; i++) {
+      averageBalances[i] = TwabLibrary.getAverageBalanceBetween(_account.twabs, accountDetails, _startTimes[i], _endTimes[i], uint32(block.timestamp));
+    }
+
+    return averageBalances;
   }
 
   /// @notice Overridding of the `_transfer` function of the base ERC20 contract.

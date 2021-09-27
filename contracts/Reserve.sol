@@ -180,6 +180,7 @@ contract Reserve is IReserve, Manageable {
         }
     }
 
+    /// @notice Records the currently accrued reserve amount.
     function _checkpoint() internal {
         uint24 _cardinality = cardinality;
         uint256 _balanceOfReserve = token.balanceOf(address(this));
@@ -217,6 +218,7 @@ contract Reserve is IReserve, Manageable {
         }        
     }   
 
+    /// @notice Retrieves the newest observation
     function _getNewestObservation(uint24 _cardinality) internal view returns (ObservationLib.Observation memory _observation) {
         if (_cardinality > 0) _observation = reserveAccumulators[_cardinality - 1]; 
     }

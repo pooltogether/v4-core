@@ -40,6 +40,8 @@ library TwabLibrary {
   /// @notice Increases an account's balance and records a new twab.
   /// @param _account The account whose balance will be increased
   /// @param _amount The amount to increase the balance by
+  /// @param _ttl The time to live for twabs
+  /// @param _currentTime The current time
   /// @return accountDetails The new AccountDetails
   /// @return twab The user's latest TWAB
   /// @return isNew Whether the TWAB is new
@@ -52,7 +54,7 @@ library TwabLibrary {
     uint24 nextTwabIndex;
     uint24 cardinality;
     AccountDetails memory _accountDetails = _account.details;
-    (accountDetails, twab, isNew) = _nextTwabWithExpiry(_account.twabs, _accountDetails, _currentTime, _ttl);
+    (accountDetails, twab, isNew) = _nextTwabWithExpiry(_account.twabs, _accountDetails, _ttl, _currentTime);
     accountDetails.balance = (_accountDetails.balance + _amount).toUint208();
   }
 
@@ -74,7 +76,7 @@ library TwabLibrary {
     uint24 cardinality;
     AccountDetails memory _accountDetails = _account.details;
     require(_accountDetails.balance >= _amount, _revertMessage);
-    (accountDetails, twab, isNew) = _nextTwabWithExpiry(_account.twabs, _accountDetails, _currentTime, _ttl);
+    (accountDetails, twab, isNew) = _nextTwabWithExpiry(_account.twabs, _accountDetails, _ttl, _currentTime);
     accountDetails.balance = (_accountDetails.balance - _amount).toUint208();
   }
 
@@ -271,8 +273,8 @@ library TwabLibrary {
   function _calculateNextWithExpiry(
     ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     AccountDetails memory _accountDetails,
-    uint32 _time,
-    uint32 _ttl
+    uint32 _ttl,
+    uint32 _time
   ) private view returns (AccountDetails memory) {
     uint24 cardinality = _accountDetails.cardinality > 0 ? _accountDetails.cardinality : 1;
 /*
@@ -324,11 +326,19 @@ library TwabLibrary {
     });
   }
 
+  /// @notice Sets a new TWAB Observation at the next available index and returns the new account details.
+  /// @param _twabs The twabs array to insert into
+  /// @param _accountDetails The current account details
+  /// @param _ttl The time to live for twabs
+  /// @param _time The current time
+  /// @return accountDetails The new account details
+  /// @return twab The newest twab (may or may not be brand-new)
+  /// @return isNew Whether the newest twab was created by this call
   function _nextTwabWithExpiry(
     ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     AccountDetails memory _accountDetails,
-    uint32 _time,
-    uint32 _maxLifetime
+    uint32 _ttl,
+    uint32 _time
   ) private returns (AccountDetails memory accountDetails, ObservationLib.Observation memory twab, bool isNew) {
     (, ObservationLib.Observation memory newestTwab) = newestTwab(_twabs, _accountDetails);
     require(_time >= newestTwab.timestamp, "TwabLib/twab-time-monotonic");
@@ -338,7 +348,7 @@ library TwabLibrary {
       return (_accountDetails, newestTwab, false);
     }
 
-    AccountDetails memory nextAccountDetails = _calculateNextWithExpiry(_twabs, _accountDetails, _time, _maxLifetime);
+    AccountDetails memory nextAccountDetails = _calculateNextWithExpiry(_twabs, _accountDetails, _ttl, _time);
 
     ObservationLib.Observation memory newTwab = _nextTwab(
       newestTwab,
