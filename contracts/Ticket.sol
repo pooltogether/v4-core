@@ -29,9 +29,6 @@ contract Ticket is ControlledToken, ITicket {
   /// @dev Once the twab ttl expires, its storage slot is recycled.
   uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
   
-  /// @notice The maximum number of twab entries
-  uint16 public constant MAX_CARDINALITY = 65535;
-
   /// @notice Record of token holders TWABs for each account.
   mapping (address => TwabLib.Account) internal userTwabs;
 
@@ -39,20 +36,18 @@ contract Ticket is ControlledToken, ITicket {
   TwabLib.Account internal totalSupplyTwab;
 
   /// @notice Mapping of delegates.  Each address can delegate their ticket power to another.
-  mapping(address => address) internal delegates;
+  mapping(address => address) delegates;
 
   /// @notice Each address's balance
-  mapping(address => uint256) internal balances;
+  mapping(address => uint256) balances;
 
   /* ============ Constructor ============ */
 
-  /** 
-    * @notice Constructs Ticket with passed parameters.
-    * @param _name ERC20 ticket token name.
-    * @param _symbol ERC20 ticket token symbol.
-    * @param decimals_ ERC20 ticket token decimals.
-    * @param _controller ERC20 ticket controller address (ie: Prize Pool address).
-  */
+  /// @notice Constructs Ticket with passed parameters.
+  /// @param _name ERC20 ticket token name.
+  /// @param _symbol ERC20 ticket token symbol.
+  /// @param decimals_ ERC20 ticket token decimals.
+  /// @param _controller ERC20 ticket controller address (ie: Prize Pool address).
   constructor (
     string memory _name,
     string memory _symbol,
@@ -65,7 +60,7 @@ contract Ticket is ControlledToken, ITicket {
     _controller
   ){}
 
-  /* ============ External Functions ============ */
+    /* ============ External Functions ============ */
 
   /// @inheritdoc ITicket
   function getAccountDetails(address _user) external view override returns (TwabLib.AccountDetails memory) {
@@ -73,11 +68,11 @@ contract Ticket is ControlledToken, ITicket {
   }
 
   /// @inheritdoc ITicket
-  function getTwab(address _user, uint16 _index) external override view returns (ObservationLib.Observation memory) {
+  function getTwab(address _user, uint16 _index) external view override returns (ObservationLib.Observation memory) {
     return userTwabs[_user].twabs[_index];
   }
 
-  /// @inheritdoc ITicket
+ /// @inheritdoc ITicket
   function getBalanceAt(address _user, uint256 _target) external override view returns (uint256) {
     TwabLib.Account storage account = userTwabs[_user];
     return TwabLib.getBalanceAt(account.twabs, account.details, uint32(_target), uint32(block.timestamp));
@@ -97,7 +92,7 @@ contract Ticket is ControlledToken, ITicket {
     return _getAverageBalancesBetween(totalSupplyTwab, startTimes, endTimes);
   }
 
-/// @inheritdoc ITicket
+  /// @inheritdoc ITicket
   function getAverageBalanceBetween(address _user, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
     TwabLib.Account storage account = userTwabs[_user];
     return TwabLib.getAverageBalanceBetween(account.twabs, account.details, uint32(_startTime), uint32(_endTime), uint32(block.timestamp));
@@ -118,16 +113,12 @@ contract Ticket is ControlledToken, ITicket {
     return balances;
   }
 
-  /// @notice Retrieves ticket TWAB `totalSupply`.
-  /// @param _target Timestamp at which the reserved TWAB should be for.
   /// @inheritdoc ITicket
   function getTotalSupplyAt(uint32 _target) external override view returns (uint256) {
     return TwabLib.getBalanceAt(totalSupplyTwab.twabs, totalSupplyTwab.details, _target, uint32(block.timestamp));
   }
 
-  /// @notice Retrieves ticket TWAB `totalSupplies`.
-  /// @param _targets Timestamps at which the reserved TWABs should be for.
-  /// @return uint256[] ticket TWAB `totalSupplies`.
+  /// @inheritdoc ITicket
   function getTotalSuppliesAt(uint32[] calldata _targets) external override view returns (uint256[] memory) {
     uint256 length = _targets.length;
     uint256[] memory totalSupplies = new uint256[](length);
@@ -140,14 +131,14 @@ contract Ticket is ControlledToken, ITicket {
 
     return totalSupplies;
   }
-
+  
   /// @inheritdoc ITicket
-  function delegateOf(address _user) external override view returns (address) {
+  function delegateOf(address _user) external view override returns (address) {
     return delegates[_user];
   }
 
   /// @inheritdoc IERC20
-  function balanceOf(address _user) public override view returns (uint256) {
+  function balanceOf(address _user) public view override returns (uint256) {
     return _balanceOf(_user);
   }
 
@@ -156,12 +147,8 @@ contract Ticket is ControlledToken, ITicket {
     return totalSupplyTwab.details.balance;
   }
 
-   /// @inheritdoc ITicket
-<<<<<<< HEAD
+  /// @inheritdoc ITicket
   function delegate(address to) external virtual override {
-=======
-  function delegate(address to) external override virtual {
->>>>>>> 1eca407... fix compile
     uint224 balance = uint224(_balanceOf(msg.sender));
     address currentDelegate = delegates[msg.sender];
 

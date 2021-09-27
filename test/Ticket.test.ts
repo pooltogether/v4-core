@@ -4,7 +4,6 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, ContractFactory, BigNumber } from 'ethers';
 import hre, { ethers } from 'hardhat';
-import { start } from 'node:repl';
 
 import { increaseTime as increaseTimeHelper } from './helpers/increaseTime';
 
@@ -307,11 +306,11 @@ describe('Ticket', () => {
       const drawStartTimestamp = timestamp
       const drawEndTimestamp = timestamp
       await expect(ticket.getAverageBalancesBetween(wallet1.address, [drawStartTimestamp, drawStartTimestamp], [drawEndTimestamp])).
-      to.be.revertedWith("Ticket/start-end-times-length-match")
+        to.be.revertedWith("Ticket/start-end-times-length-match")
     })
 
     it('should return an average of zero for pre-history requests', async () => {
-       // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
+      // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
       const drawStartTimestamp = timestamp - 100
       const drawEndTimestamp = timestamp - 50
       const result = await ticket.getAverageTotalSuppliesBetween([drawStartTimestamp], [drawEndTimestamp])
@@ -450,32 +449,32 @@ describe('Ticket', () => {
       const drawStartTimestamp = timestamp
       const drawEndTimestamp = timestamp
       await expect(ticket.getAverageBalancesBetween(wallet1.address, [drawStartTimestamp, drawStartTimestamp], [drawEndTimestamp])).
-      to.be.revertedWith("Ticket/start-end-times-length-match")
+        to.be.revertedWith("Ticket/start-end-times-length-match")
     })
 
     it('should return an average of zero for pre-history requests', async () => {
       // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
-     const drawStartTimestamp = timestamp - 100
-     const drawEndTimestamp = timestamp - 50
-     const result = await ticket.getAverageBalancesBetween(wallet1.address, [drawStartTimestamp, drawStartTimestamp - 50], [drawEndTimestamp, drawEndTimestamp -50])
-     result.forEach((res: any) => {
-       expect(res).to.deep.equal(toWei('0'))
-     });
-   });
+      const drawStartTimestamp = timestamp - 100
+      const drawEndTimestamp = timestamp - 50
+      const result = await ticket.getAverageBalancesBetween(wallet1.address, [drawStartTimestamp, drawStartTimestamp - 50], [drawEndTimestamp, drawEndTimestamp - 50])
+      result.forEach((res: any) => {
+        expect(res).to.deep.equal(toWei('0'))
+      });
+    });
 
-   it('should return half the minted balance when the duration is centered over first twab, and zero from before', async () => {
-     await increaseTime(100);
-     // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
-     const drawStartTimestamp0 = timestamp - 100
-     const drawEndTimestamp0 = timestamp - 50
+    it('should return half the minted balance when the duration is centered over first twab, and zero from before', async () => {
+      await increaseTime(100);
+      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
+      const drawStartTimestamp0 = timestamp - 100
+      const drawEndTimestamp0 = timestamp - 50
 
 
-     const drawStartTimestamp = timestamp - 50
-     const drawEndTimestamp = timestamp + 50
-     const result = await ticket.getAverageBalancesBetween(wallet1.address, [drawStartTimestamp, drawStartTimestamp0], [drawEndTimestamp, drawEndTimestamp0])
-     expect(result[0]).to.deep.equal(toWei('500'))
-     expect(result[1]).to.deep.equal(toWei('0'))
-   })
+      const drawStartTimestamp = timestamp - 50
+      const drawEndTimestamp = timestamp + 50
+      const result = await ticket.getAverageBalancesBetween(wallet1.address, [drawStartTimestamp, drawStartTimestamp0], [drawEndTimestamp, drawEndTimestamp0])
+      expect(result[0]).to.deep.equal(toWei('500'))
+      expect(result[1]).to.deep.equal(toWei('0'))
+    })
   })
 
   describe('getBalance()', () => {

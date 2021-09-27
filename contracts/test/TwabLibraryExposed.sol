@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
+
 import "../libraries/TwabLib.sol";
 import "../libraries/RingBuffer.sol";
 
 /// @title OverflowSafeComparator library to share comparator functions between contracts
 /// @author PoolTogether Inc.
 contract TwabLibExposed {
-  uint16 public constant MAX_CARDINALITY = 65535;
+  uint24 public constant MAX_CARDINALITY = 16777215;
 
   using TwabLib for ObservationLib.Observation[MAX_CARDINALITY];
 
@@ -51,15 +53,8 @@ contract TwabLibExposed {
     return TwabLib.oldestTwab(account.twabs, account.details);
   }
 
-  /// @notice Records a new TWAB.
-  /// @param _currentBalance Current `amount`.
-  /// @return New TWAB that was recorded.
-  function nextTwab(
-    ObservationLib.Observation memory _currentTwab,
-    uint256 _currentBalance,
-    uint32 _currentTimestamp
-  ) external view returns (ObservationLib.Observation memory) {
-    // return TwabLib.nextTwab(_currentTwab, _currentBalance, _currentTimestamp);
+  function newestTwab() external view returns (uint24 index, ObservationLib.Observation memory twab) {
+    return TwabLib.newestTwab(account.twabs, account.details);
   }
 
   function getBalanceAt(uint32 _target, uint32 _currentTime) external view returns (uint256) {

@@ -64,6 +64,12 @@ interface ITicket {
     ObservationLib.Observation newTotalSupplyTwab
   );
 
+   /** 
+    * @notice ADD DOCS
+    * @param user Address
+  */
+  function delegateOf(address user) external view returns (address);
+
   /**
     * @notice Delegate time-weighted average balances to an alternative address.
     * @dev    Transfers (including mints) trigger the storage of a TWAB in delegatee(s) account, instead of the
