@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.6;
 
-import "../DrawCalculator.sol";
-
 library DrawLib {
 
     struct Draw {
