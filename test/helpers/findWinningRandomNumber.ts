@@ -88,8 +88,8 @@ async function runFindWinningRandomNumbers() {
     numberOfPicks: BigNumber.from(utils.parseEther('1')),
     bitRangeSize: BigNumber.from(4),
     prize: ethers.utils.parseEther('100'),
-    startOffsetTimestamp: BigNumber.from(1),
-    endOffsetTimestamp: BigNumber.from(1),
+    startTimestampOffset: BigNumber.from(1),
+    endTimestampOffset: BigNumber.from(1),
     maxPicksPerUser: BigNumber.from(1001),
   };
 

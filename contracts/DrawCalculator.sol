@@ -9,6 +9,8 @@ import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
+import "hardhat/console.sol";
+
 /**
   * @title  PoolTogether V4 DrawCalculator
   * @author PoolTogether Inc Team
@@ -223,8 +225,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     // generate timestamps with draw cutoff offsets included
     for (uint32 i = 0; i < _draws.length; i++) {
       unchecked {
-        _timestampsWithStartCutoffTimes[i] = uint32(_draws[i].timestamp - _drawSettings[i].startOffsetTimestamp);
-        _timestampsWithEndCutoffTimes[i] = uint32(_draws[i].timestamp - _drawSettings[i].endOffsetTimestamp);
+        _timestampsWithStartCutoffTimes[i] = uint32(_draws[i].timestamp - _drawSettings[i].startTimestampOffset);
+        _timestampsWithEndCutoffTimes[i] = uint32(_draws[i].timestamp - _drawSettings[i].endTimestampOffset);
       }
     }
 
@@ -281,7 +283,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
     // now calculate prizeFraction given prize counts
     uint256 prizeFraction = 0;
-    for(uint256 prizeCountIndex = 0; prizeCountIndex < maxWinningDistributionIndex; prizeCountIndex++) {
+    for(uint256 prizeCountIndex = 0; prizeCountIndex <= maxWinningDistributionIndex; prizeCountIndex++) {
       if(prizeCounts[prizeCountIndex] > 0) {
         prizeFraction += _calculatePrizeDistributionFraction(_drawSettings, prizeCountIndex) * prizeCounts[prizeCountIndex];
       }

@@ -175,8 +175,8 @@ function PoolEnv() {
   this.pushDrawSettings = async function ({
     drawId,
     bitRangeSize,
-    startOffsetTimestamp,
-    endOffsetTimestamp,
+    startTimestampOffset,
+    endTimestampOffset,
     matchCardinality,
     numberOfPicks,
     distributions,
@@ -188,8 +188,8 @@ function PoolEnv() {
     const drawSettings = {
       bitRangeSize,
       matchCardinality,
-      startOffsetTimestamp,
-      endOffsetTimestamp,
+      startTimestampOffset,
+      endTimestampOffset,
       numberOfPicks,
       distributions,
       prize,

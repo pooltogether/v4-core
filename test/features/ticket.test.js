@@ -53,8 +53,8 @@ describe('Tickets', () => {
       numberOfPicks: toWei('1'),
       distributions: [ethers.utils.parseUnits('0.8', 9), ethers.utils.parseUnits('0.2', 9)],
       prize: toWei('10'),
-      startOffsetTimestamp: 5,
-      endOffsetTimestamp: 10,
+      startTimestampOffset: 5,
+      endTimestampOffset: 10,
       maxPicksPerUser: 1000,
     });
 

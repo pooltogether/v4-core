@@ -24,16 +24,16 @@ describe('Oracle jobs', () => {
     numberOfPicks = toWei(1);
     distributions = [ethers.utils.parseUnits('1', 9)];
     prize = toWei(10);
-    startOffsetTimestamp = 1;
-    endOffsetTimestamp = 2;
+    startTimestampOffset = 1;
+    endTimestampOffset = 2;
     maxPicksPerUser = 1000;
 
     await env.pushDrawSettings({
       drawId: 1,
       bitRangeSize,
       matchCardinality,
-      startOffsetTimestamp,
-      endOffsetTimestamp,
+      startTimestampOffset,
+      endTimestampOffset,
       numberOfPicks,
       distributions,
       prize,

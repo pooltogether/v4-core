@@ -22,8 +22,8 @@ describe('PrizeDistributionHistory', () => {
     distributions: [ethers.utils.parseUnits('0.5', 9)],
     bitRangeSize: BigNumber.from(3),
     prize: ethers.utils.parseEther('100'),
-    startOffsetTimestamp: BigNumber.from(0),
-    endOffsetTimestamp: BigNumber.from(3600),
+    startTimestampOffset: BigNumber.from(0),
+    endTimestampOffset: BigNumber.from(3600),
     maxPicksPerUser: BigNumber.from(10)
   }
 
@@ -127,8 +127,8 @@ describe('PrizeDistributionHistory', () => {
           numberOfPicks: BigNumber.from("100"),
           bitRangeSize: BigNumber.from(4),
           prize: ethers.utils.parseEther('1'),
-          startOffsetTimestamp: BigNumber.from(1),
-          endOffsetTimestamp: BigNumber.from(1),
+          startTimestampOffset: BigNumber.from(1),
+          endTimestampOffset: BigNumber.from(1),
           maxPicksPerUser: BigNumber.from(1001)
         };
       })

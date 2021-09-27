@@ -6,8 +6,8 @@ export type DrawCalculatorSettings = {
     distributions: BigNumber[];
     bitRangeSize: BigNumber;
     prize: BigNumber;
-    startOffsetTimestamp: BigNumber;
-    endOffsetTimestamp: BigNumber;
+    startTimestampOffset: BigNumber;
+    endTimestampOffset: BigNumber;
     maxPicksPerUser: BigNumber;
 };
 
