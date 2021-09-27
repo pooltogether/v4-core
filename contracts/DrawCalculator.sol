@@ -74,7 +74,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     address _user, uint32[] calldata _drawIds, 
     bytes calldata _pickIndicesForDraws
   ) external override view returns (uint256[] memory) {
-    uint256[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint256 [][]));
+    
+    uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
     require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
 
@@ -132,7 +133,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
   /// @inheritdoc IDrawCalculator
   function checkPrizeDistributionIndicesForDrawId(
     address _user, 
-    uint256[] calldata _pickIndices, 
+    uint64[] calldata _pickIndices, 
     uint32 _drawId
   ) external view override returns(PickPrize[] memory) {
     uint32[] memory drawIds = new uint32[](1);
@@ -149,7 +150,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
-    for(uint256 i = 0; i < _pickIndices.length; i++){
+    for(uint64 i = 0; i < _pickIndices.length; i++){
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _pickIndices[i])));
       require(_pickIndices[i] < totalUserPicks, "DrawCalc/insufficient-user-picks");
 
@@ -189,7 +190,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     uint256[] memory _normalizedUserBalances, 
     bytes32 _userRandomNumber,
     DrawLib.Draw[] memory _draws, 
-    uint256[][] memory _pickIndicesForDraws, 
+    uint64[][] memory _pickIndicesForDraws, 
     DrawLib.PrizeDistribution[] memory _drawSettings
   ) internal view returns (uint256[] memory)
    {
@@ -253,7 +254,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     * @param _drawSettings        DrawLib.PrizeDistribution
     * @return prize (if any) per Draw claim
   */
-  function _calculate(uint256 _winningRandomNumber, uint256 _totalUserPicks, bytes32 _userRandomNumber, uint256[] memory _picks, DrawLib.PrizeDistribution memory _drawSettings)
+  function _calculate(uint256 _winningRandomNumber, uint256 _totalUserPicks, bytes32 _userRandomNumber, uint64[] memory _picks, DrawLib.PrizeDistribution memory _drawSettings)
     internal view returns (uint256)
   {
 
@@ -266,7 +267,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     require(picksLength <= _drawSettings.maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
 
     // for each pick find number of matching numbers and calculate prize distribution index
-    for(uint256 index  = 0; index < picksLength; index++){
+    for(uint256 index = 0; index < picksLength; index++){
       // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
       require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");

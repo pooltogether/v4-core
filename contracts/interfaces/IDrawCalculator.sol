@@ -66,5 +66,5 @@ interface IDrawCalculator {
     * @param _drawId The draw for which to calculate the distribution indices
     * @return List of distributions for Draw.drawId
   */
-  function checkPrizeDistributionIndicesForDrawId(address _user, uint256[] calldata _pickIndices, uint32 _drawId) external view returns(PickPrize[] memory);
+  function checkPrizeDistributionIndicesForDrawId(address _user, uint64[] calldata _pickIndices, uint32 _drawId) external view returns(PickPrize[] memory);
 }
