@@ -9,8 +9,6 @@ import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
-
-
 /**
   * @title  PoolTogether V4 DrawCalculator
   * @author PoolTogether Inc Team
@@ -367,7 +365,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     uint256 numberOfPrizesForIndex = bitRangeDecimal ** _prizeDistributionIndex;
 
     if(_prizeDistributionIndex > 0){
-      numberOfPrizesForIndex -= bitRangeDecimal ** (_prizeDistributionIndex - 1);
+      while(_prizeDistributionIndex > 0){
+        numberOfPrizesForIndex -= bitRangeDecimal ** (_prizeDistributionIndex - 1);
+        _prizeDistributionIndex--;
+      }
     }
     return numberOfPrizesForIndex;
   }
