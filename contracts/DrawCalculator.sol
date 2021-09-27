@@ -268,10 +268,12 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
     // for each pick find number of matching numbers and calculate prize distribution index
     for(uint64 index = 0; index < picksLength; index++){
+      require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
+      if(index > 0){
+        require(_picks[index] > _picks[index - 1], "DrawCalc/gt-last-pick");
+      }    
       // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
-      require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
-
       uint8 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
       
       if(distributionIndex < DISTRIBUTIONS_LENGTH) { // there is prize for this distribution index

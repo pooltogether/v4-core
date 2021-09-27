@@ -656,8 +656,6 @@ describe('DrawCalculator', () => {
         const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
         await drawHistory.mock.getDraws.returns([draw])
 
-        console.log("drawSettings are ", drawSettings)
-
         const prizesAwardable = await drawCalculator.calculate(
           wallet1.address,
           [draw.drawId],
@@ -676,6 +674,36 @@ describe('DrawCalculator', () => {
             )
           ).toString(),
         );
+      });
+
+      it('should revert with repeated pick indices', async () => {
+        const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+        const winningRandomNumber = utils.solidityKeccak256(
+          ['bytes32', 'uint256'],
+          [winningNumber, 1],
+        );
+
+        const timestamps = [42];
+        const pickIndices = encoder.encode(['uint256[][]'], [[['1', '1']]]); // this isn't valid
+        const ticketBalance = utils.parseEther('10');
+        const totalSupply = utils.parseEther('100');
+
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, drawSettings.startTimestampOffset.toNumber())
+
+        await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): [balance]
+        await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
+
+        const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
+        await drawHistory.mock.getDraws.returns([draw])
+
+        await expect(
+          drawCalculator.calculate(
+            wallet1.address,
+            [draw.drawId],
+            pickIndices
+          ),
+        ).to.revertedWith('DrawCalc/gt-last-pick');
       });
 
       it('can calculate 1000 picks', async () => {
