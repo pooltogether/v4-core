@@ -147,30 +147,23 @@ contract Ticket is ControlledToken, ITicket {
     return totalSupplies;
   }
 
-  function delegateOf(address _user) external view returns (address) {
+  /// @inheritdoc ITicket
+  function delegateOf(address _user) external override view returns (address) {
     return delegates[_user];
   }
 
-  /// @notice Returns the ERC20 ticket token balance of a ticket holder.
-  /// @return uint224 `_user` ticket token balance.
+  /// @inheritdoc IERC20
   function balanceOf(address _user) public override view returns (uint256) {
     return _balanceOf(_user);
   }
 
-  /// @notice Returns the ERC20 ticket token total supply.
-  /// @return uint256 Total supply of the ERC20 ticket token.
+  /// @inheritdoc IERC20
   function totalSupply() public view virtual override returns (uint256) {
     return totalSupplyTwab.details.balance;
   }
 
-  /**
-    * @notice Delegate time-weighted average balances to an alternative address.
-    * @dev    Transfers (including mints) trigger the storage of a TWAB in delegatee(s) account, instead of the
-              targetted sender and/or recipient address(s).
-    * @dev    "to" reset the delegatee use zero address (0x000.000) 
-    * @param  to Receipient of delegated TWAB
-   */
-  function delegate(address to) external virtual {
+   /// @inheritdoc ITicket
+  function delegate(address to) external override virtual {
     uint224 balance = uint224(_balanceOf(msg.sender));
     address currentDelegate = delegates[msg.sender];
 

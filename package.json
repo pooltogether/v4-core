@@ -1,9 +1,9 @@
 {
   "name": "@pooltogether/pooltogether-contracts-tsunami",
   "version": "1.0.0-beta.1",
-  "description": "PoolTogether Tsunami Smart Contracts",
+  "description": "PoolTogether V4 Protocol",
   "main": "index.js",
-  "license": "MIT",
+  "license": "GPL-3",
   "scripts": {
     "clean": "rm -rf cache/ artifacts/",
     "docs": "solidity-docgen --solc-module solc -i contracts -o docs -t templates",

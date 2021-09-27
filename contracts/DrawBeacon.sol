@@ -74,7 +74,7 @@ contract DrawBeacon is IDrawBeacon,
     uint64 requestedAt;
   }
 
-  /* ============ Evens ============ */
+  /* ============ Events ============ */
 
   /**
     * @notice Emit when the DrawBeacon is initialized.
@@ -223,7 +223,7 @@ contract DrawBeacon is IDrawBeacon,
 
     /**
       * A new DrawLib.Draw contains minimal data regarding the state "core" draw state.
-      * Ultimately a Draw.drawId(s) linked with DrawLib.PrizeDistribution(s) creating
+      * Ultimately a Draw.drawId(s) is linked with DrawLib.PrizeDistribution(s) creating
       * the complete draw prize payout model: prize tiers, payouts, pick indices, etc...
       * A single Draw struct can have a ONE-TO-MANY relationship with PrizeDistribution settings.
       * Minimizing the total random numbers required to fairly distribute protocol pool payouts.
@@ -237,7 +237,7 @@ contract DrawBeacon is IDrawBeacon,
     });
 
     /**
-      * The DrawBeacon (deployed on L1) will havea Manager role authorized to push history onto DrawHistory.
+      * The DrawBeacon (deployed on L1) will have a Manager role authorized to push history onto DrawHistory.
      */
     drawHistory.pushDraw(_draw);
     
