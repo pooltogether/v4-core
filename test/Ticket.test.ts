@@ -537,8 +537,8 @@ describe('Ticket', () => {
     });
   });
 
-  describe('getTotalSupply()', () => {
-    const debug = newDebug("pt:Ticket.test.ts:getTotalSupply()")
+  describe('getTotalSupplyAt()', () => {
+    const debug = newDebug("pt:Ticket.test.ts:getTotalSupplyAt()")
 
     context('after a mint', () => {
       const mintAmount = toWei('1000');
@@ -550,11 +550,11 @@ describe('Ticket', () => {
       })
 
       it('should return 0 before the mint', async () => {
-        expect(await ticket.getTotalSupply(timestamp - 50)).to.equal(0)
+        expect(await ticket.getTotalSupplyAt(timestamp - 50)).to.equal(0)
       })
 
       it('should return 0 at the time of the mint', async () => {
-        expect(await ticket.getTotalSupply(timestamp)).to.equal(mintAmount)
+        expect(await ticket.getTotalSupplyAt(timestamp)).to.equal(mintAmount)
       })
 
       it('should return the value after the timestamp', async () => {
@@ -562,13 +562,13 @@ describe('Ticket', () => {
         debug(`twab: `, twab)
         debug(`Checking time ${timestamp + 1}`)
         await increaseTime(10)
-        expect(await ticket.getTotalSupply(timestamp + 1)).to.equal(mintAmount)
+        expect(await ticket.getTotalSupplyAt(timestamp + 1)).to.equal(mintAmount)
       })
     })
   });
 
-  describe('getTotalSupplies()', () => {
-    const debug = newDebug('pt:Ticket.test.ts:getTotalSupplies()')
+  describe('getTotalSuppliesAt()', () => {
+    const debug = newDebug('pt:Ticket.test.ts:getTotalSuppliesAt()')
 
     it('should get ticket total supplies', async () => {
       const mintAmount = toWei('2000');
@@ -584,12 +584,14 @@ describe('Ticket', () => {
       const burnTimestamp = (await getBlock('latest')).timestamp;
       debug(`burnTimestamp: ${burnTimestamp}`)
 
-      const totalSupplies = await ticket.getTotalSupplies([
+      const totalSupplies = await ticket.getTotalSuppliesAt([
         mintTimestamp - 1,
         mintTimestamp,
         mintTimestamp + 1,
         burnTimestamp + 1,
       ]);
+
+      debug(`Total supplies: ${totalSupplies.map((ts: any) => ethers.utils.formatEther(ts))}`)
 
       expect(totalSupplies[0]).to.equal(toWei('0'));
       expect(totalSupplies[1]).to.equal(mintAmount);
