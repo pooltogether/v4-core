@@ -270,7 +270,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     for(uint64 index = 0; index < picksLength; index++){
       require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
       if(index > 0){
-        require(_picks[index] > _picks[index - 1], "DrawCalc/gt-last-pick");
+        require(_picks[index] > _picks[index - 1], "DrawCalc/picks-ascending");
       }    
       // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));

@@ -703,7 +703,7 @@ describe('DrawCalculator', () => {
             [draw.drawId],
             pickIndices
           ),
-        ).to.revertedWith('DrawCalc/gt-last-pick');
+        ).to.revertedWith('DrawCalc/picks-ascending');
       });
 
       it('can calculate 1000 picks', async () => {
