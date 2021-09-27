@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+
 import "./libraries/OverflowSafeComparator.sol";
 import "./libraries/TwabLibrary.sol";
 import "./interfaces/ITicket.sol";
@@ -150,14 +152,14 @@ contract Ticket is ControlledToken, ITicket {
 
   /// @notice Retrieves ticket TWAB `totalSupply`.
   /// @param _target Timestamp at which the reserved TWAB should be for.
-  function getTotalSupply(uint32 _target) override external view returns (uint256) {
+  function getTotalSupplyAt(uint32 _target) override external view returns (uint256) {
     return TwabLibrary.getBalanceAt(totalSupplyTwab.twabs, totalSupplyTwab.details, _target, uint32(block.timestamp));
   }
 
   /// @notice Retrieves ticket TWAB `totalSupplies`.
   /// @param _targets Timestamps at which the reserved TWABs should be for.
   /// @return uint256[] ticket TWAB `totalSupplies`.
-  function getTotalSupplies(uint32[] calldata _targets) external view override returns (uint256[] memory){
+  function getTotalSuppliesAt(uint32[] calldata _targets) external view override returns (uint256[] memory) {
     uint256 length = _targets.length;
     uint256[] memory totalSupplies = new uint256[](length);
 

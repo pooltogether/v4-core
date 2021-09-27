@@ -9,8 +9,6 @@ import "./OverflowSafeComparator.sol";
 import "./RingBuffer.sol";
 import "./ObservationLib.sol";
 
-import "hardhat/console.sol";
-
 /// @title Time-Weighted Average Balance Library
 /// @notice This library allows you to track a historic balance using time-weighted observations.
 /// @author PoolTogether Inc.
