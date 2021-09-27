@@ -51,15 +51,7 @@ contract Reserve is IReserve, Manageable {
         _checkpoint();
     }
 
-    /**
-      * @notice Read global CARDINALITY value.
-      * @return Ring buffer range (i.e. CARDINALITY) 
-     */
-    function getCardinality() external view returns (uint24) {
-        return cardinality;
-    }
-
-     /// @inheritdoc IReserve
+    /// @inheritdoc IReserve
     function getToken() external view override returns (IERC20) {
         return token;
     }

@@ -372,7 +372,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   }
 
 
-  /* ============ Abstract Contract Implmentatiton ============ */
+  /* ============ Abstract Contract Implementatiton ============ */
 
   /// @notice Determines whether the passed token can be transferred out as an external award.
   /// @dev Different yield sources will hold the deposits as another kind of token: such a Compound's cToken.  The

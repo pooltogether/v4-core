@@ -29,6 +29,9 @@ contract Ticket is ControlledToken, ITicket {
   /// @dev Once the twab ttl expires, its storage slot is recycled.
   uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
   
+  /// @notice The maximum number of twab entries
+  uint16 public constant MAX_CARDINALITY = 65535;
+
   /// @notice Record of token holders TWABs for each account.
   mapping (address => TwabLib.Account) internal userTwabs;
 
@@ -36,18 +39,20 @@ contract Ticket is ControlledToken, ITicket {
   TwabLib.Account internal totalSupplyTwab;
 
   /// @notice Mapping of delegates.  Each address can delegate their ticket power to another.
-  mapping(address => address) delegates;
+  mapping(address => address) internal delegates;
 
   /// @notice Each address's balance
-  mapping(address => uint256) balances;
+  mapping(address => uint256) internal balances;
 
   /* ============ Constructor ============ */
 
-  /// @notice Constructs Ticket with passed parameters.
-  /// @param _name ERC20 ticket token name.
-  /// @param _symbol ERC20 ticket token symbol.
-  /// @param decimals_ ERC20 ticket token decimals.
-  /// @param _controller ERC20 ticket controller address (ie: Prize Pool address).
+  /** 
+    * @notice Constructs Ticket with passed parameters.
+    * @param _name ERC20 ticket token name.
+    * @param _symbol ERC20 ticket token symbol.
+    * @param decimals_ ERC20 ticket token decimals.
+    * @param _controller ERC20 ticket controller address (ie: Prize Pool address).
+  */
   constructor (
     string memory _name,
     string memory _symbol,
@@ -60,7 +65,7 @@ contract Ticket is ControlledToken, ITicket {
     _controller
   ){}
 
-    /* ============ External Functions ============ */
+  /* ============ External Functions ============ */
 
   /// @inheritdoc ITicket
   function getAccountDetails(address _user) external view override returns (TwabLib.AccountDetails memory) {

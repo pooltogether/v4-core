@@ -4,11 +4,11 @@
   </a>
 </p>
 
-# PoolTogether V4 Strategy Contracts
+# PoolTogether V4 Core Smart Contracts
 
 
-[![<PoolTogether>](https://circleci.com/gh/pooltogether/pooltogether-pool-contracts.svg?style=shield)](https://circleci.com/gh/pooltogether/pooltogether-contract-tsunami)
-[![Coverage Status](https://coveralls.io/repos/github/pooltogether/pooltogether-contract-tsunami/badge.svg?branch=master)](https://coveralls.io/github/pooltogether/pooltogether-contract-tsunami?branch=master)
+[![<PoolTogether>](https://circleci.com/gh/pooltogether/v4-core.svg?style=shield)](https://circleci.com/gh/pooltogether/v4-core)
+[![Coverage Status](https://coveralls.io/repos/github/pooltogether/v4-core/badge.svg?branch=master)](https://coveralls.io/github/pooltogether/v4-core?branch=master)
 [![built-with openzeppelin](https://img.shields.io/badge/built%20with-OpenZeppelin-3677FF)](https://docs.openzeppelin.com/)
 [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
 
@@ -16,7 +16,7 @@
 <br/>Join the PoolTogether Discord or follow us on Twitter:
 
 [![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/JFBPMxv5tr)
-[![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com)
+[![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com/PoolTogether_)
 
 **Documention**<br>
 https://docs.pooltogether.com
@@ -51,7 +51,7 @@ $ yarn add @pooltogether/pooltogether-contracts
 The repo can be cloned from Github for contributions.
 
 ```sh
-$ git clone https://github.com/pooltogether/pooltogether-contract-tsunami
+$ git clone https://github.com/pooltogether/v4-core
 ```
 
 ```sh
@@ -111,4 +111,4 @@ NOTE: When you run this command it will reset the local blockchain.
 
 ## Overview
 
-The V4 PoolTogether smart contracts facilitate a "pull" based system to claim interst prize payouts
+The V4 PoolTogether smart contracts facilitate a "pull" based system to claim interest prize payouts.

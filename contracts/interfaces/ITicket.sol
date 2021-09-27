@@ -80,7 +80,7 @@ interface ITicket {
   function delegate(address to) external virtual;
   
   /** 
-    * @notice Gets a users twap context.  This is a struct with their balance, next twab index, and cardinality.
+    * @notice Gets a users twab context.  This is a struct with their balance, next twab index, and cardinality.
     * @param user The user for whom to fetch the TWAB context
     * @return The TWAB context, which includes { balance, nextTwabIndex, cardinality }
   */
@@ -110,7 +110,7 @@ interface ITicket {
   function getBalancesAt(address user, uint32[] calldata timestamps) external view returns(uint256[] memory);
 
   /** 
-    * @notice Calculates the average balance held by a user for given time frames.
+    * @notice Calculates the average balance held by a user for a given time frame.
     * @param user The user whose balance is checked
     * @param startTime The start time of the time frame.
     * @param endTime The end time of the time frame.
@@ -119,7 +119,7 @@ interface ITicket {
   function getAverageBalanceBetween(address user, uint256 startTime, uint256 endTime) external view returns (uint256);
 
   /** 
-    * @notice Calculates the average balance held by a user for given time frames.
+    * @notice Calculates the average balance held by a user for a given time frame.
     * @param user The user whose balance is checked
     * @param startTimes The start time of the time frame.
     * @param endTimes The end time of the time frame.
@@ -128,14 +128,14 @@ interface ITicket {
   function getAverageBalancesBetween(address user, uint32[] calldata startTimes, uint32[] calldata endTimes) external view returns (uint256[] memory);
 
   /** 
-    * @notice Calculates the average balance held by a user for given time frames.
+    * @notice Calculates the average total supply balance for a set of a given time frame.
     * @param timestamp Timestamp
     * @return The
   */
   function getTotalSupplyAt(uint32 timestamp) external view returns(uint256);
 
    /** 
-    * @notice Calculates the average balance held by a user for given time frames.
+    * @notice Calculates the average total supply balance for a set of a given time frame.
     * @param timestamps Timestamp
     * @return The
   */
