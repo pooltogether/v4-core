@@ -8,14 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @notice ERC20 Tokens with a controller for minting & burning
 interface IControlledToken is IERC20 {
 
-  /// @dev Emitted when an instance is initialized
-  event Deployed(
-    string name,
-    string symbol,
-    uint8 decimals,
-    address controller
-  );
-
   /// @notice Interface to the contract responsible for controlling mint/burn
   function controller() external view returns (address);
 
