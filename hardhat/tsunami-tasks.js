@@ -1,5 +1,5 @@
 const { BigNumber, constants } = require('ethers');
-const distributions = require('./drawSettingsDistributions');
+const distributions = require('./prizeDistributions');
 
 task('deposit-to')
   .addPositionalParam('address', 'PrizePool address')
@@ -43,7 +43,7 @@ task('set-draw-settings')
     prize,
   }) {
     const contract = await ethers.getContractAt('DrawHistory', address);
-    await contract.pushDrawSettings(drawId, {
+    await contract.pushPrizeDistributions(drawId, {
       bitRangeSize: BigNumber.from(bitRangeSize),
       matchCardinality: BigNumber.from(matchCardinality),
       numberOfPicks: BigNumber.from(utils.parseEther(`${numberOfPicks}`)),

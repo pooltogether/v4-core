@@ -1,6 +1,6 @@
 const { PoolEnv } = require('./support/PoolEnv');
 const ethers = require('ethers');
-const {fillDrawSettingsDistributionsWithZeros} = require('../helpers/fillDrawSettingsDistributionsWithZeros')
+const {fillPrizeDistributionsWithZeros} = require('../helpers/fillPrizeDistributionsWithZeros')
 
 const toWei = (val) => ethers.utils.parseEther('' + val);
 
@@ -24,13 +24,13 @@ describe('Oracle jobs', () => {
     matchCardinality = 2;
     numberOfPicks = toWei(1);
     distributions = [ethers.utils.parseUnits('1', 9)];
-    distributions = fillDrawSettingsDistributionsWithZeros(distributions)
+    distributions = fillPrizeDistributionsWithZeros(distributions)
     prize = toWei(10);
     startTimestampOffset = 1;
     endTimestampOffset = 2;
     maxPicksPerUser = 1000;
 
-    await env.pushDrawSettings({
+    await env.pushPrizeDistributions({
       drawId: 1,
       bitRangeSize,
       matchCardinality,

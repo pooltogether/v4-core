@@ -1,6 +1,6 @@
-import { BigNumber } from "ethers"
+import { BigNumber } from 'ethers'
 
-export type DrawCalculatorSettings = {
+export type PrizeDistributionSettings = {
     matchCardinality: BigNumber;
     numberOfPicks: BigNumber;
     distributions: BigNumber[];

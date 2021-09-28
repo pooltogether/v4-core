@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
+
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
+
 import "./DrawPrize.sol";
 import "./PrizeDistributionHistory.sol";
 import "./interfaces/IDrawCalculator.sol";
@@ -14,11 +17,11 @@ import "./libraries/DrawRingBufferLib.sol";
   * @author PoolTogether Inc Team
   * @notice The DrawCalculator calculates a user's prize by matching a winning random number against
             their picks. A users picks are generated deterministically based on their address and balance
-            of tickets held. Prize payouts are divided into multiple tiers: grand prize, second place, etc... 
+            of tickets held. Prize payouts are divided into multiple tiers: grand prize, second place, etc...
             A user with a higher average weighted balance (during each draw perid) will be given a large number of
-            pickIndices to choose from, and thus a higher chance to match the randomly generated winning numbers. 
-            The DrawCalculator will retrieve data, like average weighted balance and cost of picks per draw 
-            from the linked Ticket and PrizeDistributionHistory contracts when payouts are being calculated. 
+            pickIndices to choose from, and thus a higher chance to match the randomly generated winning numbers.
+            The DrawCalculator will retrieve data, like average weighted balance and cost of picks per draw
+            from the linked Ticket and PrizeDistributionHistory contracts when payouts are being calculated.
 */
 contract DrawCalculator is IDrawCalculator, Ownable {
 
@@ -69,32 +72,32 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
   /// @inheritdoc IDrawCalculator
   function calculate(
-    address _user, uint32[] calldata _drawIds, 
+    address _user, uint32[] calldata _drawIds,
     bytes calldata _pickIndicesForDraws
   ) external override view returns (uint256[] memory) {
-    
+
     uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
     require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
 
-    // READ list of DrawLib.Draw using the Draw.drawId[] 
+    // READ list of DrawLib.Draw using the Draw.drawId[]
     DrawLib.Draw[] memory draws = drawHistory.getDraws(_drawIds);
 
     // READ list of DrawLib.PrizeDistribution using the Draw.drawId[]
-    DrawLib.PrizeDistribution[] memory _drawSettings = prizeDistributionHistory.getDrawSettings(_drawIds);
+    DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory.getPrizeDistributions(_drawIds);
 
     /**
       * Maximum number of picks per user is calculated by getting a Ticket time-weighted average balance (TWAB).
       * Using a Draw.timestamp + DrawSetings.endOffsetTimestamp a list of balances held (on average) by a User
       * can be read via the Ticket contract. The TWAB determines a maximum number of picks per user, per draw.
      */
-    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, draws, _drawSettings);
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, draws, _prizeDistributions);
 
     /**
       * The userRandomNumber is currently generated via hashing the user address.
       * In future iterations of DrawCalculator the userRandomNumber could be set using
       * input params supplied by the user. Giving users "agency" to select what
-      * random numbers are generated each beacon complete draw period. 
+      * random numbers are generated each beacon complete draw period.
      */
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user));
 
@@ -102,7 +105,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
       * The time weighted average balances peraining to each Draw period is supplied will be returned a User balances list.
       * A list of prize amounts that can be claimed by supplied user address is returned.
      */
-    return _calculatePrizesAwardable(userBalances, _userRandomNumber, draws, pickIndices, _drawSettings);
+    return _calculatePrizesAwardable(userBalances, _userRandomNumber, draws, pickIndices, _prizeDistributions);
   }
 
   /// @inheritdoc IDrawCalculator
@@ -124,28 +127,28 @@ contract DrawCalculator is IDrawCalculator, Ownable {
   /// @inheritdoc IDrawCalculator
   function getNormalizedBalancesForDrawIds(address _user, uint32[] calldata _drawIds) external view override returns (uint256[] memory) {
     DrawLib.Draw[] memory _draws = drawHistory.getDraws(_drawIds);
-    DrawLib.PrizeDistribution[] memory _drawSettings = prizeDistributionHistory.getDrawSettings(_drawIds);
-    return _getNormalizedBalancesAt(_user, _draws, _drawSettings);
+    DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory.getPrizeDistributions(_drawIds);
+    return _getNormalizedBalancesAt(_user, _draws, _prizeDistributions);
   }
 
   /// @inheritdoc IDrawCalculator
   function checkPrizeDistributionIndicesForDrawId(
-    address _user, 
-    uint64[] calldata _pickIndices, 
+    address _user,
+    uint64[] calldata _pickIndices,
     uint32 _drawId
   ) external view override returns(PickPrize[] memory) {
     uint32[] memory drawIds = new uint32[](1);
     drawIds[0] = _drawId;
 
     DrawLib.Draw[] memory _draws = drawHistory.getDraws(drawIds);
-    DrawLib.PrizeDistribution[] memory _drawSettings = prizeDistributionHistory.getDrawSettings(drawIds);
-    
-    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _draws, _drawSettings);
-    uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[0], userBalances[0]);
+    DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory.getPrizeDistributions(drawIds);
 
-    uint256[] memory masks =  _createBitMasks(_drawSettings[0]);
+    uint256[] memory userBalances = _getNormalizedBalancesAt(_user, _draws, _prizeDistributions);
+    uint256 totalUserPicks = _calculateNumberOfUserPicks(_prizeDistributions[0], userBalances[0]);
+
+    uint256[] memory masks =  _createBitMasks(_prizeDistributions[0]);
     PickPrize[] memory pickPrizes = new PickPrize[](_pickIndices.length);
-    
+
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
     for(uint64 i = 0; i < _pickIndices.length; i++){
@@ -155,7 +158,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
       uint256 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _draws[0].winningRandomNumber, masks);
 
       pickPrizes[i] = PickPrize({
-        won: distributionIndex < _drawSettings[0].distributions.length && _drawSettings[0].distributions[distributionIndex] > 0, 
+        won: distributionIndex < _prizeDistributions[0].distributions.length && _prizeDistributions[0].distributions[distributionIndex] > 0,
         distributionIndex: uint8(distributionIndex)
       });
     }
@@ -181,51 +184,51 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     * @param _userRandomNumber       Random number of the user to consider over draws
     * @param _draws                  Draws
     * @param _pickIndicesForDraws    Pick indices for each Draw
-    * @param _drawSettings           DrawCalculatorSettings for each Draw
+    * @param _prizeDistributions      PrizeDistribution for each Draw
     * @return Awardable prizes list
   */
   function _calculatePrizesAwardable(
-    uint256[] memory _normalizedUserBalances, 
+    uint256[] memory _normalizedUserBalances,
     bytes32 _userRandomNumber,
-    DrawLib.Draw[] memory _draws, 
-    uint64[][] memory _pickIndicesForDraws, 
-    DrawLib.PrizeDistribution[] memory _drawSettings
+    DrawLib.Draw[] memory _draws,
+    uint64[][] memory _pickIndicesForDraws,
+    DrawLib.PrizeDistribution[] memory _prizeDistributions
   ) internal pure returns (uint256[] memory)
    {
     uint256[] memory prizesAwardable = new uint256[](_normalizedUserBalances.length);
     // calculate prizes awardable for each Draw passed
     for (uint32 drawIndex = 0; drawIndex < _draws.length; drawIndex++) {
-      uint256 totalUserPicks = _calculateNumberOfUserPicks(_drawSettings[drawIndex], _normalizedUserBalances[drawIndex]);
-      prizesAwardable[drawIndex] = _calculate(_draws[drawIndex].winningRandomNumber, totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _drawSettings[drawIndex]);
+      uint256 totalUserPicks = _calculateNumberOfUserPicks(_prizeDistributions[drawIndex], _normalizedUserBalances[drawIndex]);
+      prizesAwardable[drawIndex] = _calculate(_draws[drawIndex].winningRandomNumber, totalUserPicks, _userRandomNumber, _pickIndicesForDraws[drawIndex], _prizeDistributions[drawIndex]);
     }
     return prizesAwardable;
   }
   /**
     * @notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the draw settings
     * @dev Divided by 1e18 since the normalized user balance is stored as a base 18 number
-    * @param _drawSettings The DrawCalculatorSettings to consider
+    * @param _prizeDistributions The prize distributions to consider
     * @param _normalizedUserBalance The normalized user balances to consider
   */
-  function _calculateNumberOfUserPicks(DrawLib.PrizeDistribution memory _drawSettings, uint256 _normalizedUserBalance) internal pure returns (uint256) {
-    return (_normalizedUserBalance * _drawSettings.numberOfPicks) / 1 ether;
+  function _calculateNumberOfUserPicks(DrawLib.PrizeDistribution memory _prizeDistributions, uint256 _normalizedUserBalance) internal pure returns (uint256) {
+    return (_normalizedUserBalance * _prizeDistributions.numberOfPicks) / 1 ether;
   }
 
   /**
     * @notice Calculates the normalized balance of a user against the total supply for timestamps
     * @param _user The user to consider
     * @param _draws The draws we are looking at
-    * @param _drawSettings The draw settings to consider (needed for draw timstamp offsets)
+    * @param _prizeDistributions The prize distributions to consider (needed for draw timestamp offsets)
     * @return An array of normalized balances
   */
-  function _getNormalizedBalancesAt(address _user, DrawLib.Draw[] memory _draws, DrawLib.PrizeDistribution[] memory _drawSettings) internal view returns (uint256[] memory) {
+  function _getNormalizedBalancesAt(address _user, DrawLib.Draw[] memory _draws, DrawLib.PrizeDistribution[] memory _prizeDistributions) internal view returns (uint256[] memory) {
     uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_draws.length);
     uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_draws.length);
 
     // generate timestamps with draw cutoff offsets included
     for (uint32 i = 0; i < _draws.length; i++) {
       unchecked {
-        _timestampsWithStartCutoffTimes[i] = uint32(_draws[i].timestamp - _drawSettings[i].startTimestampOffset);
-        _timestampsWithEndCutoffTimes[i] = uint32(_draws[i].timestamp - _drawSettings[i].endTimestampOffset);
+        _timestampsWithStartCutoffTimes[i] = uint32(_draws[i].timestamp - _prizeDistributions[i].startTimestampOffset);
+        _timestampsWithEndCutoffTimes[i] = uint32(_draws[i].timestamp - _prizeDistributions[i].endTimestampOffset);
       }
     }
 
@@ -249,31 +252,31 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     * @param _totalUserPicks      The number of picks the user gets for the Draw
     * @param _userRandomNumber    The users randomNumber for that draw
     * @param _picks               The users picks for that draw
-    * @param _drawSettings        DrawLib.PrizeDistribution
+    * @param _prizeDistributions        DrawLib.PrizeDistribution
     * @return prize (if any) per Draw claim
   */
-  function _calculate(uint256 _winningRandomNumber, uint256 _totalUserPicks, bytes32 _userRandomNumber, uint64[] memory _picks, DrawLib.PrizeDistribution memory _drawSettings)
+  function _calculate(uint256 _winningRandomNumber, uint256 _totalUserPicks, bytes32 _userRandomNumber, uint64[] memory _picks, DrawLib.PrizeDistribution memory _prizeDistributions)
     internal pure returns (uint256)
   {
 
-    uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
-    uint256[] memory masks =  _createBitMasks(_drawSettings);
+    uint256[] memory prizeCounts =  new uint256[](_prizeDistributions.distributions.length);
+    uint256[] memory masks =  _createBitMasks(_prizeDistributions);
     uint256 picksLength = _picks.length;
 
     uint8 maxWinningDistributionIndex = 0;
 
-    require(picksLength <= _drawSettings.maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
+    require(picksLength <= _prizeDistributions.maxPicksPerUser, "DrawCalc/exceeds-max-user-picks");
 
-    // for each pick find number of matching numbers and calculate prize distribution index
+    // for each pick find number of matching numbers and calculate prize distributions index
     for(uint64 index = 0; index < picksLength; index++){
       require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
       if(index > 0){
         require(_picks[index] > _picks[index - 1], "DrawCalc/picks-ascending");
-      }    
+      }
       // hash the user random number with the pick index
       uint256 randomNumberThisPick = uint256(keccak256(abi.encode(_userRandomNumber, _picks[index])));
       uint8 distributionIndex =  _calculateDistributionIndex(randomNumberThisPick, _winningRandomNumber, masks);
-      
+
       if(distributionIndex < DISTRIBUTIONS_LENGTH) { // there is prize for this distribution index
         if(distributionIndex > maxWinningDistributionIndex){
           maxWinningDistributionIndex = distributionIndex;
@@ -284,7 +287,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
     // now calculate prizeFraction given prize counts
     uint256 prizeFraction = 0;
-    uint256[] memory prizeDistributionFractions = _calculatePrizeDistributionFractions(_drawSettings, maxWinningDistributionIndex);
+    uint256[] memory prizeDistributionFractions = _calculatePrizeDistributionFractions(_prizeDistributions, maxWinningDistributionIndex);
 
     for(uint256 prizeCountIndex = 0; prizeCountIndex <= maxWinningDistributionIndex; prizeCountIndex++) {
       if(prizeCounts[prizeCountIndex] > 0) {
@@ -292,13 +295,13 @@ contract DrawCalculator is IDrawCalculator, Ownable {
       }
     }
     // return the absolute amount of prize awardable
-    return (prizeFraction * _drawSettings.prize) / 1e9; // div by 1e9 as prize distributions are base 1e9
+    return (prizeFraction * _prizeDistributions.prize) / 1e9; // div by 1e9 as prize distributions are base 1e9
   }
 
   ///@notice Calculates the distribution index given the random numbers and masks
   ///@param _randomNumberThisPick users random number for this Pick
   ///@param _winningRandomNumber The winning number for this draw
-  ///@param _masks The pre-calculate bitmasks for the drawSettings
+  ///@param _masks The pre-calculate bitmasks for the prizeDistributions
   ///@return The position within the prize distribution array (0 = top prize, 1 = runner-up prize, etc)
   function _calculateDistributionIndex(uint256 _randomNumberThisPick, uint256 _winningRandomNumber, uint256[] memory _masks)
     internal pure returns (uint8)
@@ -322,18 +325,18 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
   /**
     * @notice Create bitmasks equal to the DrawLib.PrizeDistribution.matchCardinality
-    * @param _drawSettings The DrawCalculatorSettings to use to calculate the masks
+    * @param _prizeDistributions The prizeDistributions to use to calculate the masks
     * @return An array of bitmasks
   */
-  function _createBitMasks(DrawLib.PrizeDistribution memory _drawSettings)
+  function _createBitMasks(DrawLib.PrizeDistribution memory _prizeDistributions)
     internal pure returns (uint256[] memory)
   {
-    uint256[] memory masks = new uint256[](_drawSettings.matchCardinality);
+    uint256[] memory masks = new uint256[](_prizeDistributions.matchCardinality);
 
-    uint256 _bitRangeMaskValue = (2 ** _drawSettings.bitRangeSize) - 1; // get a decimal representation of bitRangeSize
+    uint256 _bitRangeMaskValue = (2 ** _prizeDistributions.bitRangeSize) - 1; // get a decimal representation of bitRangeSize
 
-    for(uint256 maskIndex = 0; maskIndex < _drawSettings.matchCardinality; maskIndex++){
-      uint16 _matchIndexOffset = uint16(maskIndex * _drawSettings.bitRangeSize);
+    for(uint256 maskIndex = 0; maskIndex < _prizeDistributions.matchCardinality; maskIndex++){
+      uint16 _matchIndexOffset = uint16(maskIndex * _prizeDistributions.bitRangeSize);
       masks[maskIndex] = _bitRangeMaskValue << _matchIndexOffset;
     }
 
@@ -341,41 +344,40 @@ contract DrawCalculator is IDrawCalculator, Ownable {
   }
 
   /**
-    * @notice Calculates the expected prize fraction per DrawCalculatorSettings and prizeDistributionIndex
-    * @param _drawSettings DrawCalculatorSettings struct for Draw
-    * @param _prizeDistributionIndex Index of the prize distribution array to calculate
+    * @notice Calculates the expected prize fraction per prizeDistributions and prizeDistributionIndex
+    * @param _prizeDistributions prizeDistributions struct for Draw
+    * @param _prizeDistributionIndex Index of the prize distributions array to calculate
     * @return returns the fraction of the total prize (base 1e18)
   */
   function _calculatePrizeDistributionFraction(
-    DrawLib.PrizeDistribution memory _drawSettings, 
+    DrawLib.PrizeDistribution memory _prizeDistributions,
     uint256 _prizeDistributionIndex
   ) internal pure returns (uint256) {
-    uint256 prizeDistribution = _drawSettings.distributions[_prizeDistributionIndex];
-    uint256 numberOfPrizesForIndex = _numberOfPrizesForIndex(_drawSettings.bitRangeSize, _prizeDistributionIndex);
-    return prizeDistribution / numberOfPrizesForIndex;
+    uint256 prizeDistributions = _prizeDistributions.distributions[_prizeDistributionIndex];
+    uint256 numberOfPrizesForIndex = _numberOfPrizesForIndex(_prizeDistributions.bitRangeSize, _prizeDistributionIndex);
+    return prizeDistributions / numberOfPrizesForIndex;
   }
 
   /**
-    * @notice Generates an array of prize distribution fractions
-    * @param _drawSettings DrawCalculatorSettings struct for Draw
-    * @param maxWinningDistributionIndex Max length of the prize distribution array
-    * @return returns an array of prize distribution fractions
+    * @notice Generates an array of prize distributions fractions
+    * @param _prizeDistributions prizeDistributions struct for Draw
+    * @param maxWinningDistributionIndex Max length of the prize distributions array
+    * @return returns an array of prize distributions fractions
   */
-  function _calculatePrizeDistributionFractions(DrawLib.PrizeDistribution memory _drawSettings, uint8 maxWinningDistributionIndex)
+  function _calculatePrizeDistributionFractions(DrawLib.PrizeDistribution memory _prizeDistributions, uint8 maxWinningDistributionIndex)
     internal pure returns (uint256[] memory)
   {
     uint256[] memory prizeDistributionFractions = new uint256[](maxWinningDistributionIndex + 1);
 
     for(uint8 i = 0; i <= maxWinningDistributionIndex; i++){
-      prizeDistributionFractions[i] = _calculatePrizeDistributionFraction(_drawSettings, i);
-    } 
+      prizeDistributionFractions[i] = _calculatePrizeDistributionFraction(_prizeDistributions, i);
+    }
     return prizeDistributionFractions;
   }
 
-
   /**
     * @notice Calculates the number of prizes for a given prizeDistributionIndex
-    * @param _bitRangeSize DrawCalculatorSettings struct for Draw
+    * @param _bitRangeSize Bit range size for Draw
     * @param _prizeDistributionIndex Index of the prize distribution array to calculate
     * @return returns the fraction of the total prize (base 1e18)
   */
@@ -387,7 +389,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
       numberOfPrizesForIndex -= bitRangeDecimal ** (_prizeDistributionIndex - 1);
       _prizeDistributionIndex--;
     }
-    
+
     return numberOfPrizesForIndex;
   }
 }
