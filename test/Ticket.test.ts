@@ -137,34 +137,6 @@ describe('Ticket', () => {
     })
   })
 
-  describe('twab lifetime', () => {
-    let twabLifetime: number
-    const mintBalance = toWei('1000')
-
-    beforeEach(async () => {
-      twabLifetime = await ticket.TWAB_TIME_TO_LIVE()
-    })
-
-    it('should expire old twabs and save gas', async () => {
-      let quarterOfLifetime = twabLifetime / 4
-
-      await ticket.mint(wallet1.address, mintBalance)
-
-      // now try transfers
-      for (var i = 0; i < 8; i++) {
-        await increaseTime(quarterOfLifetime)
-        await ticket.mint(wallet2.address, mintBalance)
-        await ticket.transfer(wallet2.address, toWei('100'))
-        await ticket.burn(wallet2.address, mintBalance.div(2))
-      }
-
-      await ticket.burn(wallet1.address, await ticket.balanceOf(wallet1.address))
-      await ticket.burn(wallet2.address, await ticket.balanceOf(wallet2.address))
-
-      // here we should have looped around.
-    })
-  })
-
   describe('_transfer()', () => {
     const mintAmount = toWei('2500');
     const transferAmount = toWei('1000');
@@ -245,7 +217,7 @@ describe('Ticket', () => {
 
       debug(`Twab Context: `, context)
 
-      expect(context.cardinality).to.equal(2)
+      expect(context.cardinality).to.equal(1)
       expect(context.nextTwabIndex).to.equal(1)
       expect(await ticket.totalSupply()).to.equal(mintAmount.mul(2));
     })
