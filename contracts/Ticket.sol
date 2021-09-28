@@ -21,16 +21,8 @@ import "./ControlledToken.sol";
             TWAB lookup and removed from the delegaters TWAB lookup.
 */
 contract Ticket is ControlledToken, ITicket {
-
   using SafeERC20 for IERC20;
   using SafeCast for uint256;
-
-  /// @notice The minimum length of time a twab should exist.
-  /// @dev Once the twab ttl expires, its storage slot is recycled.
-  uint32 public constant TWAB_TIME_TO_LIVE = 24 weeks;
-  
-  /// @notice The maximum number of twab entries
-  uint16 public constant MAX_CARDINALITY = 65535;
 
   /// @notice Record of token holders TWABs for each account.
   mapping (address => TwabLib.Account) internal userTwabs;
@@ -267,7 +259,7 @@ contract Ticket is ControlledToken, ITicket {
       TwabLib.AccountDetails memory accountDetails,
       ObservationLib.Observation memory _totalSupply,
       bool tsIsNew
-    ) = TwabLib.increaseBalance(totalSupplyTwab, amount, TWAB_TIME_TO_LIVE, uint32(block.timestamp));
+    ) = TwabLib.increaseBalance(totalSupplyTwab, amount, uint32(block.timestamp));
     totalSupplyTwab.details = accountDetails;
     if (tsIsNew) {
       emit NewTotalSupplyTwab(_totalSupply);
@@ -305,7 +297,6 @@ contract Ticket is ControlledToken, ITicket {
       totalSupplyTwab,
       amount,
       "ERC20: burn amount exceeds balance",
-      TWAB_TIME_TO_LIVE,
       uint32(block.timestamp)
     );
     totalSupplyTwab.details = accountDetails;
@@ -341,7 +332,7 @@ contract Ticket is ControlledToken, ITicket {
       TwabLib.AccountDetails memory accountDetails,
       ObservationLib.Observation memory twab,
       bool isNew
-    ) = TwabLib.increaseBalance(_account, _amount, TWAB_TIME_TO_LIVE, uint32(block.timestamp));
+    ) = TwabLib.increaseBalance(_account, _amount, uint32(block.timestamp));
     _account.details = accountDetails;
     if (isNew) {
       emit NewUserTwab(_holder, _user, twab);
@@ -358,7 +349,7 @@ contract Ticket is ControlledToken, ITicket {
       TwabLib.AccountDetails memory accountDetails,
       ObservationLib.Observation memory twab,
       bool isNew
-    ) = TwabLib.decreaseBalance(_account, _amount, "ERC20: burn amount exceeds balance", TWAB_TIME_TO_LIVE, uint32(block.timestamp));
+    ) = TwabLib.decreaseBalance(_account, _amount, "ERC20: burn amount exceeds balance", uint32(block.timestamp));
     _account.details = accountDetails;
     if (isNew) {
       emit NewUserTwab(_holder, _user, twab);

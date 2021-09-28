@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
+
 import "../libraries/TwabLib.sol";
 import "../libraries/RingBuffer.sol";
 
@@ -18,12 +19,23 @@ contract TwabLibExposed {
     bool isNew
   );
 
+  function details() external view returns (TwabLib.AccountDetails memory) {
+    return account.details;
+  }
+
+  function twabs() external view returns (ObservationLib.Observation[] memory) {
+    ObservationLib.Observation[] memory _twabs = new ObservationLib.Observation[](account.details.cardinality);
+    for (uint256 i = 0; i < _twabs.length; i++) {
+      _twabs[i] = account.twabs[i];
+    }
+    return _twabs;
+  }
+
   function increaseBalance(
     uint256 _amount,
-    uint32 _ttl,
     uint32 _currentTime
   ) external returns (TwabLib.AccountDetails memory accountDetails, ObservationLib.Observation memory twab, bool isNew) {
-    (accountDetails, twab, isNew) = TwabLib.increaseBalance(account, _amount, _ttl, _currentTime);
+    (accountDetails, twab, isNew) = TwabLib.increaseBalance(account, _amount, _currentTime);
     account.details = accountDetails;
     emit Updated(accountDetails, twab, isNew);
   }
@@ -31,10 +43,9 @@ contract TwabLibExposed {
   function decreaseBalance(
     uint256 _amount,
     string memory _revertMessage,
-    uint32 _ttl,
     uint32 _currentTime
   ) external returns (TwabLib.AccountDetails memory accountDetails, ObservationLib.Observation memory twab, bool isNew) {
-    (accountDetails, twab, isNew) = TwabLib.decreaseBalance(account, _amount, _revertMessage, _ttl, _currentTime);
+    (accountDetails, twab, isNew) = TwabLib.decreaseBalance(account, _amount, _revertMessage, _currentTime);
     account.details = accountDetails;
     emit Updated(accountDetails, twab, isNew);
   }
