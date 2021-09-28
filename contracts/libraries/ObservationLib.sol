@@ -5,7 +5,8 @@ import "./OverflowSafeComparator.sol";
 import "./RingBuffer.sol";
 
 /// @title Time-Weighted Average Balance Library
-/// @notice This library allows you to efficiently track a user's historic balance.  You can get a
+/// @notice This library allows you to efficiently track a user's historic balance.
+/// @dev Binary search taken from Uniswap V3 Oracle.sol: https://github.com/Uniswap/v3-core/blob/3e88af408132fc957e3e406f65a0ce2b1ca06c3d/contracts/libraries/Oracle.sol
 /// @author PoolTogether Inc.
 library ObservationLib {
   using OverflowSafeComparator for uint32;
