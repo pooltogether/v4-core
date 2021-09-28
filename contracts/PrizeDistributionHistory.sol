@@ -11,10 +11,10 @@ import "./interfaces/IPrizeDistributionHistory.sol";
 /**
   * @title  PoolTogether V4 PrizeDistributionHistory
   * @author PoolTogether Inc Team
-  * @notice The PrizeDistributionHistory stores individual DrawSettings for each Draw.drawId.
-            DrawSettings parameters like cardinality, bitRange, distributions, number of picks
+  * @notice The PrizeDistributionHistory stores individual PrizeDistributions for each Draw.drawId.
+            PrizeDistributions parameters like cardinality, bitRange, distributions, number of picks
             and prize. The settings determine the specific distribution model for each individual
-            draw. Storage of the DrawSetting(s) is handled by ring buffer with a max cardinality
+            draw. Storage of the PrizeDistribution(s) is handled by ring buffer with a max cardinality
             of 256 or roughly 5 years of history with a weekly draw cadence.
 */
 contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
@@ -25,61 +25,61 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   uint256 internal constant DISTRIBUTION_CEILING = 1e9;
   event Deployed(uint8 cardinality);
 
-  /// @notice DrawSettings ring buffer history.
-  DrawLib.PrizeDistribution[MAX_CARDINALITY] internal _drawSettingsRingBuffer;
+  /// @notice PrizeDistributions ring buffer history.
+  DrawLib.PrizeDistribution[MAX_CARDINALITY] internal _prizeDistributionsRingBuffer;
 
   /// @notice Ring buffer data (nextIndex, lastDrawId, cardinality)
-  DrawRingBufferLib.Buffer internal drawSettingsRingBufferData;
+  DrawRingBufferLib.Buffer internal prizeDistributionsRingBufferData;
 
   /* ============ Constructor ============ */
 
   /**
     * @notice Constructor for PrizeDistributionHistory
     * @param _owner Address of the PrizeDistributionHistory owner
-    * @param _cardinality Cardinality of the `drawSettingsRingBufferData`
+    * @param _cardinality Cardinality of the `prizeDistributionsRingBufferData`
    */
   constructor(
     address _owner,
     uint8 _cardinality
   ) Ownable(_owner) {
-    drawSettingsRingBufferData.cardinality = _cardinality;
+    prizeDistributionsRingBufferData.cardinality = _cardinality;
     emit Deployed(_cardinality);
   }
 
   /* ============ External Functions ============ */
 
   /// @inheritdoc IPrizeDistributionHistory
-  function getDrawSetting(uint32 _drawId) external override view returns(DrawLib.PrizeDistribution memory) {
-    return _getDrawSettings(drawSettingsRingBufferData, _drawId);
+  function getPrizeDistribution(uint32 _drawId) external override view returns(DrawLib.PrizeDistribution memory) {
+    return _getPrizeDistributions(prizeDistributionsRingBufferData, _drawId);
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function getDrawSettings(uint32[] calldata _drawIds) external override view returns(DrawLib.PrizeDistribution[] memory) {
-    DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
-    DrawLib.PrizeDistribution[] memory _drawSettings = new DrawLib.PrizeDistribution[](_drawIds.length);
+  function getPrizeDistributions(uint32[] calldata _drawIds) external override view returns(DrawLib.PrizeDistribution[] memory) {
+    DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+    DrawLib.PrizeDistribution[] memory _prizeDistributions = new DrawLib.PrizeDistribution[](_drawIds.length);
     for (uint256 i = 0; i < _drawIds.length; i++) {
-      _drawSettings[i] = _getDrawSettings(buffer, _drawIds[i]);
+      _prizeDistributions[i] = _getPrizeDistributions(buffer, _drawIds[i]);
     }
-    return _drawSettings;
+    return _prizeDistributions;
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function getNewestDrawSettings() external override view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId) {
-    DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
-    return (_drawSettingsRingBuffer[buffer.getIndex(buffer.lastDrawId)], buffer.lastDrawId);
+  function getNewestPrizeDistribution() external override view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId) {
+    DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+    return (_prizeDistributionsRingBuffer[buffer.getIndex(buffer.lastDrawId)], buffer.lastDrawId);
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function getOldestDrawSettings() external override view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId) {
-    DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
-    drawSettings = _drawSettingsRingBuffer[buffer.nextIndex];
+  function getOldestPrizeDistribution() external override view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId) {
+    DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+    prizeDistribution = _prizeDistributionsRingBuffer[buffer.nextIndex];
 
-    // IF the next DrawSettings.bitRangeSize == 0 the ring buffer HAS NOT looped around.
-    // The DrawSettings at index 0 IS by defaut the oldest drawSettings.
+    // IF the next PrizeDistributions.bitRangeSize == 0 the ring buffer HAS NOT looped around.
+    // The PrizeDistributions at index 0 IS by defaut the oldest prizeDistribution.
     if (buffer.lastDrawId == 0) {
-      drawId = 0; // return 0 to indicate no drawSettings ring buffer history
-    } else if (drawSettings.bitRangeSize == 0) {
-      drawSettings = _drawSettingsRingBuffer[0];
+      drawId = 0; // return 0 to indicate no prizeDistribution ring buffer history
+    } else if (prizeDistribution.bitRangeSize == 0) {
+      prizeDistribution = _prizeDistributionsRingBuffer[0];
       drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
     } else {
       // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
@@ -89,16 +89,16 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function pushDrawSettings(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) external override onlyManagerOrOwner returns (bool) {
-    return _pushDrawSettings(_drawId, _drawSettings);
+  function pushPrizeDistribution(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistribution) external override onlyManagerOrOwner returns (bool) {
+    return _pushPrizeDistribution(_drawId, _prizeDistribution);
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function setDrawSetting(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) external override onlyOwner returns (uint32) {
-    DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
+  function setPrizeDistribution(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistribution) external override onlyOwner returns (uint32) {
+    DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
     uint32 index = buffer.getIndex(_drawId);
-    _drawSettingsRingBuffer[index] = _drawSettings;
-    emit DrawSettingsSet(_drawId, _drawSettings);
+    _prizeDistributionsRingBuffer[index] = _prizeDistribution;
+    emit PrizeDistributionsSet(_drawId, _prizeDistribution);
     return _drawId;
   }
 
@@ -106,37 +106,36 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   /* ============ Internal Functions ============ */
 
   /**
-    * @notice Gets the PrizeDistributionHistorySettings for a Draw.drawID
-    * @param _drawSettingsRingBufferData DrawRingBufferLib.Buffer
+    * @notice Gets the PrizeDistributionHistory for a Draw.drawID
+    * @param _prizeDistributionsRingBufferData DrawRingBufferLib.Buffer
     * @param drawId Draw.drawId
    */
-  function _getDrawSettings(
-    DrawRingBufferLib.Buffer memory _drawSettingsRingBufferData,
+  function _getPrizeDistributions(
+    DrawRingBufferLib.Buffer memory _prizeDistributionsRingBufferData,
     uint32 drawId
   ) internal view returns (DrawLib.PrizeDistribution memory) {
-    return _drawSettingsRingBuffer[_drawSettingsRingBufferData.getIndex(drawId)];
+    return _prizeDistributionsRingBuffer[_prizeDistributionsRingBufferData.getIndex(drawId)];
   }
 
   /**
-    * @notice Set newest PrizeDistributionHistorySettings in ring buffer storage.
+    * @notice Set newest PrizeDistributionHistory in ring buffer storage.
     * @param _drawId       Draw.drawId
-    * @param _drawSettings PrizeDistributionHistorySettings struct
+    * @param _prizeDistribution PrizeDistributionHistory struct
    */
-  function _pushDrawSettings(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) internal returns (bool) {
-
+  function _pushPrizeDistribution(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistribution) internal returns (bool) {
     require(_drawId > 0, "DrawCalc/draw-id-gt-0");
-    require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
-    require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
-    require(_drawSettings.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
+    require(_prizeDistribution.bitRangeSize <= 256 / _prizeDistribution.matchCardinality, "DrawCalc/bitRangeSize-too-large");
+    require(_prizeDistribution.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
+    require(_prizeDistribution.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
 
     // ensure that the distributions are not gt 100%
     uint256 sumTotalDistributions = 0;
     uint256 nonZeroDistributions = 0;
-    uint256 distributionsLength = _drawSettings.distributions.length;
+    uint256 distributionsLength = _prizeDistribution.distributions.length;
 
     for(uint256 index = 0; index < distributionsLength; index++){
-      sumTotalDistributions += _drawSettings.distributions[index];
-      if(_drawSettings.distributions[index] > 0){
+      sumTotalDistributions += _prizeDistribution.distributions[index];
+      if(_prizeDistribution.distributions[index] > 0){
         nonZeroDistributions++;
       }
     }
@@ -144,13 +143,13 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     // Each distribution amount stored as uint32 - summed can't exceed 1e9
     require(sumTotalDistributions <= DISTRIBUTION_CEILING, "DrawCalc/distributions-gt-100%");
 
-    require(_drawSettings.matchCardinality >= nonZeroDistributions, "DrawCalc/matchCardinality-gte-distributions");
+    require(_prizeDistribution.matchCardinality >= nonZeroDistributions, "DrawCalc/matchCardinality-gte-distributions");
 
-    DrawRingBufferLib.Buffer memory _drawSettingsRingBufferData = drawSettingsRingBufferData;
-    _drawSettingsRingBuffer[_drawSettingsRingBufferData.nextIndex] = _drawSettings;
-    drawSettingsRingBufferData = drawSettingsRingBufferData.push(_drawId);
+    DrawRingBufferLib.Buffer memory _prizeDistributionsRingBufferData = prizeDistributionsRingBufferData;
+    _prizeDistributionsRingBuffer[_prizeDistributionsRingBufferData.nextIndex] = _prizeDistribution;
+    prizeDistributionsRingBufferData = prizeDistributionsRingBufferData.push(_drawId);
 
-    emit DrawSettingsSet(_drawId, _drawSettings);
+    emit PrizeDistributionsSet(_drawId, _prizeDistribution);
 
     return true;
   }

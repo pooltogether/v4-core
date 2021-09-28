@@ -41,7 +41,7 @@ function PoolEnv() {
 
   this.drawHistory = async () => await ethers.getContract('DrawHistory');
 
-  this.drawSettingsHistory = async () => await ethers.getContract('PrizeDistributionHistory');
+  this.prizeDistributionHistory = async () => await ethers.getContract('PrizeDistributionHistory');
 
   this.drawCalculator = async () => await ethers.getContract('DrawCalculator');
 
@@ -172,7 +172,7 @@ function PoolEnv() {
     expect(draw.winningRandomNumber).to.equal(randomNumber);
   };
 
-  this.pushDrawSettings = async function ({
+  this.pushPrizeDistribution = async function ({
     drawId,
     bitRangeSize,
     startTimestampOffset,
@@ -183,9 +183,9 @@ function PoolEnv() {
     prize,
     maxPicksPerUser,
   }) {
-    const drawSettingsHistory = await this.drawSettingsHistory();
+    const prizeDistributionHistory = await this.prizeDistributionHistory();
 
-    const drawSettings = {
+    const prizeDistributions = {
       bitRangeSize,
       matchCardinality,
       startTimestampOffset,
@@ -196,7 +196,7 @@ function PoolEnv() {
       maxPicksPerUser,
     };
 
-    await drawSettingsHistory.pushDrawSettings(drawId, drawSettings);
+    await prizeDistributionHistory.pushPrizeDistribution(drawId, prizeDistributions);
   };
 }
 

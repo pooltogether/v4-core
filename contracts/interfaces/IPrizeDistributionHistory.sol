@@ -19,52 +19,52 @@ interface IPrizeDistributionHistory {
   /**
     * @notice Emitted when the DrawParams are set/updated
     * @param drawId       Draw id
-    * @param drawSettings DrawLib.PrizeDistribution
+    * @param prizeDistributions DrawLib.PrizeDistribution
   */
-  event DrawSettingsSet(uint32 indexed drawId, DrawLib.PrizeDistribution drawSettings);
+  event PrizeDistributionsSet(uint32 indexed drawId, DrawLib.PrizeDistribution prizeDistributions);
 
 
   /**
-    * @notice Read newest DrawSettings from the draws ring buffer.
+    * @notice Read newest PrizeDistributions from the prize distributions ring buffer.
     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
-    * @return drawSettings DrawLib.PrizeDistribution
+    * @return prizeDistribution DrawLib.PrizeDistribution
     * @return drawId Draw.drawId
   */
-  function getNewestDrawSettings() external view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId);
+  function getNewestPrizeDistribution() external view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
   /**
-    * @notice Read oldest DrawSettings from the draws ring buffer.
+    * @notice Read oldest PrizeDistributions from the prize distributions ring buffer.
     * @dev    Finds the oldest Draw by buffer.nextIndex and buffer.lastDrawId
-    * @return drawSettings DrawLib.PrizeDistribution
+    * @return prizeDistribution DrawLib.PrizeDistribution
     * @return drawId Draw.drawId
   */
-  function getOldestDrawSettings() external view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId);
+  function getOldestPrizeDistribution() external view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
   /**
-    * @notice Gets array of PrizeDistributionHistorySettings for Draw.drawID(s)
+    * @notice Gets array of PrizeDistributionHistory for Draw.drawID(s)
     * @param drawIds Draw.drawId
    */
-  function getDrawSettings(uint32[] calldata drawIds) external view returns (DrawLib.PrizeDistribution[] memory);
+  function getPrizeDistributions(uint32[] calldata drawIds) external view returns (DrawLib.PrizeDistribution[] memory);
 
   /**
-    * @notice Gets the PrizeDistributionHistorySettings for a Draw.drawID
+    * @notice Gets the PrizeDistributionHistory for a Draw.drawID
     * @param drawId Draw.drawId
    */
-  function getDrawSetting(uint32 drawId) external view returns (DrawLib.PrizeDistribution memory);
+  function getPrizeDistribution(uint32 drawId) external view returns (DrawLib.PrizeDistribution memory);
 
   /**
-    * @notice Sets PrizeDistributionHistorySettings for a Draw.drawID.
+    * @notice Sets PrizeDistributionHistory for a Draw.drawID.
     * @dev    Only callable by the owner or manager
     * @param drawId Draw.drawId
-    * @param draw   PrizeDistributionHistorySettings struct
+    * @param draw   PrizeDistributionHistory struct
    */
-  function pushDrawSettings(uint32 drawId, DrawLib.PrizeDistribution calldata draw) external returns(bool);
+  function pushPrizeDistribution(uint32 drawId, DrawLib.PrizeDistribution calldata draw) external returns(bool);
 
   /**
-    * @notice Set existing Draw in draws ring buffer with new parameters.
+    * @notice Set existing Draw in prize distributions ring buffer with new parameters.
     * @dev    Updating a Draw should be used sparingly and only in the event an incorrect Draw parameter has been stored.
     * @return Draw.drawId
   */
-  function setDrawSetting(uint32 drawId, DrawLib.PrizeDistribution calldata draw) external returns(uint32); // maybe return drawIndex
-  
+  function setPrizeDistribution(uint32 drawId, DrawLib.PrizeDistribution calldata draw) external returns(uint32); // maybe return drawIndex
+
 }
