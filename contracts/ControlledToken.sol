@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
+
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 import "./interfaces/IControlledToken.sol";
 
 /**
@@ -11,11 +14,33 @@ import "./interfaces/IControlledToken.sol";
 */
 contract ControlledToken is ERC20Permit, IControlledToken {
 
+  /* ============ Global Variables ============ */
+
   /// @notice Interface to the contract responsible for controlling mint/burn
   address public override controller;
 
   /// @notice ERC20 controlled token decimals.
   uint8 private immutable _decimals;
+
+  /* ============ Events ============ */
+
+  /// @dev Emitted when contract is deployed
+  event Deployed(
+    string name,
+    string symbol,
+    uint8 decimals,
+    address controller
+  );
+
+  /* ============ Modifiers ============ */
+
+  /// @dev Function modifier to ensure that the caller is the controller contract
+  modifier onlyController {
+    require(msg.sender == address(controller), "ControlledToken/only-controller");
+    _;
+  }
+
+  /* ============ Constructor ============ */
 
   /// @notice Deploy the Controlled Token with Token Details and the Controller
   /// @param _name The name of the Token
@@ -45,6 +70,8 @@ contract ControlledToken is ERC20Permit, IControlledToken {
     );
   }
 
+  /* ============ External Functions ============ */
+
   /// @notice Allows the controller to mint tokens for a user account
   /// @dev May be overridden to provide more granular control over minting
   /// @param _user Address of the receiver of the minted tokens
@@ -68,9 +95,9 @@ contract ControlledToken is ERC20Permit, IControlledToken {
   /// @param _amount Amount of tokens to burn
   function controllerBurnFrom(address _operator, address _user, uint256 _amount) external virtual override onlyController {
     if (_operator != _user) {
-      uint256 decreasedAllowance = allowance(_user, _operator) - _amount;
-      _approve(_user, _operator, decreasedAllowance);
+      _approve(_user, _operator, allowance(_user, _operator) - _amount);
     }
+
     _burn(_user, _amount);
   }
 
@@ -79,11 +106,5 @@ contract ControlledToken is ERC20Permit, IControlledToken {
   /// @return uint8 decimals.
   function decimals() public view virtual override returns (uint8) {
     return _decimals;
-  }
-
-  /// @dev Function modifier to ensure that the caller is the controller contract
-  modifier onlyController {
-    require(msg.sender == address(controller), "ControlledToken/only-controller");
-    _;
   }
 }
