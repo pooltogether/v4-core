@@ -284,9 +284,11 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
     // now calculate prizeFraction given prize counts
     uint256 prizeFraction = 0;
-    for(uint64 prizeCountIndex = 0; prizeCountIndex <= maxWinningDistributionIndex; prizeCountIndex++) {
+    uint256[] memory prizeDistributionFractions = _calculatePrizeDistributionFractions(_drawSettings, maxWinningDistributionIndex);
+
+    for(uint256 prizeCountIndex = 0; prizeCountIndex <= maxWinningDistributionIndex; prizeCountIndex++) {
       if(prizeCounts[prizeCountIndex] > 0) {
-        prizeFraction += _calculatePrizeDistributionFraction(_drawSettings, prizeCountIndex) * prizeCounts[prizeCountIndex];
+        prizeFraction += prizeDistributionFractions[prizeCountIndex] * prizeCounts[prizeCountIndex];
       }
     }
     // return the absolute amount of prize awardable
@@ -353,6 +355,23 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     return prizeDistribution / numberOfPrizesForIndex;
   }
 
+  /**
+    * @notice Generates an array of prize distribution fractions
+    * @param _drawSettings DrawCalculatorSettings struct for Draw
+    * @param maxWinningDistributionIndex Max length of the prize distribution array
+    * @return returns an array of prize distribution fractions
+  */
+  function _calculatePrizeDistributionFractions(DrawLib.PrizeDistribution memory _drawSettings, uint8 maxWinningDistributionIndex)
+    internal pure returns (uint256[] memory)
+  {
+    uint256[] memory prizeDistributionFractions = new uint256[](maxWinningDistributionIndex + 1);
+
+    for(uint8 i = 0; i <= maxWinningDistributionIndex; i++){
+      prizeDistributionFractions[i] = _calculatePrizeDistributionFraction(_drawSettings, i);
+    } 
+    return prizeDistributionFractions;
+  }
+
 
   /**
     * @notice Calculates the number of prizes for a given prizeDistributionIndex
@@ -364,12 +383,11 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     uint256 bitRangeDecimal = 2 ** uint256(_bitRangeSize);
     uint256 numberOfPrizesForIndex = bitRangeDecimal ** _prizeDistributionIndex;
 
-    if(_prizeDistributionIndex > 0){
-      while(_prizeDistributionIndex > 0){
-        numberOfPrizesForIndex -= bitRangeDecimal ** (_prizeDistributionIndex - 1);
-        _prizeDistributionIndex--;
-      }
+    while(_prizeDistributionIndex > 0){
+      numberOfPrizesForIndex -= bitRangeDecimal ** (_prizeDistributionIndex - 1);
+      _prizeDistributionIndex--;
     }
+    
     return numberOfPrizesForIndex;
   }
 }
