@@ -9,7 +9,7 @@ import "../interfaces/IPrizeSplit.sol";
 */
 abstract contract PrizeSplit is IPrizeSplit, Ownable {
 
-  /* ============ Global Viarables ============ */
+  /* ============ Global Variables ============ */
   PrizeSplitConfig[] internal _prizeSplits;
   
 
