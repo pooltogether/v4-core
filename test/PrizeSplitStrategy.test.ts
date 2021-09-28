@@ -19,7 +19,6 @@ describe('PrizeSplitStrategy', () => {
   let ticket: Contract;
   let PrizePool: Artifact;
   let prizePool: MockContract;
-
   let prizeSplitStrategyFactory: ContractFactory
   let erc20MintableFactory: ContractFactory
 
@@ -42,73 +41,69 @@ describe('PrizeSplitStrategy', () => {
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
     await prizePool.mock.ticket.returns(ticket.address);
-
     debug('deploy prizeSplitStrategy...');
     prizeSplitStrategy = await prizeSplitStrategyFactory.deploy(wallet1.address, prizePool.address);
   });
 
-  describe('distribute()', () => {
-    it('should award 100% of the captured balance to the PrizeReserve', async () => {
-      await prizeSplitStrategy.setPrizeSplits([
-        {
-          target: wallet2.address,
-          percentage: 1000
-        },
-      ])
+  /*============================================ */
+  // Core Functions ----------------------------
+  /*============================================ */
+  describe('Core Functions', () => {
+    describe('distribute()', () => {
+      it('should stop executing if captured interest is 0', async () => {
+        await prizePool.mock.captureAwardBalance.returns(toWei('0'))
+        await prizePool.mock.award.withArgs(wallet2.address, toWei('0')).returns()
+        const distribute = await prizeSplitStrategy.distribute()
+        await expect(distribute)
+          .to.not.emit(prizeSplitStrategy, 'Distributed')
+          .withArgs(toWei('100'))
+      })
+      it('should award 100% of the captured balance to the PrizeReserve', async () => {
+        await prizeSplitStrategy.setPrizeSplits([
+          {
+            target: wallet2.address,
+            percentage: 1000
+          },
+        ])
 
-      await prizePool.mock.captureAwardBalance.returns(toWei('100'))
-      await prizePool.mock.award.withArgs(wallet2.address, toWei('100')).returns()
+        await prizePool.mock.captureAwardBalance.returns(toWei('100'))
+        await prizePool.mock.award.withArgs(wallet2.address, toWei('100')).returns()
+        const distribute = await prizeSplitStrategy.distribute()
+        await expect(distribute)
+          .to.emit(prizeSplitStrategy, 'Distributed')
+          .withArgs(toWei('100'))
+        await expect(distribute)
+          .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
+          .withArgs(wallet2.address, toWei('100'), ticket.address)
+      });
+    })
+  })
 
-      // Distribute Award
-      const distribute = await prizeSplitStrategy.distribute()
+  /*============================================ */
+  // Getter Functions --------------------------
+  /*============================================ */
+  describe('Getter Functions', () => {
+    it('should ', async () => {
 
-      // Verify Contract Events
-      await expect(distribute)
-        .to.emit(prizeSplitStrategy, 'Distributed')
-        .withArgs(toWei('100'))
-
-      await expect(distribute)
-        .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
-        .withArgs(wallet2.address, toWei('100'), ticket.address)
     });
+  })
+  /*============================================ */
+  // Setter Functions --------------------------
+  /*============================================ */
+  describe('Setter Functions', () => {
 
-    it('should award (50%/50%) the captured balance to the PrizeReserve and a secondary account.', async () => {
-      await prizeSplitStrategy.setPrizeSplits([
-        {
-          target: wallet2.address,
-          percentage: 500,
-          token: 1,
-        },
-        {
-          target: wallet3.address,
-          percentage: 500,
-          token: 0,
-        },
-      ])
+  })
 
-      await prizePool.mock.captureAwardBalance.returns(toWei('100'))
+  /*============================================ */
+  // Internal Functions ----------------------------
+  /*============================================ */
+  describe('Internal Functions', () => {
 
-      // Mock PrizeReserve Award Sponsorhip
-      await prizePool.mock.award.withArgs(wallet2.address, toWei('50')).returns()
+  })
+  /*============================================ */
+  // Core Functions ----------------------------
+  /*============================================ */
+  describe('core()', () => {
 
-      // Mock Secondary Wallet Award Sponsorhip
-      await prizePool.mock.award.withArgs(wallet3.address, toWei('50')).returns()
-
-      // Distribute Award
-      const distribute = await prizeSplitStrategy.distribute()
-
-      // Verify Contract Events
-      await expect(distribute)
-        .to.emit(prizeSplitStrategy, 'Distributed')
-        .withArgs(toWei('100'))
-
-      await expect(distribute)
-        .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
-        .withArgs(wallet2.address, toWei('50'), ticket.address)
-
-      await expect(distribute)
-        .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
-        .withArgs(wallet3.address, toWei('50'), ticket.address)
-    });
   })
 })

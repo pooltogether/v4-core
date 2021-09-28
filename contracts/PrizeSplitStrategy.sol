@@ -19,7 +19,7 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
   /**
     * @notice PrizePool address
   */
-  IPrizePool public prizePool;
+  IPrizePool internal prizePool;
 
   /* ============ Constructor ============ */
 
@@ -41,9 +41,14 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
   /// @inheritdoc IStrategy
   function distribute() external override returns (uint256) {
     uint256 prize = prizePool.captureAwardBalance();
+    if(prize == 0) return 0;
     _distributePrizeSplits(prize);
     emit Distributed(prize);
     return prize;
+  }
+
+  function getPrizePool() external view returns(IPrizePool) {
+    return prizePool;
   }
 
   /* ============ Internal Functions ============ */
