@@ -255,7 +255,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     * @return prize (if any) per Draw claim
   */
   function _calculate(uint256 _winningRandomNumber, uint256 _totalUserPicks, bytes32 _userRandomNumber, uint64[] memory _picks, DrawLib.PrizeDistribution memory _drawSettings)
-    internal view returns (uint256)
+    internal pure returns (uint256)
   {
 
     uint256[] memory prizeCounts =  new uint256[](_drawSettings.distributions.length);
