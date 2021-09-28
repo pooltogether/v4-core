@@ -95,13 +95,13 @@ contract PrizeFlush is IPrizeFlush, Manageable {
     strategy.distribute();
 
     // After captured interest transferred to Strategy.PrizeSplits[]: [Reserve, Other]
-    // transfer the Reserve balance directly to the DrawPrizes (destination) address.
+    // transfer the Reserve balance directly to the DrawPrize (destination) address.
     IReserve _reserve = reserve;
     IERC20 _token     = _reserve.getToken();
     uint256 _amount   = _token.balanceOf(address(_reserve));
 
     if(_amount > 0) {
-      // Create checkpoint and transfers new total balance to DrawPrizes
+      // Create checkpoint and transfers new total balance to DrawPrize
       _reserve.withdrawTo(destination, _token.balanceOf(address(_reserve)));
 
       emit Flushed(destination, _amount);

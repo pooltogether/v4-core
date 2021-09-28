@@ -5,7 +5,7 @@ import "./IDrawHistory.sol";
 import "./IDrawCalculator.sol";
 import "../libraries/DrawLib.sol";
 
-interface IDrawPrizes {
+interface IDrawPrize {
 
   /**
     * @notice Emitted when a user has claimed N draw payouts.
@@ -36,7 +36,7 @@ interface IDrawPrizes {
   );
 
   /**
-    * @notice Emitted when ERC20 tokens are withdrawn from the claimable draw.
+    * @notice Emitted when ERC20 tokens are withdrawn
     * @param token ERC20 token transferred.
     * @param to Address that received funds.
     * @param amount Amount of tokens transferred.

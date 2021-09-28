@@ -180,12 +180,12 @@ module.exports = async (hardhat) => {
   });
   displayResult('DrawCalculator', drawCalculatorResult);
 
-  cyan('\nDeploying DrawPrizes...');
-  const claimableDrawResult = await deploy('DrawPrizes', {
+  cyan('\nDeploying DrawPrize...');
+  const drawPrizeResult = await deploy('DrawPrize', {
     from: deployer,
     args: [deployer, ticketResult.address, drawCalculatorResult.address],
   });
-  displayResult('DrawPrizes', claimableDrawResult);
+  displayResult('DrawPrize', drawPrizeResult);
 
   cyan('\nDeploying PrizeSplitStrategy...');
   const prizeSplitStrategyResult = await deploy('PrizeSplitStrategy', {
