@@ -157,10 +157,6 @@ contract DrawBeacon is IDrawBeacon,
 
   /* ============ Public Functions ============ */
 
-  function getDrawHistory() external view returns (IDrawHistory) {
-    return drawHistory;
-  }
-
   /**
     * @notice Returns whether the random number request has completed.
     * @return True if a random number request has completed, false otherwise.
@@ -267,14 +263,34 @@ contract DrawBeacon is IDrawBeacon,
     return _beaconPeriodEndAt();
   }
 
+  function getBeaconPeriodSeconds() external view returns (uint32) {
+    return beaconPeriodSeconds;
+  }
+  function getBeaconPeriodStartedAt() external view returns (uint64) {
+    return beaconPeriodStartedAt;
+  }
+  function getDrawHistory() external view returns (IDrawHistory) {
+    return drawHistory;
+  }
+  
+  function getGextDrawId() external view returns (uint32) {
+    return nextDrawId;
+  }
+
   /// @inheritdoc IDrawBeacon
   function getLastRngLockBlock() external view override returns (uint32) {
     return rngRequest.lockBlock;
   }
 
-  /// @inheritdoc IDrawBeacon
   function getLastRngRequestId() external view override returns (uint32) {
     return rngRequest.id;
+  }
+
+  function getRngService() external view returns (RNGInterface) {
+    return rng;
+  }
+  function getRngTimeout() external view returns (uint32) {
+    return rngTimeout;
   }
 
   /// @inheritdoc IDrawBeacon
