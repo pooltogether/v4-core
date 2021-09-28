@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "./RingBuffer.sol";
 
 /// @title Library for creating and managing a draw ring buffer.
@@ -25,7 +23,7 @@ library DrawRingBufferLib {
   /// @param _buffer The buffer to push to.
   /// @param _drawId The draw id to push.
   /// @return The new buffer.
-  function push(Buffer memory _buffer, uint32 _drawId) internal view returns (Buffer memory) {
+  function push(Buffer memory _buffer, uint32 _drawId) internal pure returns (Buffer memory) {
     require(!isInitialized(_buffer) || _drawId == _buffer.lastDrawId + 1, "DRB/must-be-contig");
     return Buffer({
       lastDrawId: _drawId,
@@ -38,7 +36,7 @@ library DrawRingBufferLib {
   /// @param _buffer The buffer to get the `nextIndex` from.
   /// @param _drawId The draw id to get the index for.
   /// @return The draw ring buffer index pointer.
-  function getIndex(Buffer memory _buffer, uint32 _drawId) internal view returns (uint32) {
+  function getIndex(Buffer memory _buffer, uint32 _drawId) internal pure returns (uint32) {
     require(isInitialized(_buffer) && _drawId <= _buffer.lastDrawId, "DRB/future-draw");
 
     uint32 indexOffset = _buffer.lastDrawId - _drawId;

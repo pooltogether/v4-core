@@ -16,11 +16,11 @@ contract DrawRingBufferLibExposed {
     drawRingBuffer.cardinality = _cardinality;
   }
 
-  function _push(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) external view returns (DrawRingBufferLib.Buffer memory) {
+  function _push(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) external pure returns (DrawRingBufferLib.Buffer memory) {
     return DrawRingBufferLib.push(_buffer, _drawId);
   }
 
-  function _getIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) external view returns (uint32) {
+  function _getIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) external pure returns (uint32) {
     return DrawRingBufferLib.getIndex(_buffer, _drawId);
   }
 

@@ -46,7 +46,7 @@ contract StakePrizePool is PrizePool {
 
   /// @notice Returns the total balance (in asset tokens).  This includes the deposits and interest.
   /// @return The underlying balance of asset tokens
-  function _balance() internal override returns (uint256) {
+  function _balance() internal view override returns (uint256) {
     return stakeToken.balanceOf(address(this));
   }
 
@@ -65,7 +65,7 @@ contract StakePrizePool is PrizePool {
   /// @notice Redeems asset tokens from the yield source.
   /// @param redeemAmount The amount of yield-bearing tokens to be redeemed
   /// @return The actual amount of tokens that were redeemed.
-  function _redeem(uint256 redeemAmount) internal override returns (uint256) {
+  function _redeem(uint256 redeemAmount) internal pure override returns (uint256) {
     return redeemAmount;
   }
 }

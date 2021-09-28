@@ -16,15 +16,15 @@ contract DrawRingBufferLibHarness {
     drawRingBuffer.cardinality = _cardinality;
   }
 
-  function _push(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) external view returns (DrawRingBufferLib.Buffer memory) {
+  function _push(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) external pure returns (DrawRingBufferLib.Buffer memory) {
     return DrawRingBufferLib.push(_buffer, _drawId);
   }
 
-  function _getIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) external view returns (uint32) {
+  function _getIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) external pure returns (uint32) {
     return DrawRingBufferLib.getIndex(_buffer, _drawId);
   }
 
-  function _isInitialized(DrawRingBufferLib.Buffer memory _buffer) external view returns (bool) {
+  function _isInitialized(DrawRingBufferLib.Buffer memory _buffer) external pure returns (bool) {
     return DrawRingBufferLib.isInitialized(_buffer);
   }
 

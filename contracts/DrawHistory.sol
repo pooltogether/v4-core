@@ -97,7 +97,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     * @param _drawId Draw.drawId
     * @return Draws ring buffer index pointer
   */
-  function _drawIdToDrawIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) internal view returns (uint32) {
+  function _drawIdToDrawIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId) internal pure returns (uint32) {
     return _buffer.getIndex(_drawId);
   }
 

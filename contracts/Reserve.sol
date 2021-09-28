@@ -173,17 +173,17 @@ contract Reserve is IReserve, Manageable {
           * create a new Reserve balance checkpoint. The will will update multiple times in a single block.
          */
         if(_balanceOfReserve + _withdrawAccumulator > _newestObservation.amount) {
-            uint32 now = uint32(block.timestamp);
+            uint32 nowTime = uint32(block.timestamp);
             
             // checkpointAccumulator = currentBalance + totalWithdraws
             uint224 newReserveAccumulator = uint224(_balanceOfReserve) + _withdrawAccumulator;
             
             // IF _newestObservation IS NOT in the current block.
             // CREATE observation in the accumulators ring buffer.
-            if(_newestObservation.timestamp != now) {
+            if(_newestObservation.timestamp != nowTime) {
                 reserveAccumulators[_cardinality] = ObservationLib.Observation({
                     amount: newReserveAccumulator, 
-                    timestamp: now
+                    timestamp: nowTime
                 });
                 cardinality++;
             }
@@ -192,7 +192,7 @@ contract Reserve is IReserve, Manageable {
             else {
                 reserveAccumulators[_cardinality - 1] = ObservationLib.Observation({
                     amount: newReserveAccumulator, 
-                    timestamp: now
+                    timestamp: nowTime
                 });
             }
             emit Checkpoint(newReserveAccumulator, _withdrawAccumulator);

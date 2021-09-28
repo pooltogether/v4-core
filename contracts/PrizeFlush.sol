@@ -106,6 +106,7 @@ contract PrizeFlush is IPrizeFlush, Manageable {
 
       emit Flushed(destination, _amount);
     }
-  }
 
+    return true;
+  }
 }

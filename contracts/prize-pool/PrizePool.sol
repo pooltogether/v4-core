@@ -265,7 +265,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   }
 
   /// @inheritdoc IERC721Receiver
-  function onERC721Received(address,address,uint256,bytes calldata) external override returns (bytes4) {
+  function onERC721Received(address,address,uint256,bytes calldata) external pure override returns (bytes4) {
     return IERC721Receiver.onERC721Received.selector;
   }
 

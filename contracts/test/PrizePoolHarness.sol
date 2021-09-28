@@ -28,8 +28,8 @@ contract PrizePoolHarness is PrizePool {
     _redeem(redeemAmount);
   }
 
-  function setCurrentTime(uint256 _currentTime) external {
-    currentTime = _currentTime;
+  function setCurrentTime(uint256 _nowTime) external {
+    currentTime = _nowTime;
   }
 
   function _currentTime() internal override view returns (uint256) {

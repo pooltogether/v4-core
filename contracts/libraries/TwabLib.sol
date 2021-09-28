@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0import "./ExtendedSafeCast.sol";
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./ExtendedSafeCast.sol";
@@ -139,15 +139,15 @@ library TwabLib {
     uint32 _endTime,
     uint32 _currentTime
   ) private view returns (uint256) {
-    (uint24 oldestTwabIndex, ObservationLib.Observation memory oldestTwab) = oldestTwab(_twabs, _accountDetails);
-    (uint24 newestTwabIndex, ObservationLib.Observation memory newestTwab) = newestTwab(_twabs, _accountDetails);
+    (uint24 oldestTwabIndex, ObservationLib.Observation memory oldTwab) = oldestTwab(_twabs, _accountDetails);
+    (uint24 newestTwabIndex, ObservationLib.Observation memory newTwab) = newestTwab(_twabs, _accountDetails);
 
     ObservationLib.Observation memory startTwab = _calculateTwab(
-      _twabs, _accountDetails, newestTwab, oldestTwab, newestTwabIndex, oldestTwabIndex, _startTime, _currentTime
+      _twabs, _accountDetails, newTwab, oldTwab, newestTwabIndex, oldestTwabIndex, _startTime, _currentTime
     );
 
     ObservationLib.Observation memory endTwab = _calculateTwab(
-      _twabs, _accountDetails, newestTwab, oldestTwab, newestTwabIndex, oldestTwabIndex, _endTime, _currentTime
+      _twabs, _accountDetails, newTwab, oldTwab, newestTwabIndex, oldestTwabIndex, _endTime, _currentTime
     );
 
     // Difference in amount / time
@@ -329,18 +329,18 @@ library TwabLib {
     uint32 _ttl,
     uint32 _time
   ) private returns (AccountDetails memory accountDetails, ObservationLib.Observation memory twab, bool isNew) {
-    (, ObservationLib.Observation memory newestTwab) = newestTwab(_twabs, _accountDetails);
-    require(_time >= newestTwab.timestamp, "TwabLib/twab-time-monotonic");
+    (, ObservationLib.Observation memory _newestTwab) = newestTwab(_twabs, _accountDetails);
+    require(_time >= _newestTwab.timestamp, "TwabLib/twab-time-monotonic");
 
     // if we're in the same block, return
-    if (newestTwab.timestamp == _time) {
-      return (_accountDetails, newestTwab, false);
+    if (_newestTwab.timestamp == _time) {
+      return (_accountDetails, _newestTwab, false);
     }
 
     AccountDetails memory nextAccountDetails = _calculateNextWithExpiry(_twabs, _accountDetails, _ttl, _time);
 
     ObservationLib.Observation memory newTwab = _nextTwab(
-      newestTwab,
+      _newestTwab,
       _accountDetails.balance,
       _time
     );
