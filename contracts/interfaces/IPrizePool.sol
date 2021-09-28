@@ -88,8 +88,7 @@ interface IPrizePool {
   function depositTo(
     address to,
     uint256 amount
-  )
-    external;
+  ) external;
 
   /// @notice Withdraw assets from the Prize Pool instantly.  A fairness fee may be charged for an early exit.
   /// @param from The address to redeem tokens from.
@@ -99,6 +98,12 @@ interface IPrizePool {
     address from,
     uint256 amount
   ) external returns (uint256);
+
+  /// @notice Called by the prize strategy to award prizes.
+  /// @dev The amount awarded must be less than the awardBalance()
+  /// @param to The address of the winner that receives the award
+  /// @param amount The amount of assets to be awarded
+  function award( address to, uint256 amount) external;
 
   /// @notice Returns the balance that is available to award.
   /// @dev captureAwardBalance() should be called first
@@ -119,16 +124,31 @@ interface IPrizePool {
   /// @return The underlying balance of assets
   function balance() external returns (uint256);
 
+  /**
+    * @notice Read internal Ticket accounted balance.
+  */
+  function getAccountedBalance() external view returns (uint256);
+  /**
+    * @notice Read internal balanceCap variable
+  */
+  function getBalanceCap() external view returns (uint256);
+  /**
+    * @notice Read internal liquidityCap variable
+  */
+  function getLiquidityCap() external view returns (uint256);
+  /**
+    * @notice Read ticket variable
+  */
+  function getTicket() external view returns (IControlledToken);
+  /**
+    * @notice Read prizeStrategy variable
+  */
+  function getPrizeStrategy() external view returns (address);
+
   /// @dev Checks if a specific token is controlled by the Prize Pool
   /// @param _controlledToken The address of the token to check
   /// @return True if the token is a controlled token, false otherwise
   function isControlled(IControlledToken _controlledToken) external view returns (bool);
-
-  /// @notice Called by the prize strategy to award prizes.
-  /// @dev The amount awarded must be less than the awardBalance()
-  /// @param to The address of the winner that receives the award
-  /// @param amount The amount of assets to be awarded
-  function award( address to, uint256 amount) external;
 
   /// @notice Called by the Prize-Strategy to transfer out external ERC20 tokens
   /// @dev Used to transfer out tokens held by the Prize Pool.  Could be liquidated, or anything.
@@ -175,10 +195,6 @@ interface IPrizePool {
   /// @dev Returns the address of the prize pool ticket.
   /// @return The address of the prize pool ticket.
   function ticket() external view returns (IControlledToken);
-  
-  /// @dev Returns the address of the prize pool ticket.
-  /// @return The address of the prize pool ticket.
-  function getTicket() external view returns (IControlledToken);
 
   /// @dev Returns the address of the underlying ERC20 asset
   /// @return The address of the asset

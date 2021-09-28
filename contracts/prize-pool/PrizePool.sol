@@ -70,11 +70,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /* ============ External Functions ============ */
 
   /// @inheritdoc IPrizePool
-  function token() external override view returns (address) {
-    return address(_token());
-  }
-
-  /// @inheritdoc IPrizePool
   function balance() external override returns (uint256) {
     return _balance();
   }
@@ -83,7 +78,10 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   function awardBalance() external override view returns (uint256) {
     return _currentAwardBalance;
   }
-
+  /// @inheritdoc IPrizePool
+  function accountedBalance() external override view returns (uint256) {
+    return _ticketTotalSupply();
+  }
   /// @inheritdoc IPrizePool
   function canAwardExternal(address _externalToken) external override view returns (bool) {
     return _canAwardExternal(_externalToken);
@@ -93,10 +91,31 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   function isControlled(IControlledToken _controlledToken) external override view returns (bool) {
     return _isControlled(_controlledToken);
   }
-
+  /// @inheritdoc IPrizePool
+  function getAccountedBalance() external override view returns (uint256) {
+    return _ticketTotalSupply();
+  }
+  /// @inheritdoc IPrizePool
+  function getBalanceCap() external override view returns (uint256) {
+    return balanceCap;
+  }
+  /// @inheritdoc IPrizePool
+  function getLiquidityCap() external override view returns (uint256) {
+    return liquidityCap;
+  }
   /// @inheritdoc IPrizePool
   function getTicket() external override view returns (IControlledToken) {
     return ticket;
+  }
+
+  /// @inheritdoc IPrizePool
+  function getPrizeStrategy() external override view returns (address) {
+    return prizeStrategy;
+  }
+
+  /// @inheritdoc IPrizePool
+  function token() external override view returns (address) {
+    return address(_token());
   }
 
   /// @inheritdoc IPrizePool
@@ -252,11 +271,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   }
 
   /// @inheritdoc IPrizePool
-  function accountedBalance() external override view returns (uint256) {
-    return _ticketTotalSupply();
-  }
-
-  /// @inheritdoc IPrizePool
   function compLikeDelegate(ICompLike _compLike, address _to) external override onlyOwner {
     if (_compLike.balanceOf(address(this)) > 0) {
       _compLike.delegate(_to);
@@ -264,7 +278,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   }
 
   /// @inheritdoc IERC721Receiver
-  function onERC721Received(address,address,uint256,bytes calldata) external pure override returns (bytes4) {
+  function onERC721Received(address,address,uint256,bytes calldata) public pure override returns (bytes4) {
     return IERC721Receiver.onERC721Received.selector;
   }
 

@@ -35,6 +35,10 @@ contract PrizePoolHarness is PrizePool {
   function _currentTime() internal override view returns (uint256) {
     return currentTime;
   }
+  
+  function internalCurrentTime() external view returns (uint256) {
+    return super._currentTime();
+  }
 
   function _canAwardExternal(address _externalToken) internal override view returns (bool) {
     return stubYieldSource.canAwardExternal(_externalToken);
@@ -54,5 +58,13 @@ contract PrizePoolHarness is PrizePool {
 
   function _redeem(uint256 redeemAmount) internal override returns (uint256) {
     return stubYieldSource.redeemToken(redeemAmount);
+  }
+
+  function mockOnERC721Received(bytes calldata sig) external pure returns (bytes4) {
+    return super.onERC721Received(address(0), address(0), 0, sig);
+  }
+  
+  function setCurrentAwardBalance(uint256 amount) external {
+    _currentAwardBalance = amount;
   }
 }
