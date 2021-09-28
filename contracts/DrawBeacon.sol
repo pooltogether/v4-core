@@ -38,7 +38,7 @@ contract DrawBeacon is IDrawBeacon,
   RngRequest internal rngRequest;
 
   /// @notice DrawHistory address
-  IDrawHistory public drawHistory;
+  IDrawHistory internal drawHistory;
 
   /**
     * @notice RNG Request Timeout.  In fact, this is really a "complete draw" timeout.
@@ -156,6 +156,10 @@ contract DrawBeacon is IDrawBeacon,
   }
 
   /* ============ Public Functions ============ */
+
+  function getDrawHistory() external view returns (IDrawHistory) {
+    return drawHistory;
+  }
 
   /**
     * @notice Returns whether the random number request has completed.

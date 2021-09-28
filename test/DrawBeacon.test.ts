@@ -391,16 +391,16 @@ describe.only('DrawBeacon', () => {
   describe('setRngTimeout()', () => {
     it('should prevent the owner from setting rngTimeout below 60', async () => {
       await expect(drawBeacon.setRngTimeout(55))
-        .to.not.emit(drawBeacon, 'RngTimeoutSet')
+        .to.be.revertedWith('DrawBeacon/rng-timeout-gt-60-secs')
 
-      expect(await drawBeacon.rngTimeut()).to.equal(100);
+      expect(await drawBeacon.rngTimeout()).to.equal(1800);
     });
     it('should allow the owner to set the rngTimeout above 60', async () => {
       await expect(drawBeacon.setRngTimeout(100))
         .to.emit(drawBeacon, 'RngTimeoutSet')
         .withArgs(100);
 
-      expect(await drawBeacon.rngTimeut()).to.equal(100);
+      expect(await drawBeacon.rngTimeout()).to.equal(100);
     });
   })
 
