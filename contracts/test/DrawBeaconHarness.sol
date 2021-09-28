@@ -23,6 +23,13 @@ contract DrawBeaconHarness is DrawBeacon {
   function _currentTime() internal override view returns (uint64) {
     return time;
   }
+  
+  function currentTime() external view returns (uint64) {
+    return _currentTime();
+  }
+  function _currentTimeInternal() external view returns (uint64) {
+    return super._currentTime();
+  }
 
   function setRngRequest(uint32 requestId, uint32 lockBlock) external {
     rngRequest.id = requestId;

@@ -10,10 +10,9 @@ interface IDrawBeacon {
 
   /**
     * @notice Emit when a new DrawHistory has been set.
-    * @param previousDrawHistory  The previous DrawHistory address
     * @param newDrawHistory       The new DrawHistory address
   */
-  event DrawHistoryTransferred(IDrawHistory indexed previousDrawHistory, IDrawHistory indexed newDrawHistory);
+  event DrawHistoryTransferred(IDrawHistory indexed newDrawHistory);
 
   /**
     * @notice Emit when a draw has opened.

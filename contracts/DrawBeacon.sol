@@ -38,7 +38,7 @@ contract DrawBeacon is IDrawBeacon,
   RngRequest internal rngRequest;
 
   /// @notice DrawHistory address
-  IDrawHistory public drawHistory;
+  IDrawHistory internal drawHistory;
 
   /**
     * @notice RNG Request Timeout.  In fact, this is really a "complete draw" timeout.
@@ -263,14 +263,36 @@ contract DrawBeacon is IDrawBeacon,
     return _beaconPeriodEndAt();
   }
 
+  function getBeaconPeriodSeconds() external view returns (uint32) {
+    return beaconPeriodSeconds;
+  }
+
+  function getBeaconPeriodStartedAt() external view returns (uint64) {
+    return beaconPeriodStartedAt;
+  }
+
+  function getDrawHistory() external view returns (IDrawHistory) {
+    return drawHistory;
+  }
+
+  function getNextDrawId() external view returns (uint32) {
+    return nextDrawId;
+  }
+
   /// @inheritdoc IDrawBeacon
   function getLastRngLockBlock() external view override returns (uint32) {
     return rngRequest.lockBlock;
   }
 
-  /// @inheritdoc IDrawBeacon
   function getLastRngRequestId() external view override returns (uint32) {
     return rngRequest.id;
+  }
+
+  function getRngService() external view returns (RNGInterface) {
+    return rng;
+  }
+  function getRngTimeout() external view returns (uint32) {
+    return rngTimeout;
   }
 
   /// @inheritdoc IDrawBeacon
@@ -303,7 +325,6 @@ contract DrawBeacon is IDrawBeacon,
     _setBeaconPeriodSeconds (_beaconPeriodSeconds);
   }
 
-  
    /// @inheritdoc IDrawBeacon
   function setRngTimeout(uint32 _rngTimeout) external override onlyOwner requireDrawNotInProgress {
     _setRngTimeout(_rngTimeout);
@@ -322,11 +343,15 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Calculates when the next beacon period will start
     * @param _beaconPeriodStartedAt The timestamp at which the beacon period started
     * @param _beaconPeriodSeconds The duration of the beacon period in seconds
-    * @param _nowTime The timestamp to use as the current time
+    * @param _time The timestamp to use as the current time
     * @return The timestamp at which the next beacon period would start
    */
-  function _calculateNextBeaconPeriodStartTime(uint64 _beaconPeriodStartedAt, uint32 _beaconPeriodSeconds, uint64 _nowTime) internal pure returns (uint64) {
-    uint64 elapsedPeriods = (_nowTime - _beaconPeriodStartedAt) / _beaconPeriodSeconds;
+  function _calculateNextBeaconPeriodStartTime(
+    uint64 _beaconPeriodStartedAt,
+    uint32 _beaconPeriodSeconds,
+    uint64 _time
+  ) internal pure returns (uint64) {
+    uint64 elapsedPeriods = (_time - _beaconPeriodStartedAt) / _beaconPeriodSeconds;
     return _beaconPeriodStartedAt + (elapsedPeriods * _beaconPeriodSeconds);
   }
 
@@ -387,7 +412,7 @@ contract DrawBeacon is IDrawBeacon,
     require(address(_newDrawHistory) != address(0), "DrawBeacon/draw-history-not-zero-address");
     require(address(_newDrawHistory) != address(_previousDrawHistory), "DrawBeacon/existing-draw-history-address");
     drawHistory = _newDrawHistory;
-    emit DrawHistoryTransferred(_previousDrawHistory, _newDrawHistory);
+    emit DrawHistoryTransferred(_newDrawHistory);
     return _newDrawHistory;
   }
 
