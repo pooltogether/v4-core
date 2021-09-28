@@ -5,8 +5,9 @@ import { Contract, ContractFactory, constants } from 'ethers';
 
 const { getSigners } = ethers;
 const { AddressZero } = constants;
+const toWei = (val: string | number) => ethers.utils.parseEther('' + val)
 
-describe('PrizeSplitStrategy', () => {
+describe.only('PrizeSplitStrategy', () => {
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let wallet3: SignerWithAddress;
@@ -126,7 +127,7 @@ describe('PrizeSplitStrategy', () => {
         .to.emit(prizeSplit, "PrizeSplitSet")
         .withArgs(wallet2.address, 50, 0)
 
-      const prizeSplits = await prizeSplit.prizeSplits();
+      const prizeSplits = await prizeSplit.getPrizeSplits();
 
       // First Prize Split
       expect(prizeSplits[0].target)
@@ -161,7 +162,7 @@ describe('PrizeSplitStrategy', () => {
         0
       );
 
-      const prizeSplits = await prizeSplit.prizeSplits();
+      const prizeSplits = await prizeSplit.getPrizeSplits();
 
       // First Prize Split
       expect(prizeSplits[0].target)
@@ -203,7 +204,7 @@ describe('PrizeSplitStrategy', () => {
         },
       ])
 
-      const prizeSplits = await prizeSplit.prizeSplits();
+      const prizeSplits = await prizeSplit.getPrizeSplits();
 
       // First Prize Split
       expect(prizeSplits[0].target)
@@ -251,7 +252,7 @@ describe('PrizeSplitStrategy', () => {
         },
       ])
 
-      const prizeSplits = await prizeSplit.prizeSplits();
+      const prizeSplits = await prizeSplit.getPrizeSplits();
 
       // First Prize Split
       expect(prizeSplits[0].target)
@@ -291,7 +292,7 @@ describe('PrizeSplitStrategy', () => {
         },
       ])).to.emit(prizeSplit, "PrizeSplitRemoved")
 
-      const prizeSplits = await prizeSplit.prizeSplits();
+      const prizeSplits = await prizeSplit.getPrizeSplits();
       expect(prizeSplits.length)
         .to.equal(1)
 
@@ -319,9 +320,19 @@ describe('PrizeSplitStrategy', () => {
       await expect(prizeSplit.setPrizeSplits([]))
         .to.emit(prizeSplit, "PrizeSplitRemoved").withArgs(0)
 
-      const prizeSplits = await prizeSplit.prizeSplits();
+      const prizeSplits = await prizeSplit.getPrizeSplits();
       expect(prizeSplits.length)
         .to.equal(0)
+    });
+  })
+
+  /*============================================ */
+  // Internal Functions ----------------------------
+  /*============================================ */
+  describe('Internal Functions', () => {
+    it('should awardPrizeSplitAmount()', async () => {
+      expect(prizeSplit.awardPrizeSplitAmount(wallet3.address, toWei('100')))
+        .to.emit(prizeSplit, 'PrizeSplitAwarded')
     });
   })
 })

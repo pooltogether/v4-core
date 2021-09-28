@@ -1,89 +1,51 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.6;
-
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
+import "../interfaces/IPrizeSplit.sol";
 
 /**
-  * @title Abstract prize split contract for adding unique award distribution to static addresses.
+  * @title PrizeSplit Interface
   * @author PoolTogether Inc Team
 */
-abstract contract PrizeSplit is Ownable {
+abstract contract PrizeSplit is IPrizeSplit, Ownable {
 
+  /* ============ Global Viarables ============ */
   PrizeSplitConfig[] internal _prizeSplits;
+  
 
-  /**
-    * @notice The prize split configuration struct.
-    * @dev The prize split configuration struct used to award prize splits during distribution.
-    * @param target Address of recipient receiving the prize split distribution
-    * @param percentage Percentage of prize split using a 0-1000 range for single decimal precision i.e. 125 = 12.5%
-  */
-  struct PrizeSplitConfig {
-      address target;
-      uint16 percentage;
-  }
+  /* ============ External Functions ============ */
 
-  /**
-    * @notice Emitted when a PrizeSplitConfig config is added or updated.
-    * @dev Emitted when a PrizeSplitConfig config is added or updated in setPrizeSplits or setPrizeSplit.
-    * @param target Address of prize split recipient
-    * @param percentage Percentage of prize split. Must be between 0 and 1000 for single decimal precision
-    * @param index Index of prize split in the prizeSplts array
-  */
-  event PrizeSplitSet(address indexed target, uint16 percentage, uint256 index);
-
-  /**
-    * @notice Emitted when a PrizeSplitConfig config is removed.
-    * @dev Emitted when a PrizeSplitConfig config is removed from the _prizeSplits array.
-    * @param target Index of a previously active prize split config
-  */
-  event PrizeSplitRemoved(uint256 indexed target);
-
-  /**
-    * @notice Mints ticket or sponsorship tokens to prize split recipient.
-    * @dev Mints ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
-    * @param target Recipient of minted tokens
-    * @param amount Amount of minted tokens
-  */
-  function _awardPrizeSplitAmount(address target, uint256 amount) virtual internal;
-
-  /**
-    * @notice Read all prize splits configs.
-    * @dev Read all PrizeSplitConfig structs stored in _prizeSplits.
-    * @return _prizeSplits Array of PrizeSplitConfig structs
-  */
-  function prizeSplits() external view returns (PrizeSplitConfig[] memory) {
-    return _prizeSplits;
-  }
-
-  /**
-    * @notice Read prize split config from active PrizeSplits.
-    * @dev Read PrizeSplitConfig struct from _prizeSplits array.
-    * @param prizeSplitIndex Index position of PrizeSplitConfig
-    * @return PrizeSplitConfig Single prize split config
-  */
-  function prizeSplit(uint256 prizeSplitIndex) external view returns (PrizeSplitConfig memory) {
+  /// @inheritdoc IPrizeSplit
+  function getPrizeSplit(uint256 prizeSplitIndex) external view override returns (PrizeSplitConfig memory) {
     return _prizeSplits[prizeSplitIndex];
   }
 
-  /**
-    * @notice Set and remove prize split(s) configs.
-    * @dev Set and remove prize split configs by passing a new PrizeSplitConfig structs array. Will remove existing PrizeSplitConfig(s) if passed array length is less than existing _prizeSplits length.
-    * @param newPrizeSplits Array of PrizeSplitConfig structs
-  */
-  function setPrizeSplits(PrizeSplitConfig[] calldata newPrizeSplits) external onlyOwner {
+  /// @inheritdoc IPrizeSplit
+  function getPrizeSplits() external view override returns (PrizeSplitConfig[] memory) {
+    return _prizeSplits;
+  }
+
+  /// @inheritdoc IPrizeSplit
+  function setPrizeSplits(PrizeSplitConfig[] calldata newPrizeSplits) external override onlyOwner {
     uint256 newPrizeSplitsLength = newPrizeSplits.length;
 
     // Add and/or update prize split configs using newPrizeSplits PrizeSplitConfig structs array.
     for (uint256 index = 0; index < newPrizeSplitsLength; index++) {
       PrizeSplitConfig memory split = newPrizeSplits[index];
 
+      // REVERT when setting the canonical burn address.
       require(split.target != address(0), "PrizeSplit/invalid-prizesplit-target");
 
+      // IF the CURRENT prizeSplits length is below the NEW prizeSplits
+      // PUSH the PrizeSplit struct to end of the list.
       if (_prizeSplits.length <= index) {
         _prizeSplits.push(split);
       } else {
+        // ELSE update an existing PrizeSplit struct with new parameters
         PrizeSplitConfig memory currentSplit = _prizeSplits[index];
+
+        // IF new PrizeSplit DOES NOT match the current PrizeSplit
+        // WRITE to STORAGE with the new PrizeSplit
         if (split.target != currentSplit.target || split.percentage != currentSplit.percentage) {
           _prizeSplits[index] = split;
         } else {
@@ -107,13 +69,8 @@ abstract contract PrizeSplit is Ownable {
     require(totalPercentage <= 1000, "PrizeSplit/invalid-prizesplit-percentage-total");
   }
 
-  /**
-    * @notice Updates a previously set prize split config.
-    * @dev Updates a prize split config by passing a new PrizeSplitConfig struct and current index position. Limited to contract owner.
-    * @param prizeStrategySplit PrizeSplitConfig config struct
-    * @param prizeSplitIndex Index position of PrizeSplitConfig to update
-  */
-  function setPrizeSplit(PrizeSplitConfig memory prizeStrategySplit, uint8 prizeSplitIndex) external onlyOwner {
+  /// @inheritdoc IPrizeSplit
+  function setPrizeSplit(PrizeSplitConfig memory prizeStrategySplit, uint8 prizeSplitIndex) external override onlyOwner {
     require(prizeSplitIndex < _prizeSplits.length, "PrizeSplit/nonexistent-prizesplit");
     require(prizeStrategySplit.target != address(0), "PrizeSplit/invalid-prizesplit-target");
 
@@ -127,6 +84,8 @@ abstract contract PrizeSplit is Ownable {
     // Emit updated prize split config
     emit PrizeSplitSet(prizeStrategySplit.target, prizeStrategySplit.percentage, prizeSplitIndex);
   }
+
+  /* ============ Internal Functions ============ */
 
   /**
   * @notice Calculate single prize split distribution amount.
@@ -176,5 +135,13 @@ abstract contract PrizeSplit is Ownable {
 
     return prize;
   }
+
+  /**
+    * @notice Mints ticket or sponsorship tokens to prize split recipient.
+    * @dev Mints ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
+    * @param target Recipient of minted tokens
+    * @param amount Amount of minted tokens
+  */
+  function _awardPrizeSplitAmount(address target, uint256 amount) virtual internal;
 
 }
