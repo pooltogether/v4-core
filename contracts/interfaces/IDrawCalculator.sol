@@ -3,7 +3,7 @@ pragma solidity 0.8.6;
 import "./ITicket.sol";
 import "./IDrawHistory.sol";
 import "../PrizeDistributionHistory.sol";
-import "../DrawPrizes.sol";
+import "../DrawPrize.sol";
 import "../libraries/DrawLib.sol";
 
 /**
@@ -21,11 +21,11 @@ interface IDrawCalculator {
   ///@notice Emitted when the contract is initialized
   event Deployed(ITicket indexed ticket);
 
-  ///@notice Emitted when the claimableDraw is set/updated
-  event DrawPrizesSet(DrawPrizes indexed claimableDraw);
+  ///@notice Emitted when the drawPrize is set/updated
+  event DrawPrizeSet(DrawPrize indexed drawPrize);
 
   /**
-    * @notice Calulates the prize amount for a user for Multiple Draws. Typically called by a DrawPrizes.
+    * @notice Calulates the prize amount for a user for Multiple Draws. Typically called by a DrawPrize.
     * @param user User for which to calcualte prize amount
     * @param drawIds draw array for which to calculate prize amounts for
     * @param data The encoded pick indices for all Draws. Expected to be just indices of winning claims. Populated values must be less than totalUserPicks.

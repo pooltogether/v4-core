@@ -29,7 +29,7 @@ https://docs.pooltogether.com
 - [DrawBeacon](/contracts/DrawBeacon.sol)
 - [DrawCalculator](/contracts/DrawCalculator.sol)
 - [DrawHistory](/contracts/DrawHistory.sol)
-- [DrawPrizes](/contracts/DrawPrizes.sol)
+- [DrawPrize](/contracts/DrawPrize.sol)
 - [PrizeFlush](/contracts/PrizeFlush.sol)
 - [PrizeSplitStrategy](/contracts/PrizeSplitStrategy.sol)
 - [Reserve](/contracts/Reserve.sol)

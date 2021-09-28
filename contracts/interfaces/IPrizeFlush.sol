@@ -29,7 +29,7 @@ interface IPrizeFlush {
   function setStrategy(IStrategy _strategy) external returns (IStrategy);
   
   /**
-    * @notice Migrate interest from PrizePool to DrawPrizes in single transaction.
+    * @notice Migrate interest from PrizePool to DrawPrize in single transaction.
     * @dev    Captures interest, checkpoint data and transfers tokens to final destination.
    */
   function flush() external returns (bool);
