@@ -204,6 +204,7 @@ describe('DrawBeacon', () => {
           beaconPeriodSeconds
         );
       });
+
       describe('startDraw()', () => {
         it('should prevent starting an award', async () => {
           await drawBeaconBase2.setCurrentTime(100);
@@ -211,14 +212,44 @@ describe('DrawBeacon', () => {
             'DrawBeacon/beacon-period-not-over',
           );
         });
+
+        it('should not be called twice', async () => {
+          await drawBeaconBase2.setCurrentTime(1000000);
+          await rng.mock.getRequestFee.returns(ethers.constants.AddressZero, 0)
+          await rng.mock.requestRandomNumber.returns(1, 0)
+          await drawBeaconBase2.startDraw()
+          await expect(drawBeaconBase2.startDraw()).to.be.revertedWith(
+            'DrawBeacon/rng-already-requested'
+          )
+        })
       });
-      describe('completeAward()', () => {
-        it('should prevent completing an award', async () => {
+
+      describe('completeDraw()', () => {
+        it('should prevent completing a draw', async () => {
           await drawBeaconBase2.setCurrentTime(100);
           await expect(drawBeaconBase2.startDraw()).to.be.revertedWith(
             'DrawBeacon/beacon-period-not-over',
           );
         });
+
+        it('should require an rng to be requested', async () => {
+          await expect(drawBeaconBase2.completeDraw()).to.be.revertedWith(
+            'DrawBeacon/rng-not-requested'
+          )
+        })
+
+        it('should require the rng to be complete', async () => {
+          await drawBeaconBase2.setCurrentTime(1000000);
+          await rng.mock.getRequestFee.returns(ethers.constants.AddressZero, 0)
+          await rng.mock.requestRandomNumber.returns(1, 0)
+          await drawBeaconBase2.startDraw()
+
+          await rng.mock.isRequestComplete.returns(false)
+
+          await expect(drawBeaconBase2.completeDraw()).to.be.revertedWith(
+            'DrawBeacon/rng-not-complete'
+          )
+        })
       });
     });
     describe('cancelDraw()', () => {
@@ -314,6 +345,18 @@ describe('DrawBeacon', () => {
 
         expect(await drawBeacon.getDrawHistory()).to.equal(wallet2.address);
       });
+
+      it('should not allow setting a zero draw history', async () => {
+        await expect(drawBeacon.setDrawHistory(ethers.constants.AddressZero)).to.be.revertedWith(
+          'DrawBeacon/draw-history-not-zero-address'
+        )
+      })
+
+      it('should be a different draw history', async () => {
+        await expect(drawBeacon.setDrawHistory(drawHistory.address)).to.be.revertedWith(
+          'DrawBeacon/existing-draw-history-address'
+        )
+      })
     })
 
     describe('setRngService', () => {
@@ -366,15 +409,27 @@ describe('DrawBeacon', () => {
 
         expect(await drawBeacon.beaconPeriodSeconds()).to.equal(99);
       });
+
       it('should not allow non-owners to set the prize period', async () => {
         await expect(drawBeacon.connect(wallet2).setBeaconPeriodSeconds(99)).to.be.revertedWith(
           'Ownable/caller-not-owner',
         );
       });
+
+      it('should not allow a zero period', async () => {
+        await expect(drawBeacon.setBeaconPeriodSeconds(0)).to.be.revertedWith(
+          'DrawBeacon/beacon-period-greater-than-zero'
+        )
+      })
     });
   })
 
   describe('Getter Functions', () => {
+    describe('getNextDrawId()', () => {
+      it('should return the next draw id', async () =>  {
+        expect(await drawBeacon.getNextDrawId()).to.equal(nextDrawId)
+      })
+    })
     describe('beaconPeriodRemainingSeconds()', () => {
       it('should calculate the remaining seconds of the prize period', async () => {
         const startTime = await drawBeacon.beaconPeriodStartedAt();
