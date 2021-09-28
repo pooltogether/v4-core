@@ -77,7 +77,7 @@ interface ITicket {
     * @dev    "to" reset the delegatee use zero address (0x000.000) 
     * @param  to Receipient of delegated TWAB
    */
-  function delegate(address to) external virtual;
+  function delegate(address to) external;
   
   /** 
     * @notice Gets a users twab context.  This is a struct with their balance, next twab index, and cardinality.

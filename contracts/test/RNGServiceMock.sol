@@ -8,7 +8,7 @@ contract RNGServiceMock is RNGInterface {
   address internal feeToken;
   uint256 internal requestFee;
 
-  function getLastRequestId() external override view returns (uint32 requestId) {
+  function getLastRequestId() external override pure returns (uint32 requestId) {
     return 1;
   }
 
@@ -27,15 +27,15 @@ contract RNGServiceMock is RNGInterface {
     random = _random;
   }
 
-  function requestRandomNumber() external override returns (uint32, uint32) {
+  function requestRandomNumber() external pure override returns (uint32, uint32) {
     return (1, 1);
   }
 
-  function isRequestComplete(uint32) external override view returns (bool) {
+  function isRequestComplete(uint32) external pure override returns (bool) {
     return true;
   }
 
-  function randomNumber(uint32) external override returns (uint256) {
+  function randomNumber(uint32) external view override returns (uint256) {
     return random;
   }
 }

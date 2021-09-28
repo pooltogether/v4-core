@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity 0.8.6;
-
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 import "./OverflowSafeComparator.sol";
 import "./RingBuffer.sol";
 

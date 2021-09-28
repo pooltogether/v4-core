@@ -87,43 +87,43 @@ interface IDrawBeacon {
     * @notice Returns the number of seconds remaining until the beacon period can be complete.
     * @return The number of seconds remaining until the beacon period can be complete.
    */
-  function beaconPeriodRemainingSeconds() external view virtual returns (uint32);
+  function beaconPeriodRemainingSeconds() external view returns (uint32);
 
   /**
     * @notice Returns the timestamp at which the beacon period ends
     * @return The timestamp at which the beacon period ends.
    */
-  function beaconPeriodEndAt() external view virtual returns (uint64);
+  function beaconPeriodEndAt() external view returns (uint64);
 
 
   /**
     * @notice Returns whether an Draw request can be started.
     * @return True if a Draw can be started, false otherwise.
    */
-  function canStartDraw() external view virtual returns (bool);
+  function canStartDraw() external view returns (bool);
   
   /**
     * @notice Returns whether an Draw request can be completed.
     * @return True if a Draw can be completed, false otherwise.
    */
-  function canCompleteDraw() external view virtual returns (bool);
+  function canCompleteDraw() external view returns (bool);
   
   /**
     * @notice Calculates when the next beacon period will start.
     * @param currentTime The timestamp to use as the current time
     * @return The timestamp at which the next beacon period would start
    */
-  function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view virtual returns (uint64);
+  function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view returns (uint64);
   
   /**
     * @notice Can be called by anyone to cancel the draw request if the RNG has timed out.
    */
-  function cancelDraw() external virtual;
+  function cancelDraw() external;
 
   /**
     * @notice Completes the Draw (RNG) request and pushes a Draw onto DrawHistory.
    */
-  function completeDraw() external virtual;
+  function completeDraw() external;
   
   /**
     * @notice Returns the block number that the current RNG request has been locked to.
@@ -177,12 +177,12 @@ interface IDrawBeacon {
     * @notice Starts the Draw process by starting random number request. The previous beacon period must have ended.
     * @dev The RNG-Request-Fee is expected to be held within this contract before calling this function
    */
-  function startDraw() external virtual;
+  function startDraw() external;
   /**
     * @notice Set global DrawHistory variable.
     * @dev    All subsequent Draw requests/completions will be pushed to the new DrawHistory.
     * @param newDrawHistory DrawHistory address
     * @return DrawHistory
   */
-  function setDrawHistory(IDrawHistory newDrawHistory) external virtual returns (IDrawHistory);
+  function setDrawHistory(IDrawHistory newDrawHistory) external returns (IDrawHistory);
 }

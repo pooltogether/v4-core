@@ -106,16 +106,16 @@ contract Ticket is ControlledToken, ITicket {
   /// @inheritdoc ITicket
   function getBalancesAt(address _user, uint32[] calldata _targets) external override view returns (uint256[] memory) {
     uint256 length = _targets.length;
-    uint256[] memory balances = new uint256[](length);
+    uint256[] memory _balances = new uint256[](length);
 
     TwabLib.Account storage twabContext = userTwabs[_user];
     TwabLib.AccountDetails memory details = twabContext.details;
 
     for(uint256 i = 0; i < length; i++) {
-      balances[i] = TwabLib.getBalanceAt(twabContext.twabs, details, _targets[i], uint32(block.timestamp));
+      _balances[i] = TwabLib.getBalanceAt(twabContext.twabs, details, _targets[i], uint32(block.timestamp));
     }
 
-    return balances;
+    return _balances;
   }
 
   /// @inheritdoc ITicket
@@ -265,12 +265,12 @@ contract Ticket is ControlledToken, ITicket {
 
     (
       TwabLib.AccountDetails memory accountDetails,
-      ObservationLib.Observation memory totalSupply,
+      ObservationLib.Observation memory _totalSupply,
       bool tsIsNew
     ) = TwabLib.increaseBalance(totalSupplyTwab, amount, TWAB_TIME_TO_LIVE, uint32(block.timestamp));
     totalSupplyTwab.details = accountDetails;
     if (tsIsNew) {
-      emit NewTotalSupplyTwab(totalSupply);
+      emit NewTotalSupplyTwab(_totalSupply);
     }
 
     address toDelegate = delegates[_to];

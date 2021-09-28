@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 import "../external/compound/ICompLike.sol";
 import "../interfaces/IPrizePool.sol";
@@ -265,7 +264,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   }
 
   /// @inheritdoc IERC721Receiver
-  function onERC721Received(address,address,uint256,bytes calldata) external override returns (bytes4) {
+  function onERC721Received(address,address,uint256,bytes calldata) external pure override returns (bytes4) {
     return IERC721Receiver.onERC721Received.selector;
   }
 

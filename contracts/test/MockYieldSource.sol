@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
 import "@pooltogether/yield-source-interface/contracts/IYieldSource.sol";
 import "./ERC20Mintable.sol";
@@ -29,7 +30,7 @@ contract MockYieldSource is ERC20, IYieldSource {
 
   /// @notice Returns the total balance (in asset tokens).  This includes the deposits and interest.
   /// @return The underlying balance of asset tokens.
-  function balanceOfToken(address addr) external override returns (uint256) {
+  function balanceOfToken(address addr) external view override returns (uint256) {
     return sharesToTokens(balanceOf(addr));
   }
 

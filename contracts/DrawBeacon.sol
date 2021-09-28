@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
-import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawHistory.sol";
@@ -323,11 +322,11 @@ contract DrawBeacon is IDrawBeacon,
     * @notice Calculates when the next beacon period will start
     * @param _beaconPeriodStartedAt The timestamp at which the beacon period started
     * @param _beaconPeriodSeconds The duration of the beacon period in seconds
-    * @param _currentTime The timestamp to use as the current time
+    * @param _nowTime The timestamp to use as the current time
     * @return The timestamp at which the next beacon period would start
    */
-  function _calculateNextBeaconPeriodStartTime(uint64 _beaconPeriodStartedAt, uint32 _beaconPeriodSeconds, uint64 _currentTime) internal view returns (uint64) {
-    uint64 elapsedPeriods = (_currentTime - _beaconPeriodStartedAt) / _beaconPeriodSeconds;
+  function _calculateNextBeaconPeriodStartTime(uint64 _beaconPeriodStartedAt, uint32 _beaconPeriodSeconds, uint64 _nowTime) internal pure returns (uint64) {
+    uint64 elapsedPeriods = (_nowTime - _beaconPeriodStartedAt) / _beaconPeriodSeconds;
     return _beaconPeriodStartedAt + (elapsedPeriods * _beaconPeriodSeconds);
   }
 
