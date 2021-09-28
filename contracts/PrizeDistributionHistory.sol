@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
+
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
+
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBufferLib.sol";
 import "./interfaces/IPrizeDistributionHistory.sol";
@@ -10,7 +13,7 @@ import "./interfaces/IPrizeDistributionHistory.sol";
   * @author PoolTogether Inc Team
   * @notice The PrizeDistributionHistory stores individual DrawSettings for each Draw.drawId.
             DrawSettings parameters like cardinality, bitRange, distributions, number of picks
-            and prize. The settings determine the specific distribution model for each individual 
+            and prize. The settings determine the specific distribution model for each individual
             draw. Storage of the DrawSetting(s) is handled by ring buffer with a max cardinality
             of 256 or roughly 5 years of history with a weekly draw cadence.
 */
@@ -70,7 +73,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   function getOldestDrawSettings() external override view returns (DrawLib.PrizeDistribution memory drawSettings, uint32 drawId) {
     DrawRingBufferLib.Buffer memory buffer = drawSettingsRingBufferData;
     drawSettings = _drawSettingsRingBuffer[buffer.nextIndex];
-    
+
     // IF the next DrawSettings.bitRangeSize == 0 the ring buffer HAS NOT looped around.
     // The DrawSettings at index 0 IS by defaut the oldest drawSettings.
     if (buffer.lastDrawId == 0) {
@@ -80,7 +83,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
       drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
     } else {
       // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
-      // Sequential "guaranteedness" is handled in DrawRingBufferLibLib.push()
+      // Sequential "guaranteedness" is handled in DrawRingBufferLib.push()
       drawId = (buffer.lastDrawId + 1) - buffer.cardinality; // 4 + 1 - 3 = 2 | [4,2,3]
     }
   }
@@ -101,7 +104,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
 
   /* ============ Internal Functions ============ */
-  
+
   /**
     * @notice Gets the PrizeDistributionHistorySettings for a Draw.drawID
     * @param _drawSettingsRingBufferData DrawRingBufferLib.Buffer
@@ -120,7 +123,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     * @param _drawSettings PrizeDistributionHistorySettings struct
    */
   function _pushDrawSettings(uint32 _drawId, DrawLib.PrizeDistribution calldata _drawSettings) internal returns (bool) {
-    
+
     require(_drawId > 0, "DrawCalc/draw-id-gt-0");
     require(_drawSettings.bitRangeSize <= 256 / _drawSettings.matchCardinality, "DrawCalc/bitRangeSize-too-large");
     require(_drawSettings.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
