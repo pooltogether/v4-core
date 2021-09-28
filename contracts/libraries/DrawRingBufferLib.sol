@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
+
 import "./RingBuffer.sol";
 
 /// @title Library for creating and managing a draw ring buffer.
