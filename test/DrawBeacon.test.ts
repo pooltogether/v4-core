@@ -12,7 +12,7 @@ const now = () => (new Date().getTime() / 1000) | 0;
 const { AddressZero } = constants;
 const { parseEther: toWei } = utils;
 
-describe('DrawBeacon', () => {
+describe.only('DrawBeacon', () => {
   let wallet: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let DrawBeaconFactory: ContractFactory
@@ -64,7 +64,7 @@ describe('DrawBeacon', () => {
 
   describe('constructor()', () => {
     it('should emit a Deployed event', async () => {
-     const drawBeacon2 = await DrawBeaconFactory.deploy(
+      const drawBeacon2 = await DrawBeaconFactory.deploy(
         wallet.address,
         drawHistory.address,
         rng.address,
@@ -378,6 +378,32 @@ describe('DrawBeacon', () => {
     });
   });
 
+  describe('setDrawHistory()', () => {
+    it('should allow the owner to set the draw history', async () => {
+      await expect(drawBeacon.setDrawHistory(wallet2.address))
+        .to.emit(drawBeacon, 'DrawHistoryTransferred')
+        .withArgs(wallet2.address);
+
+      expect(await drawBeacon.getDrawHistory()).to.equal(wallet2.address);
+    });
+  })
+
+  describe('setRngTimeout()', () => {
+    it('should prevent the owner from setting rngTimeout below 60', async () => {
+      await expect(drawBeacon.setRngTimeout(55))
+        .to.not.emit(drawBeacon, 'RngTimeoutSet')
+
+      expect(await drawBeacon.rngTimeut()).to.equal(100);
+    });
+    it('should allow the owner to set the rngTimeout above 60', async () => {
+      await expect(drawBeacon.setRngTimeout(100))
+        .to.emit(drawBeacon, 'RngTimeoutSet')
+        .withArgs(100);
+
+      expect(await drawBeacon.rngTimeut()).to.equal(100);
+    });
+  })
+
   describe('setBeaconPeriodSeconds()', () => {
     it('should allow the owner to set the beacon period', async () => {
       await expect(drawBeacon.setBeaconPeriodSeconds(99))
@@ -427,5 +453,20 @@ describe('DrawBeacon', () => {
         );
       });
     });
+
+    describe('Internal Functions', () => {
+      it('should return the internally set block.timestamp', async () => {
+        await drawBeacon.setCurrentTime(100);
+        await expect(await drawBeacon.currentTime())
+          .to.equal(100)
+      });
+
+      it('should return current block.timestamp', async () => {
+        const timestamp = (await ethers.provider.getBlock('latest')).timestamp
+        expect(await drawBeacon._currentTimeInternal())
+          .to.equal(timestamp)
+      });
+    });
+
   });
 });

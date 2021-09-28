@@ -387,7 +387,7 @@ contract DrawBeacon is IDrawBeacon,
     require(address(_newDrawHistory) != address(0), "DrawBeacon/draw-history-not-zero-address");
     require(address(_newDrawHistory) != address(_previousDrawHistory), "DrawBeacon/existing-draw-history-address");
     drawHistory = _newDrawHistory;
-    emit DrawHistoryTransferred(_previousDrawHistory, _newDrawHistory);
+    emit DrawHistoryTransferred(_newDrawHistory);
     return _newDrawHistory;
   }
 
