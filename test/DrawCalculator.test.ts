@@ -622,8 +622,7 @@ describe('DrawCalculator', () => {
 
   })
 
-
-  describe.only('calculate()', () => {
+  describe('calculate()', () => {
     const debug = newDebug('pt:DrawCalculator.test.ts:calculate()')
 
     context('with draw 1 set', () => {
