@@ -12,7 +12,7 @@ const { parseEther: toWei } = utils;
 const debug = require('debug')('ptv3:PrizePool.test');
 const NFT_TOKEN_ID = 1;
 
-describe.only('PrizePool', function () {
+describe('PrizePool', function () {
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let prizeStrategyManager: SignerWithAddress;
