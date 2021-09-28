@@ -43,7 +43,7 @@ task('set-draw-settings')
     prize,
   }) {
     const contract = await ethers.getContractAt('DrawHistory', address);
-    await contract.pushPrizeDistributions(drawId, {
+    await contract.pushPrizeDistribution(drawId, {
       bitRangeSize: BigNumber.from(bitRangeSize),
       matchCardinality: BigNumber.from(matchCardinality),
       numberOfPicks: BigNumber.from(utils.parseEther(`${numberOfPicks}`)),

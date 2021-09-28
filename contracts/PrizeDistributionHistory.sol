@@ -89,8 +89,8 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function pushPrizeDistributions(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistributions) external override onlyManagerOrOwner returns (bool) {
-    return _pushPrizeDistributions(_drawId, _prizeDistributions);
+  function pushPrizeDistribution(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistribution) external override onlyManagerOrOwner returns (bool) {
+    return _pushPrizeDistribution(_drawId, _prizeDistribution);
   }
 
   /// @inheritdoc IPrizeDistributionHistory
@@ -120,22 +120,22 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   /**
     * @notice Set newest PrizeDistributionHistory in ring buffer storage.
     * @param _drawId       Draw.drawId
-    * @param _prizeDistributions PrizeDistributionHistory struct
+    * @param _prizeDistribution PrizeDistributionHistory struct
    */
-  function _pushPrizeDistributions(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistributions) internal returns (bool) {
+  function _pushPrizeDistribution(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistribution) internal returns (bool) {
     require(_drawId > 0, "DrawCalc/draw-id-gt-0");
-    require(_prizeDistributions.bitRangeSize <= 256 / _prizeDistributions.matchCardinality, "DrawCalc/bitRangeSize-too-large");
-    require(_prizeDistributions.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
-    require(_prizeDistributions.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
+    require(_prizeDistribution.bitRangeSize <= 256 / _prizeDistribution.matchCardinality, "DrawCalc/bitRangeSize-too-large");
+    require(_prizeDistribution.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
+    require(_prizeDistribution.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
 
     // ensure that the distributions are not gt 100%
     uint256 sumTotalDistributions = 0;
     uint256 nonZeroDistributions = 0;
-    uint256 distributionsLength = _prizeDistributions.distributions.length;
+    uint256 distributionsLength = _prizeDistribution.distributions.length;
 
     for(uint256 index = 0; index < distributionsLength; index++){
-      sumTotalDistributions += _prizeDistributions.distributions[index];
-      if(_prizeDistributions.distributions[index] > 0){
+      sumTotalDistributions += _prizeDistribution.distributions[index];
+      if(_prizeDistribution.distributions[index] > 0){
         nonZeroDistributions++;
       }
     }
@@ -143,13 +143,13 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     // Each distribution amount stored as uint32 - summed can't exceed 1e9
     require(sumTotalDistributions <= DISTRIBUTION_CEILING, "DrawCalc/distributions-gt-100%");
 
-    require(_prizeDistributions.matchCardinality >= nonZeroDistributions, "DrawCalc/matchCardinality-gte-distributions");
+    require(_prizeDistribution.matchCardinality >= nonZeroDistributions, "DrawCalc/matchCardinality-gte-distributions");
 
     DrawRingBufferLib.Buffer memory _prizeDistributionsRingBufferData = prizeDistributionsRingBufferData;
-    _prizeDistributionsRingBuffer[_prizeDistributionsRingBufferData.nextIndex] = _prizeDistributions;
+    _prizeDistributionsRingBuffer[_prizeDistributionsRingBufferData.nextIndex] = _prizeDistribution;
     prizeDistributionsRingBufferData = prizeDistributionsRingBufferData.push(_drawId);
 
-    emit PrizeDistributionsSet(_drawId, _prizeDistributions);
+    emit PrizeDistributionsSet(_drawId, _prizeDistribution);
 
     return true;
   }

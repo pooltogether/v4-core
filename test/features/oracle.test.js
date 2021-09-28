@@ -30,7 +30,7 @@ describe('Oracle jobs', () => {
     endTimestampOffset = 2;
     maxPicksPerUser = 1000;
 
-    await env.pushPrizeDistributions({
+    await env.pushPrizeDistribution({
       drawId: 1,
       bitRangeSize,
       matchCardinality,

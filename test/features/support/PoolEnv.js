@@ -172,7 +172,7 @@ function PoolEnv() {
     expect(draw.winningRandomNumber).to.equal(randomNumber);
   };
 
-  this.pushPrizeDistributions = async function ({
+  this.pushPrizeDistribution = async function ({
     drawId,
     bitRangeSize,
     startTimestampOffset,
@@ -196,7 +196,7 @@ function PoolEnv() {
       maxPicksPerUser,
     };
 
-    await prizeDistributionHistory.pushPrizeDistributions(drawId, prizeDistributions);
+    await prizeDistributionHistory.pushPrizeDistribution(drawId, prizeDistributions);
   };
 }
 
