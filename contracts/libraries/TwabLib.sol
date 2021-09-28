@@ -48,8 +48,6 @@ library TwabLib {
     uint32 _ttl,
     uint32 _currentTime
   ) internal returns (AccountDetails memory accountDetails, ObservationLib.Observation memory twab, bool isNew) {
-    uint24 nextTwabIndex;
-    uint24 cardinality;
     AccountDetails memory _accountDetails = _account.details;
     (accountDetails, twab, isNew) = _nextTwabWithExpiry(_account.twabs, _accountDetails, _ttl, _currentTime);
     accountDetails.balance = (_accountDetails.balance + _amount).toUint208();
@@ -69,8 +67,6 @@ library TwabLib {
     uint32 _ttl,
     uint32 _currentTime
   ) internal returns (AccountDetails memory accountDetails, ObservationLib.Observation memory twab, bool isNew) {
-    uint24 nextTwabIndex;
-    uint24 cardinality;
     AccountDetails memory _accountDetails = _account.details;
     require(_accountDetails.balance >= _amount, _revertMessage);
     (accountDetails, twab, isNew) = _nextTwabWithExpiry(_account.twabs, _accountDetails, _ttl, _currentTime);
@@ -92,6 +88,11 @@ library TwabLib {
     return _getAverageBalanceBetween(_twabs, _accountDetails, _startTime, endTime, _currentTime);
   }
 
+  /// @notice Retrieves the oldest TWAB
+  /// @param _twabs The storage array of twabs
+  /// @param _accountDetails The TWAB account details
+  /// @return index The index of the oldest TWAB in the twabs array
+  /// @return twab The oldest TWAB
   function oldestTwab(
     ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     AccountDetails memory _accountDetails
@@ -105,6 +106,11 @@ library TwabLib {
     }
   }
 
+  /// @notice Retrieves the newest TWAB
+  /// @param _twabs The storage array of twabs
+  /// @param _accountDetails The TWAB account details
+  /// @return index The index of the newest TWAB in the twabs array
+  /// @return twab The newest TWAB
   function newestTwab(
     ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
     AccountDetails memory _accountDetails
