@@ -21,6 +21,11 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
   */
   IPrizePool internal prizePool;
 
+  /**
+    * @notice Deployed Event
+    * @param owner Contract owner
+    * @param prizePool Linked PrizePool contract
+  */
   event Deployed(
     address indexed owner,
     IPrizePool prizePool
@@ -53,7 +58,8 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
     return prize;
   }
 
-  function getPrizePool() external view returns(IPrizePool) {
+  /// @inheritdoc IPrizeSplit
+  function getPrizePool() external view override returns(IPrizePool) {
     return prizePool;
   }
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.6;
 import "./IControlledToken.sol";
+import "./IPrizePool.sol";
 
 /**
   * @title Abstract prize split contract for adding unique award distribution to static addresses.
@@ -61,9 +62,14 @@ interface IPrizeSplit {
     * @return _prizeSplits Array of PrizeSplitConfig structs
   */
   function getPrizeSplits() external view returns (PrizeSplitConfig[] memory);
-
+  
   /**
-    * @notice Set and remove prize split(s) configs.
+    * @notice Get PrizePool address
+    * @return IPrizePool
+   */
+  function getPrizePool() external view returns(IPrizePool);
+  /**
+    * @notice Set and remove prize split(s) configs. Only callable by owner.
     * @dev Set and remove prize split configs by passing a new PrizeSplitConfig structs array. Will remove existing PrizeSplitConfig(s) if passed array length is less than existing _prizeSplits length.
     * @param newPrizeSplits Array of PrizeSplitConfig structs
   */

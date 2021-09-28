@@ -54,9 +54,9 @@ describe.only('PrizeSplitStrategy', () => {
         .to.be.revertedWith('PrizeSplitStrategy/prize-pool-not-zero-address')
     })
 
-    it('should succeed to deploy and emit Deployed', async () => {
+    it('should succeed to deploy', async () => {
       prizeSplitStrategy = await prizeSplitStrategyFactory.deploy(wallet1.address, prizePool.address);
-      await expect(await prizeSplitStrategy.getPrizePool())
+      expect(await prizeSplitStrategy.getPrizePool())
         .to.equal(prizePool.address)
     })
   })
@@ -157,11 +157,5 @@ describe.only('PrizeSplitStrategy', () => {
         .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
         .withArgs(wallet3.address, toWei('100'), ticket.address)
     });
-  })
-  /*============================================ */
-  // Core Functions ----------------------------
-  /*============================================ */
-  describe('core()', () => {
-
   })
 })
