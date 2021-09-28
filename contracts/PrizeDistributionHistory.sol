@@ -64,22 +64,22 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function getNewestPrizeDistributions() external override view returns (DrawLib.PrizeDistribution memory prizeDistributions, uint32 drawId) {
+  function getNewestPrizeDistribution() external override view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId) {
     DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
     return (_prizeDistributionsRingBuffer[buffer.getIndex(buffer.lastDrawId)], buffer.lastDrawId);
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function getOldestPrizeDistributions() external override view returns (DrawLib.PrizeDistribution memory prizeDistributions, uint32 drawId) {
+  function getOldestPrizeDistribution() external override view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId) {
     DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
-    prizeDistributions = _prizeDistributionsRingBuffer[buffer.nextIndex];
+    prizeDistribution = _prizeDistributionsRingBuffer[buffer.nextIndex];
 
     // IF the next PrizeDistributions.bitRangeSize == 0 the ring buffer HAS NOT looped around.
-    // The PrizeDistributions at index 0 IS by defaut the oldest prizeDistributions.
+    // The PrizeDistributions at index 0 IS by defaut the oldest prizeDistribution.
     if (buffer.lastDrawId == 0) {
-      drawId = 0; // return 0 to indicate no prizeDistributions ring buffer history
-    } else if (prizeDistributions.bitRangeSize == 0) {
-      prizeDistributions = _prizeDistributionsRingBuffer[0];
+      drawId = 0; // return 0 to indicate no prizeDistribution ring buffer history
+    } else if (prizeDistribution.bitRangeSize == 0) {
+      prizeDistribution = _prizeDistributionsRingBuffer[0];
       drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
     } else {
       // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
@@ -94,11 +94,11 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   }
 
   /// @inheritdoc IPrizeDistributionHistory
-  function setPrizeDistribution(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistributions) external override onlyOwner returns (uint32) {
+  function setPrizeDistribution(uint32 _drawId, DrawLib.PrizeDistribution calldata _prizeDistribution) external override onlyOwner returns (uint32) {
     DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
     uint32 index = buffer.getIndex(_drawId);
-    _prizeDistributionsRingBuffer[index] = _prizeDistributions;
-    emit PrizeDistributionsSet(_drawId, _prizeDistributions);
+    _prizeDistributionsRingBuffer[index] = _prizeDistribution;
+    emit PrizeDistributionsSet(_drawId, _prizeDistribution);
     return _drawId;
   }
 

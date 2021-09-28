@@ -27,18 +27,18 @@ interface IPrizeDistributionHistory {
   /**
     * @notice Read newest PrizeDistributions from the prize distributions ring buffer.
     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
-    * @return prizeDistributions DrawLib.PrizeDistribution
+    * @return prizeDistribution DrawLib.PrizeDistribution
     * @return drawId Draw.drawId
   */
-  function getNewestPrizeDistributions() external view returns (DrawLib.PrizeDistribution memory prizeDistributions, uint32 drawId);
+  function getNewestPrizeDistribution() external view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
   /**
     * @notice Read oldest PrizeDistributions from the prize distributions ring buffer.
     * @dev    Finds the oldest Draw by buffer.nextIndex and buffer.lastDrawId
-    * @return prizeDistributions DrawLib.PrizeDistribution
+    * @return prizeDistribution DrawLib.PrizeDistribution
     * @return drawId Draw.drawId
   */
-  function getOldestPrizeDistributions() external view returns (DrawLib.PrizeDistribution memory prizeDistributions, uint32 drawId);
+  function getOldestPrizeDistribution() external view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
   /**
     * @notice Gets array of PrizeDistributionHistory for Draw.drawID(s)
