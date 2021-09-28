@@ -45,6 +45,12 @@ library OverflowSafeComparator {
         return aAdjusted <= bAdjusted;
     }
 
+    /// @notice 32-bit timestamp subtractor
+    /// @dev safe for 0 or 1 overflows, where `_a` and `_b` must be chronologically before or equal to time
+    /// @param _a The subtraction left operand
+    /// @param _b The subtraction right operand
+    /// @param _timestamp The current time.  Expected to be chronologically after both.
+    /// @return The difference between a and b, adjusted for overflow
     function checkedSub(
         uint32 _a,
         uint32 _b,
