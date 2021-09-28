@@ -29,7 +29,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     return _calculatePrizeDistributionFraction(_drawSettings, _prizeDistributionIndex);
   }
 
-  function numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex) external pure returns (uint256) {
+  function numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex) external view returns (uint256) {
     return _numberOfPrizesForIndex(_bitRangeSize, _prizeDistributionIndex);
   }
 

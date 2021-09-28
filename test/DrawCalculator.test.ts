@@ -32,10 +32,13 @@ export async function deployDrawCalculator(signer: any, ticketAddress: string, d
 
 function calculateNumberOfWinnersAtIndex(bitRangeSize: number, distributionIndex: number): BigNumber {
   // Prize Count = (2**bitRange)**(cardinality-numberOfMatches)
-  // if not grand prize: - (2^bitRange)**(cardinality-numberOfMatches-1)
+  // if not grand prize: - (2^bitRange)**(cardinality-numberOfMatches-1) - ... (2^bitRange)**(0)
   let prizeCount = BigNumber.from(2).pow(bitRangeSize).pow(distributionIndex)
   if (distributionIndex > 0) {
-    prizeCount = prizeCount.sub(BigNumber.from((BigNumber.from(2).pow(BigNumber.from(bitRangeSize)).pow(distributionIndex - 1))))
+    while (distributionIndex > 0) {
+      prizeCount = prizeCount.sub(BigNumber.from((BigNumber.from(2).pow(BigNumber.from(bitRangeSize)).pow(distributionIndex - 1))))
+      distributionIndex--
+    }
   }
   return prizeCount
 }
@@ -155,11 +158,22 @@ describe('DrawCalculator', () => {
       expect(result).to.equal(1); // grand prize
     })
 
-    it('calculates the number of prizes at distribution index 0', async () => {
+    it('calculates the number of prizes at distribution index 1', async () => {
       const bitRangeSize = 3
-      const result = await drawCalculator.numberOfPrizesForIndex(bitRangeSize, BigNumber.from(4));
-      // (2 ^ 3) ^  4 - (2 ^ 3) ^ (4-1) = 4096 - 512 = 3584
-      expect(result).to.equal(3584)
+      const result = await drawCalculator.numberOfPrizesForIndex(bitRangeSize, BigNumber.from(1));
+      // Number that match exactly four: 8^1 - 8^0 = 7
+      expect(result).to.equal(7)
+    })
+
+    it('calculates the number of prizes at distribution index 3', async () => {
+      const bitRangeSize = 3
+      // numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex)
+      // prizeDistributionIndex = matchCardinality - numberOfMatches
+      // matchCardinality = 5, numberOfMatches = 2 
+
+      const result = await drawCalculator.numberOfPrizesForIndex(bitRangeSize, BigNumber.from(3));
+      // Number that match exactly two: 8^3 - 8^2 - 8^1 - 8^0 = 439
+      expect(result).to.equal(439)
     })
 
     it('calculates the number of prizes at all distribution indices', async () => {
