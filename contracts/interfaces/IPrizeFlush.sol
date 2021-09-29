@@ -6,9 +6,9 @@ import "./IStrategy.sol";
 interface IPrizeFlush {
   // Events
   event Flushed(address indexed recipient, uint256 amount);
-  event DestinationSet(address destination);
-  event StrategySet(IStrategy strategy);
-  event ReserveSet(IReserve reserve);
+  event DestinationSet(address indexed destination);
+  event StrategySet(IStrategy indexed strategy);
+  event ReserveSet(IReserve indexed reserve);
 
   /// @notice Read global destination variable.
   function getDestination() external view returns (address);

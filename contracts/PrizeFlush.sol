@@ -28,7 +28,7 @@ contract PrizeFlush is IPrizeFlush, Manageable {
     * @param strategy IStrategy
     * 
    */
-  event Deployed(address destination, IReserve reserve, IStrategy strategy);
+  event Deployed(address indexed destination, IReserve indexed reserve, IStrategy indexed strategy);
 
   /* ============ Constructor ============ */    
 
