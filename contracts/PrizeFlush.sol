@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
+
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "./interfaces/IPrizeFlush.sol";
 
 /**
@@ -102,9 +104,10 @@ contract PrizeFlush is IPrizeFlush, Manageable {
 
     if(_amount > 0) {
       // Create checkpoint and transfers new total balance to DrawPrize
-      _reserve.withdrawTo(destination, _token.balanceOf(address(_reserve)));
+      address _destination = destination;
+      _reserve.withdrawTo(_destination, _token.balanceOf(address(_reserve)));
 
-      emit Flushed(destination, _amount);
+      emit Flushed(_destination, _amount);
     }
 
     return true;
