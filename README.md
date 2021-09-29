@@ -21,7 +21,7 @@
 **Documention**<br>
 https://docs.pooltogether.com
 
-**Deplyoments**<br>
+**Deployments**<br>
 - [Ethereum](https://docs.pooltogether.com/resources/networks/ethereum)
 - [Matic](https://docs.pooltogether.com/resources/networks/matic)
 
@@ -98,17 +98,8 @@ $ ./scripts/setup.sh
 
 # Deployment
 
-## Deploy Locally
+## Testnets
+Deployment is maintained in a different [repo](https://github.com/pooltogether/v4-testnet). 
 
-Start a local node and deploy the top-level contracts:
-
-```bash
-$ yarn start
-```
-
-NOTE: When you run this command it will reset the local blockchain.
-
-
-## Overview
-
-The V4 PoolTogether smart contracts facilitate a "pull" based system to claim interest prize payouts.
+## Mainnet
+Todo: insert deployment repo link here. 
