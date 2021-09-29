@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
+
 import "../libraries/DrawLib.sol";
 
 interface IPrizeDistributionHistory {
@@ -51,6 +53,15 @@ interface IPrizeDistributionHistory {
     * @param drawId Draw.drawId
    */
   function getPrizeDistribution(uint32 drawId) external view returns (DrawLib.PrizeDistribution memory);
+
+  /**
+    * @notice Gets the number of PrizeDistributions held in the prize distributions ring buffer.
+    * @dev If no Draws have been pushed, it will return 0.
+    * @dev If the ring buffer is full, it will return the cardinality.
+    * @dev Otherwise, it will return the NewestPrizeDistribution index + 1.
+    * @return Number of PrizeDistributions held in the prize distributions ring buffer.
+   */
+  function getPrizeDistributionCount() external view returns (uint32);
 
   /**
     * @notice Sets PrizeDistributionHistory for a Draw.drawID.

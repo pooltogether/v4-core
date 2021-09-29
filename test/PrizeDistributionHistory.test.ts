@@ -211,6 +211,36 @@ describe('PrizeDistributionHistory', () => {
     });
   });
 
+  describe('getPrizeDistributionCount()', () => {
+    it('should return 0 when no draw history', async () => {
+      expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(0);
+    });
+
+    it('should return 2 if 2 draws have been pushed', async () => {
+      await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(4))
+      await prizeDistributionHistory.pushPrizeDistribution(2, newPrizeDistribution(5))
+
+      expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(2);
+    });
+
+    it('should return 3 if buffer of cardinality 3 is full', async () => {
+      await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(4))
+      await prizeDistributionHistory.pushPrizeDistribution(2, newPrizeDistribution(5))
+      await prizeDistributionHistory.pushPrizeDistribution(3, newPrizeDistribution(6))
+
+      expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(3);
+    });
+
+    it('should return 3 if ring buffer has wrapped', async () => {
+      await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(4))
+      await prizeDistributionHistory.pushPrizeDistribution(2, newPrizeDistribution(5))
+      await prizeDistributionHistory.pushPrizeDistribution(3, newPrizeDistribution(6))
+      await prizeDistributionHistory.pushPrizeDistribution(4, newPrizeDistribution(7))
+
+      expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(3);
+    });
+  });
+
   describe('setPrizeDistribution()', () => {
     it('should fail to set existing draw as unauthorized account', async () => {
       await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution());

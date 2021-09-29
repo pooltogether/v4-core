@@ -64,6 +64,23 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
   }
 
   /// @inheritdoc IPrizeDistributionHistory
+  function getPrizeDistributionCount() external override view returns (uint32) {
+    DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+
+    if (buffer.lastDrawId == 0) {
+      return 0;
+    }
+
+    uint32 bufferNextIndex = buffer.nextIndex;
+
+    if (_prizeDistributionsRingBuffer[bufferNextIndex].matchCardinality != 0) {
+      return buffer.cardinality;
+    } else {
+      return bufferNextIndex;
+    }
+  }
+
+  /// @inheritdoc IPrizeDistributionHistory
   function getNewestPrizeDistribution() external override view returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId) {
     DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
     return (_prizeDistributionsRingBuffer[buffer.getIndex(buffer.lastDrawId)], buffer.lastDrawId);
@@ -101,7 +118,6 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     emit PrizeDistributionsSet(_drawId, _prizeDistribution);
     return _drawId;
   }
-
 
   /* ============ Internal Functions ============ */
 
