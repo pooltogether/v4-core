@@ -41,7 +41,7 @@ interface ITicket {
     string name,
     string symbol,
     uint8 decimals,
-    address controller
+    address indexed controller
   );
 
   /** 

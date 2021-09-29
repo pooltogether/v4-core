@@ -11,7 +11,7 @@ interface IPrizeDistributionHistory {
     * @param winningRandomNumber Randomly generated number used to calculate draw winning numbers
   */
   event DrawSet (
-    uint32 drawId,
+    uint32 indexed drawId,
     uint32 timestamp,
     uint256 winningRandomNumber
   );

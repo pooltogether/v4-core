@@ -29,7 +29,7 @@ contract ControlledToken is ERC20Permit, IControlledToken {
     string name,
     string symbol,
     uint8 decimals,
-    address controller
+    address indexed controller
   );
 
   /* ============ Modifiers ============ */
