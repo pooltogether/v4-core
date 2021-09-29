@@ -8,7 +8,7 @@ import "./RingBuffer.sol";
 import "./ObservationLib.sol";
 
 /// @title Time-Weighted Average Balance Library
-/// @notice This library allows you to efficiently track a user's historic balance.  You can get a
+/// @notice This library allows you to efficiently track a user's historic balance.
 /// @author PoolTogether Inc.
 library TwabLib {
   using OverflowSafeComparator for uint32;
