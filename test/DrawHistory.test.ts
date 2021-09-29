@@ -153,6 +153,36 @@ describe('DrawHistory', () => {
     });
   });
 
+  describe('getDrawCount()', () => {
+    it('should return 0 when no draw history', async () => {
+      expect(await drawHistory.getDrawCount()).to.equal(0);
+    });
+
+    it('should return 2 if 2 draws have been pushed', async () => {
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 2 }));
+
+      expect(await drawHistory.getDrawCount()).to.equal(2);
+    });
+
+    it('should return 3 if buffer of cardinality 3 is full', async () => {
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 2 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 3 }));
+
+      expect(await drawHistory.getDrawCount()).to.equal(3);
+    });
+
+    it('should return 3 if ring buffer has wrapped', async () => {
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 2 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 3 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 4 }));
+
+      expect(await drawHistory.getDrawCount()).to.equal(3);
+    });
+  });
+
   describe('setDraw()', () => {
     it('should fail to set existing draw as unauthorized account', async () => {
       await drawHistory.pushDraw(newDraw({ drawId: 1 }))
