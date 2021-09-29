@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
 
 import "../libraries/DrawLib.sol";
@@ -30,12 +31,23 @@ interface IDrawHistory {
     * @return DrawLib.Draw[]
   */
   function getDraws(uint32[] calldata drawIds) external view returns (DrawLib.Draw[] memory);
+
+  /**
+    * @notice Gets the number of Draws held in the draw ring buffer.
+    * @dev If no Draws have been pushed, it will return 0.
+    * @dev If the ring buffer is full, it will return the cardinality.
+    * @dev Otherwise, it will return the NewestDraw index + 1.
+    * @return Number of Draws held in the draw ring buffer.
+   */
+  function getDrawCount() external view returns (uint32);
+
   /**
     * @notice Read newest Draw from the draws ring buffer.
     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
     * @return DrawLib.Draw
   */
   function getNewestDraw() external view returns (DrawLib.Draw memory);
+
   /**
     * @notice Read oldest Draw from the draws ring buffer.
     * @dev    Finds the oldest Draw by comparing and/or diffing totalDraws with the cardinality.
