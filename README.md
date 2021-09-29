@@ -6,7 +6,6 @@
 
 # PoolTogether V4 Core Smart Contracts
 
-
 [![<PoolTogether>](https://circleci.com/gh/pooltogether/v4-core.svg?style=shield)](https://circleci.com/gh/pooltogether/v4-core)
 [![Coverage Status](https://coveralls.io/repos/github/pooltogether/v4-core/badge.svg?branch=master)](https://coveralls.io/github/pooltogether/v4-core?branch=master)
 [![built-with openzeppelin](https://img.shields.io/badge/built%20with-OpenZeppelin-3677FF)](https://docs.openzeppelin.com/)
