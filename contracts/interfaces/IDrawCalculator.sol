@@ -13,16 +13,21 @@ import "../libraries/DrawLib.sol";
 */
 interface IDrawCalculator {
 
+  /**
+    * @notice Emitted when a global DrawHistory variable is set.
+    * @param drawHistory DrawHistory address
+  */
+  event DrawHistorySet (
+    IDrawHistory indexed drawHistory
+  );
+
+  ///@notice Emitted when the drawPrize is set/updated
+  event DrawPrizeSet(DrawPrize indexed drawPrize);
+
   struct PickPrize {
     bool won;
     uint8 distributionIndex;
   }
-
-  ///@notice Emitted when the contract is initialized
-  event Deployed(ITicket indexed ticket);
-
-  ///@notice Emitted when the drawPrize is set/updated
-  event DrawPrizeSet(DrawPrize indexed drawPrize);
 
   /**
     * @notice Calulates the prize amount for a user for Multiple Draws. Typically called by a DrawPrize.

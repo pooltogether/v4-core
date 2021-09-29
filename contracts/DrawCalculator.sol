@@ -25,14 +25,12 @@ import "./libraries/DrawRingBufferLib.sol";
 */
 contract DrawCalculator is IDrawCalculator, Ownable {
 
-  /**
-    * @notice Emitted when a global DrawHistory variable is set.
-    * @param drawHistory DrawHistory address
-  */
-  event DrawHistorySet (
-    IDrawHistory indexed drawHistory
+  ///@notice Emitted when the contract is initialized
+  event Deployed(
+    ITicket indexed ticket,
+    IDrawHistory drawHistory,
+    PrizeDistributionHistory _prizeDistributionHistory,
   );
-
 
   /// @notice DrawHistory address
   IDrawHistory internal drawHistory;
@@ -59,13 +57,12 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     IDrawHistory _drawHistory,
     PrizeDistributionHistory _prizeDistributionHistory
   ) Ownable(_owner) {
-    require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
-    require(address(_prizeDistributionHistory) != address(0), "DrawCalc/tdsh-not-zero");
     _setDrawHistory(_drawHistory);
-    prizeDistributionHistory = _prizeDistributionHistory;
+    require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
+    require(address(_prizeDistributionHistory) != address(0), "DrawCalc/pdh-not-zero");
     ticket = _ticket;
-
-    emit Deployed(_ticket);
+    prizeDistributionHistory = _prizeDistributionHistory;
+    emit Deployed(_ticket, _drawHistory, _prizeDistributionHistory);
   }
 
   /* ============ External Functions ============ */
@@ -78,7 +75,6 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
     uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
     require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
-
 
     // READ list of DrawLib.Draw using the Draw.drawId[]
     DrawLib.Draw[] memory draws = drawHistory.getDraws(_drawIds);
@@ -149,6 +145,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     uint256[] memory masks =  _createBitMasks(_prizeDistributions[0]);
     PickPrize[] memory pickPrizes = new PickPrize[](_pickIndices.length);
 
+    // First generate "seed number" from encoded user address. The users random number will be
+    // encoded once more with each pick indices. The users random number and pick indices encoding
+    // is peristent for every draw. What ultimately faciliates the claiming of prizes is the
+    // Draw.winningRandomNumber parameter changes, creating new numbes to match.
     bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
     for(uint64 i = 0; i < _pickIndices.length; i++){
@@ -169,7 +169,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
   /* ============ Internal Functions ============ */
 
   /**
-    * @notice Set global DrawHistory reference.
+    * @notice Sets global DrawHistory variable.
     * @param _drawHistory DrawHistory address
   */
   function _setDrawHistory(IDrawHistory _drawHistory) internal {
