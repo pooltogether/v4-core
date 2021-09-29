@@ -25,7 +25,7 @@ contract DrawPrize is IDrawPrize, Ownable {
   IDrawCalculator internal drawCalculator;
   
   /// @notice Token address
-  IERC20          internal immutable token;
+  IERC20 internal immutable token;
 
   /// @notice Maps users => drawId => paid out balance
   mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
@@ -60,11 +60,19 @@ contract DrawPrize is IDrawPrize, Ownable {
       uint256 payout = drawPayouts[payoutIndex];
       uint256 oldPayout = _getDrawPayoutBalanceOf(_user, drawId);
       uint256 payoutDiff = 0;
+      
+      // IF first payout is gt 0 return payout.
+      // IF current payout is GT previous payout(s) then diff the
+      // the previous claim with the current payout to calculate
+      // updated payout amount. The lookup of historical draw payouts before
+      // awarding new payouts prevents griefing attacks by locking claims to a single attempt
+      // while keeping the claim function public and unrestricted. Also if a winning pick
+      // indices is unintentianally missed the user can resubmit pickindices to claim the full prize.
       if (payout > oldPayout) {
         payoutDiff = payout - oldPayout;
         _setDrawPayoutBalanceOf(_user, drawId, payout);
       }
-      // helpfully short-circuit, in case the user screwed something up.
+      // IF payout is ZERO prevent claim from executing.
       require(payoutDiff > 0, "DrawPrize/zero-payout");
       totalPayout += payoutDiff;
       emit ClaimedDraw(_user, drawId, payoutDiff);
