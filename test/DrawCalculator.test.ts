@@ -622,7 +622,6 @@ describe('DrawCalculator', () => {
 
   })
 
-
   describe('calculate()', () => {
     const debug = newDebug('pt:DrawCalculator.test.ts:calculate()')
 
@@ -754,6 +753,89 @@ describe('DrawCalculator', () => {
           ).toString(),
         );
       });
+
+      it('should match all numbers but prize distribution is 0 at index 0', async () => {
+        const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
+        const winningRandomNumber = utils.solidityKeccak256(
+          ['bytes32', 'uint256'],
+          [winningNumber, 1],
+        );
+      
+        prizeDistribution = {
+          ...prizeDistribution,
+          distributions: [
+            ethers.utils.parseUnits("0", 9), // NOTE ZERO here
+            ethers.utils.parseUnits("0.2", 9),
+          ]
+        };
+        prizeDistribution.distributions = fillPrizeDistributionsWithZeros(prizeDistribution.distributions)
+        
+
+        await prizeDistributionHistory.mock.getPrizeDistributions.withArgs([1]).returns([prizeDistribution])
+        
+        const timestamps = [42];
+        const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+        const ticketBalance = utils.parseEther('10');
+        const totalSupply = utils.parseEther('100');
+      
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, prizeDistribution.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, prizeDistribution.startTimestampOffset.toNumber())
+        
+        await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): [balance]
+        await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
+      
+        const draw: Draw = newDraw({ drawId: BigNumber.from(1), winningRandomNumber: BigNumber.from(winningRandomNumber), timestamp: BigNumber.from(timestamps[0]) })
+        await drawHistory.mock.getDraws.returns([draw])
+      
+        const prizesAwardable = await drawCalculator.calculate(
+          wallet1.address,
+          [draw.drawId],
+          pickIndices,
+        )
+      
+        expect(prizesAwardable[0]).to.equal(utils.parseEther('0'));
+      });
+
+      it('should match all numbers but prize distribution is 0 at index 1', async () => {
+
+          prizeDistribution = {
+          ...prizeDistribution,
+          bitRangeSize: BigNumber.from(2),
+          matchCardinality: BigNumber.from(3),
+          distributions: [
+            ethers.utils.parseUnits("0.1", 9), // NOTE ZERO here
+            ethers.utils.parseUnits("0", 9),
+            ethers.utils.parseUnits("0.2", 9),
+          ]
+        };
+        prizeDistribution.distributions = fillPrizeDistributionsWithZeros(prizeDistribution.distributions)
+        await prizeDistributionHistory.mock.getPrizeDistributions.withArgs([1]).returns([prizeDistribution])
+        
+        const timestamps = [42];
+        const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+        const ticketBalance = utils.parseEther('10');
+        const totalSupply = utils.parseEther('100');
+      
+        const offsetStartTimestamps = modifyTimestampsWithOffset(timestamps, prizeDistribution.startTimestampOffset.toNumber())
+        const offsetEndTimestamps = modifyTimestampsWithOffset(timestamps, prizeDistribution.startTimestampOffset.toNumber())
+      
+        await ticket.mock.getAverageBalancesBetween.withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps).returns([ticketBalance]); // (user, timestamp): [balance]
+        await ticket.mock.getAverageTotalSuppliesBetween.withArgs(offsetStartTimestamps, offsetEndTimestamps).returns([totalSupply]);
+      
+        const draw: Draw = newDraw({ drawId: BigNumber.from(1),
+           winningRandomNumber: BigNumber.from("25671298157762322557963155952891969742538148226988266342908289227085909174336"),
+         timestamp: BigNumber.from(timestamps[0]) })
+        await drawHistory.mock.getDraws.returns([draw])
+      
+        const prizesAwardable = await drawCalculator.calculate(
+          wallet1.address,
+          [draw.drawId],
+          pickIndices,
+        )
+      
+        expect(prizesAwardable[0]).to.equal(utils.parseEther('0'));
+      });
+
 
       it('should calculate for multiple picks, first pick grand prize winner, second pick no winnings', async () => {
         //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
