@@ -10,7 +10,7 @@ const { getSigners } = ethers;
 const debug = require('debug')('ptv4:PrizeSplitStrategy');
 const toWei = (val: string | number) => ethers.utils.parseEther('' + val)
 
-describe.only('PrizeSplitStrategy', () => {
+describe('PrizeSplitStrategy', () => {
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let wallet3: SignerWithAddress;
