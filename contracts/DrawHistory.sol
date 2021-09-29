@@ -23,7 +23,7 @@ contract DrawHistory is IDrawHistory, Manageable {
   uint16 public constant MAX_CARDINALITY = 256;
 
   /// @notice Draws ring buffer array.
-  DrawLib.Draw[MAX_CARDINALITY] private _draws;
+  DrawLib.Draw[MAX_CARDINALITY] internal _draws;
 
   /// @notice Holds ring buffer information
   DrawRingBufferLib.Buffer internal drawRingBuffer;
@@ -66,10 +66,12 @@ contract DrawHistory is IDrawHistory, Manageable {
 
   /// @inheritdoc IDrawHistory
   function getOldestDraw() external view override returns (DrawLib.Draw memory) {
-    // oldest draw should be next available index, otherwise it's at 0
     DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
     DrawLib.Draw memory draw = _draws[buffer.nextIndex];
-    if (draw.timestamp == 0) { // if draw is not init, then use draw at 0
+    
+    // IF the draw.timestamp is 0 the ring buffer HAS NOT reached he end.
+    // Thus Draw a index 0 is the oldest draw.
+    if (draw.timestamp == 0) {
       draw = _draws[0];
     }
     return draw;
