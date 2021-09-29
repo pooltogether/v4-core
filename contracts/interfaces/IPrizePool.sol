@@ -126,6 +126,7 @@ interface IPrizePool {
 
   /**
     * @notice Read internal Ticket accounted balance.
+    * @return uint256 accountBalance
   */
   function getAccountedBalance() external view returns (uint256);
   /**
@@ -199,10 +200,6 @@ interface IPrizePool {
   /// @dev Returns the address of the underlying ERC20 asset
   /// @return The address of the asset
   function token() external view returns (address);
-
-  /// @notice The total of all controlled tokens
-  /// @return The current total of all tokens
-  function accountedBalance() external view returns (uint256);
 
   /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
   /// @param _compLike The COMP-like token held by the prize pool that should be delegated

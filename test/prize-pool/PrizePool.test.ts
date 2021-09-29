@@ -241,8 +241,6 @@ describe('PrizePool', function () {
   /*============================================ */
   describe('Getter Functions', () => {
     it('should getAccountedBalance()', async () => {
-      expect(await prizePool.accountedBalance())
-        .to.equal(0);
       expect(await prizePool.getAccountedBalance())
         .to.equal(0);
     });
@@ -535,7 +533,7 @@ describe('PrizePool', function () {
 
     describe('onERC721Received()', () => {
       it('should return the inteface selector', async () => {
-        expect(await prizePool.mockOnERC721Received('0x150b7a02'))
+        expect(await prizePool.onERC721Received(prizePool.address, constants.AddressZero, 0, '0x150b7a02'))
           .to.equal('0x150b7a02');
       });
 

@@ -60,9 +60,9 @@ contract PrizePoolHarness is PrizePool {
     return stubYieldSource.redeemToken(redeemAmount);
   }
 
-  function mockOnERC721Received(bytes calldata sig) external pure returns (bytes4) {
-    return super.onERC721Received(address(0), address(0), 0, sig);
-  }
+  // function mockOnERC721Received(bytes calldata sig) external pure returns (bytes4) {
+  //   return super.onERC721Received(address(0), address(0), 0, sig);
+  // }
   
   function setCurrentAwardBalance(uint256 amount) external {
     _currentAwardBalance = amount;
