@@ -38,7 +38,7 @@ contract Ticket is ControlledToken, ITicket {
 
   /* ============ Constructor ============ */
 
-  /** 
+  /**
     * @notice Constructs Ticket with passed parameters.
     * @param _name ERC20 ticket token name.
     * @param _symbol ERC20 ticket token symbol.
@@ -128,7 +128,7 @@ contract Ticket is ControlledToken, ITicket {
 
     return totalSupplies;
   }
-  
+
   /// @inheritdoc ITicket
   function delegateOf(address _user) external view override returns (address) {
     return delegates[_user];
@@ -296,16 +296,20 @@ contract Ticket is ControlledToken, ITicket {
     ) = TwabLib.decreaseBalance(
       totalSupplyTwab,
       amount,
-      "ERC20: burn amount exceeds balance",
+      "Ticket/burn-amount-exceeds-total-supply-twab",
       uint32(block.timestamp)
     );
+
     totalSupplyTwab.details = accountDetails;
+
     if (tsIsNew) {
       emit NewTotalSupplyTwab(tsTwab);
     }
 
     uint256 accountBalance = balances[_from];
+
     require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+
     unchecked {
         balances[_from] = accountBalance - amount;
     }

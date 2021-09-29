@@ -14,8 +14,8 @@ contract PrizeSplitHarness is PrizeSplit {
     return _awardPrizeSplitAmount(target, amount);
   }
 
-  function getPrizePool() external view override returns(IPrizePool) {
+  function getPrizePool() external pure override returns(IPrizePool) {
     return IPrizePool(address(0));
   }
-  
+
 }

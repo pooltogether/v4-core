@@ -58,7 +58,7 @@ contract StakePrizePool is PrizePool {
 
   /// @notice Supplies asset tokens to the yield source.
   /// @param mintAmount The amount of asset tokens to be supplied
-  function _supply(uint256 mintAmount) internal override {
+  function _supply(uint256 mintAmount) internal pure override {
     // no-op because nothing else needs to be done
   }
 
