@@ -4,6 +4,7 @@ import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { constants, Contract, ContractFactory, utils } from 'ethers';
 import { expect } from 'chai';
+import { increaseTime } from './helpers/increaseTime';
 
 const debug = require('debug')('pt:DrawBeacon.test.ts');
 
@@ -319,6 +320,9 @@ describe('DrawBeacon', () => {
           beaconPeriodSeconds
         ]).returns(1)
 
+        await drawBeacon.setCurrentTime((await drawBeacon.beaconPeriodEndAt()).add(1000))
+        const nextStartTime = await drawBeacon.calculateNextBeaconPeriodStartTimeFromCurrentTime()
+
         expect(await drawBeacon.completeDraw())
           .to.emit(drawBeacon, 'DrawCompleted')
           .withArgs(
@@ -328,10 +332,10 @@ describe('DrawBeacon', () => {
           .and.to.emit(drawBeacon, 'BeaconPeriodStarted')
           .withArgs(
             wallet.address,
-            beaconPeriodEndAt
+            nextStartTime
           )
 
-        expect(await drawBeacon.beaconPeriodStartedAt()).to.equal(beaconPeriodEndAt);
+        expect(await drawBeacon.getBeaconPeriodStartedAt()).to.equal(nextStartTime)
       });
     });
   })
