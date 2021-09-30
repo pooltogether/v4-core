@@ -7,113 +7,142 @@ const { getSigners } = ethers;
 const { parseEther: toWei } = utils;
 
 describe('TwabLib', () => {
-  let cardinality: number;
-  let twabLib: Contract;
-  let timeToLive: number = 3600 // one hour
+    let cardinality: number;
+    let twabLib: Contract;
 
-  let wallet1: SignerWithAddress;
-  let wallet2: SignerWithAddress;
+    let wallet1: SignerWithAddress;
+    let wallet2: SignerWithAddress;
 
-  beforeEach(async () => {
-    [wallet1, wallet2] = await getSigners();
+    beforeEach(async () => {
+        [wallet1, wallet2] = await getSigners();
 
-    const twabLibFactory: ContractFactory = await ethers.getContractFactory('TwabLibExposed');
-    twabLib = await twabLibFactory.deploy();
-    cardinality = await twabLib.MAX_CARDINALITY();
-  });
+        const twabLibFactory: ContractFactory = await ethers.getContractFactory('TwabLibExposed');
+        twabLib = await twabLibFactory.deploy();
+        cardinality = await twabLib.MAX_CARDINALITY();
+    });
 
-  describe('increaseBalance()', () => {
-    const timestamp = 100
-    const currentTime = 200
+    describe('increaseBalance()', () => {
+        const timestamp = 100;
+        const currentTime = 200;
 
-    it('should create a new record', async () => {
-      await expect(twabLib.increaseBalance(100, timestamp))
-        .to.emit(twabLib, 'Updated')
-        .withArgs([100, 1, 1], [0, timestamp], true)
-      expect(await twabLib.getBalanceAt(timestamp, currentTime)).to.equal(100)
-    })
+        it('should create a new record', async () => {
+            await expect(twabLib.increaseBalance(100, timestamp))
+                .to.emit(twabLib, 'Updated')
+                .withArgs([100, 1, 1], [0, timestamp], true);
 
-    it('should not create a new record when the timestamp is the same', async () => {
-      await twabLib.increaseBalance(100, timestamp)
-      await expect(twabLib.increaseBalance(100, timestamp))
-        .to.emit(twabLib, 'Updated')
-        .withArgs([200, 1, 1], [0, timestamp], false)
-    })
+            expect(await twabLib.getBalanceAt(timestamp, currentTime)).to.equal(100);
+        });
 
-    it('should require the timestamp to always increase', async () => {
-      await twabLib.increaseBalance(100, timestamp)
-      await expect(twabLib.increaseBalance(100, timestamp - 10)).to.be.revertedWith("TwabLib/twab-time-monotonic")
-    })
+        it('should not create a new record when the timestamp is the same', async () => {
+            await twabLib.increaseBalance(100, timestamp);
 
-    it('should add second twab', async () => {
-      await expect(twabLib.increaseBalance(100, timestamp))
-        .to.emit(twabLib, 'Updated')
-        .withArgs([100, 1, 1], [0, timestamp], true)
-      await expect(twabLib.increaseBalance(100, timestamp+1000))
-        .to.emit(twabLib, 'Updated')
-        .withArgs([200, 2, 2], [100000, timestamp+1000], true)
-    })
-  })
+            await expect(twabLib.increaseBalance(100, timestamp))
+                .to.emit(twabLib, 'Updated')
+                .withArgs([200, 1, 1], [0, timestamp], false);
+        });
 
-  describe('oldestTwab() newestTwab()', () => {
-    const timestamp = 100
-    const timeToLive = 10
+        it('should require the timestamp to always increase', async () => {
+            await twabLib.increaseBalance(100, timestamp);
 
-    it('should get the oldest twab', async () => {
-      await twabLib.increaseBalance(100, timestamp)
-      await twabLib.increaseBalance(100, timestamp+10)
+            await expect(twabLib.increaseBalance(100, timestamp - 10)).to.be.revertedWith(
+                'TwabLib/twab-time-monotonic',
+            );
+        });
 
-      expect((await twabLib.oldestTwab())[1].timestamp).to.equal(timestamp)
-      expect((await twabLib.newestTwab())[1].timestamp).to.equal(timestamp+10)
-    })
-  })
+        it('should add second twab', async () => {
+            await expect(twabLib.increaseBalance(100, timestamp))
+                .to.emit(twabLib, 'Updated')
+                .withArgs([100, 1, 1], [0, timestamp], true);
 
-  describe('getAverageBalanceBetween()', () => {
+            await expect(twabLib.increaseBalance(100, timestamp + 1000))
+                .to.emit(twabLib, 'Updated')
+                .withArgs([200, 2, 2], [100000, timestamp + 1000], true);
+        });
+    });
 
-    context('with one twab', () => {
-      const currentBalance = 1000;
-      let timestamp = 1000
-      let currentTime = 2000
+    describe('oldestTwab() newestTwab()', () => {
+        const timestamp = 100;
 
-      beforeEach(async () => {
-        await twabLib.increaseBalance(currentBalance, timestamp)
-      });
+        it('should get the oldest twab', async () => {
+            await twabLib.increaseBalance(100, timestamp);
+            await twabLib.increaseBalance(100, timestamp + 10);
 
-      it('should return an average of zero for pre-history requests', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp - 100, timestamp - 50, currentTime)).to.equal('0');
-      });
+            expect((await twabLib.oldestTwab())[1].timestamp).to.equal(timestamp);
+            expect((await twabLib.newestTwab())[1].timestamp).to.equal(timestamp + 10);
+        });
+    });
 
-      it('should return an average of zero for pre-history requests when including the first twab', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp - 100, timestamp, currentTime)).to.equal('0');
-      });
+    describe('getAverageBalanceBetween()', () => {
+        context('with one twab', () => {
+            const currentBalance = 1000;
+            let timestamp = 1000;
+            let currentTime = 2000;
 
-      it('should not project into the future', async () => {
-        // at this time the user has held 1000 tokens for zero seconds
-        expect(await twabLib.getAverageBalanceBetween(timestamp - 50, timestamp + 50, timestamp)).to.equal('0')
-      })
+            beforeEach(async () => {
+                await twabLib.increaseBalance(currentBalance, timestamp);
+            });
 
-      it('should return half the minted balance when the duration is centered over first twab', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp - 50, timestamp + 50, currentTime)).to.equal('500')
-      })
+            it('should return an average of zero for pre-history requests', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp - 100,
+                        timestamp - 50,
+                        currentTime,
+                    ),
+                ).to.equal('0');
+            });
 
-      it('should return an accurate average when the range is after the last twab', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp + 50, timestamp + 51, currentTime)).to.equal('1000')
-      })
-    })
+            it('should return an average of zero for pre-history requests when including the first twab', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(timestamp - 100, timestamp, currentTime),
+                ).to.equal('0');
+            });
 
-    context('with two twabs', () => {
-      const mintAmount = toWei('1000');
-      const transferAmount = toWei('500')
-      let timestamp1 = 1000
-      let timestamp2 = 2000
-      let currentTime = 3000
+            it('should not project into the future', async () => {
+                // at this time the user has held 1000 tokens for zero seconds
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp - 50,
+                        timestamp + 50,
+                        timestamp,
+                    ),
+                ).to.equal('0');
+            });
 
-      beforeEach(async () => {
-        await twabLib.increaseBalance(mintAmount, timestamp1)
-        await twabLib.decreaseBalance(transferAmount, "insufficient-balance", timestamp2)
-      })
+            it('should return half the minted balance when the duration is centered over first twab', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp - 50,
+                        timestamp + 50,
+                        currentTime,
+                    ),
+                ).to.equal('500');
+            });
 
-      /*
+            it('should return an accurate average when the range is after the last twab', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp + 50,
+                        timestamp + 51,
+                        currentTime,
+                    ),
+                ).to.equal('1000');
+            });
+        });
+
+        context('with two twabs', () => {
+            const mintAmount = toWei('1000');
+            const transferAmount = toWei('500');
+            let timestamp1 = 1000;
+            let timestamp2 = 2000;
+            let currentTime = 3000;
+
+            beforeEach(async () => {
+                await twabLib.increaseBalance(mintAmount, timestamp1);
+                await twabLib.decreaseBalance(transferAmount, 'insufficient-balance', timestamp2);
+            });
+
+            /*
       | |   < >
       | < | >
       | <| >
@@ -122,66 +151,95 @@ describe('TwabLib', () => {
       < > | |
       */
 
-      it('should return an average of zero for pre-history requests', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp1 - 100, timestamp1 - 50, currentTime)).to.equal(toWei('0'));
-      });
+            it('should return an average of zero for pre-history requests', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp1 - 100,
+                        timestamp1 - 50,
+                        currentTime,
+                    ),
+                ).to.equal(toWei('0'));
+            });
 
-      it('should return half the minted balance when the duration is centered over first twab', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp1 - 50, timestamp1 + 50, currentTime)).to.equal(toWei('500'))
-      })
+            it('should return half the minted balance when the duration is centered over first twab', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp1 - 50,
+                        timestamp1 + 50,
+                        currentTime,
+                    ),
+                ).to.equal(toWei('500'));
+            });
 
-      it('should return an accurate average when the range is between twabs', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp1 + 50, timestamp1 + 55, currentTime)).to.equal(toWei('1000'))
-      })
+            it('should return an accurate average when the range is between twabs', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp1 + 50,
+                        timestamp1 + 55,
+                        currentTime,
+                    ),
+                ).to.equal(toWei('1000'));
+            });
 
-      it('should return an accurate average when the end is after the last twab', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp2 - 50, timestamp2 + 50, currentTime)).to.equal(toWei('750'))
-      })
+            it('should return an accurate average when the end is after the last twab', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp2 - 50,
+                        timestamp2 + 50,
+                        currentTime,
+                    ),
+                ).to.equal(toWei('750'));
+            });
 
-      it('should return an accurate average when the range is after twabs', async () => {
-        expect(await twabLib.getAverageBalanceBetween(timestamp2 + 50, timestamp2 + 51, currentTime)).to.equal(toWei('500'))
-      })
-    })
-  })
+            it('should return an accurate average when the range is after twabs', async () => {
+                expect(
+                    await twabLib.getAverageBalanceBetween(
+                        timestamp2 + 50,
+                        timestamp2 + 51,
+                        currentTime,
+                    ),
+                ).to.equal(toWei('500'));
+            });
+        });
+    });
 
-  describe('getBalanceAt', () => {
+    describe('getBalanceAt', () => {
+        context('with one twab', () => {
+            const currentBalance = toWei('1000');
+            let timestamp = 1000;
+            let currentTime = 2000;
 
-    context('with one twab', () => {
-      const currentBalance = toWei('1000');
-      let timestamp = 1000
-      let currentTime = 2000
+            beforeEach(async () => {
+                await twabLib.increaseBalance(currentBalance, timestamp);
+            });
 
-      beforeEach(async () => {
-        await twabLib.increaseBalance(currentBalance, timestamp)
-      });
+            it('should return 0 for time before twabs', async () => {
+                expect(await twabLib.getBalanceAt(500, currentTime)).to.equal(0);
+            });
 
-      it('should return 0 for time before twabs', async () => {
-        expect(await twabLib.getBalanceAt(500, currentTime)).to.equal(0)
-      })
+            it('should return the current balance if time at or after last twab', async () => {
+                expect(await twabLib.getBalanceAt(timestamp, currentTime)).to.equal(currentBalance);
+            });
 
-      it('should return the current balance if time at or after last twab', async () => {
-        expect(await twabLib.getBalanceAt(timestamp, currentTime)).to.equal(currentBalance)
-      })
+            it('should return the current balance after the twab', async () => {
+                expect(await twabLib.getBalanceAt(1500, currentTime)).to.equal(currentBalance);
+            });
+        });
 
-      it('should return the current balance after the twab', async () => {
-        expect(await twabLib.getBalanceAt(1500, currentTime)).to.equal(currentBalance)
-      })
-    })
+        context('with two twabs', () => {
+            const mintAmount = toWei('1000');
+            const transferAmount = toWei('500');
 
-    context('with two twabs', () => {
-      const mintAmount = toWei('1000');
-      const transferAmount = toWei('500')
+            let timestamp1 = 1;
+            let timestamp2 = 3;
+            let currentTime = 3000;
 
-      let timestamp1 = 1
-      let timestamp2 = 3
-      let currentTime = 3000
+            beforeEach(async () => {
+                await twabLib.increaseBalance(mintAmount, timestamp1);
+                await twabLib.decreaseBalance(transferAmount, 'insufficient-balance', timestamp2);
+            });
 
-      beforeEach(async () => {
-        await twabLib.increaseBalance(mintAmount, timestamp1)
-        await twabLib.decreaseBalance(transferAmount, "insufficient-balance", timestamp2)
-      })
-
-      /*
+            /*
       Legend: < > = twabs start and end, | = timestamp
 
       | < > = before first twab
@@ -191,40 +249,53 @@ describe('TwabLib', () => {
       < > | = after last twab
       */
 
-      it('should return zero when request before first twab', async () => {
-        expect(await twabLib.getBalanceAt(timestamp1 - 1, currentTime)).to.equal(toWei('0'));
-      });
+            it('should return zero when request before first twab', async () => {
+                expect(await twabLib.getBalanceAt(timestamp1 - 1, currentTime)).to.equal(
+                    toWei('0'),
+                );
+            });
 
-      it('should return end-of-block balance when request is on first twab', async () => {
-        expect(await twabLib.getBalanceAt(timestamp1, currentTime)).to.equal(mintAmount)
-      })
+            it('should return end-of-block balance when request is on first twab', async () => {
+                expect(await twabLib.getBalanceAt(timestamp1, currentTime)).to.equal(mintAmount);
+            });
 
-      it('should return mint amount when between twabs', async () => {
-        expect(await twabLib.getBalanceAt(timestamp1 + 1, currentTime)).to.equal(mintAmount)
-      })
+            it('should return mint amount when between twabs', async () => {
+                expect(await twabLib.getBalanceAt(timestamp1 + 1, currentTime)).to.equal(
+                    mintAmount,
+                );
+            });
 
-      it('should return current balance when on last twab', async () => {
-        expect(await twabLib.getBalanceAt(timestamp2, currentTime)).to.equal(mintAmount.sub(transferAmount))
-      })
+            it('should return current balance when on last twab', async () => {
+                expect(await twabLib.getBalanceAt(timestamp2, currentTime)).to.equal(
+                    mintAmount.sub(transferAmount),
+                );
+            });
 
-      it('should return current balance when after last twab', async () => {
-        expect(await twabLib.getBalanceAt(timestamp2 + 50, currentTime)).to.equal(mintAmount.sub(transferAmount))
-      })
-    })
+            it('should return current balance when after last twab', async () => {
+                expect(await twabLib.getBalanceAt(timestamp2 + 50, currentTime)).to.equal(
+                    mintAmount.sub(transferAmount),
+                );
+            });
+        });
 
-    describe('with problematic query', () => {
-      beforeEach(async () => {
-        await twabLib.increaseBalance('100000000000000000000', 1630713395)
-        await twabLib.decreaseBalance('100000000000000000000', 'revert-message', 1630713396)
-      })
+        describe('with problematic query', () => {
+            beforeEach(async () => {
+                await twabLib.increaseBalance('100000000000000000000', 1630713395);
+                await twabLib.decreaseBalance(
+                    '100000000000000000000',
+                    'revert-message',
+                    1630713396,
+                );
+            });
 
-      it('should work', async () => {
-        expect(await twabLib.getBalanceAt(
-          1630713395,
-          parseInt('' + (new Date().getTime() / 1000) + 1000)
-        )).to.equal(toWei('100'))
-      })
-
-    })
-  })
+            it('should work', async () => {
+                expect(
+                    await twabLib.getBalanceAt(
+                        1630713395,
+                        parseInt('' + new Date().getTime() / 1000 + 1000),
+                    ),
+                ).to.equal(toWei('100'));
+            });
+        });
+    });
 });

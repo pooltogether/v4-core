@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
 
 /// @title OverflowSafeComparator library to share comparator functions between contracts
