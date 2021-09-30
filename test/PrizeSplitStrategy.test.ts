@@ -41,7 +41,7 @@ describe('PrizeSplitStrategy', () => {
     debug('mocking ticket and prizePool...');
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
-    await prizePool.mock.ticket.returns(ticket.address);
+    await prizePool.mock.getTicket.returns(ticket.address);
 
     debug('deploy prizeSplitStrategy...');
     prizeSplitStrategy = await prizeSplitStrategyFactory.deploy(wallet1.address, prizePool.address);

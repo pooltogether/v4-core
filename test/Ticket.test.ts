@@ -57,7 +57,7 @@ describe('Ticket', () => {
 
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
     ticket = await deployTicketContract(ticketName, ticketSymbol, ticketDecimals, prizePool.address);
-    prizePool.mock.balanceCap.returns(MaxUint256);
+    prizePool.mock.getBalanceCap.returns(MaxUint256);
   });
 
   describe('constructor()', () => {

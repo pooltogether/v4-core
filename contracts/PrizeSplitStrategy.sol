@@ -55,7 +55,7 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
     * @param _amount Amount of minted tokens.
   */
   function _awardPrizeSplitAmount(address _to, uint256 _amount) override internal {
-    IControlledToken _ticket = prizePool.ticket();
+    IControlledToken _ticket = prizePool.getTicket();
     prizePool.award(_to, _amount);
     emit PrizeSplitAwarded(_to, _amount, _ticket);
   }

@@ -142,6 +142,10 @@ interface IPrizePool {
   */
   function getTicket() external view returns (IControlledToken);
   /**
+    * @notice Read token variable
+  */
+  function getToken() external view returns (address);
+  /**
     * @notice Read prizeStrategy variable
   */
   function getPrizeStrategy() external view returns (address);
@@ -192,14 +196,6 @@ interface IPrizePool {
   /// @param _ticket Address of the ticket to set.
   /// @return True if ticket has been successfully set.
   function setTicket(IControlledToken _ticket) external returns (bool);
-
-  /// @dev Returns the address of the prize pool ticket.
-  /// @return The address of the prize pool ticket.
-  function ticket() external view returns (IControlledToken);
-
-  /// @dev Returns the address of the underlying ERC20 asset
-  /// @return The address of the asset
-  function token() external view returns (address);
 
   /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
   /// @param _compLike The COMP-like token held by the prize pool that should be delegated

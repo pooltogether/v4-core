@@ -113,7 +113,7 @@ describe('StakePrizePool', function () {
 
   describe('_token()', () => {
     it('should return the staked token', async () => {
-      expect(await prizePool.token()).to.equal(stakeToken.address);
+      expect(await prizePool.getToken()).to.equal(stakeToken.address);
     });
   });
 });

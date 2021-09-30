@@ -35,11 +35,11 @@ describe('YieldSourcePrizePool', function () {
   };
 
   const depositTo = async (amount: BigNumber) => {
-      await yieldSource.mock.supplyTokenTo.withArgs(amount, prizePool.address).returns();
+    await yieldSource.mock.supplyTokenTo.withArgs(amount, prizePool.address).returns();
 
-      await depositToken.approve(prizePool.address, amount);
-      await depositToken.mint(wallet.address, amount);
-      await prizePool.depositTo(wallet.address, amount);
+    await depositToken.approve(prizePool.address, amount);
+    await depositToken.mint(wallet.address, amount);
+    await prizePool.depositTo(wallet.address, amount);
   }
 
   beforeEach(async () => {
@@ -136,7 +136,7 @@ describe('YieldSourcePrizePool', function () {
 
   describe('token()', async () => {
     it('should return the yield source token', async () => {
-      expect(await prizePool.token()).to.equal(depositToken.address);
+      expect(await prizePool.getToken()).to.equal(depositToken.address);
     });
   });
 

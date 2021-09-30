@@ -29,7 +29,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   string constant public VERSION = "4.0.0";
 
   /// @notice Prize Pool ticket. Can only be set once by calling `setTicket()`.
-  IControlledToken internal override ticket;
+  IControlledToken internal ticket;
 
   /// @notice The Prize Strategy that this Prize Pool is bound to.
   address internal prizeStrategy;
@@ -111,7 +111,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   }
 
   /// @inheritdoc IPrizePool
-  function token() external override view returns (address) {
+  function getToken() external override view returns (address) {
     return address(_token());
   }
 

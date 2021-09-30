@@ -116,7 +116,7 @@ describe('PrizePool', function () {
     });
 
     it('should set all the vars', async () => {
-      expect(await prizePool.token()).to.equal(depositToken.address);
+      expect(await prizePool.getToken()).to.equal(depositToken.address);
     });
 
     it('should reject invalid params', async () => {
@@ -339,7 +339,7 @@ describe('PrizePool', function () {
           .to.emit(prizePool, 'PrizeStrategySet')
           .withArgs(randomWallet.address);
 
-        expect(await prizePool.prizeStrategy()).to.equal(randomWallet.address);
+        expect(await prizePool.getPrizeStrategy()).to.equal(randomWallet.address);
       });
 
       it('should not allow anyone else to change the prize strategy', async () => {
@@ -357,7 +357,7 @@ describe('PrizePool', function () {
           .to.emit(prizePool, 'BalanceCapSet')
           .withArgs(balanceCap);
 
-        expect(await prizePool.balanceCap()).to.equal(balanceCap);
+        expect(await prizePool.getBalanceCap()).to.equal(balanceCap);
       });
 
       it('should not allow anyone else to call', async () => {
@@ -377,7 +377,7 @@ describe('PrizePool', function () {
           .to.emit(prizePool, 'LiquidityCapSet')
           .withArgs(liquidityCap);
 
-        expect(await prizePool.liquidityCap()).to.equal(liquidityCap);
+        expect(await prizePool.getLiquidityCap()).to.equal(liquidityCap);
       });
 
       it('should not allow anyone else to call', async () => {

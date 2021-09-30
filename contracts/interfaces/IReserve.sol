@@ -6,8 +6,8 @@ interface IReserve {
   
   /**
     * @notice Emit when checkpoint is created.
-    * @param destination Address receiving funds 
-    * @param amount      Amount of tokens transfered.
+    * @param reserveAccumulated  Total depsosited
+    * @param withdrawAccumulated Total withdrawn
    */
 
   event Checkpoint(uint256 reserveAccumulated, uint256 withdrawAccumulated);
