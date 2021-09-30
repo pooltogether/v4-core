@@ -532,7 +532,7 @@ describe('PrizePool', function () {
     });
 
     describe('onERC721Received()', () => {
-      it('should return the inteface selector', async () => {
+      it('should return the interface selector', async () => {
         expect(await prizePool.onERC721Received(prizePool.address, constants.AddressZero, 0, '0x150b7a02'))
           .to.equal('0x150b7a02');
       });
