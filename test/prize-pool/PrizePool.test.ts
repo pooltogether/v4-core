@@ -549,7 +549,7 @@ describe('PrizePool', function () {
   // Internal Functions ------------------------
   /*============================================ */
   describe('Internal Functions', () => {
-    it('should get the curren block.timestamp', async () => {
+    it('should get the current block.timestamp', async () => {
       const timenow = (await ethers.provider.getBlock('latest')).timestamp
       expect(await prizePool.internalCurrentTime())
         .to.equal(timenow);
