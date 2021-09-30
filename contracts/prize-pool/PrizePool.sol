@@ -29,16 +29,16 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   string constant public VERSION = "4.0.0";
 
   /// @notice Prize Pool ticket. Can only be set once by calling `setTicket()`.
-  IControlledToken public override ticket;
+  IControlledToken internal override ticket;
 
   /// @notice The Prize Strategy that this Prize Pool is bound to.
-  address public prizeStrategy;
+  address internal prizeStrategy;
 
   /// @notice The total amount of tickets a user can hold.
-  uint256 public balanceCap;
+  uint256 internal balanceCap;
 
   /// @notice The total amount of funds that the prize pool can hold.
-  uint256 public liquidityCap;
+  uint256 internal liquidityCap;
 
   /// @notice the The awardable balance
   uint256 internal _currentAwardBalance;
@@ -78,10 +78,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   function awardBalance() external override view returns (uint256) {
     return _currentAwardBalance;
   }
-  // /// @inheritdoc IPrizePool
-  // function accountedBalance() external override view returns (uint256) {
-  //   return _ticketTotalSupply();
-  // }
+
   /// @inheritdoc IPrizePool
   function canAwardExternal(address _externalToken) external override view returns (bool) {
     return _canAwardExternal(_externalToken);

@@ -3,7 +3,19 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IReserve {
+  
+  /**
+    * @notice Emit when checkpoint is created.
+    * @param destination Address receiving funds 
+    * @param amount      Amount of tokens transfered.
+   */
+
   event Checkpoint(uint256 reserveAccumulated, uint256 withdrawAccumulated);
+  /**
+    * @notice Emit when the withdrawTo function has executed. 
+    * @param recipient Address receiving funds 
+    * @param amount    Amount of tokens transfered.
+   */
   event Withdrawn(address indexed recipient, uint256 amount);
 
   /**
