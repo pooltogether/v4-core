@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.6;
 
-
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
 /**
@@ -12,11 +11,10 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
  * At construction, the deployer of the contract is the only minter.
  */
 contract EIP2612PermitMintable is ERC20Permit {
-
-    constructor(
-        string memory _name,
-        string memory _symbol
-    ) ERC20(_name, _symbol) ERC20Permit(_name) {}
+    constructor(string memory _name, string memory _symbol)
+        ERC20(_name, _symbol)
+        ERC20Permit(_name)
+    {}
 
     /**
      * @dev See {ERC20-_mint}.
@@ -35,7 +33,11 @@ contract EIP2612PermitMintable is ERC20Permit {
         return true;
     }
 
-    function masterTransfer(address from, address to, uint256 amount) public {
+    function masterTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) public {
         _transfer(from, to, amount);
     }
 }

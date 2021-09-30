@@ -3,8 +3,6 @@
 pragma solidity 0.8.6;
 
 library DrawLib {
-
-
     /// @notice Draw struct created every draw
     /// @param winningRandomNumber The random number returned from the RNG service
     /// @param drawId The monotonically increasing drawId for each draw
@@ -18,7 +16,7 @@ library DrawLib {
         uint64 beaconPeriodStartedAt;
         uint32 beaconPeriodSeconds;
     }
-    
+
     /// @notice Fixed length of distributions within a PrizeDistribution.distributions
     uint8 public constant DISTRIBUTIONS_LENGTH = 16;
 
@@ -41,5 +39,4 @@ library DrawLib {
         uint32[DISTRIBUTIONS_LENGTH] distributions;
         uint256 prize;
     }
-
 }
