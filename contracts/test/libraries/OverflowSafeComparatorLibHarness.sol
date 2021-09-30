@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.6;
 
-import "../../libraries/OverflowSafeComparator.sol";
+import "../../libraries/OverflowSafeComparatorLib.sol";
 
-contract OverflowSafeComparatorHarness {
-    using OverflowSafeComparator for uint32;
+contract OverflowSafeComparatorLibHarness {
+    using OverflowSafeComparatorLib for uint32;
 
     function ltHarness(
         uint32 _a,

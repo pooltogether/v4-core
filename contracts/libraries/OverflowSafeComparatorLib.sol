@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.6;
 
-/// @title OverflowSafeComparator library to share comparator functions between contracts
+/// @title OverflowSafeComparatorLib library to share comparator functions between contracts
 /// @dev Code taken from Uniswap V3 Oracle.sol: https://github.com/Uniswap/v3-core/blob/3e88af408132fc957e3e406f65a0ce2b1ca06c3d/contracts/libraries/Oracle.sol
 /// @author PoolTogether Inc.
-library OverflowSafeComparator {
+library OverflowSafeComparatorLib {
     /// @notice 32-bit timestamps comparator.
     /// @dev safe for 0 or 1 overflows, `_a` and `_b` must be chronologically before or equal to time.
     /// @param _a A comparison timestamp from which to determine the relative position of `_timestamp`.

@@ -4,7 +4,7 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
-import "./OverflowSafeComparator.sol";
+import "./OverflowSafeComparatorLib.sol";
 import "./RingBuffer.sol";
 
 /// @title Observation Library
@@ -12,7 +12,7 @@ import "./RingBuffer.sol";
 /// @dev Largely pulled from Uniswap V3 Oracle.sol: https://github.com/Uniswap/v3-core/blob/c05a0e2c8c08c460fb4d05cfdda30b3ad8deeaac/contracts/libraries/Oracle.sol
 /// @author PoolTogether Inc.
 library ObservationLib {
-    using OverflowSafeComparator for uint32;
+    using OverflowSafeComparatorLib for uint32;
     using SafeCast for uint256;
 
     /// @notice The maximum number of observations
