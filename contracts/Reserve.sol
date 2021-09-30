@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
+
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import "./interfaces/IReserve.sol";
 import "./libraries/ObservationLib.sol";
 import "./libraries/RingBuffer.sol";
@@ -14,7 +17,7 @@ import "./libraries/RingBuffer.sol";
 */
 contract Reserve is IReserve, Manageable {
     using SafeERC20 for IERC20;
-    
+
     /// @notice ERC20 token
     IERC20 public immutable token;
 
@@ -27,14 +30,14 @@ contract Reserve is IReserve, Manageable {
     ObservationLib.Observation[MAX_CARDINALITY] internal reserveAccumulators;
 
     uint24 internal cardinality;
-    
+
     /* ============ Events ============ */
 
     event Deployed(IERC20 indexed token);
 
     /* ============ Constructor ============ */
-    
-    /** 
+
+    /**
     * @notice Constructs Ticket with passed parameters.
     * @param _owner Owner address
     * @param _token ERC20 address
@@ -45,7 +48,7 @@ contract Reserve is IReserve, Manageable {
     }
 
     /* ============ External Functions ============ */
-    
+
     /// @inheritdoc IReserve
     function checkpoint() external override {
         _checkpoint();
@@ -55,7 +58,7 @@ contract Reserve is IReserve, Manageable {
     function getToken() external view override returns (IERC20) {
         return token;
     }
-    
+
     /// @inheritdoc IReserve
     function getReserveAccumulatedBetween(uint32 _startTimestamp, uint32 _endTimestamp) external override view returns (uint224) {
         require(_startTimestamp < _endTimestamp, "Reserve/start-less-then-end");
@@ -65,7 +68,7 @@ contract Reserve is IReserve, Manageable {
         if (_cardinality > 0) {
             _newestObservation = reserveAccumulators[_cardinality - 1];
         }
-        ObservationLib.Observation memory _oldestObservation = reserveAccumulators[0]; 
+        ObservationLib.Observation memory _oldestObservation = reserveAccumulators[0];
 
         uint224 _start = _getReserveAccumulatedAt(
             _newestObservation,
@@ -90,7 +93,7 @@ contract Reserve is IReserve, Manageable {
 
         token.safeTransfer(_recipient, _amount);
         withdrawAccumulator += uint224(_amount);
-        
+
         emit Withdrawn(_recipient, _amount);
     }
 
@@ -119,7 +122,7 @@ contract Reserve is IReserve, Manageable {
 
         /**
           * Ring Buffer Search Optimization
-          * Before performing binary search on the ring buffer check 
+          * Before performing binary search on the ring buffer check
           * to see if timestamp is within range of [o T n] by comparing
           * the target timestamp to the oldest/newest observation.timestamps
           * IF the timestamp is out of the ring buffer range avoid starting
@@ -131,33 +134,31 @@ contract Reserve is IReserve, Manageable {
           * the Reserve did NOT have a balance or the ring buffer
           * no longer contains that timestamp checkpoint.
          */
-        if(_oldestObservation.timestamp > timestamp) {
+        if (_oldestObservation.timestamp > timestamp) {
             return 0;
         }
 
         /**
           * IF newestObservation.timestamp is before timestamp: [ new]T
-          * return _newestObservation.amount since observation is
+          * return _newestObservation.amount since observation
           * contains the highest checkpointed reserveAccumulator.
          */
-        if(_newestObservation.timestamp <= timestamp) {
+        if (_newestObservation.timestamp <= timestamp) {
             return _newestObservation.amount;
         }
-        
+
         // IF the timestamp is witin range of ring buffer start/end: [new T old]
         // FIND the closest observation to the left(or exact) of timestamp: [OT ]
-        (ObservationLib.Observation memory beforeOrAt, ObservationLib.Observation memory atOrAfter) = 
+        (ObservationLib.Observation memory beforeOrAt, ObservationLib.Observation memory atOrAfter) =
             ObservationLib.binarySearch(reserveAccumulators, _cardinality - 1, 0, timestamp, _cardinality, timeNow);
-        
+
         // IF target timestamp is EXACT match for atOrAfter.timestamp observation return amount.
         // NOT having an exact match with atOrAfter means values will contain accumulator value AFTER the searchable range.
-        if(atOrAfter.timestamp == timestamp) {
+        // ELSE return observation.totalDepositedAccumulator closest to LEFT of target timestamp.
+        if (atOrAfter.timestamp == timestamp) {
             return atOrAfter.amount;
-        }
-
-        // ELSE return observation.totalDepositedAccumlator closest to LEFT of target timestamp.
-        else {
-            return beforeOrAt.amount;      
+        } else {
+            return beforeOrAt.amount;
         }
     }
 
@@ -174,15 +175,15 @@ contract Reserve is IReserve, Manageable {
          */
         if(_balanceOfReserve + _withdrawAccumulator > _newestObservation.amount) {
             uint32 nowTime = uint32(block.timestamp);
-            
+
             // checkpointAccumulator = currentBalance + totalWithdraws
             uint224 newReserveAccumulator = uint224(_balanceOfReserve) + _withdrawAccumulator;
-            
+
             // IF _newestObservation IS NOT in the current block.
             // CREATE observation in the accumulators ring buffer.
             if(_newestObservation.timestamp != nowTime) {
                 reserveAccumulators[_cardinality] = ObservationLib.Observation({
-                    amount: newReserveAccumulator, 
+                    amount: newReserveAccumulator,
                     timestamp: nowTime
                 });
                 cardinality++;
@@ -191,17 +192,17 @@ contract Reserve is IReserve, Manageable {
             // UPDATE the checkpoint previously created in block history.
             else {
                 reserveAccumulators[_cardinality - 1] = ObservationLib.Observation({
-                    amount: newReserveAccumulator, 
+                    amount: newReserveAccumulator,
                     timestamp: nowTime
                 });
             }
             emit Checkpoint(newReserveAccumulator, _withdrawAccumulator);
-        }        
-    }   
+        }
+    }
 
     /// @notice Retrieves the newest observation
     function _getNewestObservation(uint24 _cardinality) internal view returns (ObservationLib.Observation memory _observation) {
-        if (_cardinality > 0) _observation = reserveAccumulators[_cardinality - 1]; 
+        if (_cardinality > 0) _observation = reserveAccumulators[_cardinality - 1];
     }
 
 

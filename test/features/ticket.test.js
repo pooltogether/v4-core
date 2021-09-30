@@ -29,10 +29,10 @@ describe('Tickets', () => {
   // NOT a COMPLETE test. Needs to be fixed - out of scope for this PR.
   it.skip('should allow a user to pull their prizes', async () => {
     await env.buyTickets({ user: 1, tickets: 100 });
-    await env.buyTicketsForDrawPrizes({
+    await env.buyTicketsForDrawPrize({
       user: 1,
       tickets: 100,
-      claimableDraw: (await env.claimableDraw()).address,
+      drawPrize: (await env.drawPrize()).address,
     });
 
     const wallet = await env.wallet(1);
@@ -46,7 +46,7 @@ describe('Tickets', () => {
     await env.poolAccrues({ tickets: 10 });
     await env.draw({ randomNumber: winningRandomNumber });
 
-    await env.pushDrawSettings({
+    await env.pushPrizeDistribution({
       drawId: 1,
       bitRangeSize: ethers.BigNumber.from(4),
       matchCardinality: ethers.BigNumber.from(5),

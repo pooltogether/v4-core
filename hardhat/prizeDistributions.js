@@ -1,4 +1,5 @@
 const { utils } = require('ethers');
+
 const distributions = [
   utils.parseEther('0.9'),
   utils.parseEther('0.1'),

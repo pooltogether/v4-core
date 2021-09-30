@@ -89,9 +89,9 @@ describe('DrawHistory', () => {
 
   describe('pushDraw()', () => {
     it('should fail to create a new draw when called from non-draw-manager', async () => {
-      const claimableDrawWallet2 = drawHistory.connect(wallet2);
+      const drawPrizeWallet2 = drawHistory.connect(wallet2);
       await expect(
-        claimableDrawWallet2.pushDraw(newDraw({ drawId: 1 }))
+        drawPrizeWallet2.pushDraw(newDraw({ drawId: 1 }))
       ).to.be.revertedWith('Manageable/caller-not-manager')
     });
 
@@ -150,6 +150,36 @@ describe('DrawHistory', () => {
         expect(draws[index].winningRandomNumber).to.equal(DRAW_SAMPLE_CONFIG.winningRandomNumber);
         expect(draws[index].drawId).to.equal(index + 1);
       }
+    });
+  });
+
+  describe('getDrawCount()', () => {
+    it('should return 0 when no draw history', async () => {
+      expect(await drawHistory.getDrawCount()).to.equal(0);
+    });
+
+    it('should return 2 if 2 draws have been pushed', async () => {
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 2 }));
+
+      expect(await drawHistory.getDrawCount()).to.equal(2);
+    });
+
+    it('should return 3 if buffer of cardinality 3 is full', async () => {
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 2 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 3 }));
+
+      expect(await drawHistory.getDrawCount()).to.equal(3);
+    });
+
+    it('should return 3 if ring buffer has wrapped', async () => {
+      await drawHistory.pushDraw(newDraw({ drawId: 1 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 2 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 3 }));
+      await drawHistory.pushDraw(newDraw({ drawId: 4 }));
+
+      expect(await drawHistory.getDrawCount()).to.equal(3);
     });
   });
 

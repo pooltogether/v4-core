@@ -4,17 +4,18 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./OverflowSafeComparator.sol";
 import "./RingBuffer.sol";
 
-/// @title Time-Weighted Average Balance Library
-/// @notice This library allows you to efficiently track a user's historic balance.  You can get a
+/// @title Observation Library
+/// @notice This library allows one to store an array of timestamped values and efficiently binary search them.
+/// @dev Largely pulled from Uniswap V3 Oracle.sol: https://github.com/Uniswap/v3-core/blob/c05a0e2c8c08c460fb4d05cfdda30b3ad8deeaac/contracts/libraries/Oracle.sol
 /// @author PoolTogether Inc.
 library ObservationLib {
   using OverflowSafeComparator for uint32;
   using SafeCast for uint256;
 
-  /// @notice The maximum number of twab entries
+  /// @notice The maximum number of observations
   uint24 public constant MAX_CARDINALITY = 16777215; // 2**24
 
-  /// @notice Time Weighted Average Balance (Observation).
+  /// @notice Observation, which includes an amount and timestamp
   /// @param amount `amount` at `timestamp`.
   /// @param timestamp Recorded `timestamp`.
   struct Observation {

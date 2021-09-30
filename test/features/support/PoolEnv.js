@@ -41,11 +41,11 @@ function PoolEnv() {
 
   this.drawHistory = async () => await ethers.getContract('DrawHistory');
 
-  this.drawSettingsHistory = async () => await ethers.getContract('PrizeDistributionHistory');
+  this.prizeDistributionHistory = async () => await ethers.getContract('PrizeDistributionHistory');
 
   this.drawCalculator = async () => await ethers.getContract('DrawCalculator');
 
-  this.claimableDraw = async (wallet) => (await ethers.getContract('DrawPrizes')).connect(wallet);
+  this.drawPrize = async (wallet) => (await ethers.getContract('DrawPrize')).connect(wallet);
 
   this.rng = async () => await ethers.getContract('RNGServiceStub');
 
@@ -76,7 +76,7 @@ function PoolEnv() {
     debug(`Bought tickets`);
   };
 
-  this.buyTicketsForDrawPrizes = async function ({ user, tickets, claimableDraw }) {
+  this.buyTicketsForDrawPrize = async function ({ user, tickets, drawPrize }) {
     debug(`Buying tickets...`);
     const owner = await this.wallet(0);
     let wallet = await this.wallet(user);
@@ -100,9 +100,9 @@ function PoolEnv() {
     await prizePool.depositTo(wallet.address, amount, this.overrides);
 
     debug(`Bought tickets`);
-    ticket.transfer(claimableDraw, amount);
+    ticket.transfer(drawPrize, amount);
 
-    debug(`Transfer tickets to claimableDraw`);
+    debug(`Transfer tickets to drawPrize`);
   };
 
   this.expectUserToHaveTickets = async function ({ user, tickets }) {
@@ -123,10 +123,10 @@ function PoolEnv() {
 
   this.claim = async function ({ user, drawId, picks }) {
     const wallet = await this.wallet(user);
-    const claimableDraw = await this.claimableDraw(wallet);
+    const drawPrize = await this.drawPrize(wallet);
     const encoder = ethers.utils.defaultAbiCoder;
     const pickIndices = encoder.encode(['uint256[][]'], [[picks]]);
-    await claimableDraw.claim(wallet.address, [drawId], pickIndices);
+    await drawPrize.claim(wallet.address, [drawId], pickIndices);
   };
 
   this.withdraw = async function ({ user, tickets }) {
@@ -172,7 +172,7 @@ function PoolEnv() {
     expect(draw.winningRandomNumber).to.equal(randomNumber);
   };
 
-  this.pushDrawSettings = async function ({
+  this.pushPrizeDistribution = async function ({
     drawId,
     bitRangeSize,
     startTimestampOffset,
@@ -183,9 +183,9 @@ function PoolEnv() {
     prize,
     maxPicksPerUser,
   }) {
-    const drawSettingsHistory = await this.drawSettingsHistory();
+    const prizeDistributionHistory = await this.prizeDistributionHistory();
 
-    const drawSettings = {
+    const prizeDistributions = {
       bitRangeSize,
       matchCardinality,
       startTimestampOffset,
@@ -196,7 +196,7 @@ function PoolEnv() {
       maxPicksPerUser,
     };
 
-    await drawSettingsHistory.pushDrawSettings(drawId, drawSettings);
+    await prizeDistributionHistory.pushPrizeDistribution(drawId, prizeDistributions);
   };
 }
 

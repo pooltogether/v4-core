@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
+
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
+
 import "./interfaces/IDrawHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBufferLib.sol";
@@ -57,6 +60,23 @@ contract DrawHistory is IDrawHistory, Manageable {
       draws[index] = _draws[_drawIdToDrawIndex(buffer, drawIds[index])];
     }
     return draws;
+  }
+
+  /// @inheritdoc IDrawHistory
+  function getDrawCount() external view override returns (uint32) {
+    DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
+
+    if (buffer.lastDrawId == 0) {
+      return 0;
+    }
+
+    uint32 bufferNextIndex = buffer.nextIndex;
+
+    if (_draws[bufferNextIndex].timestamp != 0) {
+      return buffer.cardinality;
+    } else {
+      return bufferNextIndex;
+    }
   }
 
   /// @inheritdoc IDrawHistory

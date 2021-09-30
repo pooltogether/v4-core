@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
-import "./interfaces/IStrategy.sol";
-import "./interfaces/IPrizePool.sol";
-import "./prize-strategy/PrizeSplit.sol";
+import "./PrizeSplit.sol";
+import "../interfaces/IStrategy.sol";
+import "../interfaces/IPrizePool.sol";
 
 /**
   * @title  PoolTogether V4 PrizeSplitStrategy
@@ -19,7 +19,17 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
   /**
     * @notice PrizePool address
   */
-  IPrizePool public prizePool;
+  IPrizePool internal prizePool;
+
+  /**
+    * @notice Deployed Event
+    * @param owner Contract owner
+    * @param prizePool Linked PrizePool contract
+  */
+  event Deployed(
+    address indexed owner,
+    IPrizePool prizePool
+  );
 
   /* ============ Constructor ============ */
 
@@ -34,6 +44,7 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
   ) Ownable(_owner) {
     require(address(_prizePool) != address(0), "PrizeSplitStrategy/prize-pool-not-zero-address");
     prizePool = _prizePool;
+    emit Deployed(_owner, _prizePool);
   }
 
   /* ============ External Functions ============ */
@@ -41,9 +52,15 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
   /// @inheritdoc IStrategy
   function distribute() external override returns (uint256) {
     uint256 prize = prizePool.captureAwardBalance();
+    if(prize == 0) return 0;
     _distributePrizeSplits(prize);
     emit Distributed(prize);
     return prize;
+  }
+
+  /// @inheritdoc IPrizeSplit
+  function getPrizePool() external view override returns(IPrizePool) {
+    return prizePool;
   }
 
   /* ============ Internal Functions ============ */

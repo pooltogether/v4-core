@@ -1,29 +1,29 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { utils, Contract, ContractFactory } from 'ethers';
+import { Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
 
 const { getSigners } = ethers;
 
-describe('DrawRingBufferLibLib', () => {
-  let DrawRingBufferLibLib: Contract;
-  let DrawRingBufferLibLibFactory: ContractFactory;
+describe('DrawRingBufferLib', () => {
+  let DrawRingBufferLib: Contract;
+  let DrawRingBufferLibFactory: ContractFactory;
 
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
 
   before(async () => {
     [wallet1, wallet2] = await getSigners();
-    DrawRingBufferLibLibFactory = await ethers.getContractFactory('DrawRingBufferLibHarness');
+    DrawRingBufferLibFactory = await ethers.getContractFactory('DrawRingBufferLibHarness');
   })
 
   beforeEach(async () => {
-    DrawRingBufferLibLib = await DrawRingBufferLibLibFactory.deploy('255');
+    DrawRingBufferLib = await DrawRingBufferLibFactory.deploy('255');
   });
 
   describe('isInitialized()', () => {
     it('should return TRUE to signal an initalized DrawHistory', async () => {
-      expect(await DrawRingBufferLibLib._isInitialized({
+      expect(await DrawRingBufferLib._isInitialized({
         lastDrawId: 1,
         nextIndex: 1,
         cardinality: 256
@@ -31,7 +31,7 @@ describe('DrawRingBufferLibLib', () => {
     })
 
     it('should return FALSE to signal an uninitalized DrawHistory', async () => {
-      expect(await DrawRingBufferLibLib._isInitialized({
+      expect(await DrawRingBufferLib._isInitialized({
         lastDrawId: 0,
         nextIndex: 0,
         cardinality: 256
@@ -41,7 +41,7 @@ describe('DrawRingBufferLibLib', () => {
 
   describe('push()', () => {
     it('should return the next valid Buffer struct assuming DrawHistory with 0 draws', async () => {
-      const nextBuffer = await DrawRingBufferLibLib._push({
+      const nextBuffer = await DrawRingBufferLib._push({
         lastDrawId: 0,
         nextIndex: 0,
         cardinality: 256
@@ -52,7 +52,7 @@ describe('DrawRingBufferLibLib', () => {
     })
 
     it('should return the next valid Buffer struct assuming DrawHistory with 1 draws', async () => {
-      const nextBuffer = await DrawRingBufferLibLib._push({
+      const nextBuffer = await DrawRingBufferLib._push({
         lastDrawId: 0,
         nextIndex: 1,
         cardinality: 256
@@ -63,7 +63,7 @@ describe('DrawRingBufferLibLib', () => {
     })
 
     it('should return the next valid Buffer struct assuming DrawHistory with 255 draws', async () => {
-      const nextBuffer = await DrawRingBufferLibLib._push({
+      const nextBuffer = await DrawRingBufferLib._push({
         lastDrawId: 255,
         nextIndex: 255,
         cardinality: 256
@@ -79,7 +79,7 @@ describe('DrawRingBufferLibLib', () => {
         nextIndex: 1,
         cardinality: 256
       }
-      expect(DrawRingBufferLibLib._push(Buffer, 4))
+      expect(DrawRingBufferLib._push(Buffer, 4))
         .to.be.revertedWith('DRB/must-be-contig')
     })
   });
@@ -91,7 +91,7 @@ describe('DrawRingBufferLibLib', () => {
         nextIndex: 1,
         cardinality: 256
       }
-      expect(await DrawRingBufferLibLib._getIndex(Buffer, 0)).to.eql(0)
+      expect(await DrawRingBufferLib._getIndex(Buffer, 0)).to.eql(0)
     })
 
     it('should return valid draw index assuming DrawHistory with 255 draws', async () => {
@@ -100,11 +100,11 @@ describe('DrawRingBufferLibLib', () => {
         nextIndex: 0,
         cardinality: 256
       }
-      expect(await DrawRingBufferLibLib._getIndex(Buffer, 255)).to.eql(255)
+      expect(await DrawRingBufferLib._getIndex(Buffer, 255)).to.eql(255)
     })
 
     it('should fail to return index since Draw has not been pushed', async () => {
-      expect(DrawRingBufferLibLib._getIndex({
+      expect(DrawRingBufferLib._getIndex({
         lastDrawId: 1,
         nextIndex: 2,
         cardinality: 256
@@ -113,7 +113,7 @@ describe('DrawRingBufferLibLib', () => {
     })
 
     it('should fail to return index since Draw has expired', async () => {
-      expect(DrawRingBufferLibLib._getIndex({
+      expect(DrawRingBufferLib._getIndex({
         lastDrawId: 256,
         nextIndex: 1,
         cardinality: 256

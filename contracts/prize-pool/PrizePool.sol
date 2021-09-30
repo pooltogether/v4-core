@@ -117,20 +117,23 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
   /// @inheritdoc IPrizePool
   function captureAwardBalance() external override nonReentrant returns (uint256) {
+
     uint256 ticketTotalSupply = _ticketTotalSupply();
+    uint256 currentAwardBalance = _currentAwardBalance; //sload
 
     // it's possible for the balance to be slightly less due to rounding errors in the underlying yield source
     uint256 currentBalance = _balance();
     uint256 totalInterest = (currentBalance > ticketTotalSupply) ? currentBalance - ticketTotalSupply : 0;
-    uint256 unaccountedPrizeBalance = (totalInterest > _currentAwardBalance) ? totalInterest - _currentAwardBalance : 0;
+    uint256 unaccountedPrizeBalance = (totalInterest > currentAwardBalance) ? totalInterest - currentAwardBalance : 0;
 
     if (unaccountedPrizeBalance > 0) {
-      _currentAwardBalance = _currentAwardBalance + unaccountedPrizeBalance;
+      currentAwardBalance = currentAwardBalance + unaccountedPrizeBalance;
+      _currentAwardBalance = currentAwardBalance; //sstore
 
       emit AwardCaptured(unaccountedPrizeBalance);
     }
 
-    return _currentAwardBalance;
+    return currentAwardBalance;
   }
 
   /// @inheritdoc IPrizePool
@@ -175,8 +178,10 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
       return;
     }
 
-    require(_amount <= _currentAwardBalance, "PrizePool/award-exceeds-avail");
-    _currentAwardBalance = _currentAwardBalance - _amount;
+    uint256 currentAwardBalance = _currentAwardBalance;
+
+    require(_amount <= currentAwardBalance, "PrizePool/award-exceeds-avail");
+    _currentAwardBalance = currentAwardBalance - _amount;
 
     IControlledToken _ticket = ticket;
 

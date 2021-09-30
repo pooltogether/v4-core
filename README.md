@@ -6,8 +6,7 @@
 
 # PoolTogether V4 Core Smart Contracts
 
-
-[![<PoolTogether>](https://circleci.com/gh/pooltogether/v4-core.svg?style=shield)](https://circleci.com/gh/pooltogether/v4-core)
+![Tests](https://github.com/pooltogether/v4-core/actions/workflows/main.yml/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/pooltogether/v4-core/badge.svg?branch=master)](https://coveralls.io/github/pooltogether/v4-core?branch=master)
 [![built-with openzeppelin](https://img.shields.io/badge/built%20with-OpenZeppelin-3677FF)](https://docs.openzeppelin.com/)
 [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
@@ -21,7 +20,7 @@
 **Documention**<br>
 https://docs.pooltogether.com
 
-**Deplyoments**<br>
+**Deployments**<br>
 - [Ethereum](https://docs.pooltogether.com/resources/networks/ethereum)
 - [Matic](https://docs.pooltogether.com/resources/networks/matic)
 
@@ -29,7 +28,7 @@ https://docs.pooltogether.com
 - [DrawBeacon](/contracts/DrawBeacon.sol)
 - [DrawCalculator](/contracts/DrawCalculator.sol)
 - [DrawHistory](/contracts/DrawHistory.sol)
-- [DrawPrizes](/contracts/DrawPrizes.sol)
+- [DrawPrize](/contracts/DrawPrize.sol)
 - [PrizeFlush](/contracts/PrizeFlush.sol)
 - [PrizeSplitStrategy](/contracts/PrizeSplitStrategy.sol)
 - [Reserve](/contracts/Reserve.sol)
@@ -98,17 +97,8 @@ $ ./scripts/setup.sh
 
 # Deployment
 
-## Deploy Locally
+## Testnets
+Deployment is maintained in a different [repo](https://github.com/pooltogether/v4-testnet). 
 
-Start a local node and deploy the top-level contracts:
-
-```bash
-$ yarn start
-```
-
-NOTE: When you run this command it will reset the local blockchain.
-
-
-## Overview
-
-The V4 PoolTogether smart contracts facilitate a "pull" based system to claim interest prize payouts.
+## Mainnet
+Todo: insert deployment repo link here. 

@@ -198,6 +198,12 @@ contract DrawBeacon is IDrawBeacon,
     return isRngRequested() && isRngCompleted();
   }
 
+  /// @notice Calculates the next beacon start time, assuming all beacon periods have occurred between the last and now.
+  /// @return The next beacon period start time
+  function calculateNextBeaconPeriodStartTimeFromCurrentTime() external view returns (uint64) {
+    return _calculateNextBeaconPeriodStartTime(beaconPeriodStartedAt, beaconPeriodSeconds, _currentTime());
+  }
+
   /// @inheritdoc IDrawBeacon
   function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view override returns (uint64) {
     return _calculateNextBeaconPeriodStartTime(beaconPeriodStartedAt, beaconPeriodSeconds, uint64(currentTime));
@@ -230,7 +236,8 @@ contract DrawBeacon is IDrawBeacon,
     DrawLib.Draw memory _draw = DrawLib.Draw({
       winningRandomNumber: randomNumber,
       drawId: _nextDrawId,
-      timestamp: _time,
+      // must use the startAward() timestamp to prevent front-running
+      timestamp: rngRequest.requestedAt,
       beaconPeriodStartedAt: _beaconPeriodStartedAt,
       beaconPeriodSeconds: _beaconPeriodSeconds
     });
@@ -239,12 +246,11 @@ contract DrawBeacon is IDrawBeacon,
       * The DrawBeacon (deployed on L1) will have a Manager role authorized to push history onto DrawHistory.
      */
     drawHistory.pushDraw(_draw);
-    
+
     // to avoid clock drift, we should calculate the start time based on the previous period start time.
     _beaconPeriodStartedAt = _calculateNextBeaconPeriodStartTime(_beaconPeriodStartedAt, _beaconPeriodSeconds, _time);
     beaconPeriodStartedAt = _beaconPeriodStartedAt;
     nextDrawId = _nextDrawId + 1;
-
 
     // Reset the rngReqeust state so Beacon period can start again.
     delete rngRequest;

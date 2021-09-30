@@ -22,4 +22,12 @@ contract OverflowSafeComparatorHarness {
   ) external pure returns (bool) {
     return _a.lte(_b, _timestamp);
   }
+
+  function checkedSub(
+    uint256 _a,
+    uint256 _b,
+    uint256 _timestamp
+  ) external pure returns (uint32) {
+    return uint32(_a).checkedSub(uint32(_b), uint32(_timestamp));
+  }
 }

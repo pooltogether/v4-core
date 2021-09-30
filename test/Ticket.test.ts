@@ -43,13 +43,14 @@ describe('Ticket', () => {
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let wallet3: SignerWithAddress;
+  let wallet4: SignerWithAddress;
 
   const ticketName = 'PoolTogether Dai Ticket';
   const ticketSymbol = 'PcDAI';
   const ticketDecimals = 18;
 
   beforeEach(async () => {
-    [wallet1, wallet2, wallet3] = await getSigners();
+    [wallet1, wallet2, wallet3, wallet4] = await getSigners();
 
     const PrizePool = await hre.artifacts.readArtifact(
       'contracts/prize-pool/PrizePool.sol:PrizePool',
@@ -137,34 +138,6 @@ describe('Ticket', () => {
     })
   })
 
-  describe('twab lifetime', () => {
-    let twabLifetime: number
-    const mintBalance = toWei('1000')
-
-    beforeEach(async () => {
-      twabLifetime = await ticket.TWAB_TIME_TO_LIVE()
-    })
-
-    it('should expire old twabs and save gas', async () => {
-      let quarterOfLifetime = twabLifetime / 4
-
-      await ticket.mint(wallet1.address, mintBalance)
-
-      // now try transfers
-      for (var i = 0; i < 8; i++) {
-        await increaseTime(quarterOfLifetime)
-        await ticket.mint(wallet2.address, mintBalance)
-        await ticket.transfer(wallet2.address, toWei('100'))
-        await ticket.burn(wallet2.address, mintBalance.div(2))
-      }
-
-      await ticket.burn(wallet1.address, await ticket.balanceOf(wallet1.address))
-      await ticket.burn(wallet2.address, await ticket.balanceOf(wallet2.address))
-
-      // here we should have looped around.
-    })
-  })
-
   describe('_transfer()', () => {
     const mintAmount = toWei('2500');
     const transferAmount = toWei('1000');
@@ -187,6 +160,61 @@ describe('Ticket', () => {
       expect(
         await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
       ).to.equal(mintAmount.sub(transferAmount));
+    });
+
+    it('should not perform any transfer if sender and recipient are the same', async () => {
+      expect(await ticket.transferTo(wallet1.address, wallet1.address, transferAmount))
+        .to.emit(ticket, 'Transfer')
+        .withArgs(wallet1.address, wallet1.address, transferAmount);
+
+      await increaseTime(10)
+
+      expect(
+        await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
+      ).to.equal(mintAmount);
+    });
+
+    it('should update delegatee balance', async () => {
+      await ticket.delegate(wallet3.address)
+      await ticket.connect(wallet2).delegate(wallet4.address)
+
+      expect(
+        await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
+      ).to.equal(toWei('0'));
+
+      expect(
+        await ticket.getBalanceAt(wallet2.address, (await getBlock('latest')).timestamp),
+      ).to.equal(toWei('0'));
+
+      expect(
+        await ticket.getBalanceAt(wallet3.address, (await getBlock('latest')).timestamp),
+      ).to.equal(mintAmount);
+
+      expect(
+        await ticket.getBalanceAt(wallet4.address, (await getBlock('latest')).timestamp),
+      ).to.equal(toWei('0'));
+
+      expect(await ticket.transferTo(wallet1.address, wallet2.address, transferAmount))
+        .to.emit(ticket, 'Transfer')
+        .withArgs(wallet1.address, wallet2.address, transferAmount);
+
+      await increaseTime(10)
+
+      expect(
+        await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
+      ).to.equal(toWei('0'));
+
+      expect(
+        await ticket.getBalanceAt(wallet2.address, (await getBlock('latest')).timestamp),
+      ).to.equal(toWei('0'));
+
+      expect(
+        await ticket.getBalanceAt(wallet3.address, (await getBlock('latest')).timestamp),
+      ).to.equal(mintAmount.sub(transferAmount));
+
+      expect(
+        await ticket.getBalanceAt(wallet4.address, (await getBlock('latest')).timestamp),
+      ).to.equal(transferAmount);
     });
 
     it('should fail to transfer tickets if sender address is address zero', async () => {
@@ -228,6 +256,26 @@ describe('Ticket', () => {
       expect(await ticket.totalSupply()).to.equal(mintAmount);
     });
 
+    it('should update delegatee balance', async () => {
+      await ticket.delegate(wallet2.address)
+
+      expect(await ticket.mint(wallet1.address, mintAmount))
+        .to.emit(ticket, 'Transfer')
+        .withArgs(AddressZero, wallet1.address, mintAmount);
+
+      await increaseTime(10)
+
+      expect(
+        await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
+      ).to.equal(toWei('0'));
+
+      expect(
+        await ticket.getBalanceAt(wallet2.address, (await getBlock('latest')).timestamp),
+      ).to.equal(mintAmount);
+
+      expect(await ticket.totalSupply()).to.equal(mintAmount);
+    });
+
     it('should fail to mint tickets if user address is address zero', async () => {
       await expect(ticket.mint(AddressZero, mintAmount)).to.be.revertedWith(
         'ERC20: mint to the zero address',
@@ -245,15 +293,13 @@ describe('Ticket', () => {
 
       debug(`Twab Context: `, context)
 
-      expect(context.cardinality).to.equal(2)
+      expect(context.cardinality).to.equal(1)
       expect(context.nextTwabIndex).to.equal(1)
       expect(await ticket.totalSupply()).to.equal(mintAmount.mul(2));
     })
   });
 
   describe('_burn()', () => {
-    const debug = newDebug('pt:Ticket.test.ts:_burn()')
-
     const burnAmount = toWei('500');
     const mintAmount = toWei('1500');
 
@@ -273,9 +319,40 @@ describe('Ticket', () => {
       expect(await ticket.totalSupply()).to.equal(mintAmount.sub(burnAmount));
     });
 
+    it('should update delegatee balance', async () => {
+      await ticket.delegate(wallet2.address)
+      await ticket.mint(wallet1.address, mintAmount);
+
+      expect(await ticket.burn(wallet1.address, burnAmount))
+        .to.emit(ticket, 'Transfer')
+        .withArgs(wallet1.address, AddressZero, burnAmount);
+
+      await increaseTime(1)
+
+      expect(
+        await ticket.getBalanceAt(wallet1.address, (await getBlock('latest')).timestamp),
+      ).to.equal(toWei('0'));
+
+      expect(
+        await ticket.getBalanceAt(wallet2.address, (await getBlock('latest')).timestamp),
+      ).to.equal(mintAmount.sub(burnAmount));
+
+      expect(await ticket.totalSupply()).to.equal(mintAmount.sub(burnAmount));
+    });
+
     it('should fail to burn tickets from user balance if user address is address zero', async () => {
       await expect(ticket.burn(AddressZero, mintAmount)).to.be.revertedWith(
         'ERC20: burn from the zero address',
+      );
+    });
+
+    it('should fail to burn tickets from user balance if burn amount exceeds total supply', async () => {
+      const insufficientMintAmount = toWei('250');
+
+      await ticket.mint(wallet1.address, insufficientMintAmount);
+
+      await expect(ticket.burn(wallet1.address, mintAmount)).to.be.revertedWith(
+        'Ticket/burn-amount-exceeds-total-supply-twab',
       );
     });
 
@@ -283,6 +360,7 @@ describe('Ticket', () => {
       const insufficientMintAmount = toWei('250');
 
       await ticket.mint(wallet1.address, insufficientMintAmount);
+      await ticket.mint(wallet2.address, mintAmount);
 
       await expect(ticket.burn(wallet1.address, mintAmount)).to.be.revertedWith(
         'ERC20: burn amount exceeds balance',
@@ -605,12 +683,28 @@ describe('Ticket', () => {
     it('should allow a user to delegate to another', async () => {
       await ticket.mint(wallet1.address, toWei('100'))
 
-      await ticket.delegate(wallet2.address)
+      await expect(ticket.delegate(wallet2.address))
+        .to.emit(ticket, 'Delegated')
+        .withArgs(wallet1.address, wallet2.address);
+
       const timestamp = (await provider.getBlock('latest')).timestamp
 
       expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address)
       expect(await ticket.getBalanceAt(wallet1.address, timestamp)).to.equal(toWei('0'))
       expect(await ticket.getBalanceAt(wallet2.address, timestamp)).to.equal(toWei('100'))
+    })
+
+    it('should not decrease user balance if address zero is mistakenly passed', async () => {
+      await ticket.mint(wallet1.address, toWei('100'))
+
+      await expect(ticket.delegate(AddressZero))
+        .to.emit(ticket, 'Delegated')
+        .withArgs(wallet1.address, AddressZero);
+
+      const timestamp = (await provider.getBlock('latest')).timestamp
+
+      expect(await ticket.delegateOf(wallet1.address)).to.equal(AddressZero)
+      expect(await ticket.getBalanceAt(wallet1.address, timestamp)).to.equal(toWei('100'))
     })
 
     it('should clear old delegates if any', async () => {

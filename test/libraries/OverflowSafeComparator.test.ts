@@ -1,4 +1,3 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
@@ -111,4 +110,36 @@ describe('overflowSafeComparator', () => {
       ).to.equal(true);
     });
   });
+
+  describe('checkedSub()', () => {
+    it('should calculate normally', async () => {
+      expect(await overflowSafeComparator.checkedSub(10, 4, 10)).to.equal(6)
+    })
+
+    it('should handle overflow of a', async () => {
+      // put in actual times.
+      const secondTimestamp = 2**8
+      const firstTimestamp = 2**32+(secondTimestamp-1) // just before the answer overflows
+      expect(await overflowSafeComparator.checkedSub(
+        firstTimestamp,
+        secondTimestamp,
+        firstTimestamp
+      )).to.equal(
+        firstTimestamp - secondTimestamp
+      )
+    })
+
+    it('should handle overflow of both', async () => {
+      // put in actual times.
+      const secondTimestamp = 2**32+100
+      const firstTimestamp = 2**32+200
+      expect(await overflowSafeComparator.checkedSub(
+        firstTimestamp,
+        secondTimestamp,
+        firstTimestamp
+      )).to.equal(
+        firstTimestamp - secondTimestamp
+      )
+    })
+  })
 });

@@ -6,9 +6,9 @@ import "./IStrategy.sol";
 interface IPrizeFlush {
   // Events
   event Flushed(address indexed recipient, uint256 amount);
-  event DestinationSet(address destination);
-  event StrategySet(IStrategy strategy);
-  event ReserveSet(IReserve reserve);
+  event DestinationSet(address indexed destination);
+  event StrategySet(IStrategy indexed strategy);
+  event ReserveSet(IReserve indexed reserve);
 
   /// @notice Read global destination variable.
   function getDestination() external view returns (address);
@@ -29,7 +29,7 @@ interface IPrizeFlush {
   function setStrategy(IStrategy _strategy) external returns (IStrategy);
   
   /**
-    * @notice Migrate interest from PrizePool to DrawPrizes in single transaction.
+    * @notice Migrate interest from PrizePool to DrawPrize in single transaction.
     * @dev    Captures interest, checkpoint data and transfers tokens to final destination.
    */
   function flush() external returns (bool);
