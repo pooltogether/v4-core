@@ -5,7 +5,7 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./OverflowSafeComparatorLib.sol";
-import "./RingBuffer.sol";
+import "./RingBufferLib.sol";
 
 /// @title Observation Library
 /// @notice This library allows one to store an array of timestamped values and efficiently binary search them.
@@ -51,7 +51,7 @@ library ObservationLib {
 
         while (true) {
             currentIndex = (leftSide + rightSide) / 2;
-            beforeOrAt = _observations[uint24(RingBuffer.wrap(currentIndex, _cardinality))];
+            beforeOrAt = _observations[uint24(RingBufferLib.wrap(currentIndex, _cardinality))];
             uint32 beforeOrAtTimestamp = beforeOrAt.timestamp;
 
             // We've landed on an uninitialized timestamp, keep searching higher (more recently)
@@ -60,7 +60,7 @@ library ObservationLib {
                 continue;
             }
 
-            atOrAfter = _observations[uint24(RingBuffer.nextIndex(currentIndex, _cardinality))];
+            atOrAfter = _observations[uint24(RingBufferLib.nextIndex(currentIndex, _cardinality))];
 
             bool targetAtOrAfter = beforeOrAtTimestamp.lte(_target, _time);
 

@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.6;
 
-library RingBuffer {
+library RingBufferLib {
     /// @notice Returns TWAB index.
     /// @dev `twabs` is a circular buffer of `MAX_CARDINALITY` size equal to 32. So the array goes from 0 to 31.
     /// @dev In order to navigate the circular buffer, we need to use the modulo operator.

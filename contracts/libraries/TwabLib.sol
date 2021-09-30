@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./ExtendedSafeCast.sol";
 import "./OverflowSafeComparatorLib.sol";
-import "./RingBuffer.sol";
+import "./RingBufferLib.sol";
 import "./ObservationLib.sol";
 
 /// @title Time-Weighted Average Balance Library
@@ -134,7 +134,7 @@ library TwabLib {
         ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
         AccountDetails memory _accountDetails
     ) internal view returns (uint24 index, ObservationLib.Observation memory twab) {
-        index = uint24(RingBuffer.mostRecentIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY));
+        index = uint24(RingBufferLib.mostRecentIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY));
         twab = _twabs[index];
     }
 
@@ -360,7 +360,7 @@ library TwabLib {
         _twabs[_accountDetails.nextTwabIndex] = newTwab;
 
         _accountDetails.nextTwabIndex = uint24(
-            RingBuffer.nextIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
+            RingBufferLib.nextIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
         );
 
         _accountDetails.cardinality += 1;
