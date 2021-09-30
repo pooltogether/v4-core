@@ -14,7 +14,6 @@ describe('PrizeSplitStrategy', () => {
   let wallet1: SignerWithAddress;
   let wallet2: SignerWithAddress;
   let wallet3: SignerWithAddress;
-  let wallet4: SignerWithAddress;
   let prizeSplitStrategy: Contract;
   let ticket: Contract;
   let PrizePool: Artifact;
@@ -23,7 +22,7 @@ describe('PrizeSplitStrategy', () => {
   let erc20MintableFactory: ContractFactory
 
   before(async () => {
-    [wallet1, wallet2, wallet3, wallet4] = await getSigners();
+    [wallet1, wallet2, wallet3] = await getSigners();
 
     prizeSplitStrategyFactory = await ethers.getContractFactory(
       'PrizeSplitStrategyHarness',
@@ -40,7 +39,9 @@ describe('PrizeSplitStrategy', () => {
     debug('mocking ticket and prizePool...');
     ticket = await erc20MintableFactory.deploy('Ticket', 'TICK');
     prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
-    await prizePool.mock.ticket.returns(ticket.address);
+
+    await prizePool.mock.getTicket.returns(ticket.address);
+
     debug('deploy prizeSplitStrategy...');
     prizeSplitStrategy = await prizeSplitStrategyFactory.deploy(wallet1.address, prizePool.address);
   });
@@ -151,8 +152,9 @@ describe('PrizeSplitStrategy', () => {
   /*============================================ */
   describe('Internal Functions', () => {
     it('should awardPrizeSplitAmount()', async () => {
-      await prizePool.mock.ticket.returns(ticket.address)
+      await prizePool.mock.getTicket.returns(ticket.address)
       await prizePool.mock.award.returns()
+
       expect(await prizeSplitStrategy.awardPrizeSplitAmount(wallet3.address, toWei('100')))
         .to.emit(prizeSplitStrategy, 'PrizeSplitAwarded')
         .withArgs(wallet3.address, toWei('100'), ticket.address)

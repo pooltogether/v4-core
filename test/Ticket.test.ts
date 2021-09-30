@@ -377,7 +377,6 @@ describe('Ticket', () => {
       await ticket.mint(wallet1.address, balanceBefore);
       timestamp = (await getBlock('latest')).timestamp;
       debug(`minted ${ethers.utils.formatEther(balanceBefore)} @ timestamp ${timestamp}`)
-      // console.log(`Minted at time ${timestamp}`)
     });
 
     it('should revert on unequal lenght inputs', async () => {
@@ -388,7 +387,6 @@ describe('Ticket', () => {
     })
 
     it('should return an average of zero for pre-history requests', async () => {
-      // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
       const drawStartTimestamp = timestamp - 100
       const drawEndTimestamp = timestamp - 50
       const result = await ticket.getAverageTotalSuppliesBetween([drawStartTimestamp], [drawEndTimestamp])
@@ -399,7 +397,6 @@ describe('Ticket', () => {
 
     it('should not project into the future', async () => {
       // at this time the user has held 1000 tokens for zero seconds
-      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
       const drawStartTimestamp = timestamp - 50
       const drawEndTimestamp = timestamp + 50
       const result = await ticket.getAverageTotalSuppliesBetween([drawStartTimestamp], [drawEndTimestamp])
@@ -410,7 +407,6 @@ describe('Ticket', () => {
 
     it('should return half the minted balance when the duration is centered over first twab', async () => {
       await increaseTime(100);
-      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
       const drawStartTimestamp = timestamp - 50
       const drawEndTimestamp = timestamp + 50
       const result = await ticket.getAverageTotalSuppliesBetween([drawStartTimestamp], [drawEndTimestamp])
@@ -421,7 +417,6 @@ describe('Ticket', () => {
 
     it('should return an accurate average when the range is after the last twab', async () => {
       await increaseTime(100);
-      // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 51}`)
       const drawStartTimestamp = timestamp + 50
       const drawEndTimestamp = timestamp + 51
       const result = await ticket.getAverageTotalSuppliesBetween([drawStartTimestamp], [drawEndTimestamp])
@@ -520,7 +515,6 @@ describe('Ticket', () => {
       await ticket.mint(wallet1.address, balanceBefore);
       timestamp = (await getBlock('latest')).timestamp;
       debug(`minted ${ethers.utils.formatEther(balanceBefore)} @ timestamp ${timestamp}`)
-      // console.log(`Minted at time ${timestamp}`)
     });
 
     it('should revert on unequal lenght inputs', async () => {
@@ -531,7 +525,6 @@ describe('Ticket', () => {
     })
 
     it('should return an average of zero for pre-history requests', async () => {
-      // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
       const drawStartTimestamp = timestamp - 100
       const drawEndTimestamp = timestamp - 50
       const result = await ticket.getAverageBalancesBetween(wallet1.address, [drawStartTimestamp, drawStartTimestamp - 50], [drawEndTimestamp, drawEndTimestamp - 50])
@@ -542,14 +535,13 @@ describe('Ticket', () => {
 
     it('should return half the minted balance when the duration is centered over first twab, and zero from before', async () => {
       await increaseTime(100);
-      // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
+
       const drawStartTimestamp0 = timestamp - 100
       const drawEndTimestamp0 = timestamp - 50
-
-
       const drawStartTimestamp = timestamp - 50
       const drawEndTimestamp = timestamp + 50
       const result = await ticket.getAverageBalancesBetween(wallet1.address, [drawStartTimestamp, drawStartTimestamp0], [drawEndTimestamp, drawEndTimestamp0])
+
       expect(result[0]).to.deep.equal(toWei('500'))
       expect(result[1]).to.deep.equal(toWei('0'))
     })
