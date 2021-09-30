@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
 
-import "hardhat/console.sol";
-
 library GasLib {
   struct Tracker {
     uint256 startingGas;
@@ -18,7 +16,6 @@ library GasLib {
 
   function mark(Tracker memory tracker, string memory message) internal view returns (Tracker memory) {
     uint256 diff = tracker.deltaGas - gasleft();
-    console.log(message, diff);
     tracker.deltaGas = gasleft();
 
     return tracker;
@@ -26,6 +23,5 @@ library GasLib {
 
   function done(Tracker memory tracker, string memory message)  internal view {
     uint256 diff = tracker.startingGas - gasleft();
-    console.log(message, diff);
   }
 }

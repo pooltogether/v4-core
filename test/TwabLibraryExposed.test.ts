@@ -80,28 +80,23 @@ describe('TwabLib', () => {
       });
 
       it('should return an average of zero for pre-history requests', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp - 100, timestamp - 50, currentTime)).to.equal('0');
       });
 
       it('should return an average of zero for pre-history requests when including the first twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp - 100, timestamp, currentTime)).to.equal('0');
       });
 
       it('should not project into the future', async () => {
         // at this time the user has held 1000 tokens for zero seconds
-        // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp - 50, timestamp + 50, timestamp)).to.equal('0')
       })
 
       it('should return half the minted balance when the duration is centered over first twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp - 50, timestamp + 50, currentTime)).to.equal('500')
       })
 
       it('should return an accurate average when the range is after the last twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 51}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp + 50, timestamp + 51, currentTime)).to.equal('1000')
       })
     })
@@ -128,27 +123,22 @@ describe('TwabLib', () => {
       */
 
       it('should return an average of zero for pre-history requests', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp1 - 100, timestamp1 - 50, currentTime)).to.equal(toWei('0'));
       });
 
       it('should return half the minted balance when the duration is centered over first twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp1 - 50, timestamp1 + 50, currentTime)).to.equal(toWei('500'))
       })
 
       it('should return an accurate average when the range is between twabs', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 55}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp1 + 50, timestamp1 + 55, currentTime)).to.equal(toWei('1000'))
       })
 
       it('should return an accurate average when the end is after the last twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp2 - 50}, ${timestamp2 + 50}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp2 - 50, timestamp2 + 50, currentTime)).to.equal(toWei('750'))
       })
 
       it('should return an accurate average when the range is after twabs', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp2 + 50}, ${timestamp2 + 51}`)
         expect(await twabLib.getAverageBalanceBetween(timestamp2 + 50, timestamp2 + 51, currentTime)).to.equal(toWei('500'))
       })
     })
@@ -202,27 +192,22 @@ describe('TwabLib', () => {
       */
 
       it('should return zero when request before first twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp - 100}, ${timestamp - 50}`)
         expect(await twabLib.getBalanceAt(timestamp1 - 1, currentTime)).to.equal(toWei('0'));
       });
 
       it('should return end-of-block balance when request is on first twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp - 50}, ${timestamp + 50}`)
         expect(await twabLib.getBalanceAt(timestamp1, currentTime)).to.equal(mintAmount)
       })
 
       it('should return mint amount when between twabs', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp + 50}, ${timestamp + 55}`)
         expect(await twabLib.getBalanceAt(timestamp1 + 1, currentTime)).to.equal(mintAmount)
       })
 
       it('should return current balance when on last twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp2 - 50}, ${timestamp2 + 50}`)
         expect(await twabLib.getBalanceAt(timestamp2, currentTime)).to.equal(mintAmount.sub(transferAmount))
       })
 
       it('should return current balance when after last twab', async () => {
-        // console.log(`Test getAverageBalance() : ${timestamp2 + 50}, ${timestamp2 + 51}`)
         expect(await twabLib.getBalanceAt(timestamp2 + 50, currentTime)).to.equal(mintAmount.sub(transferAmount))
       })
     })

@@ -29,16 +29,16 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   string constant public VERSION = "4.0.0";
 
   /// @notice Prize Pool ticket. Can only be set once by calling `setTicket()`.
-  IControlledToken public override ticket;
+  IControlledToken internal ticket;
 
   /// @notice The Prize Strategy that this Prize Pool is bound to.
-  address public prizeStrategy;
+  address internal prizeStrategy;
 
   /// @notice The total amount of tickets a user can hold.
-  uint256 public balanceCap;
+  uint256 internal balanceCap;
 
   /// @notice The total amount of funds that the prize pool can hold.
-  uint256 public liquidityCap;
+  uint256 internal liquidityCap;
 
   /// @notice the The awardable balance
   uint256 internal _currentAwardBalance;
@@ -70,11 +70,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /* ============ External Functions ============ */
 
   /// @inheritdoc IPrizePool
-  function token() external override view returns (address) {
-    return address(_token());
-  }
-
-  /// @inheritdoc IPrizePool
   function balance() external override returns (uint256) {
     return _balance();
   }
@@ -93,10 +88,31 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   function isControlled(IControlledToken _controlledToken) external override view returns (bool) {
     return _isControlled(_controlledToken);
   }
-
+  /// @inheritdoc IPrizePool
+  function getAccountedBalance() external override view returns (uint256) {
+    return _ticketTotalSupply();
+  }
+  /// @inheritdoc IPrizePool
+  function getBalanceCap() external override view returns (uint256) {
+    return balanceCap;
+  }
+  /// @inheritdoc IPrizePool
+  function getLiquidityCap() external override view returns (uint256) {
+    return liquidityCap;
+  }
   /// @inheritdoc IPrizePool
   function getTicket() external override view returns (IControlledToken) {
     return ticket;
+  }
+
+  /// @inheritdoc IPrizePool
+  function getPrizeStrategy() external override view returns (address) {
+    return prizeStrategy;
+  }
+
+  /// @inheritdoc IPrizePool
+  function getToken() external override view returns (address) {
+    return address(_token());
   }
 
   /// @inheritdoc IPrizePool
@@ -254,11 +270,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
   /// @inheritdoc IPrizePool
   function setPrizeStrategy(address _prizeStrategy) external override onlyOwner {
     _setPrizeStrategy(_prizeStrategy);
-  }
-
-  /// @inheritdoc IPrizePool
-  function accountedBalance() external override view returns (uint256) {
-    return _ticketTotalSupply();
   }
 
   /// @inheritdoc IPrizePool
