@@ -17,7 +17,7 @@ pragma solidity 0.8.6;
  * Can be combined with {SafeMath} and {SignedSafeMath} to extend it to smaller types, by performing
  * all math on `uint256` and `int256` and then downcasting.
  */
-library ExtendedSafeCast {
+library ExtendedSafeCastLib {
     /**
      * @dev Returns the downcasted uint208 from uint256, reverting on
      * overflow (when the input is greater than largest uint208).
