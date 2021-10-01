@@ -5,7 +5,7 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./ExtendedSafeCast.sol";
-import "./OverflowSafeComparator.sol";
+import "./OverflowSafeComparatorLib.sol";
 import "./RingBuffer.sol";
 import "./ObservationLib.sol";
 
@@ -13,7 +13,7 @@ import "./ObservationLib.sol";
 /// @notice This library allows you to efficiently track a user's historic balance.
 /// @author PoolTogether Inc.
 library TwabLib {
-    using OverflowSafeComparator for uint32;
+    using OverflowSafeComparatorLib for uint32;
     using ExtendedSafeCast for uint256;
 
     /// @notice The maximum number of twab entries

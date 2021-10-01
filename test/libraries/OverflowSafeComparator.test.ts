@@ -4,17 +4,17 @@ import { ethers } from 'hardhat';
 
 const { provider } = ethers;
 
-describe('overflowSafeComparator', () => {
-    let overflowSafeComparator: Contract;
+describe('overflowSafeComparatorLib', () => {
+    let overflowSafeComparatorLib: Contract;
     let currentTimestamp: number;
 
     beforeEach(async () => {
         currentTimestamp = (await provider.getBlock('latest')).timestamp;
 
-        const overflowSafeComparatorFactory: ContractFactory = await ethers.getContractFactory(
-            'OverflowSafeComparatorHarness',
+        const overflowSafeComparatorLibFactory: ContractFactory = await ethers.getContractFactory(
+            'OverflowSafeComparatorLibHarness',
         );
-        overflowSafeComparator = await overflowSafeComparatorFactory.deploy();
+        overflowSafeComparatorLib = await overflowSafeComparatorLibFactory.deploy();
     });
 
     describe('lt()', () => {
@@ -23,7 +23,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = currentTimestamp - 100;
 
             expect(
-                await overflowSafeComparator.ltHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.ltHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(true);
         });
 
@@ -32,7 +32,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = timestampA;
 
             expect(
-                await overflowSafeComparator.ltHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.ltHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(false);
         });
 
@@ -41,7 +41,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = currentTimestamp + 1000;
 
             expect(
-                await overflowSafeComparator.ltHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.ltHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(false);
         });
 
@@ -50,7 +50,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = currentTimestamp - 1000;
 
             expect(
-                await overflowSafeComparator.ltHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.ltHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(true);
         });
 
@@ -59,7 +59,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = timestampA;
 
             expect(
-                await overflowSafeComparator.ltHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.ltHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(false);
         });
     });
@@ -70,7 +70,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = currentTimestamp - 100;
 
             expect(
-                await overflowSafeComparator.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(true);
         });
 
@@ -79,7 +79,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = timestampA;
 
             expect(
-                await overflowSafeComparator.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(true);
         });
 
@@ -88,7 +88,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = currentTimestamp + 1000;
 
             expect(
-                await overflowSafeComparator.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(false);
         });
 
@@ -97,7 +97,7 @@ describe('overflowSafeComparator', () => {
             const timestampB = currentTimestamp - 1000;
 
             expect(
-                await overflowSafeComparator.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(true);
         });
 
@@ -106,14 +106,14 @@ describe('overflowSafeComparator', () => {
             const timestampB = timestampA;
 
             expect(
-                await overflowSafeComparator.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
             ).to.equal(true);
         });
     });
 
     describe('checkedSub()', () => {
         it('should calculate normally', async () => {
-            expect(await overflowSafeComparator.checkedSub(10, 4, 10)).to.equal(6);
+            expect(await overflowSafeComparatorLib.checkedSub(10, 4, 10)).to.equal(6);
         });
 
         it('should handle overflow of a', async () => {
@@ -122,7 +122,7 @@ describe('overflowSafeComparator', () => {
             const firstTimestamp = 2 ** 32 + (secondTimestamp - 1); // just before the answer overflows
 
             expect(
-                await overflowSafeComparator.checkedSub(
+                await overflowSafeComparatorLib.checkedSub(
                     firstTimestamp,
                     secondTimestamp,
                     firstTimestamp,
@@ -136,7 +136,7 @@ describe('overflowSafeComparator', () => {
             const firstTimestamp = 2 ** 32 + 200;
 
             expect(
-                await overflowSafeComparator.checkedSub(
+                await overflowSafeComparatorLib.checkedSub(
                     firstTimestamp,
                     secondTimestamp,
                     firstTimestamp,

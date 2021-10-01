@@ -5,7 +5,7 @@ pragma solidity 0.8.6;
 import "../libraries/TwabLib.sol";
 import "../libraries/RingBuffer.sol";
 
-/// @title OverflowSafeComparator library to share comparator functions between contracts
+/// @title TwabLibExposed contract to test TwabLib library
 /// @author PoolTogether Inc.
 contract TwabLibExposed {
     uint24 public constant MAX_CARDINALITY = 16777215;
