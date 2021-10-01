@@ -3,7 +3,7 @@
 pragma solidity 0.8.6;
 
 import "../libraries/TwabLib.sol";
-import "../libraries/RingBuffer.sol";
+import "../libraries/RingBufferLib.sol";
 
 /// @title TwabLibExposed contract to test TwabLib library
 /// @author PoolTogether Inc.
