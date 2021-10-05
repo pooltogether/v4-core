@@ -6,10 +6,10 @@ import "../libraries/TwabLib.sol";
 
 interface ITicket {
     /**
-     * @notice A struct containing details for an Account
-     * @param balance The current balance for an Account
-     * @param nextTwabIndex The next available index to store a new twab
-     * @param cardinality The number of recorded twabs (plus one!)
+     * @notice A struct containing details for an Account.
+     * @param balance The current balance for an Account.
+     * @param nextTwabIndex The next available index to store a new twab.
+     * @param cardinality The number of recorded twabs (plus one!).
      */
     struct AccountDetails {
         uint224 balance;
@@ -18,16 +18,21 @@ interface ITicket {
     }
 
     /**
-     * @notice Combines account details with their twab history
-     * @param details The account details
-     * @param twabs The history of twabs for this account
+     * @notice Combines account details with their twab history.
+     * @param details The account details.
+     * @param twabs The history of twabs for this account.
      */
     struct Account {
         AccountDetails details;
         ObservationLib.Observation[65535] twabs;
     }
 
-    event Delegated(address indexed user, address indexed delegate);
+    /**
+     * @notice Emitted when TWAB balance has been delegated to another user.
+     * @param delegator Address of the delegator.
+     * @param delegatee Address of the delegatee.
+     */
+    event Delegated(address indexed delegator, address indexed delegatee);
 
     /**
      * @notice Emitted when ticket is initialized.
@@ -41,7 +46,7 @@ interface ITicket {
     /**
      * @notice Emitted when a new TWAB has been recorded.
      * @param ticketHolder The Ticket holder address.
-     * @param user The recipient of the ticket power (may be the same as the ticketHolder)
+     * @param user The recipient of the ticket power (may be the same as the ticketHolder).
      * @param newTwab Updated TWAB of a ticket holder after a successful TWAB recording.
      */
     event NewUserTwab(
@@ -57,8 +62,10 @@ interface ITicket {
     event NewTotalSupplyTwab(ObservationLib.Observation newTotalSupplyTwab);
 
     /**
-     * @notice ADD DOCS
-     * @param user Address
+     * @notice Retrieves the address of the delegatee to whom `user` has delegated their tickets.
+     * @dev Address of the delegatee will be the zero address if `user` has not delegated their tickets.
+     * @param user Address of the delegator.
+     * @return Address of the delegatee.
      */
     function delegateOf(address user) external view returns (address);
 
@@ -68,21 +75,21 @@ interface ITicket {
               targetted sender and/or recipient address(s).
     * @dev    "to" reset the delegatee use zero address (0x000.000)
     * @dev Current delegate address should be different from the new delegate address `to`.
-    * @param  to Receipient of delegated TWAB.
+    * @param  to Recipient of delegated TWAB.
    */
     function delegate(address to) external;
 
     /**
      * @notice Gets a users twab context.  This is a struct with their balance, next twab index, and cardinality.
-     * @param user The user for whom to fetch the TWAB context
+     * @param user The user for whom to fetch the TWAB context.
      * @return The TWAB context, which includes { balance, nextTwabIndex, cardinality }
      */
     function getAccountDetails(address user) external view returns (TwabLib.AccountDetails memory);
 
     /**
      * @notice Gets the TWAB at a specific index for a user.
-     * @param user The user for whom to fetch the TWAB
-     * @param index The index of the TWAB to fetch
+     * @param user The user for whom to fetch the TWAB.
+     * @param index The index of the TWAB to fetch.
      * @return The TWAB, which includes the twab amount and the timestamp.
      */
     function getTwab(address user, uint16 index)
@@ -93,15 +100,16 @@ interface ITicket {
     /**
      * @notice Retrieves `_user` TWAB balance.
      * @param user Address of the user whose TWAB is being fetched.
-     * @param timestamp Timestamp at which the reserved TWAB should be for.
+     * @param timestamp Timestamp at which we want to retrieve the TWAB balance.
+     * @return The TWAB balance at the given timestamp.
      */
     function getBalanceAt(address user, uint256 timestamp) external view returns (uint256);
 
     /**
      * @notice Retrieves `_user` TWAB balances.
      * @param user Address of the user whose TWABs are being fetched.
-     * @param timestamps Timestamps at which the reserved TWABs should be for.
-     * @return uint256[] `_user` TWAB balances.
+     * @param timestamps Timestamps range at which we want to retrieve the TWAB balances.
+     * @return `_user` TWAB balances.
      */
     function getBalancesAt(address user, uint32[] calldata timestamps)
         external
@@ -109,8 +117,8 @@ interface ITicket {
         returns (uint256[] memory);
 
     /**
-     * @notice Calculates the average balance held by a user for a given time frame.
-     * @param user The user whose balance is checked
+     * @notice Retrieves the average balance held by a user for a given time frame.
+     * @param user The user whose balance is checked.
      * @param startTime The start time of the time frame.
      * @param endTime The end time of the time frame.
      * @return The average balance that the user held during the time frame.
@@ -122,8 +130,8 @@ interface ITicket {
     ) external view returns (uint256);
 
     /**
-     * @notice Calculates the average balance held by a user for a given time frame.
-     * @param user The user whose balance is checked
+     * @notice Retrieves the average balances held by a user for a given time frame.
+     * @param user The user whose balance is checked.
      * @param startTimes The start time of the time frame.
      * @param endTimes The end time of the time frame.
      * @return The average balance that the user held during the time frame.
@@ -135,16 +143,16 @@ interface ITicket {
     ) external view returns (uint256[] memory);
 
     /**
-     * @notice Calculates the average total supply balance for a set of a given time frame.
-     * @param timestamp Timestamp
-     * @return The
+     * @notice Retrieves the total supply TWAB balance at the given timestamp.
+     * @param timestamp Timestamp at which we want to retrieve the total supply TWAB balance.
+     * @return The total supply TWAB balance at the given timestamp.
      */
     function getTotalSupplyAt(uint32 timestamp) external view returns (uint256);
 
     /**
-     * @notice Calculates the average total supply balance for a set of a given time frame.
-     * @param timestamps Timestamp
-     * @return The
+     * @notice Retrieves the total supply TWAB balance between the given timestamps range.
+     * @param timestamps Timestamps range at which we want to retrieve the total supply TWAB balance.
+     * @return Total supply TWAB balances.
      */
     function getTotalSuppliesAt(uint32[] calldata timestamps)
         external
@@ -152,9 +160,9 @@ interface ITicket {
         returns (uint256[] memory);
 
     /**
-     * @notice Calculates the average total supply balance for a set of given time frames.
-     * @param startTimes Array of start times
-     * @param endTimes Array of end times
+     * @notice Retrieves the average total supply balance for a set of given time frames.
+     * @param startTimes Array of start times.
+     * @param endTimes Array of end times.
      * @return The average total supplies held during the time frame.
      */
     function getAverageTotalSuppliesBetween(
