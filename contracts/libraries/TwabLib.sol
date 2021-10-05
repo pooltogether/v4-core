@@ -362,8 +362,15 @@ library TwabLib {
         _accountDetails.nextTwabIndex = uint24(
             RingBufferLib.nextIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
         );
-
-        _accountDetails.cardinality += 1;
+        
+        // Prevent the Account specific cardinality from exceeding the MAX_CARDINALITY.
+        // The ring buffer length is limited by MAX_CARDINALITY. IF the account.cardinality
+        // exceeds the max cardinality, new observations would be incorrectly set or the
+        // observation would be out of "bounds" of the ring buffer. Once reached the
+        // AccountDetails.cardinality will continue to be equal to max cardinality.
+        if(_accountDetails.cardinality < MAX_CARDINALITY) {
+            _accountDetails.cardinality += 1;
+        }
 
         return (_accountDetails, newTwab, true);
     }
