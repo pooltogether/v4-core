@@ -45,13 +45,13 @@ interface ITicket {
 
     /**
      * @notice Emitted when a new TWAB has been recorded.
-     * @param ticketHolder The Ticket holder address.
-     * @param user The recipient of the ticket power (may be the same as the ticketHolder).
+     * @param user The Ticket holder address.
+     * @param delegatee The recipient of the ticket power (may be the same as the user).
      * @param newTwab Updated TWAB of a ticket holder after a successful TWAB recording.
      */
     event NewUserTwab(
-        address indexed ticketHolder,
         address indexed user,
+        address indexed delegatee,
         ObservationLib.Observation newTwab
     );
 
