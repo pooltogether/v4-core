@@ -247,8 +247,20 @@ library TwabLib {
         return differenceInAmount / differenceInTime;
     }
 
-    /// @notice Calculates the TWAB for a given timestamp.  It interpolates as necessary.
-    /// @param _twabs The TWAB history
+    /** @notice Calculates a user TWAB for a target timestamp using the historical TWAB list.
+    /** @dev    Binary search in _calculateTwab fails when searching out of bounds. Thus, before
+                searching we exclude searching for target timestamps out of range of newest/oldest TWAB(s).
+                IF a search is before or after the range we "extrapolate" a Observation from the expected state.
+      * @param _twabs           Individual user Observation recorded checkpoints passed as storage pointer
+      * @param _accountDetails  User AccountDetails struct loaded in memory
+      * @param _newestTwab      Newest TWAB in history (end of ring buffer)
+      * @param _oldestTwab      Olderst TWAB in history (end of ring buffer)
+      * @param _newestTwabIndex Pointer in ring buffer to newest TWAB
+      * @param _oldestTwabIndex Pointer in ring buffer to oldest TWAB
+      * @param targetTimestamp  Epoch timestamp to calculate for time (T) in the TWAB
+      * @param _time            Block.timestamp
+      * @return accountDetails Updated Account.details struct
+    */
     function _calculateTwab(
         ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
         AccountDetails memory _accountDetails,
