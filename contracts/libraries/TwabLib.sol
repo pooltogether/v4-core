@@ -247,7 +247,9 @@ library TwabLib {
         return differenceInAmount / differenceInTime;
     }
 
-    /** @notice Calculates a user TWAB for a target timestamp using the historical TWAB list.
+    /** @notice Calculates a user TWAB for a target timestamp using the historical TWAB records.
+                The balance is linearly interpolated: amount differences / timestamp differences
+                using the simple (after.amount - before.amount / end.timestamp - start.timestamp) formula.
     /** @dev    Binary search in _calculateTwab fails when searching out of bounds. Thus, before
                 searching we exclude searching for target timestamps out of range of newest/oldest TWAB(s).
                 IF a search is before or after the range we "extrapolate" a Observation from the expected state.
