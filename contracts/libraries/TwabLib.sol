@@ -9,9 +9,17 @@ import "./OverflowSafeComparatorLib.sol";
 import "./RingBufferLib.sol";
 import "./ObservationLib.sol";
 
-/// @title Time-Weighted Average Balance Library
-/// @notice This library allows you to efficiently track a user's historic balance.
-/// @author PoolTogether Inc.
+/**
+  * @title  PoolTogether V4 TwabLib (Library)
+  * @author PoolTogether Inc Team
+  * @dev    Time-Weighted Average Balance Library for ERC20 tokens.
+  * @notice This TwabLib adds on-chain historical lookups to a user(s) time-weighted average balance.
+            Each user is mapped to an Account struct containing the TWAB history (ring bufffer) and
+            ring buffer parameters. Every token.transfer() creates a new TWAB checkpoint. The new TWAB
+            checkpoint is stored in the circular ring buffer, as either a new checkpoint or rewriting
+            a previous checkpoint with new parameters. The TwabLib (using existing blocktimes 1block/15sec)
+            guarantees on average 6 months of search history. 
+ */
 library TwabLib {
     using OverflowSafeComparatorLib for uint32;
     using ExtendedSafeCastLib for uint256;
