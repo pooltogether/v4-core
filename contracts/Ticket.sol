@@ -202,6 +202,8 @@ contract Ticket is ControlledToken, ITicket {
         uint224 balance = uint224(_balanceOf(msg.sender));
         address currentDelegate = delegates[msg.sender];
 
+        require(currentDelegate != to, "Ticket/delegate-already-set");
+
         if (currentDelegate != address(0)) {
             _decreaseUserTwab(msg.sender, currentDelegate, balance);
         } else {
