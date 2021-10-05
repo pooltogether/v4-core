@@ -61,13 +61,17 @@ library TwabLib {
         accountDetails.balance = (_accountDetails.balance + _amount).toUint208();
     }
 
-    /// @notice Decreases an account's balance and records a new twab.
-    /// @param _account The account whose balance will be decreased
-    /// @param _amount The amount to decrease the balance by
-    /// @param _revertMessage The revert message in the event of insufficient balance
-    /// @return accountDetails The new AccountDetails
-    /// @return twab The user's latest TWAB
-    /// @return isNew Whether the TWAB is new
+    /** @notice Calculates the next TWAB checkpoint for an account with a decreasing balance.
+      * @dev    Given an Account struct and amount decreasing will calculate the
+                next TWAB observable checkpoint. Generally the function calling 
+                will update the contract state with return values.
+      * @param _account        Account whose balance will be decreased
+      * @param _amount         Amount to decrease the balance by
+      * @param _revertMessage  Revert message for insufficient balance
+      * @return accountDetails Updated Account.details struct
+      * @return twab           TWAB observation (with decreasing average)
+      * @return isNew          Whether TWAB is new or calling twice in the same block
+    */
     function decreaseBalance(
         Account storage _account,
         uint256 _amount,
