@@ -227,7 +227,7 @@ describe('Ticket', () => {
             ).to.equal(mintAmount);
         });
 
-        it('should update delegatee balance', async () => {
+        it('should update delegate balance', async () => {
             await ticket.delegate(wallet3.address);
             await ticket.connect(wallet2).delegate(wallet4.address);
 
@@ -309,7 +309,7 @@ describe('Ticket', () => {
             expect(await ticket.totalSupply()).to.equal(mintAmount);
         });
 
-        it('should update delegatee balance', async () => {
+        it('should update delegate balance', async () => {
             await ticket.delegate(wallet2.address);
 
             expect(await ticket.mint(wallet1.address, mintAmount))
@@ -372,7 +372,7 @@ describe('Ticket', () => {
             expect(await ticket.totalSupply()).to.equal(mintAmount.sub(burnAmount));
         });
 
-        it('should update delegatee balance', async () => {
+        it('should update delegate balance', async () => {
             await ticket.delegate(wallet2.address);
             await ticket.mint(wallet1.address, mintAmount);
 

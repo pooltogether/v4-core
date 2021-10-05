@@ -30,9 +30,9 @@ interface ITicket {
     /**
      * @notice Emitted when TWAB balance has been delegated to another user.
      * @param delegator Address of the delegator.
-     * @param delegatee Address of the delegatee.
+     * @param delegate Address of the delegate.
      */
-    event Delegated(address indexed delegator, address indexed delegatee);
+    event Delegated(address indexed delegator, address indexed delegate);
 
     /**
      * @notice Emitted when ticket is initialized.
@@ -46,12 +46,12 @@ interface ITicket {
     /**
      * @notice Emitted when a new TWAB has been recorded.
      * @param user The Ticket holder address.
-     * @param delegatee The recipient of the ticket power (may be the same as the user).
+     * @param delegate The recipient of the ticket power (may be the same as the user).
      * @param newTwab Updated TWAB of a ticket holder after a successful TWAB recording.
      */
     event NewUserTwab(
         address indexed user,
-        address indexed delegatee,
+        address indexed delegate,
         ObservationLib.Observation newTwab
     );
 
@@ -62,18 +62,18 @@ interface ITicket {
     event NewTotalSupplyTwab(ObservationLib.Observation newTotalSupplyTwab);
 
     /**
-     * @notice Retrieves the address of the delegatee to whom `user` has delegated their tickets.
-     * @dev Address of the delegatee will be the zero address if `user` has not delegated their tickets.
+     * @notice Retrieves the address of the delegate to whom `user` has delegated their tickets.
+     * @dev Address of the delegate will be the zero address if `user` has not delegated their tickets.
      * @param user Address of the delegator.
-     * @return Address of the delegatee.
+     * @return Address of the delegate.
      */
     function delegateOf(address user) external view returns (address);
 
     /**
     * @notice Delegate time-weighted average balances to an alternative address.
-    * @dev    Transfers (including mints) trigger the storage of a TWAB in delegatee(s) account, instead of the
+    * @dev    Transfers (including mints) trigger the storage of a TWAB in delegate(s) account, instead of the
               targetted sender and/or recipient address(s).
-    * @dev    "to" reset the delegatee use zero address (0x000.000)
+    * @dev    To reset the delegate, pass the zero address (0x000.000) as `to` parameter.
     * @dev Current delegate address should be different from the new delegate address `to`.
     * @param  to Recipient of delegated TWAB.
    */
