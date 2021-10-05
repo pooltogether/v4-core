@@ -412,13 +412,22 @@ contract Ticket is ControlledToken, ITicket {
         }
     }
 
+    /**
+      * @notice Creates the next TWAB for a user with a decrementing balance.
+      * @dev    READS the user/delegate TWAB history and decrement their balance.
+                Lowering the average time-weighted balance, and updating user TWAB new
+                hisotry and emitting an event with an indexed holder and user/delegate 
+                address(s) with the updated TWAB.
+      * @ @param _holder Token holder (i.e. msg.sender)
+      * @ @param _user   Delegated address for TWAB lookup (default msg.sender)
+      * @ @param _amount Amount transfered out of the account
+     */
     function _decreaseUserTwab(
         address _holder,
         address _user,
         uint256 _amount
     ) internal {
         TwabLib.Account storage _account = userTwabs[_user];
-
         (
             TwabLib.AccountDetails memory accountDetails,
             ObservationLib.Observation memory twab,
