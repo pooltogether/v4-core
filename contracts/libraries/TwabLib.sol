@@ -241,10 +241,7 @@ library TwabLib {
         );
 
         // Difference in amount / time
-        uint224 differenceInAmount = afterOrAt.amount - beforeOrAt.amount;
-        uint32 differenceInTime = afterOrAt.timestamp - beforeOrAt.timestamp;
-
-        return differenceInAmount / differenceInTime;
+        return (afterOrAt.amount - beforeOrAt.amount) / (afterOrAt.timestamp - beforeOrAt.timestamp);
     }
 
     /// @notice Calculates the TWAB for a given timestamp.  It interpolates as necessary.
