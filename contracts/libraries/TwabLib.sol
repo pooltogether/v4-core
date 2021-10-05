@@ -89,10 +89,16 @@ library TwabLib {
         accountDetails.balance = (_accountDetails.balance - _amount).toUint208();
     }
 
-    /// @notice Calculates the average balance held by a user for a given time frame.
-    /// @param _startTime The start time of the time frame.
-    /// @param _endTime The end time of the time frame.
-    /// @return The average balance that the user held during the time frame.
+    /** @notice Calculates the average balance held by a user for a given time frame.
+      * @dev    Finds the average balance between start (1609506061) and end (1639311132) timestamp epochs.
+                Validates the supplied end time is within the range of elapsed time i.e. less then timestamp of now.
+      * @param _twabs          Individual user Observation recorded checkpoints passed as storage pointer
+      * @param _accountDetails User AccountDetails struct loaded in memory
+      * @param _startTime      Start of timestamp range as an epoch
+      * @param _endTime        End of timestamp range as an epoch
+      * @param _currentTime    Block.timestamp
+      * @return Average balance of user held between epoch timestamps start and end
+    */
     function getAverageBalanceBetween(
         ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
         AccountDetails memory _accountDetails,
