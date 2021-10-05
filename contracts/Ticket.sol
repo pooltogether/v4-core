@@ -414,10 +414,9 @@ contract Ticket is ControlledToken, ITicket {
 
     /**
       * @notice Creates the next TWAB for a user with a decrementing balance.
-      * @dev    READS the user/delegate TWAB history and decrement their balance.
-                Lowering the average time-weighted balance, and updating user TWAB new
-                hisotry and emitting an event with an indexed holder and user/delegate 
-                address(s) with the updated TWAB.
+      * @dev    READS the user/delegate TWAB history and decrements user weighted balance.
+                After decreasing balance, updates the users new TWAB hisotry, and emits
+                an event with indexed holder and user/delegate address(s), plus the new TWAB.
       * @ @param _holder Token holder (i.e. msg.sender)
       * @ @param _user   Delegated address for TWAB lookup (default msg.sender)
       * @ @param _amount Amount transfered out of the account
