@@ -233,6 +233,9 @@ library TwabLib {
             _currentTime
         );
 
+        // User TWAB(s) are in range.
+        require(startTwab.timestamp > oldTwab.timestamp && endTwab.timestamp < newTwab.timestamp, "TwabLib:twab-out-of-range");
+
         // Difference in amount / time
         return (endTwab.amount - startTwab.amount) / (endTwab.timestamp - startTwab.timestamp);
     }
