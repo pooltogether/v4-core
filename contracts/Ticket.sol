@@ -199,7 +199,7 @@ contract Ticket is ControlledToken, ITicket {
 
     /// @inheritdoc ITicket
     function delegate(address to) external virtual override {
-        uint224 balance = uint224(_balanceOf(msg.sender));
+        uint256 balance = _balanceOf(msg.sender);
         address currentDelegate = delegates[msg.sender];
 
         if (currentDelegate != address(0)) {
@@ -265,20 +265,18 @@ contract Ticket is ControlledToken, ITicket {
         require(_sender != address(0), "ERC20: transfer from the zero address");
         require(_recipient != address(0), "ERC20: transfer to the zero address");
 
-        uint224 amount = uint224(_amount);
-
         _beforeTokenTransfer(_sender, _recipient, _amount);
 
         if (_sender != _recipient) {
             // standard balance update
             uint256 senderBalance = balances[_sender];
-            require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+            require(senderBalance >= _amount, "ERC20: transfer amount exceeds balance");
 
             unchecked {
-                balances[_sender] = senderBalance - amount;
+                balances[_sender] = senderBalance - _amount;
             }
 
-            balances[_recipient] += amount;
+            balances[_recipient] += _amount;
 
             // history update
             address senderDelegate = delegates[_sender];
@@ -293,9 +291,9 @@ contract Ticket is ControlledToken, ITicket {
             address recipientDelegate = delegates[_recipient];
 
             if (recipientDelegate != address(0)) {
-                _increaseUserTwab(_recipient, recipientDelegate, amount);
+                _increaseUserTwab(_recipient, recipientDelegate, _amount);
             } else {
-                _increaseUserTwab(_recipient, _recipient, amount);
+                _increaseUserTwab(_recipient, _recipient, _amount);
             }
         }
 
@@ -311,17 +309,15 @@ contract Ticket is ControlledToken, ITicket {
     function _mint(address _to, uint256 _amount) internal virtual override {
         require(_to != address(0), "ERC20: mint to the zero address");
 
-        uint224 amount = _amount.toUint224();
-
         _beforeTokenTransfer(address(0), _to, _amount);
 
-        balances[_to] += amount;
+        balances[_to] += _amount;
 
         (
             TwabLib.AccountDetails memory accountDetails,
             ObservationLib.Observation memory _totalSupply,
             bool tsIsNew
-        ) = TwabLib.increaseBalance(totalSupplyTwab, amount, uint32(block.timestamp));
+        ) = TwabLib.increaseBalance(totalSupplyTwab, _amount, uint32(block.timestamp));
 
         totalSupplyTwab.details = accountDetails;
 
@@ -332,9 +328,9 @@ contract Ticket is ControlledToken, ITicket {
         address toDelegate = delegates[_to];
 
         if (toDelegate != address(0)) {
-            _increaseUserTwab(_to, toDelegate, amount);
+            _increaseUserTwab(_to, toDelegate, _amount);
         } else {
-            _increaseUserTwab(_to, _to, amount);
+            _increaseUserTwab(_to, _to, _amount);
         }
 
         emit Transfer(address(0), _to, _amount);
@@ -350,8 +346,6 @@ contract Ticket is ControlledToken, ITicket {
     function _burn(address _from, uint256 _amount) internal virtual override {
         require(_from != address(0), "ERC20: burn from the zero address");
 
-        uint224 amount = _amount.toUint224();
-
         _beforeTokenTransfer(_from, address(0), _amount);
 
         (
@@ -360,7 +354,7 @@ contract Ticket is ControlledToken, ITicket {
             bool tsIsNew
         ) = TwabLib.decreaseBalance(
                 totalSupplyTwab,
-                amount,
+                _amount,
                 "Ticket/burn-amount-exceeds-total-supply-twab",
                 uint32(block.timestamp)
             );
@@ -373,18 +367,18 @@ contract Ticket is ControlledToken, ITicket {
 
         uint256 accountBalance = balances[_from];
 
-        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+        require(accountBalance >= _amount, "ERC20: burn amount exceeds balance");
 
         unchecked {
-            balances[_from] = accountBalance - amount;
+            balances[_from] = accountBalance - _amount;
         }
 
         address fromDelegate = delegates[_from];
 
         if (fromDelegate != address(0)) {
-            _decreaseUserTwab(_from, fromDelegate, amount);
+            _decreaseUserTwab(_from, fromDelegate, _amount);
         } else {
-            _decreaseUserTwab(_from, _from, amount);
+            _decreaseUserTwab(_from, _from, _amount);
         }
 
         emit Transfer(_from, address(0), _amount);
