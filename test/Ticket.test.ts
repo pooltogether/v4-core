@@ -855,17 +855,18 @@ describe('Ticket', () => {
             expect(await ticket.getBalanceAt(wallet2.address, timestamp)).to.equal(toWei('100'));
         });
 
-        it('should not decrease user balance if address zero is mistakenly passed', async () => {
+        it('should revert if delegate address has already been set to passed address', async () => {
             await ticket.mint(wallet1.address, toWei('100'));
+            await ticket.delegate(wallet2.address);
 
-            await expect(ticket.delegate(AddressZero))
-                .to.emit(ticket, 'Delegated')
-                .withArgs(wallet1.address, AddressZero);
+            await expect(ticket.delegate(wallet2.address)).to.be.revertedWith(
+                'Ticket/delegate-already-set',
+            );
 
             const timestamp = (await provider.getBlock('latest')).timestamp;
 
-            expect(await ticket.delegateOf(wallet1.address)).to.equal(AddressZero);
-            expect(await ticket.getBalanceAt(wallet1.address, timestamp)).to.equal(toWei('100'));
+            expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
+            expect(await ticket.getBalanceAt(wallet2.address, timestamp)).to.equal(toWei('100'));
         });
 
         it('should clear old delegates if any', async () => {

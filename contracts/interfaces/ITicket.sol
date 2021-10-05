@@ -67,7 +67,8 @@ interface ITicket {
     * @dev    Transfers (including mints) trigger the storage of a TWAB in delegatee(s) account, instead of the
               targetted sender and/or recipient address(s).
     * @dev    "to" reset the delegatee use zero address (0x000.000)
-    * @param  to Receipient of delegated TWAB
+    * @dev Current delegate address should be different from the new delegate address `to`.
+    * @param  to Receipient of delegated TWAB.
    */
     function delegate(address to) external;
 
