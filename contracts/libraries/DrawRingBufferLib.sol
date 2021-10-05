@@ -22,9 +22,10 @@ library DrawRingBufferLib {
 
     /// @notice Push a draw to the buffer.
     /// @param _buffer The buffer to push to.
-    /// @param _drawId The draw id to push.
+    /// @param _drawId The drawID to push.
     /// @return The new buffer.
     function push(Buffer memory _buffer, uint32 _drawId) internal pure returns (Buffer memory) {
+        
         require(!isInitialized(_buffer) || _drawId == _buffer.lastDrawId + 1, "DRB/must-be-contig");
 
         return

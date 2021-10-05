@@ -11,10 +11,8 @@ import "./interfaces/IPrizeDistributionHistory.sol";
 /**
   * @title  PoolTogether V4 PrizeDistributionHistory
   * @author PoolTogether Inc Team
-  * @notice The PrizeDistributionHistory stores individual PrizeDistributions for each Draw.drawId.
-            PrizeDistributions parameters like cardinality, bitRange, distributions, number of picks
-            and prize. The settings determine the specific distribution model for each individual
-            draw. Storage of the PrizeDistribution(s) is handled by ring buffer with a max cardinality
+  * @notice The PrizeDistributionHistory stores historic PrizeDistribution for each drawId.
+            Storage of the PrizeDistributions is handled by a ring buffer with a max cardinality
             of 256 or roughly 5 years of history with a weekly draw cadence.
 */
 contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
@@ -23,23 +21,24 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     uint256 internal constant MAX_CARDINALITY = 256;
 
     uint256 internal constant DISTRIBUTION_CEILING = 1e9;
+    
     event Deployed(uint8 cardinality);
 
-    /// @notice PrizeDistributions ring buffer history.
+    /// @notice PrizeDistribution ring buffer history.
     DrawLib.PrizeDistribution[MAX_CARDINALITY] internal _prizeDistributionsRingBuffer;
 
     /// @notice Ring buffer data (nextIndex, lastDrawId, cardinality)
-    DrawRingBufferLib.Buffer internal prizeDistributionsRingBufferData;
+    DrawRingBufferLib.Buffer internal _prizeDistributionsRingBufferData;
 
     /* ============ Constructor ============ */
 
     /**
      * @notice Constructor for PrizeDistributionHistory
      * @param _owner Address of the PrizeDistributionHistory owner
-     * @param _cardinality Cardinality of the `prizeDistributionsRingBufferData`
+     * @param _cardinality Cardinality of the `_prizeDistributionsRingBufferData`
      */
     constructor(address _owner, uint8 _cardinality) Ownable(_owner) {
-        prizeDistributionsRingBufferData.cardinality = _cardinality;
+        _prizeDistributionsRingBufferData.cardinality = _cardinality;
         emit Deployed(_cardinality);
     }
 
@@ -52,7 +51,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         override
         returns (DrawLib.PrizeDistribution memory)
     {
-        return _getPrizeDistributions(prizeDistributionsRingBufferData, _drawId);
+        return _getPrizeDistribution(_prizeDistributionsRingBufferData, _drawId);
     }
 
     /// @inheritdoc IPrizeDistributionHistory
@@ -62,13 +61,13 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         override
         returns (DrawLib.PrizeDistribution[] memory)
     {
-        DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+        DrawRingBufferLib.Buffer memory buffer = _prizeDistributionsRingBufferData;
         DrawLib.PrizeDistribution[] memory _prizeDistributions = new DrawLib.PrizeDistribution[](
             _drawIds.length
         );
 
         for (uint256 i = 0; i < _drawIds.length; i++) {
-            _prizeDistributions[i] = _getPrizeDistributions(buffer, _drawIds[i]);
+            _prizeDistributions[i] = _getPrizeDistribution(buffer, _drawIds[i]);
         }
 
         return _prizeDistributions;
@@ -76,7 +75,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
     /// @inheritdoc IPrizeDistributionHistory
     function getPrizeDistributionCount() external view override returns (uint32) {
-        DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+        DrawRingBufferLib.Buffer memory buffer = _prizeDistributionsRingBufferData;
 
         if (buffer.lastDrawId == 0) {
             return 0;
@@ -84,6 +83,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
         uint32 bufferNextIndex = buffer.nextIndex;
 
+        // If the buffer is full return the cardinality, else retun the nextIndex
         if (_prizeDistributionsRingBuffer[bufferNextIndex].matchCardinality != 0) {
             return buffer.cardinality;
         } else {
@@ -98,7 +98,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         override
         returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId)
     {
-        DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+        DrawRingBufferLib.Buffer memory buffer = _prizeDistributionsRingBufferData;
 
         return (
             _prizeDistributionsRingBuffer[buffer.getIndex(buffer.lastDrawId)],
@@ -113,20 +113,22 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         override
         returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId)
     {
-        DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+        DrawRingBufferLib.Buffer memory buffer = _prizeDistributionsRingBufferData;
+        
+        // if the ring buffer is full, the oldest is at the nextIndex
         prizeDistribution = _prizeDistributionsRingBuffer[buffer.nextIndex];
 
-        // IF the next PrizeDistributions.bitRangeSize == 0 the ring buffer HAS NOT looped around.
-        // The PrizeDistributions at index 0 IS by defaut the oldest prizeDistribution.
+        // The PrizeDistribution at index 0 IS by default the oldest prizeDistribution.
         if (buffer.lastDrawId == 0) {
             drawId = 0; // return 0 to indicate no prizeDistribution ring buffer history
         } else if (prizeDistribution.bitRangeSize == 0) {
+            // IF the next PrizeDistribution.bitRangeSize == 0 the ring buffer HAS NOT looped around so the oldest is the first entry.
             prizeDistribution = _prizeDistributionsRingBuffer[0];
-            drawId = (buffer.lastDrawId + 1) - buffer.nextIndex; // 2 + 1 - 2 = 1 | [1,2,0]
+            drawId = (buffer.lastDrawId + 1) - buffer.nextIndex;
         } else {
-            // Calculates the Draw.drawID using the ring buffer length and SEQUENTIAL id(s)
-            // Sequential "guaranteedness" is handled in DrawRingBufferLib.push()
-            drawId = (buffer.lastDrawId + 1) - buffer.cardinality; // 4 + 1 - 3 = 2 | [4,2,3]
+            // Calculates the drawId using the ring buffer cardinality
+            // Sequential drawIds are gauranteed by DrawRingBufferLib.push()
+            drawId = (buffer.lastDrawId + 1) - buffer.cardinality;
         }
     }
 
@@ -143,7 +145,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         uint32 _drawId,
         DrawLib.PrizeDistribution calldata _prizeDistribution
     ) external override onlyOwner returns (uint32) {
-        DrawRingBufferLib.Buffer memory buffer = prizeDistributionsRingBufferData;
+        DrawRingBufferLib.Buffer memory buffer = _prizeDistributionsRingBufferData;
         uint32 index = buffer.getIndex(_drawId);
         _prizeDistributionsRingBuffer[index] = _prizeDistribution;
 
@@ -155,11 +157,11 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     /* ============ Internal Functions ============ */
 
     /**
-     * @notice Gets the PrizeDistributionHistory for a Draw.drawID
+     * @notice Gets the PrizeDistributionHistory for a drawId
      * @param _prizeDistributionsRingBufferData DrawRingBufferLib.Buffer
-     * @param drawId Draw.drawId
+     * @param drawId drawId
      */
-    function _getPrizeDistributions(
+    function _getPrizeDistribution(
         DrawRingBufferLib.Buffer memory _prizeDistributionsRingBufferData,
         uint32 drawId
     ) internal view returns (DrawLib.PrizeDistribution memory) {
@@ -168,7 +170,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
     /**
      * @notice Set newest PrizeDistributionHistory in ring buffer storage.
-     * @param _drawId       Draw.drawId
+     * @param _drawId       drawId
      * @param _prizeDistribution PrizeDistributionHistory struct
      */
     function _pushPrizeDistribution(
@@ -185,7 +187,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         require(_prizeDistribution.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
         require(_prizeDistribution.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
 
-        // ensure that the distributions are not gt 100%
+        // ensure that the sum of the distributions are not gt 100% and record number of non-zero distributions entries
         uint256 sumTotalDistributions = 0;
         uint256 nonZeroDistributions = 0;
         uint256 distributionsLength = _prizeDistribution.distributions.length;
@@ -207,13 +209,15 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         );
 
         DrawRingBufferLib.Buffer
-            memory _prizeDistributionsRingBufferData = prizeDistributionsRingBufferData;
+            memory buffer = _prizeDistributionsRingBufferData;
 
+        // store the PrizeDistribution in the ring buffer
         _prizeDistributionsRingBuffer[
-            _prizeDistributionsRingBufferData.nextIndex
+            buffer.nextIndex
         ] = _prizeDistribution;
 
-        prizeDistributionsRingBufferData = prizeDistributionsRingBufferData.push(_drawId);
+        // update the ring buffer data
+        _prizeDistributionsRingBufferData = buffer.push(_drawId);
 
         emit PrizeDistributionsSet(_drawId, _prizeDistribution);
 
