@@ -22,7 +22,7 @@ library TwabLib {
     /// @notice A struct containing details for an Account
     /// @param balance The current balance for an Account
     /// @param nextTwabIndex The next available index to store a new twab
-    /// @param cardinality The upper limit on the number of twabs.
+    /// @param cardinality Current total of "initialized" ring buffer checkpoints. Used to set initial boundary conditions in binary search.
     struct AccountDetails {
         uint208 balance;
         uint24 nextTwabIndex;
