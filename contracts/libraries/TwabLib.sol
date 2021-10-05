@@ -134,7 +134,9 @@ library TwabLib {
         ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
         AccountDetails memory _accountDetails
     ) internal view returns (uint24 index, ObservationLib.Observation memory twab) {
-        index = uint24(RingBufferLib.mostRecentIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY));
+        index = uint24(
+            RingBufferLib.mostRecentIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
+        );
         twab = _twabs[index];
     }
 
@@ -311,15 +313,17 @@ library TwabLib {
     /// @return New TWAB that was recorded.
     function _computeNextTwab(
         ObservationLib.Observation memory _currentTwab,
-        uint256 _currentBalance,
+        uint224 _currentBalance,
         uint32 _time
     ) private pure returns (ObservationLib.Observation memory) {
         // New twab amount = last twab amount (or zero) + (current amount * elapsed seconds)
         return
             ObservationLib.Observation({
-                amount: (uint256(_currentTwab.amount) +
-                    (_currentBalance * (_time.checkedSub(_currentTwab.timestamp, _time))))
-                    .toUint208(),
+                amount: uint256(
+                    _currentTwab.amount +
+                        _currentBalance *
+                        (_time.checkedSub(_currentTwab.timestamp, _time))
+                ).toUint224(),
                 timestamp: _time
             });
     }
