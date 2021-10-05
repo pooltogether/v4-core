@@ -90,7 +90,7 @@ library TwabLib {
     }
 
     /** @notice Calculates the average balance held by a user for a given time frame.
-      * @dev    Finds the average balance between start (1609506061) and end (1639311132) timestamp epochs.
+      * @dev    Finds the average balance between start and end timestamp epochs.
                 Validates the supplied end time is within the range of elapsed time i.e. less then timestamp of now.
       * @param _twabs          Individual user Observation recorded checkpoints passed as storage pointer
       * @param _accountDetails User AccountDetails struct loaded in memory
