@@ -211,6 +211,10 @@ library TwabLib {
             _accountDetails
         );
 
+        // Check ring buffer timestamp range and compare to the requested start and end epoch timestamps.
+        // IF start time is out of range S[o n] OR IF end time is out of range [o n]E the calculation is reverted with out of range error.
+        require(_startTime > oldTwab.timestamp && _endTime < newTwab.timestamp, "TwabLib:twab-out-of-range");
+
         ObservationLib.Observation memory startTwab = _calculateTwab(
             _twabs,
             _accountDetails,
@@ -232,9 +236,6 @@ library TwabLib {
             _endTime,
             _currentTime
         );
-
-        // User TWAB(s) are in range.
-        require(startTwab.timestamp > oldTwab.timestamp && endTwab.timestamp < newTwab.timestamp, "TwabLib:twab-out-of-range");
 
         // Difference in amount / time
         return (endTwab.amount - startTwab.amount) / (endTwab.timestamp - startTwab.timestamp);
