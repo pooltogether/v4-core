@@ -58,7 +58,7 @@ async function printTwabs(
         debugLog(`Twab ${index} { amount: ${twab.amount}, timestamp: ${twab.timestamp}}`);
     });
 
-    return twabs
+    return twabs;
 }
 
 describe('Ticket', () => {
@@ -84,10 +84,10 @@ describe('Ticket', () => {
         );
 
         // delegate for each of the users
-        await ticket.delegate(wallet1.address)
-        await ticket.connect(wallet2).delegate(wallet2.address)
-        await ticket.connect(wallet3).delegate(wallet3.address)
-        await ticket.connect(wallet4).delegate(wallet4.address)
+        await ticket.delegate(wallet1.address);
+        await ticket.connect(wallet2).delegate(wallet2.address);
+        await ticket.connect(wallet3).delegate(wallet3.address);
+        await ticket.connect(wallet4).delegate(wallet4.address);
     });
 
     describe('constructor()', () => {
@@ -102,7 +102,7 @@ describe('Ticket', () => {
             expect(await ticket.name()).to.equal(ticketName);
             expect(await ticket.symbol()).to.equal(ticketSymbol);
             expect(await ticket.decimals()).to.equal(ticketDecimals);
-            expect(await ticket.controller()).to.equal(wallet1.address)
+            expect(await ticket.controller()).to.equal(wallet1.address);
         });
 
         it('should fail if token decimal is not greater than 0', async () => {
@@ -345,13 +345,13 @@ describe('Ticket', () => {
             const twabs = await printTwabs(ticket, wallet1, debug);
 
             const matchingTwabs = twabs.reduce((all: any, twab: any) => {
-                debug(`TWAB timestamp ${twab.timestamp}, timestamp: ${timestamp}`)
-                debug(twab)
+                debug(`TWAB timestamp ${twab.timestamp}, timestamp: ${timestamp}`);
+                debug(twab);
                 if (twab.timestamp.toString() == timestamp.toString()) {
-                    all.push(twab)
+                    all.push(twab);
                 }
-                return all
-            }, [])
+                return all;
+            }, []);
 
             expect(matchingTwabs.length).to.equal(1);
             expect(await ticket.totalSupply()).to.equal(mintAmount.mul(2));
@@ -865,9 +865,7 @@ describe('Ticket', () => {
             await ticket.mint(wallet1.address, toWei('100'));
             await ticket.delegate(wallet2.address);
 
-            await expect(
-                ticket.delegate(wallet2.address)
-            ).to.not.emit(ticket, 'Delegated')
+            await expect(ticket.delegate(wallet2.address)).to.not.emit(ticket, 'Delegated');
         });
 
         it('should allow the delegate to be reset by passing zero', async () => {
@@ -942,27 +940,62 @@ describe('Ticket', () => {
         it('should allow somone to delegate with a signature', async () => {
             // @ts-ignore
             const { user, delegate, nonce, deadline, v, r, s } = await delegateSignature({
-                ticket, userWallet: wallet1, delegate: wallet2.address
-            })
+                ticket,
+                userWallet: wallet1,
+                delegate: wallet2.address,
+            });
 
-            await ticket.connect(wallet3).delegateWithSignature(user, delegate, deadline, v, r, s)
+            await ticket.connect(wallet3).delegateWithSignature(user, delegate, deadline, v, r, s);
 
-            expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address)
-        })
-    })
+            expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
+        });
+    });
 
     describe('controllerDelegateFor', () => {
         it('should allow the controller to delegate for a user', async () => {
-            await ticket.controllerDelegateFor(wallet2.address, wallet3.address)
+            await ticket.controllerDelegateFor(wallet2.address, wallet3.address);
 
-            expect(await ticket.delegateOf(wallet2.address)).to.equal(wallet3.address)
-        })
+            expect(await ticket.delegateOf(wallet2.address)).to.equal(wallet3.address);
+        });
 
         it('should not allow anyone else to delegate', async () => {
             await expect(
-                ticket.connect(wallet2).controllerDelegateFor(wallet1.address, wallet3.address)
-            ).to.be.revertedWith('ControlledToken/only-controller')
+                ticket.connect(wallet2).controllerDelegateFor(wallet1.address, wallet3.address),
+            ).to.be.revertedWith('ControlledToken/only-controller');
+        });
+    });
 
-        })
-    })
+    context('when the timestamp overflows', () => {
+        let overflowMintTimestamp: number;
+
+        beforeEach(async () => {
+            await ticket.mint(wallet1.address, toWei('100'));
+            const timestamp = (await ethers.provider.getBlock('latest')).timestamp;
+            const timeUntilOverflow = 2 ** 32 - timestamp;
+            await increaseTime(timeUntilOverflow);
+            await ticket.mint(wallet1.address, toWei('100'));
+            overflowMintTimestamp = (await ethers.provider.getBlock('latest')).timestamp;
+            await increaseTime(100);
+        });
+
+        describe('getAverageBalanceBetween()', () => {
+            it('should function across overflow boundary', async () => {
+                expect(
+                    await ticket.getAverageBalanceBetween(
+                        wallet1.address,
+                        overflowMintTimestamp - 100,
+                        overflowMintTimestamp + 100,
+                    ),
+                ).to.equal(toWei('150'));
+            });
+        });
+
+        describe('getBalanceAt', () => {
+            it('should function across overflow boundary', async () => {
+                expect(await ticket.getBalanceAt(wallet1.address, overflowMintTimestamp)).to.equal(
+                    toWei('200'),
+                );
+            });
+        });
+    });
 });

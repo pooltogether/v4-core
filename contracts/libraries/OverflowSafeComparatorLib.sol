@@ -37,6 +37,7 @@ library OverflowSafeComparatorLib {
         uint32 _b,
         uint32 _timestamp
     ) internal pure returns (bool) {
+
         // No need to adjust if there hasn't been an overflow
         if (_a <= _timestamp && _b <= _timestamp) return _a <= _b;
 

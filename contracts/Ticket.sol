@@ -75,7 +75,7 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     /// @inheritdoc ITicket
-    function getBalanceAt(address _user, uint256 _target) external view override returns (uint256) {
+    function getBalanceAt(address _user, uint64 _target) external view override returns (uint256) {
         TwabLib.Account storage account = userTwabs[_user];
 
         return
@@ -90,16 +90,16 @@ contract Ticket is ControlledToken, ITicket {
     /// @inheritdoc ITicket
     function getAverageBalancesBetween(
         address _user,
-        uint32[] calldata _startTimes,
-        uint32[] calldata _endTimes
+        uint64[] calldata _startTimes,
+        uint64[] calldata _endTimes
     ) external view override returns (uint256[] memory) {
         return _getAverageBalancesBetween(userTwabs[_user], _startTimes, _endTimes);
     }
 
     /// @inheritdoc ITicket
     function getAverageTotalSuppliesBetween(
-        uint32[] calldata _startTimes,
-        uint32[] calldata _endTimes
+        uint64[] calldata _startTimes,
+        uint64[] calldata _endTimes
     ) external view override returns (uint256[] memory) {
         return _getAverageBalancesBetween(totalSupplyTwab, _startTimes, _endTimes);
     }
@@ -107,8 +107,8 @@ contract Ticket is ControlledToken, ITicket {
     /// @inheritdoc ITicket
     function getAverageBalanceBetween(
         address _user,
-        uint256 _startTime,
-        uint256 _endTime
+        uint64 _startTime,
+        uint64 _endTime
     ) external view override returns (uint256) {
         TwabLib.Account storage account = userTwabs[_user];
 
@@ -123,7 +123,7 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     /// @inheritdoc ITicket
-    function getBalancesAt(address _user, uint32[] calldata _targets)
+    function getBalancesAt(address _user, uint64[] calldata _targets)
         external
         view
         override
@@ -139,7 +139,7 @@ contract Ticket is ControlledToken, ITicket {
             _balances[i] = TwabLib.getBalanceAt(
                 twabContext.twabs,
                 details,
-                _targets[i],
+                uint32(_targets[i]),
                 uint32(block.timestamp)
             );
         }
@@ -148,18 +148,18 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     /// @inheritdoc ITicket
-    function getTotalSupplyAt(uint32 _target) external view override returns (uint256) {
+    function getTotalSupplyAt(uint64 _target) external view override returns (uint256) {
         return
             TwabLib.getBalanceAt(
                 totalSupplyTwab.twabs,
                 totalSupplyTwab.details,
-                _target,
+                uint32(_target),
                 uint32(block.timestamp)
             );
     }
 
     /// @inheritdoc ITicket
-    function getTotalSuppliesAt(uint32[] calldata _targets)
+    function getTotalSuppliesAt(uint64[] calldata _targets)
         external
         view
         override
@@ -174,7 +174,7 @@ contract Ticket is ControlledToken, ITicket {
             totalSupplies[i] = TwabLib.getBalanceAt(
                 totalSupplyTwab.twabs,
                 details,
-                _targets[i],
+                uint32(_targets[i]),
                 uint32(block.timestamp)
             );
         }
@@ -247,8 +247,8 @@ contract Ticket is ControlledToken, ITicket {
      */
     function _getAverageBalancesBetween(
         TwabLib.Account storage _account,
-        uint32[] calldata _startTimes,
-        uint32[] calldata _endTimes
+        uint64[] calldata _startTimes,
+        uint64[] calldata _endTimes
     ) internal view returns (uint256[] memory) {
         require(_startTimes.length == _endTimes.length, "Ticket/start-end-times-length-match");
 
@@ -261,8 +261,8 @@ contract Ticket is ControlledToken, ITicket {
             averageBalances[i] = TwabLib.getAverageBalanceBetween(
                 _account.twabs,
                 accountDetails,
-                _startTimes[i],
-                _endTimes[i],
+                uint32(_startTimes[i]),
+                uint32(_endTimes[i]),
                 currentTimestamp
             );
         }
