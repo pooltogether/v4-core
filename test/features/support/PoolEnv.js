@@ -179,7 +179,7 @@ function PoolEnv() {
     endTimestampOffset,
     matchCardinality,
     numberOfPicks,
-    distributions,
+    tiers,
     prize,
     maxPicksPerUser,
   }) {
@@ -191,7 +191,7 @@ function PoolEnv() {
       startTimestampOffset,
       endTimestampOffset,
       numberOfPicks,
-      distributions,
+      tiers,
       prize,
       maxPicksPerUser,
     };

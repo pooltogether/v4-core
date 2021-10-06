@@ -1,10 +1,10 @@
 const { utils } = require('ethers');
 
-const distributions = [
+const tiers = [
   utils.parseEther('0.9'),
   utils.parseEther('0.1'),
   utils.parseEther('0.1'),
   utils.parseEther('0.1'),
 ];
 
-module.exports = distributions;
+module.exports = tiers;

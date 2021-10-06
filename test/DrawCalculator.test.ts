@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, BigNumber } from 'ethers';
 import { ethers, artifacts } from 'hardhat';
-import { Draw, PrizeDistributionSettings } from './types';
-import { fillPrizeDistributionsWithZeros } from './helpers/fillPrizeDistributionsWithZeros';
+import { Draw, PrizeDistribution } from './types';
+import { fillPrizeTiersWithZeros } from './helpers/fillPrizeTiersWithZeros';
 
 const { getSigners } = ethers;
 
@@ -39,22 +39,22 @@ export async function deployDrawCalculator(
 
 function calculateNumberOfWinnersAtIndex(
     bitRangeSize: number,
-    distributionIndex: number,
+    tierIndex: number,
 ): BigNumber {
     // Prize Count = (2**bitRange)**(cardinality-numberOfMatches)
     // if not grand prize: - (2^bitRange)**(cardinality-numberOfMatches-1) - ... (2^bitRange)**(0)
-    let prizeCount = BigNumber.from(2).pow(bitRangeSize).pow(distributionIndex);
+    let prizeCount = BigNumber.from(2).pow(bitRangeSize).pow(tierIndex);
 
-    if (distributionIndex > 0) {
-        while (distributionIndex > 0) {
+    if (tierIndex > 0) {
+        while (tierIndex > 0) {
             prizeCount = prizeCount.sub(
                 BigNumber.from(
                     BigNumber.from(2)
                         .pow(BigNumber.from(bitRangeSize))
-                        .pow(distributionIndex - 1),
+                        .pow(tierIndex - 1),
                 ),
             );
-            distributionIndex--;
+            tierIndex--;
         }
     }
 
@@ -151,13 +151,13 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe('calculateDistributionIndex()', () => {
-        let prizeDistribution: PrizeDistributionSettings;
+    describe('calculateTierIndex()', () => {
+        let prizeDistribution: PrizeDistribution;
 
         beforeEach(async () => {
             prizeDistribution = {
                 matchCardinality: BigNumber.from(5),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -171,24 +171,24 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             await prizeDistributionHistory.mock.getPrizeDistributions.returns([prizeDistribution]);
         });
 
         it('grand prize gets the full fraction at index 0', async () => {
-            const amount = await drawCalculator.calculatePrizeDistributionFraction(
+            const amount = await drawCalculator.calculatePrizeTierFraction(
                 prizeDistribution,
                 BigNumber.from(0),
             );
 
-            expect(amount).to.equal(prizeDistribution.distributions[0]);
+            expect(amount).to.equal(prizeDistribution.tiers[0]);
         });
 
         it('runner up gets part of the fraction at index 1', async () => {
-            const amount = await drawCalculator.calculatePrizeDistributionFraction(
+            const amount = await drawCalculator.calculatePrizeTierFraction(
                 prizeDistribution,
                 BigNumber.from(1),
             );
@@ -198,33 +198,33 @@ describe('DrawCalculator', () => {
                 1,
             );
 
-            const expectedPrizeFraction = prizeDistribution.distributions[1].div(prizeCount);
+            const expectedPrizeFraction = prizeDistribution.tiers[1].div(prizeCount);
 
             expect(amount).to.equal(expectedPrizeFraction);
         });
 
-        it('all distribution indexes', async () => {
+        it('all prize tier indexes', async () => {
             for (
                 let numberOfMatches = 0;
-                numberOfMatches < prizeDistribution.distributions.length;
+                numberOfMatches < prizeDistribution.tiers.length;
                 numberOfMatches++
             ) {
-                const distributionIndex = BigNumber.from(
-                    prizeDistribution.distributions.length - numberOfMatches - 1,
+                const tierIndex = BigNumber.from(
+                    prizeDistribution.tiers.length - numberOfMatches - 1,
                 ); // minus one because we start at 0
 
-                const fraction = await drawCalculator.calculatePrizeDistributionFraction(
+                const fraction = await drawCalculator.calculatePrizeTierFraction(
                     prizeDistribution,
-                    distributionIndex,
+                    tierIndex,
                 );
 
                 let prizeCount: BigNumber = calculateNumberOfWinnersAtIndex(
                     prizeDistribution.bitRangeSize.toNumber(),
-                    distributionIndex.toNumber(),
+                    tierIndex.toNumber(),
                 );
 
                 const expectedPrizeFraction =
-                    prizeDistribution.distributions[distributionIndex.toNumber()].div(prizeCount);
+                    prizeDistribution.tiers[tierIndex.toNumber()].div(prizeCount);
 
                 expect(fraction).to.equal(expectedPrizeFraction);
             }
@@ -232,7 +232,7 @@ describe('DrawCalculator', () => {
     });
 
     describe('numberOfPrizesForIndex()', () => {
-        it('calculates the number of prizes at distribution index 0', async () => {
+        it('calculates the number of prizes at tiers index 0', async () => {
             const bitRangeSize = 2;
 
             const result = await drawCalculator.numberOfPrizesForIndex(
@@ -243,7 +243,7 @@ describe('DrawCalculator', () => {
             expect(result).to.equal(1); // grand prize
         });
 
-        it('calculates the number of prizes at distribution index 1', async () => {
+        it('calculates the number of prizes at tiers index 1', async () => {
             const bitRangeSize = 3;
 
             const result = await drawCalculator.numberOfPrizesForIndex(
@@ -255,10 +255,10 @@ describe('DrawCalculator', () => {
             expect(result).to.equal(7);
         });
 
-        it('calculates the number of prizes at distribution index 3', async () => {
+        it('calculates the number of prizes at tiers index 3', async () => {
             const bitRangeSize = 3;
-            // numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex)
-            // prizeDistributionIndex = matchCardinality - numberOfMatches
+            // numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizetierIndex)
+            // prizetierIndex = matchCardinality - numberOfMatches
             // matchCardinality = 5, numberOfMatches = 2
 
             const result = await drawCalculator.numberOfPrizesForIndex(
@@ -270,10 +270,10 @@ describe('DrawCalculator', () => {
             expect(result).to.equal(439);
         });
 
-        it('calculates the number of prizes at all distribution indices', async () => {
-            let prizeDistribution: PrizeDistributionSettings = {
+        it('calculates the number of prizes at all tiers indices', async () => {
+            let prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(5),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.5', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -288,18 +288,18 @@ describe('DrawCalculator', () => {
             };
 
             for (
-                let distributionIndex = 0;
-                distributionIndex < prizeDistribution.distributions.length;
-                distributionIndex++
+                let tierIndex = 0;
+                tierIndex < prizeDistribution.tiers.length;
+                tierIndex++
             ) {
                 const result = await drawCalculator.numberOfPrizesForIndex(
                     prizeDistribution.bitRangeSize,
-                    distributionIndex,
+                    tierIndex,
                 );
 
                 const expectedNumberOfWinners = calculateNumberOfWinnersAtIndex(
                     prizeDistribution.bitRangeSize.toNumber(),
-                    distributionIndex,
+                    tierIndex,
                 );
 
                 expect(result).to.equal(expectedNumberOfWinners);
@@ -307,11 +307,11 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe('calculatePrizeDistributionFraction()', () => {
-        it('calculates distribution index 0', async () => {
-            const prizeDistribution: PrizeDistributionSettings = {
+    describe('calculatePrizeTiersFraction()', () => {
+        it('calculates tiers index 0', async () => {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(5),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -325,8 +325,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             const bitMasks = await drawCalculator.createBitMasks(prizeDistribution);
@@ -337,21 +337,21 @@ describe('DrawCalculator', () => {
             const userRandomNumber =
                 '0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70'; // intentionally same as winning random number
 
-            const prizeDistributionIndex: BigNumber =
-                await drawCalculator.calculateDistributionIndex(
+            const prizetierIndex: BigNumber =
+                await drawCalculator.calculateTierIndex(
                     userRandomNumber,
                     winningRandomNumber,
                     bitMasks,
                 );
 
             // all numbers match so grand prize!
-            expect(prizeDistributionIndex).to.eq(BigNumber.from(0));
+            expect(prizetierIndex).to.eq(BigNumber.from(0));
         });
 
-        it('calculates distribution index 1', async () => {
-            const prizeDistribution: PrizeDistributionSettings = {
+        it('calculates tiers index 1', async () => {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(2),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -365,8 +365,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             // 252: 1111 1100
@@ -377,17 +377,17 @@ describe('DrawCalculator', () => {
             expect(bitMasks.length).to.eq(2); // same as length of matchCardinality
             expect(bitMasks[0]).to.eq(BigNumber.from(15));
 
-            const prizeDistributionIndex: BigNumber =
-                await drawCalculator.calculateDistributionIndex(252, 255, bitMasks);
+            const prizetierIndex: BigNumber =
+                await drawCalculator.calculateTierIndex(252, 255, bitMasks);
 
-            // since the first 4 bits do not match the distribution index will be: (matchCardinality - numberOfMatches )= 2-0 = 2
-            expect(prizeDistributionIndex).to.eq(prizeDistribution.matchCardinality);
+            // since the first 4 bits do not match the tiers index will be: (matchCardinality - numberOfMatches )= 2-0 = 2
+            expect(prizetierIndex).to.eq(prizeDistribution.matchCardinality);
         });
 
-        it('calculates distribution index 1', async () => {
-            const prizeDistribution: PrizeDistributionSettings = {
+        it('calculates tiers index 1', async () => {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(3),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -401,8 +401,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             // 527: 0010 0000 1111
@@ -413,19 +413,19 @@ describe('DrawCalculator', () => {
             expect(bitMasks.length).to.eq(3); // same as length of matchCardinality
             expect(bitMasks[0]).to.eq(BigNumber.from(15));
 
-            const prizeDistributionIndex: BigNumber =
-                await drawCalculator.calculateDistributionIndex(527, 271, bitMasks);
+            const prizetierIndex: BigNumber =
+                await drawCalculator.calculateTierIndex(527, 271, bitMasks);
 
-            // since the first 4 bits do not match the distribution index will be: (matchCardinality - numberOfMatches )= 3-2 = 1
-            expect(prizeDistributionIndex).to.eq(BigNumber.from(1));
+            // since the first 4 bits do not match the tiers index will be: (matchCardinality - numberOfMatches )= 3-2 = 1
+            expect(prizetierIndex).to.eq(BigNumber.from(1));
         });
     });
 
     describe('createBitMasks()', () => {
         it('creates correct 6 bit masks', async () => {
-            const prizeDistribution: PrizeDistributionSettings = {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(2),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -439,8 +439,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             const bitMasks = await drawCalculator.createBitMasks(prizeDistribution);
@@ -450,9 +450,9 @@ describe('DrawCalculator', () => {
         });
 
         it('creates correct 4 bit masks', async () => {
-            const prizeDistribution: PrizeDistributionSettings = {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(2),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -466,8 +466,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             const bitMasks = await drawCalculator.createBitMasks(prizeDistribution);
@@ -479,9 +479,9 @@ describe('DrawCalculator', () => {
 
     describe('calculateNumberOfUserPicks()', () => {
         it('calculates the correct number of user picks', async () => {
-            const prizeDistribution: PrizeDistributionSettings = {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(5),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -495,8 +495,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             const normalizedUsersBalance = utils.parseEther('0.05'); // has 5% of the total supply
@@ -508,9 +508,9 @@ describe('DrawCalculator', () => {
             expect(userPicks).to.eq(BigNumber.from(5));
         });
         it('calculates the correct number of user picks', async () => {
-            const prizeDistribution: PrizeDistributionSettings = {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(5),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -524,8 +524,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
             const normalizedUsersBalance = utils.parseEther('0.1'); // has 10% of the total supply
             const userPicks = await drawCalculator.calculateNumberOfUserPicks(
@@ -537,10 +537,10 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe('checkPrizeDistributionIndicesForDrawId()', () => {
-        const prizeDistribution: PrizeDistributionSettings = {
+    describe('checkPrizeTierIndexForDrawId()', () => {
+        const prizeDistribution: PrizeDistribution = {
             matchCardinality: BigNumber.from(5),
-            distributions: [
+            tiers: [
                 ethers.utils.parseUnits('0.6', 9),
                 ethers.utils.parseUnits('0.1', 9),
                 ethers.utils.parseUnits('0.1', 9),
@@ -554,11 +554,11 @@ describe('DrawCalculator', () => {
             maxPicksPerUser: BigNumber.from(10),
         };
 
-        prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-            prizeDistribution.distributions,
+        prizeDistribution.tiers = fillPrizeTiersWithZeros(
+            prizeDistribution.tiers,
         );
 
-        it('calculates the grand prize distributions index', async () => {
+        it('calculates the grand prize tier index', async () => {
             const timestamps = [42];
             const offsetStartTimestamps = modifyTimestampsWithOffset(
                 timestamps,
@@ -596,14 +596,14 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('100'), utils.parseEther('600')]);
 
-            const result = await drawCalculator.checkPrizeDistributionIndicesForDrawId(
+            const result = await drawCalculator.checkPrizeTierIndexForDrawId(
                 wallet1.address,
                 [1],
                 draw.drawId,
             );
 
             expect(result[0].won).to.be.true;
-            expect(result[0].distributionIndex).to.equal(0);
+            expect(result[0].tierIndex).to.equal(0);
         });
 
         it('no matches to return won = false', async () => {
@@ -644,14 +644,14 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('100'), utils.parseEther('600')]);
 
-            const result = await drawCalculator.checkPrizeDistributionIndicesForDrawId(
+            const result = await drawCalculator.checkPrizeTierIndexForDrawId(
                 wallet1.address,
                 [1],
                 draw.drawId,
             );
 
             expect(result[0].won).to.be.false;
-            expect(result[0].distributionIndex).to.equal(
+            expect(result[0].tierIndex).to.equal(
                 prizeDistribution.matchCardinality.toNumber(),
             );
         });
@@ -696,7 +696,7 @@ describe('DrawCalculator', () => {
 
             // 20pc of the total supply, 10 picks in the draw = 2 picks trying with 3 picks
             await expect(
-                drawCalculator.checkPrizeDistributionIndicesForDrawId(
+                drawCalculator.checkPrizeTierIndexForDrawId(
                     wallet1.address,
                     [1, 2, 3],
                     draw.drawId,
@@ -709,9 +709,9 @@ describe('DrawCalculator', () => {
         it('calculates the correct normalized balance', async () => {
             const timestamps = [42, 77];
 
-            const prizeDistribution: PrizeDistributionSettings = {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(5),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -725,8 +725,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             const offsetStartTimestamps = modifyTimestampsWithOffset(
@@ -777,9 +777,9 @@ describe('DrawCalculator', () => {
         it('reverts when totalSupply is zero', async () => {
             const timestamps = [42, 77];
 
-            const prizeDistribution: PrizeDistributionSettings = {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(5),
-                distributions: [
+                tiers: [
                     ethers.utils.parseUnits('0.6', 9),
                     ethers.utils.parseUnits('0.1', 9),
                     ethers.utils.parseUnits('0.1', 9),
@@ -793,8 +793,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             const offsetStartTimestamps = modifyTimestampsWithOffset(
@@ -841,9 +841,9 @@ describe('DrawCalculator', () => {
         it('returns zero when the balance is very small', async () => {
             const timestamps = [42];
 
-            const prizeDistribution: PrizeDistributionSettings = {
+            const prizeDistribution: PrizeDistribution = {
                 matchCardinality: BigNumber.from(5),
-                distributions: [ethers.utils.parseUnits('0.6', 9)],
+                tiers: [ethers.utils.parseUnits('0.6', 9)],
                 numberOfPicks: BigNumber.from('100000'),
                 bitRangeSize: BigNumber.from(4),
                 prize: ethers.utils.parseEther('1'),
@@ -852,8 +852,8 @@ describe('DrawCalculator', () => {
                 maxPicksPerUser: BigNumber.from(1001),
             };
 
-            prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                prizeDistribution.distributions,
+            prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                prizeDistribution.tiers,
             );
 
             const draw1: Draw = newDraw({
@@ -895,11 +895,11 @@ describe('DrawCalculator', () => {
         const debug = newDebug('pt:DrawCalculator.test.ts:calculate()');
 
         context('with draw 1 set', () => {
-            let prizeDistribution: PrizeDistributionSettings;
+            let prizeDistribution: PrizeDistribution;
 
             beforeEach(async () => {
                 prizeDistribution = {
-                    distributions: [
+                    tiers: [
                         ethers.utils.parseUnits('0.8', 9),
                         ethers.utils.parseUnits('0.2', 9),
                     ],
@@ -912,8 +912,8 @@ describe('DrawCalculator', () => {
                     maxPicksPerUser: BigNumber.from(1001),
                 };
 
-                prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                    prizeDistribution.distributions,
+                prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                    prizeDistribution.tiers,
                 );
 
                 await prizeDistributionHistory.mock.getPrizeDistributions
@@ -1086,7 +1086,7 @@ describe('DrawCalculator', () => {
                 );
             });
 
-            it('should match all numbers but prize distribution is 0 at index 0', async () => {
+            it('should match all numbers but prize tiers is 0 at index 0', async () => {
                 const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
                 const winningRandomNumber = utils.solidityKeccak256(
                     ['bytes32', 'uint256'],
@@ -1095,14 +1095,14 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution = {
                     ...prizeDistribution,
-                    distributions: [
+                    tiers: [
                         ethers.utils.parseUnits('0', 9), // NOTE ZERO here
                         ethers.utils.parseUnits('0.2', 9),
                     ],
                 };
 
-                prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                    prizeDistribution.distributions,
+                prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                    prizeDistribution.tiers,
                 );
 
                 await prizeDistributionHistory.mock.getPrizeDistributions
@@ -1149,20 +1149,20 @@ describe('DrawCalculator', () => {
                 expect(prizesAwardable[0]).to.equal(utils.parseEther('0'));
             });
 
-            it('should match all numbers but prize distribution is 0 at index 1', async () => {
+            it('should match all numbers but prize tiers is 0 at index 1', async () => {
                 prizeDistribution = {
                     ...prizeDistribution,
                     bitRangeSize: BigNumber.from(2),
                     matchCardinality: BigNumber.from(3),
-                    distributions: [
+                    tiers: [
                         ethers.utils.parseUnits('0.1', 9), // NOTE ZERO here
                         ethers.utils.parseUnits('0', 9),
                         ethers.utils.parseUnits('0.2', 9),
                     ],
                 };
 
-                prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                    prizeDistribution.distributions,
+                prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                    prizeDistribution.tiers,
                 );
 
                 await prizeDistributionHistory.mock.getPrizeDistributions
@@ -1260,8 +1260,8 @@ describe('DrawCalculator', () => {
                     .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                     .returns([totalSupply1, totalSupply2]);
 
-                const prizeDistribution2: PrizeDistributionSettings = {
-                    distributions: [
+                const prizeDistribution2: PrizeDistribution = {
+                    tiers: [
                         ethers.utils.parseUnits('0.8', 9),
                         ethers.utils.parseUnits('0.2', 9),
                     ],
@@ -1274,8 +1274,8 @@ describe('DrawCalculator', () => {
                     maxPicksPerUser: BigNumber.from(1001),
                 };
 
-                prizeDistribution2.distributions = fillPrizeDistributionsWithZeros(
-                    prizeDistribution.distributions,
+                prizeDistribution2.tiers = fillPrizeTiersWithZeros(
+                    prizeDistribution.tiers,
                 );
 
                 debug(`pushing settings for draw 2...`);
@@ -1321,8 +1321,8 @@ describe('DrawCalculator', () => {
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
                 const ticketBalance = ethers.utils.parseEther('6'); // they had 6pc of all tickets
 
-                const prizeDistribution: PrizeDistributionSettings = {
-                    distributions: [
+                const prizeDistribution: PrizeDistribution = {
+                    tiers: [
                         ethers.utils.parseUnits('0.8', 9),
                         ethers.utils.parseUnits('0.2', 9),
                     ],
@@ -1335,8 +1335,8 @@ describe('DrawCalculator', () => {
                     maxPicksPerUser: BigNumber.from(1001),
                 };
 
-                prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                    prizeDistribution.distributions,
+                prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                    prizeDistribution.tiers,
                 );
 
                 const offsetStartTimestamps = modifyTimestampsWithOffset(
@@ -1398,8 +1398,8 @@ describe('DrawCalculator', () => {
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1', '2', '3']]]);
                 const ticketBalance = ethers.utils.parseEther('6');
 
-                const prizeDistribution: PrizeDistributionSettings = {
-                    distributions: [
+                const prizeDistribution: PrizeDistribution = {
+                    tiers: [
                         ethers.utils.parseUnits('0.8', 9),
                         ethers.utils.parseUnits('0.2', 9),
                     ],
@@ -1412,8 +1412,8 @@ describe('DrawCalculator', () => {
                     maxPicksPerUser: BigNumber.from(2),
                 };
 
-                prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                    prizeDistribution.distributions,
+                prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                    prizeDistribution.tiers,
                 );
 
                 const offsetStartTimestamps = modifyTimestampsWithOffset(

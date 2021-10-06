@@ -1,9 +1,9 @@
 import { BigNumber } from 'ethers'
 
-export type PrizeDistributionSettings = {
+export type PrizeDistribution = {
     matchCardinality: BigNumber;
     numberOfPicks: BigNumber;
-    distributions: BigNumber[];
+    tiers: BigNumber[];
     bitRangeSize: BigNumber;
     prize: BigNumber;
     startTimestampOffset: BigNumber;

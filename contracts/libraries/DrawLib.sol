@@ -17,8 +17,8 @@ library DrawLib {
         uint32 beaconPeriodSeconds;
     }
 
-    /// @notice Fixed length of distributions within a PrizeDistribution.distributions
-    uint8 public constant DISTRIBUTIONS_LENGTH = 16;
+    /// @notice Fixed length of prize tiers within a PrizeDistribution.tiers
+    uint8 public constant TIERS_LENGTH = 16;
 
     ///@notice PrizeDistribution struct created every draw
     ///@param bitRangeSize Decimal representation of bitRangeSize
@@ -27,7 +27,7 @@ library DrawLib {
     ///@param endTimestampOffset The end time offset in seconds from which Ticket balances are calculated.
     ///@param maxPicksPerUser Maximum number of picks a user can make in this draw
     ///@param numberOfPicks Number of picks this draw has (may vary across networks according to how much the network has contributed to the Reserve)
-    ///@param distributions Array of prize distributions percentages, expressed in fraction form with base 1e9. Ordering: index0: grandPrize, index1: runnerUp, etc.
+    ///@param tiers Array of prize tiers percentages, expressed in fraction form with base 1e9. Ordering: index0: grandPrize, index1: runnerUp, etc.
     ///@param prize Total prize amount available in this draw calculator for this draw (may vary from across networks)
     struct PrizeDistribution {
         uint8 bitRangeSize;
@@ -36,7 +36,7 @@ library DrawLib {
         uint32 endTimestampOffset;
         uint32 maxPicksPerUser;
         uint136 numberOfPicks;
-        uint32[DISTRIBUTIONS_LENGTH] distributions;
+        uint32[TIERS_LENGTH] tiers;
         uint256 prize;
     }
 }

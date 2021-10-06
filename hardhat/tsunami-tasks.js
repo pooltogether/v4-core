@@ -1,5 +1,5 @@
 const { BigNumber, constants } = require('ethers');
-const distributions = require('./prizeDistributions');
+const tiers = require('./prizeDistributions');
 
 task('deposit-to')
   .addPositionalParam('address', 'PrizePool address')
@@ -48,7 +48,7 @@ task('set-draw-settings')
       matchCardinality: BigNumber.from(matchCardinality),
       numberOfPicks: BigNumber.from(utils.parseEther(`${numberOfPicks}`)),
       prize: ethers.utils.parseEther(`${prize}`),
-      distributions: distributions,
+      tiers: tiers,
     });
     console.log(`Draw Setings updated: ${address}`);
   });

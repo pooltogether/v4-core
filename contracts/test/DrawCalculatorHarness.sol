@@ -13,12 +13,12 @@ contract DrawCalculatorHarness is DrawCalculator {
         PrizeDistributionHistory _prizeDistributionHistory
     ) DrawCalculator(_owner, _ticket, _drawHistory, _prizeDistributionHistory) {}
 
-    function calculateDistributionIndex(
+    function calculateTierIndex(
         uint256 _randomNumberThisPick,
         uint256 _winningRandomNumber,
         uint256[] memory _masks
     ) public pure returns (uint256) {
-        return _calculateDistributionIndex(_randomNumberThisPick, _winningRandomNumber, _masks);
+        return _calculateTierIndex(_randomNumberThisPick, _winningRandomNumber, _masks);
     }
 
     function createBitMasks(DrawLib.PrizeDistribution calldata _prizeDistribution)
@@ -29,23 +29,23 @@ contract DrawCalculatorHarness is DrawCalculator {
         return _createBitMasks(_prizeDistribution);
     }
 
-    ///@notice Calculates the expected prize fraction per prizeDistribution and prizeDistributionIndex
+    ///@notice Calculates the expected prize fraction per prizeDistribution and prizeTierIndex
     ///@param _prizeDistribution prizeDistribution struct for Draw
-    ///@param _prizeDistributionIndex Index of the prize distributions array to calculate
+    ///@param _prizeTierIndex Index of the prize tiers array to calculate
     ///@return returns the fraction of the total prize
-    function calculatePrizeDistributionFraction(
+    function calculatePrizeTierFraction(
         DrawLib.PrizeDistribution calldata _prizeDistribution,
-        uint256 _prizeDistributionIndex
+        uint256 _prizeTierIndex
     ) external pure returns (uint256) {
-        return _calculatePrizeDistributionFraction(_prizeDistribution, _prizeDistributionIndex);
+        return _calculatePrizeTierFraction(_prizeDistribution, _prizeTierIndex);
     }
 
-    function numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeDistributionIndex)
+    function numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeTierIndex)
         external
         pure
         returns (uint256)
     {
-        return _numberOfPrizesForIndex(_bitRangeSize, _prizeDistributionIndex);
+        return _numberOfPrizesForIndex(_bitRangeSize, _prizeTierIndex);
     }
 
     function calculateNumberOfUserPicks(
