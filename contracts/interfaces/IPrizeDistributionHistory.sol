@@ -78,9 +78,10 @@ interface IPrizeDistributionHistory {
      * @param drawId drawId to store PrizeDistribution for
      * @param prizeDistribution   PrizeDistribution to store
      */
-    function pushPrizeDistribution(uint32 drawId, DrawLib.PrizeDistribution calldata prizeDistribution)
-        external
-        returns (bool);
+    function pushPrizeDistribution(
+        uint32 drawId,
+        DrawLib.PrizeDistribution calldata prizeDistribution
+    ) external returns (bool);
 
     /**
      * @notice Set existing Draw in prize distributions ring buffer with new parameters.

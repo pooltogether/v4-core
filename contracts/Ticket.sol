@@ -224,9 +224,9 @@ contract Ticket is ControlledToken, ITicket {
     /* ============ Internal Functions ============ */
 
     /**
-    * @notice Returns the ERC20 ticket token balance of a ticket holder.
-    * @return uint256 `_user` ticket token balance.
-    */
+     * @notice Returns the ERC20 ticket token balance of a ticket holder.
+     * @return uint256 `_user` ticket token balance.
+     */
     function _balanceOf(address _user) internal view returns (uint256) {
         return balances[_user];
     }
@@ -264,14 +264,14 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     /**
-    * @notice Overridding of the `_transfer` function of the base ERC20 contract.
-    * @dev `_sender` cannot be the zero address.
-    * @dev `_recipient` cannot be the zero address.
-    * @dev `_sender` must have a balance of at least `_amount`.
-    * @param _sender Address of the `_sender`that will send `_amount` of tokens.
-    * @param _recipient Address of the `_recipient`that will receive `_amount` of tokens.
-    * @param _amount Amount of tokens to be transferred from `_sender` to `_recipient`.
-    */
+     * @notice Overridding of the `_transfer` function of the base ERC20 contract.
+     * @dev `_sender` cannot be the zero address.
+     * @dev `_recipient` cannot be the zero address.
+     * @dev `_sender` must have a balance of at least `_amount`.
+     * @param _sender Address of the `_sender`that will send `_amount` of tokens.
+     * @param _recipient Address of the `_recipient`that will receive `_amount` of tokens.
+     * @param _amount Amount of tokens to be transferred from `_sender` to `_recipient`.
+     */
     function _transfer(
         address _sender,
         address _recipient,
@@ -318,11 +318,11 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     /**
-    * @notice Overridding of the `_mint` function of the base ERC20 contract.
-    * @dev `_to` cannot be the zero address.
-    * @param _to Address that will be minted `_amount` of tokens.
-    * @param _amount Amount of tokens to be minted to `_to`.
-    */
+     * @notice Overridding of the `_mint` function of the base ERC20 contract.
+     * @dev `_to` cannot be the zero address.
+     * @param _to Address that will be minted `_amount` of tokens.
+     * @param _amount Amount of tokens to be minted to `_to`.
+     */
     function _mint(address _to, uint256 _amount) internal virtual override {
         require(_to != address(0), "ERC20: mint to the zero address");
 
@@ -356,12 +356,12 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     /**
-    * @notice Overridding of the `_burn` function of the base ERC20 contract.
-    * @dev `_from` cannot be the zero address.
-    * @dev `_from` must have at least `_amount` of tokens.
-    * @param _from Address that will be burned `_amount` of tokens.
-    * @param _amount Amount of tokens to be burnt from `_from`.
-    */
+     * @notice Overridding of the `_burn` function of the base ERC20 contract.
+     * @dev `_from` cannot be the zero address.
+     * @dev `_from` must have at least `_amount` of tokens.
+     * @param _from Address that will be burned `_amount` of tokens.
+     * @param _amount Amount of tokens to be burnt from `_from`.
+     */
     function _burn(address _from, uint256 _amount) internal virtual override {
         require(_from != address(0), "ERC20: burn from the zero address");
 
@@ -406,13 +406,13 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     /**
-    * @notice Increase `_user` TWAB balance.
-    * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be increased.
-    * @dev Otherwise, `_delegate` TWAB balance will be increased.
-    * @param _user Address of the user.
-    * @param _delegate Address of the delegate.
-    * @param _amount Amount of tokens to be added to `_user` TWAB balance.
-    */
+     * @notice Increase `_user` TWAB balance.
+     * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be increased.
+     * @dev Otherwise, `_delegate` TWAB balance will be increased.
+     * @param _user Address of the user.
+     * @param _delegate Address of the delegate.
+     * @param _amount Amount of tokens to be added to `_user` TWAB balance.
+     */
     function _increaseUserTwab(
         address _user,
         address _delegate,
@@ -434,13 +434,13 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     /**
-    * @notice Decrease `_user` TWAB balance.
-    * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be decreased.
-    * @dev Otherwise, `_delegate` TWAB balance will be decreased.
-    * @param _user Address of the user.
-    * @param _delegate Address of the delegate.
-    * @param _amount Amount of tokens to be added to `_user` TWAB balance.
-    */
+     * @notice Decrease `_user` TWAB balance.
+     * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be decreased.
+     * @dev Otherwise, `_delegate` TWAB balance will be decreased.
+     * @param _user Address of the user.
+     * @param _delegate Address of the delegate.
+     * @param _amount Amount of tokens to be added to `_user` TWAB balance.
+     */
     function _decreaseUserTwab(
         address _user,
         address _delegate,

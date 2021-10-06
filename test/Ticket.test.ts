@@ -876,7 +876,9 @@ describe('Ticket', () => {
             const beforeTimestamp = (await provider.getBlock('latest')).timestamp;
 
             expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
-            expect(await ticket.getBalanceAt(wallet2.address, beforeTimestamp)).to.equal(toWei('100'));
+            expect(await ticket.getBalanceAt(wallet2.address, beforeTimestamp)).to.equal(
+                toWei('100'),
+            );
 
             await ticket.delegate(AddressZero);
 
@@ -884,7 +886,9 @@ describe('Ticket', () => {
 
             expect(await ticket.delegateOf(wallet1.address)).to.equal(AddressZero);
             expect(await ticket.getBalanceAt(wallet2.address, afterTimestamp)).to.equal(toWei('0'));
-            expect(await ticket.getBalanceAt(wallet1.address, afterTimestamp)).to.equal(toWei('100'));
+            expect(await ticket.getBalanceAt(wallet1.address, afterTimestamp)).to.equal(
+                toWei('100'),
+            );
         });
 
         it('should clear old delegates if any', async () => {
