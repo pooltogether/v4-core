@@ -10,9 +10,11 @@ import "./interfaces/IPrizeDistributionHistory.sol";
 /**
   * @title  PoolTogether V4 PrizeDistributionHistory
   * @author PoolTogether Inc Team
-  * @notice The PrizeDistributionHistory stores historic PrizeDistribution for each drawId.
-            Storage of the PrizeDistributions is handled by a ring buffer with a max cardinality
-            of 256 or roughly 5 years of history with a weekly draw cadence.
+  * @notice The PrizeDistributionHistory contract provides historical lookups of PrizeDistribution struct parameters (linked with a Draw ID) via a 
+            circular ring buffer. Historical PrizeDistribution parameters can be accessed on-chain using a drawId to calculate
+            ring buffer storage slot. The PrizeDistribution parameters can be created by manager/owner and existing PrizeDistribution
+            parameters can only be updated the owner. When adding a new PrizeDistribution basic sanity checks will be used to
+            validate the incoming parameters.
 */
 contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     using DrawRingBufferLib for DrawRingBufferLib.Buffer;

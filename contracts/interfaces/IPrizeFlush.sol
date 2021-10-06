@@ -6,14 +6,30 @@ import "./IReserve.sol";
 import "./IStrategy.sol";
 
 interface IPrizeFlush {
-    /* ============ Events ============ */
 
+    /**
+        * @notice Emit when flush is executed.
+        * @param recipient Receiver of flushed tokens
+        * @param amount    Amount of flushed tokens
+     */
     event Flushed(address indexed recipient, uint256 amount);
 
+    /**
+        * @notice Emit when destination is set.
+        * @param destination Destination address
+     */
     event DestinationSet(address indexed destination);
 
+    /**
+        * @notice Emit when strategy is set.
+        * @param strategy Strategy address
+     */
     event StrategySet(IStrategy indexed strategy);
 
+    /**
+        * @notice Emit when destination is set.
+        * @param reserve Reserve address
+     */
     event ReserveSet(IReserve indexed reserve);
 
     /* ============ External Functions ============ */

@@ -11,6 +11,10 @@ import "./interfaces/IPrizeFlush.sol";
  * @title  PoolTogether V4 PrizeFlush
  * @notice The PrizeFlush is a helper library to facilitate interest distribution.
  * @author PoolTogether Inc Team
+ * @notice The PrizeFlush contract helps capture interest from the PrizePool and move collected funds
+           to a designated PrizeDistributor contract. When deployed the destination, resereve and strategy
+           addresses are set and used as static parameters during every "flush" execution. The parameters can be
+           reset by the Owner if neccesary.
  */
 contract PrizeFlush is IPrizeFlush, Manageable {
     /**
@@ -48,7 +52,6 @@ contract PrizeFlush is IPrizeFlush, Manageable {
      * @param _destination Destination address.
      * @param _strategy Strategy address.
      * @param _reserve Reserve address.
-     *
      */
     constructor(
         address _owner,
@@ -103,14 +106,15 @@ contract PrizeFlush is IPrizeFlush, Manageable {
 
     /// @inheritdoc IPrizeFlush
     function flush() external override onlyManagerOrOwner returns (bool) {
+        // Captures interest from PrizePool and distributes funds using a PrizeSplitStrategy
         strategy.distribute();
 
-        // After captured interest transferred to Strategy.PrizeSplits[]: [Reserve, Other]
-        // transfer the Reserve balance directly to the DrawPrize (destination) address.
+        // After funds are distributed using PrizeSplitStrategy we EXPECT funds to be located in the Reserve.
         IReserve _reserve = reserve;
         IERC20 _token = _reserve.getToken();
         uint256 _amount = _token.balanceOf(address(_reserve));
 
+        // IF the tokens were succesfully moved to the Reserve, now move the to the destination (PrizeDistributor) address.
         if (_amount > 0) {
             // Create checkpoint and transfers new total balance to DrawPrize
             address _destination = destination;

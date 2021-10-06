@@ -11,20 +11,20 @@ import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/IDrawBeacon.sol";
 
 /**
-  * @title  PoolTogether V4 DrawPrize
-  * @author PoolTogether Inc Team
-  * @notice The DrawPrize distributes claimable draw prizes to users via a pull model.
-            Managing the regularly captured PrizePool interest, a DrawPrize is the
-            entrypoint for users to submit Draw.drawId(s) and winning pick indices.
-            Communicating with a DrawCalculator, the DrawPrize will determine the maximum
-            prize payout and transfer those tokens directly to a user address.
+    * @title  PoolTogether V4 DrawPrize
+    * @author PoolTogether Inc Team
+    * @notice The DrawPrize contract holds Tickets (captured interest) and distributes tickets to users with winning draw claims.
+              DrawPrize uses an external IDrawCalculator to validate a users draw claim, before awarding payouts. To prevent users 
+              from reclaiming prizes, a payout history for each draw claim is mapped to user accounts. Reclaiming a draw can occur
+              if an "optimal" prize was not included in previous claim pick indices and the new claims updated payout is greater then
+              the previous draw prize claim payout.
 */
 contract DrawPrize is IDrawPrize, Ownable {
     using SafeERC20 for IERC20;
 
     /* ============ Global Variables ============ */
 
-    /// @notice The Draw Calculator to use
+    /// @notice DrawCalculator address
     IDrawCalculator internal drawCalculator;
 
     /// @notice Token address
@@ -37,8 +37,8 @@ contract DrawPrize is IDrawPrize, Ownable {
 
     /**
      * @notice Initialize DrawPrize smart contract.
-     * @param _owner           Address of the DrawPrize owner
-     * @param _token           Token address
+     * @param _owner          Owner address
+     * @param _token          Token address
      * @param _drawCalculator DrawCalculator address
      */
     constructor(
@@ -85,6 +85,22 @@ contract DrawPrize is IDrawPrize, Ownable {
         _awardPayout(_user, totalPayout);
 
         return totalPayout;
+    }
+
+    /// @inheritdoc IDrawPrize
+    function withdrawERC20(
+        IERC20 _erc20Token,
+        address _to,
+        uint256 _amount
+    ) external override onlyOwner returns (bool) {
+        require(_to != address(0), "DrawPrize/recipient-not-zero-address");
+        require(address(_erc20Token) != address(0), "DrawPrize/ERC20-not-zero-address");
+
+        _erc20Token.safeTransfer(_to, _amount);
+
+        emit ERC20Withdrawn(_erc20Token, _to, _amount);
+
+        return true;
     }
 
     /// @inheritdoc IDrawPrize
@@ -156,26 +172,4 @@ contract DrawPrize is IDrawPrize, Ownable {
         token.safeTransfer(_to, _amount);
     }
 
-    /**
-     * @notice Transfer ERC20 tokens out of this contract.
-     * @dev    This function is only callable by the owner.
-     * @param _erc20Token ERC20 token to transfer.
-     * @param _to Recipient of the tokens.
-     * @param _amount Amount of tokens to transfer.
-     * @return true if operation is successful.
-     */
-    function withdrawERC20(
-        IERC20 _erc20Token,
-        address _to,
-        uint256 _amount
-    ) external override onlyOwner returns (bool) {
-        require(_to != address(0), "DrawPrize/recipient-not-zero-address");
-        require(address(_erc20Token) != address(0), "DrawPrize/ERC20-not-zero-address");
-
-        _erc20Token.safeTransfer(_to, _amount);
-
-        emit ERC20Withdrawn(_erc20Token, _to, _amount);
-
-        return true;
-    }
 }
