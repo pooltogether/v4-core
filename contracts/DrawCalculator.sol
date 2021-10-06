@@ -394,7 +394,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     }
 
     /**
-     * @notice Create an array of bitmasks equal to the greateer of non-zero tiers or matchCardinality
+     * @notice Create an array of bitmasks equal to the greater of non-zero tiers or matchCardinality
      * @param _prizeDistribution The PrizeDistribution to use to calculate the masks
      * @return An array of bitmasks
      */
