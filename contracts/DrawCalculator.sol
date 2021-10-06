@@ -379,7 +379,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint8 numberOfMatches = 0;
         
         // main number matching loop
-        for (uint8 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++) {
+        uint256 masksLength = masks.lenth;
+        for (uint8 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
             uint256 mask = _masks[matchIndex];
 
             if ((_randomNumberThisPick & mask) != (_winningRandomNumber & mask)) {
@@ -406,13 +407,14 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         
         // calculate the non-zero length of the prize tiers
         uint8 nonZeroPrizeTiersLength = 0;
-        for(uint i = 0; i < _prizeDistribution.tiers.length; i++) {
+        uint256 prizeDistributionTiersLength = _prizeDistribution.tiers.length;
+        for (uint256 i = 0; i < prizeDistributionTiersLength; i++) {
             if(_prizeDistribution.tiers[i] > 0) {
                 nonZeroPrizeTiersLength++;
             }
         }
         uint8 _matchCardinality = _prizeDistribution.matchCardinality;
-        uint8 createMasksLength = nonZeroPrizeTiersLength > _matchCardinality ? nonZeroPrizeTiersLength : _matchCardinality;
+        uint8 createMasksLength = nonZeroPrizeTiersLength > _matchCardinality ? _matchCardinality : nonZeroPrizeTiersLength;
 
         uint256[] memory masks = new uint256[](createMasksLength);
         uint256 _bitRangeMaskValue = (2**_prizeDistribution.bitRangeSize) - 1; // get a decimal representation of bitRangeSize
