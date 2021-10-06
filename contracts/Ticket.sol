@@ -245,8 +245,10 @@ contract Ticket is ControlledToken, ITicket {
     ) internal view returns (uint256[] memory) {
         require(_startTimes.length == _endTimes.length, "Ticket/start-end-times-length-match");
 
-        TwabLib.AccountDetails storage accountDetails = _account.details;
+        TwabLib.AccountDetails memory accountDetails = _account.details;
+
         uint256[] memory averageBalances = new uint256[](_startTimes.length);
+        uint32 currentTimestamp = uint32(block.timestamp);
 
         for (uint256 i = 0; i < _startTimes.length; i++) {
             averageBalances[i] = TwabLib.getAverageBalanceBetween(
@@ -254,7 +256,7 @@ contract Ticket is ControlledToken, ITicket {
                 accountDetails,
                 _startTimes[i],
                 _endTimes[i],
-                uint32(block.timestamp)
+                currentTimestamp
             );
         }
 
