@@ -13,8 +13,6 @@ import "./interfaces/IPrizeDistributionHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
-import "hardhat/console.sol";
-
 /**
   * @title  PoolTogether V4 DrawCalculator
   * @author PoolTogether Inc Team
@@ -195,7 +193,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         DrawLib.Draw[] memory _draws,
         uint64[][] memory _pickIndicesForDraws,
         DrawLib.PrizeDistribution[] memory _prizeDistributions
-    ) internal view returns (uint256[] memory) {
+    ) internal pure returns (uint256[] memory) {
         uint256[] memory prizesAwardable = new uint256[](_normalizedUserBalances.length);
 
         // calculate prizes awardable for each Draw passed
@@ -227,7 +225,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     function _calculateNumberOfUserPicks(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
-    ) internal view returns (uint64) {
+    ) internal pure returns (uint64) {
         return uint64((_normalizedUserBalance * _prizeDistribution.numberOfPicks) / 1 ether);
     }
 
@@ -295,7 +293,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         bytes32 _userRandomNumber,
         uint64[] memory _picks,
         DrawLib.PrizeDistribution memory _prizeDistribution
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         // prizeCounts stores the number of wins at a distribution index
         uint256[] memory prizeCounts = new uint256[](_prizeDistribution.tiers.length);
         
@@ -376,28 +374,22 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint256 _winningRandomNumber,
         uint256[] memory _masks,
         uint8 _matchCardinality
-    ) internal view returns (uint8) {
-        uint8 numberOfMatches = 0;
-        uint8 masksLength = uint8(_masks.length);
+    ) internal pure returns (uint8) {
         
-        console.log("matchCardinality is" , _matchCardinality);
-
+        uint8 numberOfMatches = 0;
+        
         // main number matching loop
         for (uint8 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++) {
             uint256 mask = _masks[matchIndex];
 
             if ((_randomNumberThisPick & mask) != (_winningRandomNumber & mask)) {
                 // there are no more sequential matches since this comparison is not a match
-                console.log("calcTier:: early returning ",(_matchCardinality - numberOfMatches));
                 return _matchCardinality - numberOfMatches;
             }
-
             // else there was a match
-            console.log("incrementing matches");
             numberOfMatches++;
         }
         // this should always return 0
-        console.log("calcTier:: end returning ",(_matchCardinality - numberOfMatches));
         return _matchCardinality - numberOfMatches;
     }
 
@@ -408,7 +400,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      */
     function _createBitMasks(DrawLib.PrizeDistribution memory _prizeDistribution)
         internal
-        view
+        pure
         returns (uint256[] memory)
     {
         
@@ -432,7 +424,6 @@ contract DrawCalculator is IDrawCalculator, Ownable {
             // shift mask bits to correct position and insert in result mask array
             masks[maskIndex] = _bitRangeMaskValue << _matchIndexOffset;
         }
-        console.log("returning bitmasks of length", masks.length);
         return masks;
     }
 
@@ -445,7 +436,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     function _calculatePrizeTierFraction(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _prizeTierIndex
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
          // get the prize fraction at that index
         uint256 prizeFraction = _prizeDistribution.tiers[_prizeTierIndex];
         
@@ -467,7 +458,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     function _calculatePrizeTierFractions(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint8 maxWinningTierIndex
-    ) internal view returns (uint256[] memory) {
+    ) internal pure returns (uint256[] memory) {
         uint256[] memory prizeDistributionFractions = new uint256[](
             maxWinningTierIndex + 1
         );
@@ -490,7 +481,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      */
     function _numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeTierIndex)
         internal
-        view
+        pure
         returns (uint256)
     {
         uint256 bitRangeDecimal = 2**uint256(_bitRangeSize);
