@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.6;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 import "./ExtendedSafeCastLib.sol";
 import "./OverflowSafeComparatorLib.sol";
 import "./RingBufferLib.sol";
