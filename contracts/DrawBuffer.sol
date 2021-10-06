@@ -27,10 +27,10 @@ contract DrawBuffer is IDrawBuffer, Manageable {
     uint16 public constant MAX_CARDINALITY = 256;
 
     /// @notice Draws ring buffer array.
-    IDrawBeacon.Draw[MAX_CARDINALITY] private _draws;
+    IDrawBeacon.Draw[MAX_CARDINALITY] private drawRingBuffer;
 
     /// @notice Holds ring buffer information
-    DrawRingBufferLib.Buffer internal drawRingBuffer;
+    DrawRingBufferLib.Buffer internal bufferMetadata;
 
     /* ============ Deploy ============ */
 
@@ -40,19 +40,19 @@ contract DrawBuffer is IDrawBuffer, Manageable {
      * @param _cardinality Draw ring buffer cardinality.
      */
     constructor(address _owner, uint8 _cardinality) Ownable(_owner) {
-        drawRingBuffer.cardinality = _cardinality;
+        bufferMetadata.cardinality = _cardinality;
     }
 
     /* ============ External Functions ============ */
 
     /// @inheritdoc IDrawBuffer
     function getBufferCardinality() external view override returns (uint32) {
-        return drawRingBuffer.cardinality;
+        return bufferMetadata.cardinality;
     }
 
     /// @inheritdoc IDrawBuffer
     function getDraw(uint32 drawId) external view override returns (IDrawBeacon.Draw memory) {
-        return _draws[_drawIdToDrawIndex(drawRingBuffer, drawId)];
+        return drawRingBuffer[_drawIdToDrawIndex(bufferMetadata, drawId)];
     }
 
     /// @inheritdoc IDrawBuffer
@@ -63,10 +63,10 @@ contract DrawBuffer is IDrawBuffer, Manageable {
         returns (IDrawBeacon.Draw[] memory)
     {
         IDrawBeacon.Draw[] memory draws = new IDrawBeacon.Draw[](_drawIds.length);
-        DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
+        DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
 
         for (uint256 index = 0; index < _drawIds.length; index++) {
-            draws[index] = _draws[_drawIdToDrawIndex(buffer, _drawIds[index])];
+            draws[index] = drawRingBuffer[_drawIdToDrawIndex(buffer, _drawIds[index])];
         }
 
         return draws;
@@ -74,7 +74,7 @@ contract DrawBuffer is IDrawBuffer, Manageable {
 
     /// @inheritdoc IDrawBuffer
     function getDrawCount() external view override returns (uint32) {
-        DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
+        DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
 
         if (buffer.lastDrawId == 0) {
             return 0;
@@ -82,7 +82,7 @@ contract DrawBuffer is IDrawBuffer, Manageable {
 
         uint32 bufferNextIndex = buffer.nextIndex;
 
-        if (_draws[bufferNextIndex].timestamp != 0) {
+        if (drawRingBuffer[bufferNextIndex].timestamp != 0) {
             return buffer.cardinality;
         } else {
             return bufferNextIndex;
@@ -91,18 +91,18 @@ contract DrawBuffer is IDrawBuffer, Manageable {
 
     /// @inheritdoc IDrawBuffer
     function getNewestDraw() external view override returns (IDrawBeacon.Draw memory) {
-        return _getNewestDraw(drawRingBuffer);
+        return _getNewestDraw(bufferMetadata);
     }
 
     /// @inheritdoc IDrawBuffer
     function getOldestDraw() external view override returns (IDrawBeacon.Draw memory) {
         // oldest draw should be next available index, otherwise it's at 0
-        DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
-        IDrawBeacon.Draw memory draw = _draws[buffer.nextIndex];
+        DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
+        IDrawBeacon.Draw memory draw = drawRingBuffer[buffer.nextIndex];
 
         if (draw.timestamp == 0) {
             // if draw is not init, then use draw at 0
-            draw = _draws[0];
+            draw = drawRingBuffer[0];
         }
 
         return draw;
@@ -120,9 +120,9 @@ contract DrawBuffer is IDrawBuffer, Manageable {
 
     /// @inheritdoc IDrawBuffer
     function setDraw(IDrawBeacon.Draw memory _newDraw) external override onlyOwner returns (uint32) {
-        DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
+        DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
         uint32 index = buffer.getIndex(_newDraw.drawId);
-        _draws[index] = _newDraw;
+        drawRingBuffer[index] = _newDraw;
         emit DrawSet(_newDraw.drawId, _newDraw);
         return _newDraw.drawId;
     }
@@ -154,7 +154,7 @@ contract DrawBuffer is IDrawBuffer, Manageable {
         view
         returns (IDrawBeacon.Draw memory)
     {
-        return _draws[_buffer.getIndex(_buffer.lastDrawId)];
+        return drawRingBuffer[_buffer.getIndex(_buffer.lastDrawId)];
     }
 
     /**
@@ -164,9 +164,9 @@ contract DrawBuffer is IDrawBuffer, Manageable {
      * @return Draw.drawId
      */
     function _pushDraw(IDrawBeacon.Draw memory _newDraw) internal returns (uint32) {
-        DrawRingBufferLib.Buffer memory _buffer = drawRingBuffer;
-        _draws[_buffer.nextIndex] = _newDraw;
-        drawRingBuffer = _buffer.push(_newDraw.drawId);
+        DrawRingBufferLib.Buffer memory _buffer = bufferMetadata;
+        drawRingBuffer[_buffer.nextIndex] = _newDraw;
+        bufferMetadata = _buffer.push(_newDraw.drawId);
 
         emit DrawSet(_newDraw.drawId, _newDraw);
 
