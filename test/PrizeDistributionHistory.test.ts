@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { PrizeDistributionSettings } from './types';
-import { fillPrizeDistributionsWithZeros } from './helpers/fillPrizeDistributionsWithZeros';
+import { PrizeDistribution } from './types';
+import { fillPrizeTiersWithZeros } from './helpers/fillPrizeTiersWithZeros';
 
 const { getSigners } = ethers;
 
@@ -13,10 +13,10 @@ describe('PrizeDistributionHistory', () => {
     let wallet3: SignerWithAddress;
     let prizeDistributionHistory: Contract;
 
-    const prizeDistribution: PrizeDistributionSettings = {
+    const prizeDistribution: PrizeDistribution = {
         matchCardinality: BigNumber.from(5),
         numberOfPicks: ethers.utils.parseEther('1'),
-        distributions: [ethers.utils.parseUnits('0.5', 9)],
+        tiers: [ethers.utils.parseUnits('0.5', 9)],
         bitRangeSize: BigNumber.from(3),
         prize: ethers.utils.parseEther('100'),
         startTimestampOffset: BigNumber.from(0),
@@ -24,8 +24,8 @@ describe('PrizeDistributionHistory', () => {
         maxPicksPerUser: BigNumber.from(10),
     };
 
-    prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-        prizeDistribution.distributions,
+    prizeDistribution.tiers = fillPrizeTiersWithZeros(
+        prizeDistribution.tiers,
     );
 
     function newPrizeDistribution(cardinality: number = 5): any {
@@ -46,8 +46,8 @@ describe('PrizeDistributionHistory', () => {
 
         prizeDistributionHistory = await prizeDistributionHistoryFactory.deploy(wallet1.address, 3);
 
-        prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-            prizeDistribution.distributions,
+        prizeDistribution.tiers = fillPrizeTiersWithZeros(
+            prizeDistribution.tiers,
         );
 
         await prizeDistributionHistory.setManager(wallet1.address);
@@ -136,12 +136,12 @@ describe('PrizeDistributionHistory', () => {
 
     describe('pushPrizeDistribution()', () => {
         context('sanity checks', () => {
-            let prizeDistribution: PrizeDistributionSettings;
+            let prizeDistribution: PrizeDistribution;
 
             beforeEach(async () => {
                 prizeDistribution = {
                     matchCardinality: BigNumber.from(5),
-                    distributions: [
+                    tiers: [
                         ethers.utils.parseUnits('0.6', 9),
                         ethers.utils.parseUnits('0.1', 9),
                         ethers.utils.parseUnits('0.1', 9),
@@ -155,8 +155,8 @@ describe('PrizeDistributionHistory', () => {
                     maxPicksPerUser: BigNumber.from(1001),
                 };
 
-                prizeDistribution.distributions = fillPrizeDistributionsWithZeros(
-                    prizeDistribution.distributions,
+                prizeDistribution.tiers = fillPrizeTiersWithZeros(
+                    prizeDistribution.tiers,
                 );
             });
 
@@ -165,7 +165,7 @@ describe('PrizeDistributionHistory', () => {
 
                 await expect(
                     prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
-                ).to.be.revertedWith('DrawCalc/matchCardinality-gte-distributions');
+                ).to.be.revertedWith('DrawCalc/matchCardinality-gte-tiers');
             });
 
             it('should require a sane bit range', async () => {
@@ -178,11 +178,11 @@ describe('PrizeDistributionHistory', () => {
             });
 
             it('cannot set over 100pc of prize for distribution', async () => {
-                prizeDistribution.distributions[0] = ethers.utils.parseUnits('1', 9);
+                prizeDistribution.tiers[0] = ethers.utils.parseUnits('1', 9);
 
                 await expect(
                     prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
-                ).to.be.revertedWith('DrawCalc/distributions-gt-100%');
+                ).to.be.revertedWith('DrawCalc/tiers-gt-100%');
             });
 
             it('cannot set bitRangeSize = 0', async () => {

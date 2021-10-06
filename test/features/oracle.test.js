@@ -1,6 +1,6 @@
 const { PoolEnv } = require('./support/PoolEnv');
 const ethers = require('ethers');
-const { fillPrizeDistributionsWithZeros } = require('../helpers/fillPrizeDistributionsWithZeros');
+const { fillPrizeTiersWithZeros } = require('../helpers/fillPrizeTiersWithZeros');
 
 const toWei = (val) => ethers.utils.parseEther('' + val);
 
@@ -23,8 +23,8 @@ describe('Oracle jobs', () => {
         bitRangeSize = 2;
         matchCardinality = 2;
         numberOfPicks = toWei(1);
-        distributions = [ethers.utils.parseUnits('1', 9)];
-        distributions = fillPrizeDistributionsWithZeros(distributions);
+        tiers = [ethers.utils.parseUnits('1', 9)];
+        tiers = fillPrizeTiersWithZeros(tiers);
         prize = toWei(10);
         startTimestampOffset = 1;
         endTimestampOffset = 2;
@@ -37,7 +37,7 @@ describe('Oracle jobs', () => {
             startTimestampOffset,
             endTimestampOffset,
             numberOfPicks,
-            distributions,
+            tiers,
             prize,
             maxPicksPerUser,
         });

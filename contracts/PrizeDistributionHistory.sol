@@ -24,7 +24,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
     /// @notice The ceiling for prize distributions.  1e9 = 100%.
     /// @dev It's fixed point 9 because 1e9 is the largest "1" that fits into 2**32
-    uint256 internal constant DISTRIBUTION_CEILING = 1e9;
+    uint256 internal constant TIERS_CEILING = 1e9;
 
     /// @notice Emitted when the contract is deployed.
     /// @param cardinality The maximum number of records in the buffer before they begin to expire.
@@ -184,7 +184,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         uint32 _drawId,
         DrawLib.PrizeDistribution calldata _prizeDistribution
     ) internal returns (bool) {
-        
+
         require(_drawId > 0, "DrawCalc/draw-id-gt-0");
         require(_prizeDistribution.matchCardinality > 0, "DrawCalc/matchCardinality-gt-0");
         require(
@@ -195,25 +195,25 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         require(_prizeDistribution.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
         require(_prizeDistribution.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
 
-        // ensure that the sum of the distributions are not gt 100% and record number of non-zero distributions entries
-        uint256 sumTotalDistributions = 0;
-        uint256 nonZeroDistributions = 0;
-        uint256 distributionsLength = _prizeDistribution.distributions.length;
+        // ensure that the sum of the tiers are not gt 100% and record number of non-zero tiers entries
+        uint256 sumTotalTiers = 0;
+        uint256 nonZeroTiers = 0;
+        uint256 tiersLength = _prizeDistribution.tiers.length;
 
-        for (uint256 index = 0; index < distributionsLength; index++) {
-            sumTotalDistributions += _prizeDistribution.distributions[index];
+        for (uint256 index = 0; index < tiersLength; index++) {
+            sumTotalTiers += _prizeDistribution.tiers[index];
 
-            if (_prizeDistribution.distributions[index] > 0) {
-                nonZeroDistributions++;
+            if (_prizeDistribution.tiers[index] > 0) {
+                nonZeroTiers++;
             }
         }
 
         // Each distribution amount stored as uint32 - summed can't exceed 1e9
-        require(sumTotalDistributions <= DISTRIBUTION_CEILING, "DrawCalc/distributions-gt-100%");
+        require(sumTotalTiers <= TIERS_CEILING, "DrawCalc/tiers-gt-100%");
 
         require(
-            _prizeDistribution.matchCardinality >= nonZeroDistributions,
-            "DrawCalc/matchCardinality-gte-distributions"
+            _prizeDistribution.matchCardinality >= nonZeroTiers,
+            "DrawCalc/matchCardinality-gte-tiers"
         );
 
         DrawRingBufferLib.Buffer memory buffer = _prizeDistributionsRingBufferData;
