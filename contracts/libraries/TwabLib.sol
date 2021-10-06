@@ -314,13 +314,7 @@ library TwabLib {
     ) private view returns (ObservationLib.Observation memory) {
         // If `_targetTimestamp` is chronologically after the newest TWAB, we extrapolate a new one
         if (_newestTwab.timestamp.lt(_targetTimestamp, _time)) {
-            return
-                ObservationLib.Observation({
-                    amount: _newestTwab.amount +
-                        _accountDetails.balance *
-                        (_targetTimestamp - _newestTwab.timestamp),
-                    timestamp: _targetTimestamp
-                });
+            return _computeNextTwab(_newestTwab, _accountDetails.balance, _targetTimestamp);
         }
 
         if (_newestTwab.timestamp == _targetTimestamp) {
