@@ -3,6 +3,7 @@
 pragma solidity 0.8.6;
 
 import "../libraries/DrawLib.sol";
+import "./IDrawBeacon.sol";
 
 interface IDrawHistory {
     /**
@@ -10,23 +11,23 @@ interface IDrawHistory {
      * @param drawId Draw id
      * @param draw The Draw struct
      */
-    event DrawSet(uint32 indexed drawId, DrawLib.Draw draw);
+    event DrawSet(uint32 indexed drawId, IDrawBeacon.Draw draw);
 
     /**
      * @notice Read a Draw from the draws ring buffer.
      * @dev    Read a Draw using the Draw.drawId to calculate position in the draws ring buffer.
      * @param drawId Draw.drawId
-     * @return DrawLib.Draw
+     * @return IDrawBeacon.Draw
      */
-    function getDraw(uint32 drawId) external view returns (DrawLib.Draw memory);
+    function getDraw(uint32 drawId) external view returns (IDrawBeacon.Draw memory);
 
     /**
      * @notice Read multiple Draws from the draws ring buffer.
      * @dev    Read multiple Draws using each Draw.drawId to calculate position in the draws ring buffer.
      * @param drawIds Array of Draw.drawIds
-     * @return DrawLib.Draw[]
+     * @return IDrawBeacon.Draw[]
      */
-    function getDraws(uint32[] calldata drawIds) external view returns (DrawLib.Draw[] memory);
+    function getDraws(uint32[] calldata drawIds) external view returns (IDrawBeacon.Draw[] memory);
 
     /**
      * @notice Gets the number of Draws held in the draw ring buffer.
@@ -40,30 +41,30 @@ interface IDrawHistory {
     /**
      * @notice Read newest Draw from the draws ring buffer.
      * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
-     * @return DrawLib.Draw
+     * @return IDrawBeacon.Draw
      */
-    function getNewestDraw() external view returns (DrawLib.Draw memory);
+    function getNewestDraw() external view returns (IDrawBeacon.Draw memory);
 
     /**
      * @notice Read oldest Draw from the draws ring buffer.
      * @dev    Finds the oldest Draw by comparing and/or diffing totalDraws with the cardinality.
-     * @return DrawLib.Draw
+     * @return IDrawBeacon.Draw
      */
-    function getOldestDraw() external view returns (DrawLib.Draw memory);
+    function getOldestDraw() external view returns (IDrawBeacon.Draw memory);
 
     /**
      * @notice Push Draw onto draws ring buffer history.
      * @dev    Push new draw onto draws history via authorized manager or owner.
-     * @param draw DrawLib.Draw
+     * @param draw IDrawBeacon.Draw
      * @return Draw.drawId
      */
-    function pushDraw(DrawLib.Draw calldata draw) external returns (uint32);
+    function pushDraw(IDrawBeacon.Draw calldata draw) external returns (uint32);
 
     /**
      * @notice Set existing Draw in draws ring buffer with new parameters.
      * @dev    Updating a Draw should be used sparingly and only in the event an incorrect Draw parameter has been stored.
-     * @param newDraw DrawLib.Draw
+     * @param newDraw IDrawBeacon.Draw
      * @return Draw.drawId
      */
-    function setDraw(DrawLib.Draw calldata newDraw) external returns (uint32);
+    function setDraw(IDrawBeacon.Draw calldata newDraw) external returns (uint32);
 }

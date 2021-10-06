@@ -4,6 +4,7 @@ pragma solidity 0.8.6;
 
 import "../DrawHistory.sol";
 import "../libraries/DrawLib.sol";
+import "../interfaces/IDrawBeacon.sol";
 
 contract DrawHistoryHarness is DrawHistory {
     constructor(address owner, uint8 card) DrawHistory(owner, card) {}
@@ -15,7 +16,7 @@ contract DrawHistoryHarness is DrawHistory {
         uint256 _winningRandomNumber
     ) external {
         for (uint256 index = _start; index <= _numberOfDraws; index++) {
-            DrawLib.Draw memory _draw = DrawLib.Draw({
+            IDrawBeacon.Draw memory _draw = IDrawBeacon.Draw({
                 winningRandomNumber: _winningRandomNumber,
                 drawId: uint32(index),
                 timestamp: _timestamp,

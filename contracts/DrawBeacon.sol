@@ -232,7 +232,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         uint64 _time = _currentTime();
 
         // create Draw struct
-        DrawLib.Draw memory _draw = DrawLib.Draw({
+        Draw memory _draw = Draw({
             winningRandomNumber: randomNumber,
             drawId: _nextDrawId,
             timestamp: rngRequest.requestedAt, // must use the startAward() timestamp to prevent front-running

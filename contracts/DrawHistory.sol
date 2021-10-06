@@ -26,7 +26,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     uint16 public constant MAX_CARDINALITY = 256;
 
     /// @notice Draws ring buffer array.
-    DrawLib.Draw[MAX_CARDINALITY] private _draws;
+    IDrawBeacon.Draw[MAX_CARDINALITY] private _draws;
 
     /// @notice Holds ring buffer information
     DrawRingBufferLib.Buffer internal drawRingBuffer;
@@ -45,7 +45,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     /* ============ External Functions ============ */
 
     /// @inheritdoc IDrawHistory
-    function getDraw(uint32 drawId) external view override returns (DrawLib.Draw memory) {
+    function getDraw(uint32 drawId) external view override returns (IDrawBeacon.Draw memory) {
         return _draws[_drawIdToDrawIndex(drawRingBuffer, drawId)];
     }
 
@@ -54,9 +54,9 @@ contract DrawHistory is IDrawHistory, Manageable {
         external
         view
         override
-        returns (DrawLib.Draw[] memory)
+        returns (IDrawBeacon.Draw[] memory)
     {
-        DrawLib.Draw[] memory draws = new DrawLib.Draw[](drawIds.length);
+        IDrawBeacon.Draw[] memory draws = new IDrawBeacon.Draw[](drawIds.length);
         DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
 
         for (uint256 index = 0; index < drawIds.length; index++) {
@@ -84,15 +84,15 @@ contract DrawHistory is IDrawHistory, Manageable {
     }
 
     /// @inheritdoc IDrawHistory
-    function getNewestDraw() external view override returns (DrawLib.Draw memory) {
+    function getNewestDraw() external view override returns (IDrawBeacon.Draw memory) {
         return _getNewestDraw(drawRingBuffer);
     }
 
     /// @inheritdoc IDrawHistory
-    function getOldestDraw() external view override returns (DrawLib.Draw memory) {
+    function getOldestDraw() external view override returns (IDrawBeacon.Draw memory) {
         // oldest draw should be next available index, otherwise it's at 0
         DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
-        DrawLib.Draw memory draw = _draws[buffer.nextIndex];
+        IDrawBeacon.Draw memory draw = _draws[buffer.nextIndex];
 
         if (draw.timestamp == 0) {
             // if draw is not init, then use draw at 0
@@ -103,7 +103,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     }
 
     /// @inheritdoc IDrawHistory
-    function pushDraw(DrawLib.Draw memory _draw)
+    function pushDraw(IDrawBeacon.Draw memory _draw)
         external
         override
         onlyManagerOrOwner
@@ -113,7 +113,7 @@ contract DrawHistory is IDrawHistory, Manageable {
     }
 
     /// @inheritdoc IDrawHistory
-    function setDraw(DrawLib.Draw memory _newDraw) external override onlyOwner returns (uint32) {
+    function setDraw(IDrawBeacon.Draw memory _newDraw) external override onlyOwner returns (uint32) {
         DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
         uint32 index = buffer.getIndex(_newDraw.drawId);
         _draws[index] = _newDraw;
@@ -141,12 +141,12 @@ contract DrawHistory is IDrawHistory, Manageable {
      * @notice Read newest Draw from the draws ring buffer.
      * @dev    Uses the lastDrawId to calculate the most recently added Draw.
      * @param _buffer Draw ring buffer
-     * @return DrawLib.Draw
+     * @return IDrawBeacon.Draw
      */
     function _getNewestDraw(DrawRingBufferLib.Buffer memory _buffer)
         internal
         view
-        returns (DrawLib.Draw memory)
+        returns (IDrawBeacon.Draw memory)
     {
         return _draws[_buffer.getIndex(_buffer.lastDrawId)];
     }
@@ -154,10 +154,10 @@ contract DrawHistory is IDrawHistory, Manageable {
     /**
      * @notice Push Draw onto draws ring buffer history.
      * @dev    Push new draw onto draws list via authorized manager or owner.
-     * @param _newDraw DrawLib.Draw
+     * @param _newDraw IDrawBeacon.Draw
      * @return Draw.drawId
      */
-    function _pushDraw(DrawLib.Draw memory _newDraw) internal returns (uint32) {
+    function _pushDraw(IDrawBeacon.Draw memory _newDraw) internal returns (uint32) {
         DrawRingBufferLib.Buffer memory _buffer = drawRingBuffer;
         _draws[_buffer.nextIndex] = _newDraw;
         drawRingBuffer = _buffer.push(_newDraw.drawId);

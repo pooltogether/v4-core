@@ -72,8 +72,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
         require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
-        // READ list of IDrawBeacon using the drawIds from drawHistory
-        IDrawBeacon[] memory draws = drawHistory.getDraws(_drawIds);
+        // READ list of IDrawBeacon.Draw using the drawIds from drawHistory
+        IDrawBeacon.Draw[] memory draws = drawHistory.getDraws(_drawIds);
 
         // READ list of DrawLib.PrizeDistribution using the drawIds
         DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
@@ -117,7 +117,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         override
         returns (uint256[] memory)
     {
-        IDrawBeacon[] memory _draws = drawHistory.getDraws(_drawIds);
+        IDrawBeacon.Draw[] memory _draws = drawHistory.getDraws(_drawIds);
         DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
             .getPrizeDistributions(_drawIds);
 
@@ -133,7 +133,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint32[] memory drawIds = new uint32[](1);
         drawIds[0] = _drawId;
 
-        IDrawBeacon[] memory _draws = drawHistory.getDraws(drawIds);
+        IDrawBeacon.Draw[] memory _draws = drawHistory.getDraws(drawIds);
         DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
             .getPrizeDistributions(drawIds);
 
@@ -238,7 +238,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      */
     function _getNormalizedBalancesAt(
         address _user,
-        IDrawBeacon[] memory _draws,
+        IDrawBeacon.Draw[] memory _draws,
         DrawLib.PrizeDistribution[] memory _prizeDistributions
     ) internal view returns (uint256[] memory) {
         uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_draws.length);
