@@ -17,7 +17,7 @@ import "./ControlledToken.sol";
             The TWAB (time-weighed average balance) enables contract-to-contract lookups of a user's average balance
             between timestamps. The timestamp/balance checkpoints are stored in a ring buffer for each user Account.
             Historical searches of a TWAB(s) are limited to the storage of these checkpoints. A user's average balance can
-            be delegated to an alternative address. When delegating the average weighted balance is added to the delegatee
+            be delegated to an alternative address. When delegating, the average weighted balance is added to the delegate
             TWAB lookup and removed from the delegaters TWAB lookup.
 */
 contract Ticket is ControlledToken, ITicket {
@@ -223,12 +223,21 @@ contract Ticket is ControlledToken, ITicket {
 
     /* ============ Internal Functions ============ */
 
-    /// @notice Returns the ERC20 ticket token balance of a ticket holder.
-    /// @return uint256 `_user` ticket token balance.
+    /**
+    * @notice Returns the ERC20 ticket token balance of a ticket holder.
+    * @return uint256 `_user` ticket token balance.
+    */
     function _balanceOf(address _user) internal view returns (uint256) {
         return balances[_user];
     }
 
+    /**
+     * @notice Retrieves the average balances held by a user for a given time frame.
+     * @param _account The user whose balance is checked.
+     * @param _startTimes The start time of the time frame.
+     * @param _endTimes The end time of the time frame.
+     * @return The average balance that the user held during the time frame.
+     */
     function _getAverageBalancesBetween(
         TwabLib.Account storage _account,
         uint32[] calldata _startTimes,
@@ -252,13 +261,15 @@ contract Ticket is ControlledToken, ITicket {
         return averageBalances;
     }
 
-    /// @notice Overridding of the `_transfer` function of the base ERC20 contract.
-    /// @dev `_sender` cannot be the zero address.
-    /// @dev `_recipient` cannot be the zero address.
-    /// @dev `_sender` must have a balance of at least `_amount`.
-    /// @param _sender Address of the `_sender`that will send `_amount` of tokens.
-    /// @param _recipient Address of the `_recipient`that will receive `_amount` of tokens.
-    /// @param _amount Amount of tokens to be transferred from `_sender` to `_recipient`.
+    /**
+    * @notice Overridding of the `_transfer` function of the base ERC20 contract.
+    * @dev `_sender` cannot be the zero address.
+    * @dev `_recipient` cannot be the zero address.
+    * @dev `_sender` must have a balance of at least `_amount`.
+    * @param _sender Address of the `_sender`that will send `_amount` of tokens.
+    * @param _recipient Address of the `_recipient`that will receive `_amount` of tokens.
+    * @param _amount Amount of tokens to be transferred from `_sender` to `_recipient`.
+    */
     function _transfer(
         address _sender,
         address _recipient,
@@ -306,10 +317,12 @@ contract Ticket is ControlledToken, ITicket {
         _afterTokenTransfer(_sender, _recipient, _amount);
     }
 
-    /// @notice Overridding of the `_mint` function of the base ERC20 contract.
-    /// @dev `_to` cannot be the zero address.
-    /// @param _to Address that will be minted `_amount` of tokens.
-    /// @param _amount Amount of tokens to be minted to `_to`.
+    /**
+    * @notice Overridding of the `_mint` function of the base ERC20 contract.
+    * @dev `_to` cannot be the zero address.
+    * @param _to Address that will be minted `_amount` of tokens.
+    * @param _amount Amount of tokens to be minted to `_to`.
+    */
     function _mint(address _to, uint256 _amount) internal virtual override {
         require(_to != address(0), "ERC20: mint to the zero address");
 
@@ -344,11 +357,13 @@ contract Ticket is ControlledToken, ITicket {
         _afterTokenTransfer(address(0), _to, _amount);
     }
 
-    /// @notice Overridding of the `_burn` function of the base ERC20 contract.
-    /// @dev `_from` cannot be the zero address.
-    /// @dev `_from` must have at least `_amount` of tokens.
-    /// @param _from Address that will be burned `_amount` of tokens.
-    /// @param _amount Amount of tokens to be burnt from `_from`.
+    /**
+    * @notice Overridding of the `_burn` function of the base ERC20 contract.
+    * @dev `_from` cannot be the zero address.
+    * @dev `_from` must have at least `_amount` of tokens.
+    * @param _from Address that will be burned `_amount` of tokens.
+    * @param _amount Amount of tokens to be burnt from `_from`.
+    */
     function _burn(address _from, uint256 _amount) internal virtual override {
         require(_from != address(0), "ERC20: burn from the zero address");
 
@@ -394,12 +409,20 @@ contract Ticket is ControlledToken, ITicket {
         _afterTokenTransfer(_from, address(0), _amount);
     }
 
+    /**
+    * @notice Increase `_user` TWAB balance.
+    * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be increased.
+    * @dev Otherwise, `_delegate` TWAB balance will be increased.
+    * @param _user Address of the user.
+    * @param _delegate Address of the delegate.
+    * @param _amount Amount of tokens to be added to `_user` TWAB balance.
+    */
     function _increaseUserTwab(
-        address _holder,
         address _user,
+        address _delegate,
         uint256 _amount
     ) internal {
-        TwabLib.Account storage _account = userTwabs[_user];
+        TwabLib.Account storage _account = userTwabs[_delegate];
 
         (
             TwabLib.AccountDetails memory accountDetails,
@@ -410,25 +433,25 @@ contract Ticket is ControlledToken, ITicket {
         _account.details = accountDetails;
 
         if (isNew) {
-            emit NewUserTwab(_holder, _user, twab);
+            emit NewUserTwab(_user, _delegate, twab);
         }
     }
 
     /**
-      * @notice Creates the next TWAB for a user with a decrementing balance.
-      * @dev    READS the user/delegate TWAB history and decrements user weighted balance.
-                After decreasing balance, updates the users new TWAB hisotry, and emits
-                an event with indexed holder and user/delegate address(s), plus the new TWAB.
-      * @ @param _holder Token holder (i.e. msg.sender)
-      * @ @param _user   Delegated address for TWAB lookup (default msg.sender)
-      * @ @param _amount Amount transfered out of the account
-     */
+    * @notice Decrease `_user` TWAB balance.
+    * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be decreased.
+    * @dev Otherwise, `_delegate` TWAB balance will be decreased.
+    * @param _user Address of the user.
+    * @param _delegate Address of the delegate.
+    * @param _amount Amount of tokens to be added to `_user` TWAB balance.
+    */
     function _decreaseUserTwab(
-        address _holder,
         address _user,
+        address _delegate,
         uint256 _amount
     ) internal {
-        TwabLib.Account storage _account = userTwabs[_user];
+        TwabLib.Account storage _account = userTwabs[_delegate];
+
         (
             TwabLib.AccountDetails memory accountDetails,
             ObservationLib.Observation memory twab,
@@ -443,7 +466,7 @@ contract Ticket is ControlledToken, ITicket {
         _account.details = accountDetails;
 
         if (isNew) {
-            emit NewUserTwab(_holder, _user, twab);
+            emit NewUserTwab(_user, _delegate, twab);
         }
     }
 }

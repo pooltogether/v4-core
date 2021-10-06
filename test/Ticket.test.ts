@@ -227,7 +227,7 @@ describe('Ticket', () => {
             ).to.equal(mintAmount);
         });
 
-        it('should update delegatee balance', async () => {
+        it('should update delegate balance', async () => {
             await ticket.delegate(wallet3.address);
             await ticket.connect(wallet2).delegate(wallet4.address);
 
@@ -309,7 +309,7 @@ describe('Ticket', () => {
             expect(await ticket.totalSupply()).to.equal(mintAmount);
         });
 
-        it('should update delegatee balance', async () => {
+        it('should update delegate balance', async () => {
             await ticket.delegate(wallet2.address);
 
             expect(await ticket.mint(wallet1.address, mintAmount))
@@ -372,7 +372,7 @@ describe('Ticket', () => {
             expect(await ticket.totalSupply()).to.equal(mintAmount.sub(burnAmount));
         });
 
-        it('should update delegatee balance', async () => {
+        it('should update delegate balance', async () => {
             await ticket.delegate(wallet2.address);
             await ticket.mint(wallet1.address, mintAmount);
 
@@ -867,6 +867,24 @@ describe('Ticket', () => {
 
             expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
             expect(await ticket.getBalanceAt(wallet2.address, timestamp)).to.equal(toWei('100'));
+        });
+
+        it('should delegate back to ticket holder is address zero is passed', async () => {
+            await ticket.mint(wallet1.address, toWei('100'));
+            await ticket.delegate(wallet2.address);
+
+            const beforeTimestamp = (await provider.getBlock('latest')).timestamp;
+
+            expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
+            expect(await ticket.getBalanceAt(wallet2.address, beforeTimestamp)).to.equal(toWei('100'));
+
+            await ticket.delegate(AddressZero);
+
+            const afterTimestamp = (await provider.getBlock('latest')).timestamp;
+
+            expect(await ticket.delegateOf(wallet1.address)).to.equal(AddressZero);
+            expect(await ticket.getBalanceAt(wallet2.address, afterTimestamp)).to.equal(toWei('0'));
+            expect(await ticket.getBalanceAt(wallet1.address, afterTimestamp)).to.equal(toWei('100'));
         });
 
         it('should clear old delegates if any', async () => {
