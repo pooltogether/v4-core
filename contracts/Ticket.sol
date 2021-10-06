@@ -89,19 +89,19 @@ contract Ticket is ControlledToken, ITicket {
 
     /// @inheritdoc ITicket
     function getAverageBalancesBetween(
-        address user,
-        uint32[] calldata startTimes,
-        uint32[] calldata endTimes
+        address _user,
+        uint32[] calldata _startTimes,
+        uint32[] calldata _endTimes
     ) external view override returns (uint256[] memory) {
-        return _getAverageBalancesBetween(userTwabs[user], startTimes, endTimes);
+        return _getAverageBalancesBetween(userTwabs[_user], _startTimes, _endTimes);
     }
 
     /// @inheritdoc ITicket
     function getAverageTotalSuppliesBetween(
-        uint32[] calldata startTimes,
-        uint32[] calldata endTimes
+        uint32[] calldata _startTimes,
+        uint32[] calldata _endTimes
     ) external view override returns (uint256[] memory) {
-        return _getAverageBalancesBetween(totalSupplyTwab, startTimes, endTimes);
+        return _getAverageBalancesBetween(totalSupplyTwab, _startTimes, _endTimes);
     }
 
     /// @inheritdoc ITicket

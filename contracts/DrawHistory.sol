@@ -46,22 +46,22 @@ contract DrawHistory is IDrawHistory, Manageable {
     /* ============ External Functions ============ */
 
     /// @inheritdoc IDrawHistory
-    function getDraw(uint32 drawId) external view override returns (IDrawBeacon.Draw memory) {
-        return _draws[_drawIdToDrawIndex(drawRingBuffer, drawId)];
+    function getDraw(uint32 _drawId) external view override returns (IDrawBeacon.Draw memory) {
+        return _draws[_drawIdToDrawIndex(drawRingBuffer, _drawId)];
     }
 
     /// @inheritdoc IDrawHistory
-    function getDraws(uint32[] calldata drawIds)
+    function getDraws(uint32[] calldata _drawIds)
         external
         view
         override
         returns (IDrawBeacon.Draw[] memory)
     {
-        IDrawBeacon.Draw[] memory draws = new IDrawBeacon.Draw[](drawIds.length);
+        IDrawBeacon.Draw[] memory draws = new IDrawBeacon.Draw[](_drawIds.length);
         DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
 
-        for (uint256 index = 0; index < drawIds.length; index++) {
-            draws[index] = _draws[_drawIdToDrawIndex(buffer, drawIds[index])];
+        for (uint256 index = 0; index < _drawIds.length; index++) {
+            draws[index] = _draws[_drawIdToDrawIndex(buffer, _drawIds[index])];
         }
 
         return draws;

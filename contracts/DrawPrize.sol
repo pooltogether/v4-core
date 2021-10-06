@@ -109,13 +109,13 @@ contract DrawPrize is IDrawPrize, Ownable {
     }
 
     /// @inheritdoc IDrawPrize
-    function getDrawPayoutBalanceOf(address user, uint32 drawId)
+    function getDrawPayoutBalanceOf(address _user, uint32 _drawId)
         external
         view
         override
         returns (uint256)
     {
-        return _getDrawPayoutBalanceOf(user, drawId);
+        return _getDrawPayoutBalanceOf(_user, _drawId);
     }
 
     /// @inheritdoc IDrawPrize

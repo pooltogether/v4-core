@@ -78,10 +78,10 @@ interface IDrawPrize {
 
     /**
         * @notice Sets DrawCalculator reference contract.
-        * @param _newCalculator DrawCalculator address
+        * @param newCalculator DrawCalculator address
         * @return New DrawCalculator address
      */
-    function setDrawCalculator(IDrawCalculator _newCalculator) external returns (IDrawCalculator);
+    function setDrawCalculator(IDrawCalculator newCalculator) external returns (IDrawCalculator);
 
     /**
         * @notice Transfer ERC20 tokens out of contract to recipient address.

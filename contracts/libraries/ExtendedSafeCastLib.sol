@@ -28,9 +28,9 @@ library ExtendedSafeCastLib {
      *
      * - input must fit into 208 bits
      */
-    function toUint208(uint256 value) internal pure returns (uint208) {
-        require(value <= type(uint208).max, "SafeCast: value doesn't fit in 208 bits");
-        return uint208(value);
+    function toUint208(uint256 _value) internal pure returns (uint208) {
+        require(_value <= type(uint208).max, "SafeCast: value doesn't fit in 208 bits");
+        return uint208(_value);
     }
 
     /**
@@ -43,8 +43,8 @@ library ExtendedSafeCastLib {
      *
      * - input must fit into 224 bits
      */
-    function toUint224(uint256 value) internal pure returns (uint224) {
-        require(value <= type(uint224).max, "SafeCast: value doesn't fit in 224 bits");
-        return uint224(value);
+    function toUint224(uint256 _value) internal pure returns (uint224) {
+        require(_value <= type(uint224).max, "SafeCast: value doesn't fit in 224 bits");
+        return uint224(_value);
     }
 }

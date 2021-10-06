@@ -191,7 +191,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
     }
 
     /// @inheritdoc IDrawBeacon
-    function calculateNextBeaconPeriodStartTime(uint256 currentTime)
+    function calculateNextBeaconPeriodStartTime(uint256 _time)
         external
         view
         override
@@ -201,7 +201,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
             _calculateNextBeaconPeriodStartTime(
                 beaconPeriodStartedAt,
                 beaconPeriodSeconds,
-                uint64(currentTime)
+                uint64(_time)
             );
     }
 

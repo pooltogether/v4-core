@@ -248,25 +248,25 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
     /// @inheritdoc IPrizePool
     function awardExternalERC721(
-        address to,
-        address externalToken,
-        uint256[] calldata tokenIds
+        address _to,
+        address _externalToken,
+        uint256[] calldata _tokenIds
     ) external override onlyPrizeStrategy {
-        require(_canAwardExternal(externalToken), "PrizePool/invalid-external-token");
+        require(_canAwardExternal(_externalToken), "PrizePool/invalid-external-token");
 
-        if (tokenIds.length == 0) {
+        if (_tokenIds.length == 0) {
             return;
         }
 
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            try IERC721(externalToken).safeTransferFrom(address(this), to, tokenIds[i]) {} catch (
+        for (uint256 i = 0; i < _tokenIds.length; i++) {
+            try IERC721(_externalToken).safeTransferFrom(address(this), _to, _tokenIds[i]) {} catch (
                 bytes memory error
             ) {
                 emit ErrorAwardingExternalERC721(error);
             }
         }
 
-        emit AwardedExternalERC721(to, externalToken, tokenIds);
+        emit AwardedExternalERC721(_to, _externalToken, _tokenIds);
     }
 
     /// @inheritdoc IPrizePool
@@ -441,11 +441,11 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     function _balance() internal virtual returns (uint256);
 
     /// @notice Supplies asset tokens to the yield source.
-    /// @param mintAmount The amount of asset tokens to be supplied
-    function _supply(uint256 mintAmount) internal virtual;
+    /// @param _mintAmount The amount of asset tokens to be supplied
+    function _supply(uint256 _mintAmount) internal virtual;
 
     /// @notice Redeems asset tokens from the yield source.
-    /// @param redeemAmount The amount of yield-bearing tokens to be redeemed
+    /// @param _redeemAmount The amount of yield-bearing tokens to be redeemed
     /// @return The actual amount of tokens that were redeemed.
-    function _redeem(uint256 redeemAmount) internal virtual returns (uint256);
+    function _redeem(uint256 _redeemAmount) internal virtual returns (uint256);
 }
