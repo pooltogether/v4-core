@@ -24,9 +24,6 @@ contract Ticket is ControlledToken, ITicket {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
-    /// @notice The maximum number of twab entries
-    uint24 internal constant MAX_CARDINALITY = 16777215; // 2**24
-
     /// @notice Record of token holders TWABs for each account.
     mapping(address => TwabLib.Account) internal userTwabs;
 
@@ -237,7 +234,6 @@ contract Ticket is ControlledToken, ITicket {
     ) internal view returns (uint256[] memory) {
         require(_startTimes.length == _endTimes.length, "Ticket/start-end-times-length-match");
 
-        ObservationLib.Observation[MAX_CARDINALITY] storage accountTwabs = _account.twabs;
         TwabLib.AccountDetails memory accountDetails = _account.details;
 
         uint256[] memory averageBalances = new uint256[](_startTimes.length);
@@ -245,7 +241,7 @@ contract Ticket is ControlledToken, ITicket {
 
         for (uint256 i = 0; i < _startTimes.length; i++) {
             averageBalances[i] = TwabLib.getAverageBalanceBetween(
-                accountTwabs,
+                _account.twabs,
                 accountDetails,
                 _startTimes[i],
                 _endTimes[i],
