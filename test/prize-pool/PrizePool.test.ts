@@ -41,20 +41,20 @@ describe('PrizePool', function () {
     let yieldSourceStub: MockContract;
 
     const depositTokenIntoPrizePool = async (
-        walletAddress: string,
+        recipientAddress: string,
         amount: BigNumber,
         token: Contract = depositToken,
-        pool: Contract = prizePool,
+        operator: SignerWithAddress = wallet1,
     ) => {
-        await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, pool.address).returns();
+        await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, prizePool.address).returns();
 
-        await token.approve(pool.address, amount);
-        await token.mint(walletAddress, amount);
+        await token.connect(operator).approve(prizePool.address, amount);
+        await token.connect(operator).mint(operator.address, amount);
 
         if (token.address === depositToken.address) {
-            return await pool.depositTo(walletAddress, amount);
+            return await prizePool.connect(operator).depositTo(recipientAddress, amount);
         } else {
-            return await token.transfer(pool.address, amount);
+            return await token.connect(operator).transfer(prizePool.address, amount);
         }
     };
 
@@ -183,6 +183,18 @@ describe('PrizePool', function () {
                 await depositTokenIntoPrizePool(wallet1.address, balanceCap);
 
                 await expect(depositTokenIntoPrizePool(wallet1.address, amount)).to.be.revertedWith(
+                    'PrizePool/exceeds-balance-cap',
+                );
+            });
+
+            it('should revert when user deposit for another wallet exceeds ticket balance cap', async () => {
+                const amount = toWei('1');
+                const balanceCap = toWei('50000');
+
+                await prizePool.setBalanceCap(balanceCap);
+                await depositTokenIntoPrizePool(wallet2.address, balanceCap);
+
+                await expect(depositTokenIntoPrizePool(wallet2.address, amount)).to.be.revertedWith(
                     'PrizePool/exceeds-balance-cap',
                 );
             });
