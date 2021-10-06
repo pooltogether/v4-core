@@ -170,7 +170,7 @@ library TwabLib {
         AccountDetails memory _accountDetails
     ) internal view returns (uint24 index, ObservationLib.Observation memory twab) {
         index = uint24(
-            RingBufferLib.mostRecentIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
+            RingBufferLib.newestIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
         );
         twab = _twabs[index];
     }

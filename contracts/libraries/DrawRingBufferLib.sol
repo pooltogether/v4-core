@@ -45,7 +45,7 @@ library DrawRingBufferLib {
         uint32 indexOffset = _buffer.lastDrawId - _drawId;
         require(indexOffset < _buffer.cardinality, "DRB/expired-draw");
 
-        uint256 mostRecent = RingBufferLib.mostRecentIndex(_buffer.nextIndex, _buffer.cardinality);
+        uint256 mostRecent = RingBufferLib.newestIndex(_buffer.nextIndex, _buffer.cardinality);
 
         return uint32(RingBufferLib.offset(uint32(mostRecent), indexOffset, _buffer.cardinality));
     }

@@ -221,7 +221,7 @@ describe('PrizeDistributionHistory', () => {
         it('should create a new draw and emit DrawCreated', async () => {
             await expect(
                 await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution()),
-            ).to.emit(prizeDistributionHistory, 'PrizeDistributionsSet');
+            ).to.emit(prizeDistributionHistory, 'PrizeDistributionSet');
         });
     });
 
@@ -318,7 +318,7 @@ describe('PrizeDistributionHistory', () => {
 
             await expect(
                 prizeDistributionHistory.setPrizeDistribution(1, newPrizeDistribution(6)),
-            ).to.emit(prizeDistributionHistory, 'PrizeDistributionsSet');
+            ).to.emit(prizeDistributionHistory, 'PrizeDistributionSet');
 
             expect(
                 (await prizeDistributionHistory.getPrizeDistribution(1)).matchCardinality,
