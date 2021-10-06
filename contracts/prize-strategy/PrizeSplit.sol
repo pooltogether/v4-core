@@ -83,16 +83,16 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     }
 
     /// @inheritdoc IPrizeSplit
-    function setPrizeSplit(PrizeSplitConfig memory _prizeStrategySplit, uint8 _prizeSplitIndex)
+    function setPrizeSplit(PrizeSplitConfig memory _prizeSplit, uint8 _prizeSplitIndex)
         external
         override
         onlyOwner
     {
         require(_prizeSplitIndex < _prizeSplits.length, "PrizeSplit/nonexistent-prizesplit");
-        require(_prizeStrategySplit.target != address(0), "PrizeSplit/invalid-prizesplit-target");
+        require(_prizeSplit.target != address(0), "PrizeSplit/invalid-prizesplit-target");
 
         // Update the prize split config
-        _prizeSplits[_prizeSplitIndex] = _prizeStrategySplit;
+        _prizeSplits[_prizeSplitIndex] = _prizeSplit;
 
         // Total prize split do not exceed 100%
         uint256 totalPercentage = _totalPrizeSplitPercentageAmount();
@@ -100,8 +100,8 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
 
         // Emit updated prize split config
         emit PrizeSplitSet(
-            _prizeStrategySplit.target,
-            _prizeStrategySplit.percentage,
+            _prizeSplit.target,
+            _prizeSplit.percentage,
             _prizeSplitIndex
         );
     }
