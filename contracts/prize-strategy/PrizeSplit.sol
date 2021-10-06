@@ -17,13 +17,13 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     /* ============ External Functions ============ */
 
     /// @inheritdoc IPrizeSplit
-    function getPrizeSplit(uint256 prizeSplitIndex)
+    function getPrizeSplit(uint256 _prizeSplitIndex)
         external
         view
         override
         returns (PrizeSplitConfig memory)
     {
-        return _prizeSplits[prizeSplitIndex];
+        return _prizeSplits[_prizeSplitIndex];
     }
 
     /// @inheritdoc IPrizeSplit
@@ -32,16 +32,16 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     }
 
     /// @inheritdoc IPrizeSplit
-    function setPrizeSplits(PrizeSplitConfig[] calldata newPrizeSplits)
+    function setPrizeSplits(PrizeSplitConfig[] calldata _newPrizeSplits)
         external
         override
         onlyOwner
     {
-        uint256 newPrizeSplitsLength = newPrizeSplits.length;
+        uint256 newPrizeSplitsLength = _newPrizeSplits.length;
 
-        // Add and/or update prize split configs using newPrizeSplits PrizeSplitConfig structs array.
+        // Add and/or update prize split configs using _newPrizeSplits PrizeSplitConfig structs array.
         for (uint256 index = 0; index < newPrizeSplitsLength; index++) {
-            PrizeSplitConfig memory split = newPrizeSplits[index];
+            PrizeSplitConfig memory split = _newPrizeSplits[index];
 
             // REVERT when setting the canonical burn address.
             require(split.target != address(0), "PrizeSplit/invalid-prizesplit-target");
@@ -83,16 +83,16 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     }
 
     /// @inheritdoc IPrizeSplit
-    function setPrizeSplit(PrizeSplitConfig memory prizeStrategySplit, uint8 prizeSplitIndex)
+    function setPrizeSplit(PrizeSplitConfig memory _prizeSplit, uint8 _prizeSplitIndex)
         external
         override
         onlyOwner
     {
-        require(prizeSplitIndex < _prizeSplits.length, "PrizeSplit/nonexistent-prizesplit");
-        require(prizeStrategySplit.target != address(0), "PrizeSplit/invalid-prizesplit-target");
+        require(_prizeSplitIndex < _prizeSplits.length, "PrizeSplit/nonexistent-prizesplit");
+        require(_prizeSplit.target != address(0), "PrizeSplit/invalid-prizesplit-target");
 
         // Update the prize split config
-        _prizeSplits[prizeSplitIndex] = prizeStrategySplit;
+        _prizeSplits[_prizeSplitIndex] = _prizeSplit;
 
         // Total prize split do not exceed 100%
         uint256 totalPercentage = _totalPrizeSplitPercentageAmount();
@@ -100,9 +100,9 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
 
         // Emit updated prize split config
         emit PrizeSplitSet(
-            prizeStrategySplit.target,
-            prizeStrategySplit.percentage,
-            prizeSplitIndex
+            _prizeSplit.target,
+            _prizeSplit.percentage,
+            _prizeSplitIndex
         );
     }
 
@@ -111,15 +111,15 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     /**
      * @notice Calculate single prize split distribution amount.
      * @dev Calculate single prize split distribution amount using the total prize amount and prize split percentage.
-     * @param amount Total prize award distribution amount
-     * @param percentage Percentage with single decimal precision using 0-1000 ranges
+     * @param _amount Total prize award distribution amount
+     * @param _percentage Percentage with single decimal precision using 0-1000 ranges
      */
-    function _getPrizeSplitAmount(uint256 amount, uint16 percentage)
+    function _getPrizeSplitAmount(uint256 _amount, uint16 _percentage)
         internal
         pure
         returns (uint256)
     {
-        return (amount * percentage) / 1000;
+        return (_amount * _percentage) / 1000;
     }
 
     /**
@@ -142,32 +142,32 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     /**
      * @notice Distributes prize split(s).
      * @dev Distributes prize split(s) by awarding ticket or sponsorship tokens.
-     * @param prize Starting prize award amount
+     * @param _prize Starting prize award amount
      * @return Total prize award distribution amount exlcuding the awarded prize split(s)
      */
-    function _distributePrizeSplits(uint256 prize) internal returns (uint256) {
+    function _distributePrizeSplits(uint256 _prize) internal returns (uint256) {
         // Store temporary total prize amount for multiple calculations using initial prize amount.
-        uint256 _prizeTemp = prize;
+        uint256 _prizeTemp = _prize;
         uint256 prizeSplitsLength = _prizeSplits.length;
         for (uint256 index = 0; index < prizeSplitsLength; index++) {
             PrizeSplitConfig memory split = _prizeSplits[index];
-            uint256 _splitAmount = _getPrizeSplitAmount(_prizeTemp, split.percentage);
+            uint256 _splitAmount = _getPrizeSplitAmount(_prize, split.percentage);
 
             // Award the prize split distribution amount.
             _awardPrizeSplitAmount(split.target, _splitAmount);
 
             // Update the remaining prize amount after distributing the prize split percentage.
-            prize = prize - _splitAmount;
+            _prizeTemp = _prizeTemp - _splitAmount;
         }
 
-        return prize;
+        return _prize;
     }
 
     /**
      * @notice Mints ticket or sponsorship tokens to prize split recipient.
      * @dev Mints ticket or sponsorship tokens to prize split recipient via the linked PrizePool contract.
-     * @param target Recipient of minted tokens
-     * @param amount Amount of minted tokens
+     * @param _target Recipient of minted tokens
+     * @param _amount Amount of minted tokens
      */
-    function _awardPrizeSplitAmount(address target, uint256 amount) internal virtual;
+    function _awardPrizeSplitAmount(address _target, uint256 _amount) internal virtual;
 }

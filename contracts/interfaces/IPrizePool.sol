@@ -90,9 +90,9 @@ interface IPrizePool {
     function captureAwardBalance() external returns (uint256);
 
     /// @dev Checks with the Prize Pool if a specific token type may be awarded as an external prize
-    /// @param _externalToken The address of the token to check
+    /// @param externalToken The address of the token to check
     /// @return True if the token may be awarded, false otherwise
-    function canAwardExternal(address _externalToken) external view returns (bool);
+    function canAwardExternal(address externalToken) external view returns (bool);
 
     // @dev Returns the total underlying balance of all assets. This includes both principal and interest.
     /// @return The underlying balance of assets
@@ -130,9 +130,9 @@ interface IPrizePool {
     function getPrizeStrategy() external view returns (address);
 
     /// @dev Checks if a specific token is controlled by the Prize Pool
-    /// @param _controlledToken The address of the token to check
+    /// @param controlledToken The address of the token to check
     /// @return True if the token is a controlled token, false otherwise
-    function isControlled(ITicket _controlledToken) external view returns (bool);
+    function isControlled(ITicket controlledToken) external view returns (bool);
 
     /// @notice Called by the Prize-Strategy to transfer out external ERC20 tokens
     /// @dev Used to transfer out tokens held by the Prize Pool.  Could be liquidated, or anything.
@@ -170,25 +170,25 @@ interface IPrizePool {
     /// @notice Allows the owner to set a balance cap per `token` for the pool.
     /// @dev If a user wins, his balance can go over the cap. He will be able to withdraw the excess but not deposit.
     /// @dev Needs to be called after deploying a prize pool to be able to deposit into it.
-    /// @param _balanceCap New balance cap.
+    /// @param balanceCap New balance cap.
     /// @return True if new balance cap has been successfully set.
-    function setBalanceCap(uint256 _balanceCap) external returns (bool);
+    function setBalanceCap(uint256 balanceCap) external returns (bool);
 
     /// @notice Allows the Governor to set a cap on the amount of liquidity that he pool can hold
-    /// @param _liquidityCap The new liquidity cap for the prize pool
-    function setLiquidityCap(uint256 _liquidityCap) external;
+    /// @param liquidityCap The new liquidity cap for the prize pool
+    function setLiquidityCap(uint256 liquidityCap) external;
 
     /// @notice Sets the prize strategy of the prize pool.  Only callable by the owner.
-    /// @param _prizeStrategy The new prize strategy.  Must implement DrawPrizePrizeStrategy
-    function setPrizeStrategy(address _prizeStrategy) external;
+    /// @param prizeStrategy The new prize strategy.  Must implement DrawPrizePrizeStrategy
+    function setPrizeStrategy(address prizeStrategy) external;
 
     /// @notice Set prize pool ticket.
-    /// @param _ticket Address of the ticket to set.
+    /// @param ticket Address of the ticket to set.
     /// @return True if ticket has been successfully set.
-    function setTicket(ITicket _ticket) external returns (bool);
+    function setTicket(ITicket ticket) external returns (bool);
 
     /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
-    /// @param _compLike The COMP-like token held by the prize pool that should be delegated
-    /// @param _to The address to delegate to
-    function compLikeDelegate(ICompLike _compLike, address _to) external;
+    /// @param compLike The COMP-like token held by the prize pool that should be delegated
+    /// @param to The address to delegate to
+    function compLikeDelegate(ICompLike compLike, address to) external;
 }

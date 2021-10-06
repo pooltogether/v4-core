@@ -53,15 +53,15 @@ contract StakePrizePool is PrizePool {
     }
 
     /// @notice Supplies asset tokens to the yield source.
-    /// @param mintAmount The amount of asset tokens to be supplied
-    function _supply(uint256 mintAmount) internal pure override {
+    /// @param _mintAmount The amount of asset tokens to be supplied
+    function _supply(uint256 _mintAmount) internal pure override {
         // no-op because nothing else needs to be done
     }
 
     /// @notice Redeems asset tokens from the yield source.
-    /// @param redeemAmount The amount of yield-bearing tokens to be redeemed
+    /// @param _redeemAmount The amount of yield-bearing tokens to be redeemed
     /// @return The actual amount of tokens that were redeemed.
-    function _redeem(uint256 redeemAmount) internal pure override returns (uint256) {
-        return redeemAmount;
+    function _redeem(uint256 _redeemAmount) internal pure override returns (uint256) {
+        return _redeemAmount;
     }
 }

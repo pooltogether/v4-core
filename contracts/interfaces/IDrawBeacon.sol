@@ -160,9 +160,9 @@ interface IDrawBeacon {
 
     /**
      * @notice Allows the owner to set the RNG request timeout in seconds. This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
-     * @param _rngTimeout The RNG request timeout in seconds.
+     * @param rngTimeout The RNG request timeout in seconds.
      */
-    function setRngTimeout(uint32 _rngTimeout) external;
+    function setRngTimeout(uint32 rngTimeout) external;
 
     /**
      * @notice Sets the RNG service that the Prize Strategy is connected to
