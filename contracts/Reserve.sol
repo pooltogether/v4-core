@@ -10,9 +10,16 @@ import "./interfaces/IReserve.sol";
 import "./libraries/ObservationLib.sol";
 
 /**
- * @title  PoolTogether V4 Reserve
- * @author PoolTogether Inc Team
- * @notice The Reserve migrates allotments of token distributions.
+    * @title  PoolTogether V4 Reserve
+    * @author PoolTogether Inc Team
+    * @notice The Reserve contract enables historical searches of a token balance increase during a target timerange.
+              As the Reserve contract transfers OUT tokens, the withdraw accumulator is increased. When tokens are
+              transfered IN new checkpoint *can* be created if checkpoint() is called after transfering tokens.
+              By using the reserve and withdraw accumulators to create a new checkpoint, any contract or account
+              can lookup the balance increase of the reserve for a target timerange.   
+    * @dev    By calculating the total held tokens in a speicific time range, contracts that require knowledge 
+              of captured interest during a draw period, can easily call into the Reserve and determininstially
+              determine the newly aqcuired tokens for that time range. 
  */
 contract Reserve is IReserve, Manageable {
     using SafeERC20 for IERC20;
