@@ -33,7 +33,7 @@ library RingBufferLib {
             return 0;
         }
 
-        return (_nextAvailableIndex + uint256(_cardinality) - 1) % _cardinality;
+        return (_nextAvailableIndex + _cardinality - 1) % _cardinality;
     }
 
     function nextIndex(uint256 _currentIndex, uint256 _cardinality)
