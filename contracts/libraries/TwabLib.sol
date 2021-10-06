@@ -350,11 +350,7 @@ library TwabLib {
         uint224 heldBalance = (afterOrAtStart.amount - beforeOrAtStart.amount) /
             (afterOrAtStart.timestamp - beforeOrAtStart.timestamp);
 
-        uint224 amount = beforeOrAtStart.amount +
-            heldBalance *
-            (_targetTimestamp - beforeOrAtStart.timestamp);
-
-        return ObservationLib.Observation({ amount: amount, timestamp: _targetTimestamp });
+        return _computeNextTwab(beforeOrAtStart, heldBalance, _targetTimestamp);
     }
 
     /**
