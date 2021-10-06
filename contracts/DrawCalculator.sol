@@ -138,7 +138,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         bytes32 _userRandomNumber,
         IDrawBeacon.Draw[] memory _draws,
         uint64[][] memory _pickIndicesForDraws,
-        IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions
+        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions
     ) internal pure returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
         
         uint256[] memory _prizesAwardable = new uint256[](_normalizedUserBalances.length);
@@ -238,7 +238,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint256 _totalUserPicks,
         bytes32 _userRandomNumber,
         uint64[] memory _picks,
-        IPrizeDistributionHistory.PrizeDistribution memory _prizeDistribution
+        IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution
     ) internal pure returns (uint256 prize, uint256[] memory prizeCounts) {
         
         // create bitmasks for the PrizeDistribution
