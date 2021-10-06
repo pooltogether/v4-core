@@ -11,13 +11,13 @@ import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/IDrawBeacon.sol";
 
 /**
-  * @title  PoolTogether V4 DrawPrize
-  * @author PoolTogether Inc Team
-  * @notice The DrawPrize distributes claimable draw prizes to users via a pull model.
-            Managing the regularly captured PrizePool interest, a DrawPrize is the
-            entrypoint for users to submit Draw.drawId(s) and winning pick indices.
-            Communicating with a DrawCalculator, the DrawPrize will determine the maximum
-            prize payout and transfer those tokens directly to a user address.
+    * @title  PoolTogether V4 DrawPrize
+    * @author PoolTogether Inc Team
+    * @notice The DrawPrize contract holds Tickets (captured interest) and distributes tickets to users with winning draw claims.
+              DrawPrize uses an external IDrawCalculator to validate a users draw claim, before awarding payouts. To prevent users 
+              from reclaiming prizes, a payout history for each draw claim is mapped to user accounts. Reclaiming a draw can occur
+              if an "optimal" prize was not included in previous claim pick indices and the new claims updated payout is greater then
+              the previous draw prize claim payout.
 */
 contract DrawPrize is IDrawPrize, Ownable {
     using SafeERC20 for IERC20;
