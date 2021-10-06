@@ -325,18 +325,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
                 masks
             );
 
-<<<<<<< HEAD
-            // if there is a prize for this distribution index, 
-            // update the maxWinningDistributionIndex and increment prizeCounts for that distribution index
-            if (distributionIndex < DISTRIBUTIONS_LENGTH) {
-                if (distributionIndex > maxWinningDistributionIndex) {
-                    maxWinningDistributionIndex = distributionIndex;
-=======
             // there is prize for this tier index
             if (tiersIndex < TIERS_LENGTH) {
                 if (tiersIndex > maxWinningTierIndex) {
                     maxWinningTierIndex = tiersIndex;
->>>>>>> more renaming
                 }
                 prizeCounts[tiersIndex]++;
             }
