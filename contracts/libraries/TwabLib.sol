@@ -306,9 +306,14 @@ library TwabLib {
         return ObservationLib.Observation({ amount: amount, timestamp: targetTimestamp });
     }
 
-    /// @notice Records a new TWAB.
-    /// @param _currentBalance Current `amount`.
-    /// @return New TWAB that was recorded.
+    /**
+      * @notice Calculates the next TWAB using the newestTwab and updated balance.
+      * @dev    Storage of the TWAB obersation is managed by the calling function and not _computeNextTwab.
+      * @param _currentTwab    Newest Observation in the Account.twabs list
+      * @param _currentBalance User balance at time of most recent (newest) checkpoint write
+      * @param _time           Current block.timestamp
+      * @return TWAB Observation
+     */
     function _computeNextTwab(
         ObservationLib.Observation memory _currentTwab,
         uint256 _currentBalance,
