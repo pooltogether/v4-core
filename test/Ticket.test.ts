@@ -57,6 +57,8 @@ async function printTwabs(
     twabs.forEach((twab, index) => {
         debugLog(`Twab ${index} { amount: ${twab.amount}, timestamp: ${twab.timestamp}}`);
     });
+
+    return twabs
 }
 
 describe('Ticket', () => {
@@ -88,6 +90,12 @@ describe('Ticket', () => {
         );
 
         prizePool.mock.getBalanceCap.returns(MaxUint256);
+
+        // delegate for each of the users
+        await ticket.delegate(wallet1.address)
+        await ticket.connect(wallet2).delegate(wallet2.address)
+        await ticket.connect(wallet3).delegate(wallet3.address)
+        await ticket.connect(wallet4).delegate(wallet4.address)
     });
 
     describe('constructor()', () => {
@@ -287,7 +295,7 @@ describe('Ticket', () => {
 
             await expect(
                 ticket.transferTo(wallet1.address, wallet2.address, insufficientMintAmount),
-            ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+            ).to.be.revertedWith('ERC20: burn amount exceeds balance');
         });
     });
 
@@ -339,15 +347,20 @@ describe('Ticket', () => {
             expect(await ticket.mintTwice(wallet1.address, mintAmount))
                 .to.emit(ticket, 'Transfer')
                 .withArgs(AddressZero, wallet1.address, mintAmount);
+            const timestamp = (await getBlock('latest')).timestamp;
 
-            await printTwabs(ticket, wallet1, debug);
+            const twabs = await printTwabs(ticket, wallet1, debug);
 
-            const context = await ticket.getAccountDetails(wallet1.address);
+            const matchingTwabs = twabs.reduce((all: any, twab: any) => {
+                debug(`TWAB timestamp ${twab.timestamp}, timestamp: ${timestamp}`)
+                debug(twab)
+                if (twab.timestamp.toString() == timestamp.toString()) {
+                    all.push(twab)
+                }
+                return all
+            }, [])
 
-            debug(`Twab Context: `, context);
-
-            expect(context.cardinality).to.equal(1);
-            expect(context.nextTwabIndex).to.equal(1);
+            expect(matchingTwabs.length).to.equal(1);
             expect(await ticket.totalSupply()).to.equal(mintAmount.mul(2));
         });
     });
@@ -405,7 +418,7 @@ describe('Ticket', () => {
             await ticket.mint(wallet1.address, insufficientMintAmount);
 
             await expect(ticket.burn(wallet1.address, mintAmount)).to.be.revertedWith(
-                'Ticket/burn-amount-exceeds-total-supply-twab',
+                'ERC20: burn amount exceeds balance',
             );
         });
 
@@ -869,7 +882,7 @@ describe('Ticket', () => {
             expect(await ticket.getBalanceAt(wallet2.address, timestamp)).to.equal(toWei('100'));
         });
 
-        it('should delegate back to ticket holder is address zero is passed', async () => {
+        it('should allow the delegate to be reset by passing zero', async () => {
             await ticket.mint(wallet1.address, toWei('100'));
             await ticket.delegate(wallet2.address);
 
@@ -886,9 +899,7 @@ describe('Ticket', () => {
 
             expect(await ticket.delegateOf(wallet1.address)).to.equal(AddressZero);
             expect(await ticket.getBalanceAt(wallet2.address, afterTimestamp)).to.equal(toWei('0'));
-            expect(await ticket.getBalanceAt(wallet1.address, afterTimestamp)).to.equal(
-                toWei('100'),
-            );
+            expect(await ticket.getBalanceAt(wallet1.address, afterTimestamp)).to.equal(toWei('0'));
         });
 
         it('should clear old delegates if any', async () => {
