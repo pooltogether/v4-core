@@ -19,10 +19,12 @@ library TwabLib {
     /// @notice The maximum number of twab entries
     uint24 public constant MAX_CARDINALITY = 16777215; // 2**24
 
-    /// @notice A struct containing details for an Account
-    /// @param balance The current balance for an Account
-    /// @param nextTwabIndex The next available index to store a new twab
-    /// @param cardinality The upper limit on the number of twabs.
+    /** @notice Struct ring buffer parameters for single user Account
+      * @param balance       Current balance for an Account
+      * @param nextTwabIndex Next uninitialized or updatable ring buffer checkpoint storage slot
+      * @param cardinality   Current total "initialized" ring buffer checkpoints for single user AccountDetails. 
+                             Used to set initial boundary conditions for an efficient binary search.
+    */
     struct AccountDetails {
         uint208 balance;
         uint24 nextTwabIndex;
