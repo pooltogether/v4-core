@@ -82,51 +82,51 @@ describe('TwabLib', () => {
                 await twabLib.increaseBalance(currentBalance, timestamp);
             });
 
-            it('should return an average of zero for pre-history requests', async () => {
-                expect(
-                    await twabLib.getAverageBalanceBetween(
+            it('should fail for pre-history requests', async () => {
+                await expect(
+                    twabLib.getAverageBalanceBetween(
                         timestamp - 100,
                         timestamp - 50,
                         currentTime,
                     ),
-                ).to.equal('0');
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
 
-            it('should return an average of zero for pre-history requests when including the first twab', async () => {
-                expect(
-                    await twabLib.getAverageBalanceBetween(timestamp - 100, timestamp, currentTime),
-                ).to.equal('0');
+            it('should fail for pre-history requests when including the first twab', async () => {
+                await expect(
+                    twabLib.getAverageBalanceBetween(timestamp - 100, timestamp, currentTime),
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
 
             it('should not project into the future', async () => {
                 // at this time the user has held 1000 tokens for zero seconds
-                expect(
-                    await twabLib.getAverageBalanceBetween(
+                await expect(
+                    twabLib.getAverageBalanceBetween(
                         timestamp - 50,
                         timestamp + 50,
                         timestamp,
                     ),
-                ).to.equal('0');
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
 
-            it('should return half the minted balance when the duration is centered over first twab', async () => {
-                expect(
-                    await twabLib.getAverageBalanceBetween(
+            it('should fail when the duration is centered over first twab', async () => {
+                await expect(
+                    twabLib.getAverageBalanceBetween(
                         timestamp - 50,
                         timestamp + 50,
                         currentTime,
                     ),
-                ).to.equal('500');
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
 
-            it('should return an accurate average when the range is after the last twab', async () => {
-                expect(
-                    await twabLib.getAverageBalanceBetween(
+            it('should fail when the range is after the last twab', async () => {
+                await expect(
+                    twabLib.getAverageBalanceBetween(
                         timestamp + 50,
                         timestamp + 51,
                         currentTime,
                     ),
-                ).to.equal('1000');
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
         });
 
@@ -151,24 +151,24 @@ describe('TwabLib', () => {
       < > | |
       */
 
-            it('should return an average of zero for pre-history requests', async () => {
-                expect(
-                    await twabLib.getAverageBalanceBetween(
+            it('should fail for pre-history requests', async () => {
+                await expect(
+                    twabLib.getAverageBalanceBetween(
                         timestamp1 - 100,
                         timestamp1 - 50,
                         currentTime,
                     ),
-                ).to.equal(toWei('0'));
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
 
-            it('should return half the minted balance when the duration is centered over first twab', async () => {
-                expect(
-                    await twabLib.getAverageBalanceBetween(
+            it('should fail when the duration is centered over first twab', async () => {
+                await expect(
+                    twabLib.getAverageBalanceBetween(
                         timestamp1 - 50,
                         timestamp1 + 50,
                         currentTime,
                     ),
-                ).to.equal(toWei('500'));
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
 
             it('should return an accurate average when the range is between twabs', async () => {
@@ -181,24 +181,24 @@ describe('TwabLib', () => {
                 ).to.equal(toWei('1000'));
             });
 
-            it('should return an accurate average when the end is after the last twab', async () => {
-                expect(
-                    await twabLib.getAverageBalanceBetween(
+            it('should fail when the end is after the last twab', async () => {
+                await expect(
+                    twabLib.getAverageBalanceBetween(
                         timestamp2 - 50,
                         timestamp2 + 50,
                         currentTime,
                     ),
-                ).to.equal(toWei('750'));
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
 
-            it('should return an accurate average when the range is after twabs', async () => {
-                expect(
-                    await twabLib.getAverageBalanceBetween(
+            it('should fail when the range is after twabs', async () => {
+                await expect(
+                    twabLib.getAverageBalanceBetween(
                         timestamp2 + 50,
                         timestamp2 + 51,
                         currentTime,
                     ),
-                ).to.equal(toWei('500'));
+                ).to.be.revertedWith('TwabLib/twab-out-of-range')
             });
         });
     });
