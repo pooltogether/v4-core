@@ -161,6 +161,20 @@ describe('PrizePool', function () {
             });
         });
 
+        describe('depositToAndDelegate()', () => {
+            it('should delegate after depositing', async () => {
+                const amount = toWei('100')
+                await depositToken.approve(prizePool.address, amount);
+                await depositToken.mint(wallet1.address, amount);
+
+                await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, prizePool.address).returns()
+
+                await prizePool.depositToAndDelegate(wallet1.address, amount, wallet2.address)
+
+                expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address)
+            })
+        })
+
         describe('depositTo()', () => {
             it('should revert when deposit exceeds liquidity cap', async () => {
                 const amount = toWei('1');

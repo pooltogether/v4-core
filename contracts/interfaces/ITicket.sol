@@ -3,8 +3,9 @@
 pragma solidity 0.8.6;
 
 import "../libraries/TwabLib.sol";
+import "./IControlledToken.sol";
 
-interface ITicket {
+interface ITicket is IControlledToken {
     /**
      * @notice A struct containing details for an Account.
      * @param balance The current balance for an Account.
@@ -45,12 +46,10 @@ interface ITicket {
 
     /**
      * @notice Emitted when a new TWAB has been recorded.
-     * @param user The Ticket holder address.
      * @param delegate The recipient of the ticket power (may be the same as the user).
      * @param newTwab Updated TWAB of a ticket holder after a successful TWAB recording.
      */
     event NewUserTwab(
-        address indexed user,
         address indexed delegate,
         ObservationLib.Observation newTwab
     );
@@ -76,8 +75,33 @@ interface ITicket {
     * @dev    To reset the delegate, pass the zero address (0x000.000) as `to` parameter.
     * @dev Current delegate address should be different from the new delegate address `to`.
     * @param  to Recipient of delegated TWAB.
-   */
+    */
     function delegate(address to) external;
+
+    /**
+     * @notice Allows the controller to delegate on a users behalf.
+     * @param user The user for whom to delegate
+     * @param delegate The new delegate
+     */
+    function controllerDelegateFor(address user, address delegate) external;
+
+    /**
+     * @notice Allows a user to delegate via signature
+     * @param user The user who is delegating
+     * @param delegate The new delegate
+     * @param deadline The timestamp by which this must be submitted
+     * @param v The v portion of the ECDSA sig
+     * @param r The r portion of the ECDSA sig
+     * @param s The s portion of the ECDSA sig
+     */
+    function delegateWithSignature(
+        address user,
+        address delegate,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
     /**
      * @notice Gets a users twab context.  This is a struct with their balance, next twab index, and cardinality.

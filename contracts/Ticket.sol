@@ -23,6 +23,10 @@ contract Ticket is ControlledToken, ITicket {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
+    // solhint-disable-next-line var-name-mixedcase
+    bytes32 private immutable _DELEGATE_TYPEHASH =
+        keccak256("Delegate(address user,address delegate,uint256 nonce,uint256 deadline)");
+
     /// @notice Record of token holders TWABs for each account.
     mapping(address => TwabLib.Account) internal userTwabs;
 
@@ -31,9 +35,6 @@ contract Ticket is ControlledToken, ITicket {
 
     /// @notice Mapping of delegates.  Each address can delegate their ticket power to another.
     mapping(address => address) internal delegates;
-
-    /// @notice Each address's balance
-    mapping(address => uint256) internal balances;
 
     /* ============ Constructor ============ */
 
@@ -186,49 +187,56 @@ contract Ticket is ControlledToken, ITicket {
         return delegates[_user];
     }
 
-    /// @inheritdoc IERC20
-    function balanceOf(address _user) public view override returns (uint256) {
-        return _balanceOf(_user);
-    }
-
-    /// @inheritdoc IERC20
-    function totalSupply() public view virtual override returns (uint256) {
-        return totalSupplyTwab.details.balance;
+    /// @inheritdoc ITicket
+    function controllerDelegateFor(address _user, address _to) external override onlyController {
+        _delegate(_user, _to);
     }
 
     /// @inheritdoc ITicket
-    function delegate(address to) external virtual override {
-        uint256 balance = _balanceOf(msg.sender);
-        address currentDelegate = delegates[msg.sender];
+    function delegateWithSignature(
+        address _user,
+        address _newDelegate,
+        uint256 _deadline,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+    ) external virtual override {
+        require(block.timestamp <= _deadline, "Ticket/delegate-expired-deadline");
 
-        require(currentDelegate != to, "Ticket/delegate-already-set");
+        bytes32 structHash = keccak256(abi.encode(_DELEGATE_TYPEHASH, _user, _newDelegate, _useNonce(_user), _deadline));
 
-        if (currentDelegate != address(0)) {
-            _decreaseUserTwab(msg.sender, currentDelegate, balance);
-        } else {
-            _decreaseUserTwab(msg.sender, msg.sender, balance);
+        bytes32 hash = _hashTypedDataV4(structHash);
+
+        address signer = ECDSA.recover(hash, _v, _r, _s);
+        require(signer == _user, "Ticket/delegate-invalid-signature");
+
+        _delegate(_user, _newDelegate);
+    }
+
+    /// @inheritdoc ITicket
+    function delegate(address _to) external virtual override {
+        _delegate(msg.sender, _to);
+    }
+
+    /// @notice Delegates a users chance to another
+    /// @param _user The user whose balance should be delegated
+    /// @param _to The delegate
+    function _delegate(address _user, address _to) internal {
+        uint256 balance = balanceOf(_user);
+        address currentDelegate = delegates[_user];
+
+        if (currentDelegate == _to) {
+            return;
         }
 
-        if (to != address(0)) {
-            _increaseUserTwab(msg.sender, to, balance);
-        } else {
-            _increaseUserTwab(msg.sender, msg.sender, balance);
-        }
+        delegates[_user] = _to;
 
-        delegates[msg.sender] = to;
+        _transferTwab(currentDelegate, _to, balance);
 
-        emit Delegated(msg.sender, to);
+        emit Delegated(_user, _to);
     }
 
     /* ============ Internal Functions ============ */
-
-    /**
-     * @notice Returns the ERC20 ticket token balance of a ticket holder.
-     * @return uint256 `_user` ticket token balance.
-     */
-    function _balanceOf(address _user) internal view returns (uint256) {
-        return balances[_user];
-    }
 
     /**
      * @notice Retrieves the average balances held by a user for a given time frame.
@@ -262,109 +270,114 @@ contract Ticket is ControlledToken, ITicket {
         return averageBalances;
     }
 
-    /**
-     * @notice Overridding of the `_transfer` function of the base ERC20 contract.
-     * @dev `_sender` cannot be the zero address.
-     * @dev `_recipient` cannot be the zero address.
-     * @dev `_sender` must have a balance of at least `_amount`.
-     * @param _sender Address of the `_sender`that will send `_amount` of tokens.
-     * @param _recipient Address of the `_recipient`that will receive `_amount` of tokens.
-     * @param _amount Amount of tokens to be transferred from `_sender` to `_recipient`.
-     */
-    function _transfer(
-        address _sender,
-        address _recipient,
-        uint256 _amount
-    ) internal virtual override {
-        require(_sender != address(0), "ERC20: transfer from the zero address");
-        require(_recipient != address(0), "ERC20: transfer to the zero address");
-
-        _beforeTokenTransfer(_sender, _recipient, _amount);
-
-        if (_sender != _recipient) {
-            // standard balance update
-            uint256 senderBalance = balances[_sender];
-            require(senderBalance >= _amount, "ERC20: transfer amount exceeds balance");
-
-            unchecked {
-                balances[_sender] = senderBalance - _amount;
-            }
-
-            balances[_recipient] += _amount;
-
-            // history update
-            address senderDelegate = delegates[_sender];
-
-            if (senderDelegate != address(0)) {
-                _decreaseUserTwab(_sender, senderDelegate, _amount);
-            } else {
-                _decreaseUserTwab(_sender, _sender, _amount);
-            }
-
-            // history update
-            address recipientDelegate = delegates[_recipient];
-
-            if (recipientDelegate != address(0)) {
-                _increaseUserTwab(_recipient, recipientDelegate, _amount);
-            } else {
-                _increaseUserTwab(_recipient, _recipient, _amount);
-            }
+    // @inheritdoc ERC20
+    function _beforeTokenTransfer(address _from, address _to, uint256 _amount) internal override {
+        if (_from == _to) {
+            return;
         }
 
-        emit Transfer(_sender, _recipient, _amount);
+        address _fromDelegate;
+        if (_from != address(0)) {
+            _fromDelegate = delegates[_from];
+        }
 
-        _afterTokenTransfer(_sender, _recipient, _amount);
+        address _toDelegate;
+        if (_to != address(0)) {
+            _toDelegate = delegates[_to];
+        }
+
+        _transferTwab(_fromDelegate, _toDelegate, _amount);
+    }
+
+    /// @notice Transfers the given TWAB balance from one user to another
+    /// @param _from The user to transfer the balance from.  May be zero in the event of a mint.
+    /// @param _to The user to transfer the balance to.  May be zero in the event of a burn.
+    /// @param _amount The balance that is being transferred.
+    function _transferTwab(address _from, address _to, uint256 _amount) internal {
+        // If we are transferring tokens from an undelegated account to a delegated account
+        if (_from == address(0) && _to != address(0)) {
+            _increaseTotalSupplyTwab(_amount);
+        } else // if we are transferring tokens from a delegated account to an undelegated account
+        if (_from != address(0) && _to == address(0)) {
+            _decreaseTotalSupplyTwab(_amount);
+        } // otherwise if the to delegate is set, then increase their twab
+
+        if (_from != address(0)) {
+            _decreaseUserTwab(_from, _amount);
+        }
+        
+        if (_to != address(0)) {
+            _increaseUserTwab(_to, _amount);
+        }
     }
 
     /**
-     * @notice Overridding of the `_mint` function of the base ERC20 contract.
-     * @dev `_to` cannot be the zero address.
-     * @param _to Address that will be minted `_amount` of tokens.
-     * @param _amount Amount of tokens to be minted to `_to`.
+     * @notice Increase `_to` TWAB balance.
+     * @param _to Address of the delegate.
+     * @param _amount Amount of tokens to be added to `_to` TWAB balance.
      */
-    function _mint(address _to, uint256 _amount) internal virtual override {
-        require(_to != address(0), "ERC20: mint to the zero address");
+    function _increaseUserTwab(
+        address _to,
+        uint256 _amount
+    ) internal {
+        if (_amount == 0) {
+            return;
+        }
 
-        _beforeTokenTransfer(address(0), _to, _amount);
-
-        balances[_to] += _amount;
+        TwabLib.Account storage _account = userTwabs[_to];
 
         (
             TwabLib.AccountDetails memory accountDetails,
-            ObservationLib.Observation memory _totalSupply,
-            bool tsIsNew
-        ) = TwabLib.increaseBalance(totalSupplyTwab, _amount, uint32(block.timestamp));
+            ObservationLib.Observation memory twab,
+            bool isNew
+        ) = TwabLib.increaseBalance(_account, _amount, uint32(block.timestamp));
 
-        totalSupplyTwab.details = accountDetails;
+        _account.details = accountDetails;
 
-        if (tsIsNew) {
-            emit NewTotalSupplyTwab(_totalSupply);
+        if (isNew) {
+            emit NewUserTwab(_to, twab);
         }
-
-        address toDelegate = delegates[_to];
-
-        if (toDelegate != address(0)) {
-            _increaseUserTwab(_to, toDelegate, _amount);
-        } else {
-            _increaseUserTwab(_to, _to, _amount);
-        }
-
-        emit Transfer(address(0), _to, _amount);
-
-        _afterTokenTransfer(address(0), _to, _amount);
     }
 
     /**
-     * @notice Overridding of the `_burn` function of the base ERC20 contract.
-     * @dev `_from` cannot be the zero address.
-     * @dev `_from` must have at least `_amount` of tokens.
-     * @param _from Address that will be burned `_amount` of tokens.
-     * @param _amount Amount of tokens to be burnt from `_from`.
+     * @notice Decrease `_to` TWAB balance.
+     * @param _to Address of the delegate.
+     * @param _amount Amount of tokens to be added to `_to` TWAB balance.
      */
-    function _burn(address _from, uint256 _amount) internal virtual override {
-        require(_from != address(0), "ERC20: burn from the zero address");
+    function _decreaseUserTwab(
+        address _to,
+        uint256 _amount
+    ) internal {
+        if (_amount == 0) {
+            return;
+        }
 
-        _beforeTokenTransfer(_from, address(0), _amount);
+        TwabLib.Account storage _account = userTwabs[_to];
+
+        (
+            TwabLib.AccountDetails memory accountDetails,
+            ObservationLib.Observation memory twab,
+            bool isNew
+        ) = TwabLib.decreaseBalance(
+                _account,
+                _amount,
+                "ERC20: burn amount exceeds balance",
+                uint32(block.timestamp)
+            );
+
+        _account.details = accountDetails;
+
+        if (isNew) {
+            emit NewUserTwab(_to, twab);
+        }
+    }
+
+    /// @notice Decreases the total supply twab.  Should be called anytime a balance moves from delegated to undelegated
+    /// @param _amount The amount to decrease the total by
+    function _decreaseTotalSupplyTwab(uint256 _amount) internal {
+        if (_amount == 0) {
+            return;
+        }
 
         (
             TwabLib.AccountDetails memory accountDetails,
@@ -382,86 +395,25 @@ contract Ticket is ControlledToken, ITicket {
         if (tsIsNew) {
             emit NewTotalSupplyTwab(tsTwab);
         }
-
-        uint256 accountBalance = balances[_from];
-
-        require(accountBalance >= _amount, "ERC20: burn amount exceeds balance");
-
-        unchecked {
-            balances[_from] = accountBalance - _amount;
-        }
-
-        address fromDelegate = delegates[_from];
-
-        if (fromDelegate != address(0)) {
-            _decreaseUserTwab(_from, fromDelegate, _amount);
-        } else {
-            _decreaseUserTwab(_from, _from, _amount);
-        }
-
-        emit Transfer(_from, address(0), _amount);
-
-        _afterTokenTransfer(_from, address(0), _amount);
     }
 
-    /**
-     * @notice Increase `_user` TWAB balance.
-     * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be increased.
-     * @dev Otherwise, `_delegate` TWAB balance will be increased.
-     * @param _user Address of the user.
-     * @param _delegate Address of the delegate.
-     * @param _amount Amount of tokens to be added to `_user` TWAB balance.
-     */
-    function _increaseUserTwab(
-        address _user,
-        address _delegate,
-        uint256 _amount
-    ) internal {
-        TwabLib.Account storage _account = userTwabs[_delegate];
+    /// @notice Increases the total supply twab.  Should be called anytime a balance moves from undelegated to delegated
+    /// @param _amount The amount to increase the total by
+    function _increaseTotalSupplyTwab(uint256 _amount) internal {
+        if (_amount == 0) {
+            return;
+        }
 
         (
             TwabLib.AccountDetails memory accountDetails,
-            ObservationLib.Observation memory twab,
-            bool isNew
-        ) = TwabLib.increaseBalance(_account, _amount, uint32(block.timestamp));
+            ObservationLib.Observation memory _totalSupply,
+            bool tsIsNew
+        ) = TwabLib.increaseBalance(totalSupplyTwab, _amount, uint32(block.timestamp));
 
-        _account.details = accountDetails;
+        totalSupplyTwab.details = accountDetails;
 
-        if (isNew) {
-            emit NewUserTwab(_user, _delegate, twab);
-        }
-    }
-
-    /**
-     * @notice Decrease `_user` TWAB balance.
-     * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be decreased.
-     * @dev Otherwise, `_delegate` TWAB balance will be decreased.
-     * @param _user Address of the user.
-     * @param _delegate Address of the delegate.
-     * @param _amount Amount of tokens to be added to `_user` TWAB balance.
-     */
-    function _decreaseUserTwab(
-        address _user,
-        address _delegate,
-        uint256 _amount
-    ) internal {
-        TwabLib.Account storage _account = userTwabs[_delegate];
-
-        (
-            TwabLib.AccountDetails memory accountDetails,
-            ObservationLib.Observation memory twab,
-            bool isNew
-        ) = TwabLib.decreaseBalance(
-                _account,
-                _amount,
-                "ERC20: burn amount exceeds balance",
-                uint32(block.timestamp)
-            );
-
-        _account.details = accountDetails;
-
-        if (isNew) {
-            emit NewUserTwab(_user, _delegate, twab);
+        if (tsIsNew) {
+            emit NewTotalSupplyTwab(_totalSupply);
         }
     }
 }

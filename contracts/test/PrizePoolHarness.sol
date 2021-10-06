@@ -17,7 +17,7 @@ contract PrizePoolHarness is PrizePool {
     function mint(
         address _to,
         uint256 _amount,
-        IControlledToken _controlledToken
+        ITicket _controlledToken
     ) external {
         _mint(_to, _amount, _controlledToken);
     }

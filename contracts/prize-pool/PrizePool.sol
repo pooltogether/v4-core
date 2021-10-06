@@ -12,6 +12,7 @@ import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "../external/compound/ICompLike.sol";
 import "../interfaces/IPrizePool.sol";
+import "../interfaces/ITicket.sol";
 
 /**
   * @title  PoolTogether V4 PrizePool
@@ -31,7 +32,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     string public constant VERSION = "4.0.0";
 
     /// @notice Prize Pool ticket. Can only be set once by calling `setTicket()`.
-    IControlledToken internal ticket;
+    ITicket internal ticket;
 
     /// @notice The Prize Strategy that this Prize Pool is bound to.
     address internal prizeStrategy;
@@ -85,7 +86,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     }
 
     /// @inheritdoc IPrizePool
-    function isControlled(IControlledToken _controlledToken) external view override returns (bool) {
+    function isControlled(ITicket _controlledToken) external view override returns (bool) {
         return _isControlled(_controlledToken);
     }
 
@@ -105,7 +106,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     }
 
     /// @inheritdoc IPrizePool
-    function getTicket() external view override returns (IControlledToken) {
+    function getTicket() external view override returns (ITicket) {
         return ticket;
     }
 
@@ -151,9 +152,29 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         nonReentrant
         canAddLiquidity(_amount)
     {
+        _depositTo(msg.sender, _to, _amount);
+    }
+
+    /// @inheritdoc IPrizePool
+    function depositToAndDelegate(address _to, uint256 _amount, address _delegate)
+        external
+        override
+        nonReentrant
+        canAddLiquidity(_amount)
+    {
+        _depositTo(msg.sender, _to, _amount);
+        ticket.controllerDelegateFor(msg.sender, _delegate);
+    }
+
+    /// @notice Transfers tokens in from one user and mints tickets to another
+    /// @notice _operator The user to transfer tokens from
+    /// @notice _to The user to mint tickets to
+    /// @notice _amount The amount to transfer and mint
+    function _depositTo(address _operator, address _to, uint256 _amount) internal
+    {
         require(_canDeposit(_to, _amount), "PrizePool/exceeds-balance-cap");
 
-        IControlledToken _ticket = ticket;
+        ITicket _ticket = ticket;
 
         _mint(_to, _amount, _ticket);
 
@@ -172,7 +193,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         nonReentrant
         returns (uint256)
     {
-        IControlledToken _ticket = ticket;
+        ITicket _ticket = ticket;
 
         // burn the tickets
         _ticket.controllerBurnFrom(msg.sender, _from, _amount);
@@ -198,7 +219,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         require(_amount <= currentAwardBalance, "PrizePool/award-exceeds-avail");
         _currentAwardBalance = currentAwardBalance - _amount;
 
-        IControlledToken _ticket = ticket;
+        ITicket _ticket = ticket;
 
         _mint(_to, _amount, _ticket);
 
@@ -262,7 +283,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     }
 
     /// @inheritdoc IPrizePool
-    function setTicket(IControlledToken _ticket) external override onlyOwner returns (bool) {
+    function setTicket(ITicket _ticket) external override onlyOwner returns (bool) {
         address _ticketAddress = address(_ticket);
 
         require(_ticketAddress != address(0), "PrizePool/ticket-not-zero-address");
@@ -330,7 +351,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     function _mint(
         address _to,
         uint256 _amount,
-        IControlledToken _controlledToken
+        ITicket _controlledToken
     ) internal {
         _controlledToken.controllerMint(_to, _amount);
     }
@@ -340,7 +361,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     /// @param _amount The amount of tokens to be deposited into the Prize Pool.
     /// @return True if the Prize Pool can receive the specified `amount` of tokens.
     function _canDeposit(address _user, uint256 _amount) internal view returns (bool) {
-        IControlledToken _ticket = ticket;
+        ITicket _ticket = ticket;
         uint256 _balanceCap = balanceCap;
 
         if (_balanceCap == type(uint256).max) return true;
@@ -360,7 +381,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     /// @dev Checks if a specific token is controlled by the Prize Pool
     /// @param _controlledToken The address of the token to check
     /// @return True if the token is a controlled token, false otherwise
-    function _isControlled(IControlledToken _controlledToken) internal view returns (bool) {
+    function _isControlled(ITicket _controlledToken) internal view returns (bool) {
         if (ticket == _controlledToken) {
             return true;
         }

@@ -3,11 +3,11 @@
 pragma solidity 0.8.6;
 
 import "../external/compound/ICompLike.sol";
-import "../interfaces/IControlledToken.sol";
+import "../interfaces/ITicket.sol";
 
 interface IPrizePool {
     /// @dev Event emitted when controlled token is added
-    event ControlledTokenAdded(IControlledToken indexed token);
+    event ControlledTokenAdded(ITicket indexed token);
 
     event AwardCaptured(uint256 amount);
 
@@ -15,12 +15,12 @@ interface IPrizePool {
     event Deposited(
         address indexed operator,
         address indexed to,
-        IControlledToken indexed token,
+        ITicket indexed token,
         uint256 amount
     );
 
     /// @dev Event emitted when interest is awarded to a winner
-    event Awarded(address indexed winner, IControlledToken indexed token, uint256 amount);
+    event Awarded(address indexed winner, ITicket indexed token, uint256 amount);
 
     /// @dev Event emitted when external ERC20s are awarded to a winner
     event AwardedExternalERC20(address indexed winner, address indexed token, uint256 amount);
@@ -35,7 +35,7 @@ interface IPrizePool {
     event Withdrawal(
         address indexed operator,
         address indexed from,
-        IControlledToken indexed token,
+        ITicket indexed token,
         uint256 amount,
         uint256 redeemed
     );
@@ -50,7 +50,7 @@ interface IPrizePool {
     event PrizeStrategySet(address indexed prizeStrategy);
 
     /// @dev Event emitted when the Ticket is set
-    event TicketSet(IControlledToken indexed ticket);
+    event TicketSet(ITicket indexed ticket);
 
     /// @dev Emitted when there was an error thrown awarding an External ERC721
     event ErrorAwardingExternalERC721(bytes error);
@@ -59,6 +59,13 @@ interface IPrizePool {
     /// @param to The address receiving the newly minted tokens
     /// @param amount The amount of assets to deposit
     function depositTo(address to, uint256 amount) external;
+
+    /// @notice Deposit assets into the Prize Pool in exchange for tokens,
+    /// then sets the delegate on behalf of the caller.
+    /// @param to The address receiving the newly minted tokens
+    /// @param amount The amount of assets to deposit
+    /// @param delegate The address to delegate to for the caller
+    function depositToAndDelegate(address to, uint256 amount, address delegate) external;
 
     /// @notice Withdraw assets from the Prize Pool instantly.  A fairness fee may be charged for an early exit.
     /// @param from The address to redeem tokens from.
@@ -110,7 +117,7 @@ interface IPrizePool {
     /**
      * @notice Read ticket variable
      */
-    function getTicket() external view returns (IControlledToken);
+    function getTicket() external view returns (ITicket);
 
     /**
      * @notice Read token variable
@@ -125,7 +132,7 @@ interface IPrizePool {
     /// @dev Checks if a specific token is controlled by the Prize Pool
     /// @param _controlledToken The address of the token to check
     /// @return True if the token is a controlled token, false otherwise
-    function isControlled(IControlledToken _controlledToken) external view returns (bool);
+    function isControlled(ITicket _controlledToken) external view returns (bool);
 
     /// @notice Called by the Prize-Strategy to transfer out external ERC20 tokens
     /// @dev Used to transfer out tokens held by the Prize Pool.  Could be liquidated, or anything.
@@ -178,7 +185,7 @@ interface IPrizePool {
     /// @notice Set prize pool ticket.
     /// @param _ticket Address of the ticket to set.
     /// @return True if ticket has been successfully set.
-    function setTicket(IControlledToken _ticket) external returns (bool);
+    function setTicket(ITicket _ticket) external returns (bool);
 
     /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
     /// @param _compLike The COMP-like token held by the prize pool that should be delegated
