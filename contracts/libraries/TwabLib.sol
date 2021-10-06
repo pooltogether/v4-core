@@ -85,14 +85,14 @@ library TwabLib {
     }
 
     /** @notice Calculates the next TWAB checkpoint for an account with a decreasing balance.
-      * @dev    With Account struct and amount decreasing calculates the next TWAB observable checkpoint.
-      * @param _account        Account whose balance will be decreased
-      * @param _amount         Amount to decrease the balance by
-      * @param _revertMessage  Revert message for insufficient balance
-      * @return accountDetails Updated Account.details struct
-      * @return twab           TWAB observation (with decreasing average)
-      * @return isNew          Whether TWAB is new or calling twice in the same block
-    */
+     * @dev    With Account struct and amount decreasing calculates the next TWAB observable checkpoint.
+     * @param _account        Account whose balance will be decreased
+     * @param _amount         Amount to decrease the balance by
+     * @param _revertMessage  Revert message for insufficient balance
+     * @return accountDetails Updated Account.details struct
+     * @return twab           TWAB observation (with decreasing average)
+     * @return isNew          Whether TWAB is new or calling twice in the same block
+     */
     function decreaseBalance(
         Account storage _account,
         uint208 _amount,
@@ -147,7 +147,7 @@ library TwabLib {
         AccountDetails memory _accountDetails
     ) internal view returns (uint24 index, ObservationLib.Observation memory twab) {
         index = _accountDetails.nextTwabIndex;
-        twab = _twabs[_accountDetails.nextTwabIndex];
+        twab = _twabs[index];
 
         // If the TWAB is not initialized we go to the beginning of the TWAB circular buffer at index 0
         if (twab.timestamp == 0) {
@@ -165,9 +165,7 @@ library TwabLib {
         ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
         AccountDetails memory _accountDetails
     ) internal view returns (uint24 index, ObservationLib.Observation memory twab) {
-        index = uint24(
-            RingBufferLib.newestIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
-        );
+        index = uint24(RingBufferLib.newestIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY));
         twab = _twabs[index];
     }
 
@@ -279,7 +277,8 @@ library TwabLib {
         // Sum the difference in amounts and divide by the difference in timestamps.
         // The time-weighted average balance uses time measured between two epoch timestamps as
         // a constaint on the measurement when calculating the time weighted average balance.
-        return (afterOrAt.amount - beforeOrAt.amount) / (afterOrAt.timestamp - beforeOrAt.timestamp);
+        return
+            (afterOrAt.amount - beforeOrAt.amount) / (afterOrAt.timestamp - beforeOrAt.timestamp);
     }
 
     /** @notice Calculates a user TWAB for a target timestamp using the historical TWAB records.
@@ -362,8 +361,8 @@ library TwabLib {
         return
             ObservationLib.Observation({
                 amount: _currentTwab.amount +
-                        _currentBalance *
-                        (_time.checkedSub(_currentTwab.timestamp, _time)),
+                    _currentBalance *
+                    (_time.checkedSub(_currentTwab.timestamp, _time)),
                 timestamp: _time
             });
     }
@@ -411,7 +410,11 @@ library TwabLib {
     /// @notice "Pushes" a new element on the AccountDetails ring buffer, and returns the new AccountDetails
     /// @param _accountDetails The account details from which to pull the cardinality and next index
     /// @return The new AccountDetails
-    function push(AccountDetails memory _accountDetails) internal pure returns (AccountDetails memory) {
+    function push(AccountDetails memory _accountDetails)
+        internal
+        pure
+        returns (AccountDetails memory)
+    {
         _accountDetails.nextTwabIndex = uint24(
             RingBufferLib.nextIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
         );
@@ -421,7 +424,7 @@ library TwabLib {
         // exceeds the max cardinality, new observations would be incorrectly set or the
         // observation would be out of "bounds" of the ring buffer. Once reached the
         // AccountDetails.cardinality will continue to be equal to max cardinality.
-        if(_accountDetails.cardinality < MAX_CARDINALITY) {
+        if (_accountDetails.cardinality < MAX_CARDINALITY) {
             _accountDetails.cardinality += 1;
         }
 
