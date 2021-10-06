@@ -155,8 +155,10 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         _depositTo(msg.sender, _to, _amount);
     }
 
+    /// @inheritdoc IPrizePool
     function depositToAndDelegate(address _to, uint256 _amount, address _delegate)
         external
+        override
         nonReentrant
         canAddLiquidity(_amount)
     {
@@ -164,6 +166,10 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         ticket.controllerDelegateFor(msg.sender, _delegate);
     }
 
+    /// @notice Transfers tokens in from one user and mints tickets to another
+    /// @notice _operator The user to transfer tokens from
+    /// @notice _to The user to mint tickets to
+    /// @notice _amount The amount to transfer and mint
     function _depositTo(address _operator, address _to, uint256 _amount) internal
     {
         require(_canDeposit(_to, _amount), "PrizePool/exceeds-balance-cap");

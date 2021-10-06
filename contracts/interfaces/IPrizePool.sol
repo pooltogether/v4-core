@@ -60,6 +60,13 @@ interface IPrizePool {
     /// @param amount The amount of assets to deposit
     function depositTo(address to, uint256 amount) external;
 
+    /// @notice Deposit assets into the Prize Pool in exchange for tokens,
+    /// then sets the delegate on behalf of the caller.
+    /// @param to The address receiving the newly minted tokens
+    /// @param amount The amount of assets to deposit
+    /// @param delegate The address to delegate to for the caller
+    function depositToAndDelegate(address to, uint256 amount, address delegate) external;
+
     /// @notice Withdraw assets from the Prize Pool instantly.  A fairness fee may be charged for an early exit.
     /// @param from The address to redeem tokens from.
     /// @param amount The amount of tokens to redeem for assets.
