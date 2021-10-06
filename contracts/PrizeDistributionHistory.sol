@@ -178,8 +178,9 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         uint32 _drawId,
         DrawLib.PrizeDistribution calldata _prizeDistribution
     ) internal returns (bool) {
+        
         require(_drawId > 0, "DrawCalc/draw-id-gt-0");
-
+        require(_prizeDistribution.matchCardinality > 0, "DrawCalc/matchCardinality-gt-0");
         require(
             _prizeDistribution.bitRangeSize <= 256 / _prizeDistribution.matchCardinality,
             "DrawCalc/bitRangeSize-too-large"

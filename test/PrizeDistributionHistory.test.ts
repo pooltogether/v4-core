@@ -193,6 +193,14 @@ describe('PrizeDistributionHistory', () => {
                 ).to.be.revertedWith('DrawCalc/bitRangeSize-gt-0');
             });
 
+            it('cannot set matchCardinality = 0', async () => {
+                prizeDistribution.matchCardinality = BigNumber.from(0);
+
+                await expect(
+                    prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
+                ).to.be.revertedWith('DrawCalc/matchCardinality-gt-0');
+            });
+
             it('cannot set maxPicksPerUser = 0', async () => {
                 prizeDistribution.maxPicksPerUser = BigNumber.from(0);
 
