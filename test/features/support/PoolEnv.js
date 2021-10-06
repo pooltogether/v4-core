@@ -45,7 +45,7 @@ function PoolEnv() {
 
   this.drawCalculator = async () => await ethers.getContract('DrawCalculator');
 
-  this.drawPrize = async (wallet) => (await ethers.getContract('DrawPrize')).connect(wallet);
+  this.prizeDistributor = async (wallet) => (await ethers.getContract('PrizeDistributor')).connect(wallet);
 
   this.rng = async () => await ethers.getContract('RNGServiceStub');
 
@@ -76,7 +76,7 @@ function PoolEnv() {
     debug(`Bought tickets`);
   };
 
-  this.buyTicketsForDrawPrize = async function ({ user, tickets, drawPrize }) {
+  this.buyTicketsForPrizeDistributor = async function ({ user, tickets, prizeDistributor }) {
     debug(`Buying tickets...`);
     const owner = await this.wallet(0);
     let wallet = await this.wallet(user);
@@ -100,9 +100,9 @@ function PoolEnv() {
     await prizePool.depositTo(wallet.address, amount, this.overrides);
 
     debug(`Bought tickets`);
-    ticket.transfer(drawPrize, amount);
+    ticket.transfer(prizeDistributor, amount);
 
-    debug(`Transfer tickets to drawPrize`);
+    debug(`Transfer tickets to prizeDistributor`);
   };
 
   this.expectUserToHaveTickets = async function ({ user, tickets }) {
@@ -123,10 +123,10 @@ function PoolEnv() {
 
   this.claim = async function ({ user, drawId, picks }) {
     const wallet = await this.wallet(user);
-    const drawPrize = await this.drawPrize(wallet);
+    const prizeDistributor = await this.prizeDistributor(wallet);
     const encoder = ethers.utils.defaultAbiCoder;
     const pickIndices = encoder.encode(['uint256[][]'], [[picks]]);
-    await drawPrize.claim(wallet.address, [drawId], pickIndices);
+    await prizeDistributor.claim(wallet.address, [drawId], pickIndices);
   };
 
   this.withdraw = async function ({ user, tickets }) {

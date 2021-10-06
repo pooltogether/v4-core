@@ -4,7 +4,7 @@ pragma solidity 0.8.6;
 
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
-import "./DrawPrize.sol";
+import "./PrizeDistributor.sol";
 
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";

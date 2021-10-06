@@ -5,7 +5,7 @@ pragma solidity 0.8.6;
 import "./ITicket.sol";
 import "./IDrawHistory.sol";
 import "../PrizeDistributionHistory.sol";
-import "../DrawPrize.sol";
+import "../PrizeDistributor.sol";
 
 /**
  * @title  PoolTogether V4 IDrawCalculator
@@ -23,11 +23,11 @@ interface IDrawCalculator {
      IDrawHistory indexed drawHistory,
     IPrizeDistributionHistory indexed prizeDistributionHistory);
 
-    ///@notice Emitted when the drawPrize is set/updated
-    event DrawPrizeSet(DrawPrize indexed drawPrize);
+    ///@notice Emitted when the prizeDistributor is set/updated
+    event PrizeDistributorSet(PrizeDistributor indexed prizeDistributor);
 
     /**
-     * @notice Calculates the prize amount for a user for Multiple Draws. Typically called by a DrawPrize.
+     * @notice Calculates the prize amount for a user for Multiple Draws. Typically called by a PrizeDistributor.
      * @param user User for which to calculate prize amount.
      * @param drawIds drawId array for which to calculate prize amounts for.
      * @param data The ABI encoded pick indices for all Draws. Expected to be winning picks. Pick indices must be less than the totalUserPicks.

@@ -179,8 +179,8 @@ interface IPrizePool {
     function setLiquidityCap(uint256 liquidityCap) external;
 
     /// @notice Sets the prize strategy of the prize pool.  Only callable by the owner.
-    /// @param prizeStrategy The new prize strategy.  Must implement DrawPrizePrizeStrategy
-    function setPrizeStrategy(address prizeStrategy) external;
+    /// @param _prizeStrategy The new prize strategy.
+    function setPrizeStrategy(address _prizeStrategy) external;
 
     /// @notice Set prize pool ticket.
     /// @param ticket Address of the ticket to set.

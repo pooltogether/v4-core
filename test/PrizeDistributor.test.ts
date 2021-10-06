@@ -7,13 +7,13 @@ const { getSigners } = ethers;
 const { parseEther: toWei } = utils;
 const { AddressZero } = constants;
 
-describe('DrawPrize', () => {
+describe('PrizeDistributor', () => {
     let wallet1: any;
     let wallet2: any;
     let wallet3: any;
     let dai: Contract;
     let ticket: Contract;
-    let drawPrize: Contract;
+    let prizeDistributor: Contract;
     let drawCalculator: MockContract;
 
     before(async () => {
@@ -31,15 +31,15 @@ describe('DrawPrize', () => {
         let IDrawCalculator = await artifacts.readArtifact('IDrawCalculator');
         drawCalculator = await deployMockContract(wallet1, IDrawCalculator.abi);
 
-        const drawPrizeFactory: ContractFactory = await ethers.getContractFactory('DrawPrize');
+        const prizeDistributorFactory: ContractFactory = await ethers.getContractFactory('PrizeDistributor');
 
-        drawPrize = await drawPrizeFactory.deploy(
+        prizeDistributor = await prizeDistributorFactory.deploy(
             wallet1.address,
             ticket.address,
             drawCalculator.address,
         );
 
-        await ticket.mint(drawPrize.address, toWei('1000'));
+        await ticket.mint(prizeDistributor.address, toWei('1000'));
     });
 
     /* =============================== */
@@ -49,19 +49,19 @@ describe('DrawPrize', () => {
     describe('Getter Functions', () => {
         describe('getDrawCalculator()', () => {
             it('should succeed to read an empty Draw ID => DrawCalculator mapping', async () => {
-                expect(await drawPrize.getDrawCalculator()).to.equal(drawCalculator.address);
+                expect(await prizeDistributor.getDrawCalculator()).to.equal(drawCalculator.address);
             });
         });
 
         describe('getDrawPayoutBalanceOf()', () => {
             it('should return the user payout for draw before claiming a payout', async () => {
-                expect(await drawPrize.getDrawPayoutBalanceOf(wallet1.address, 0)).to.equal('0');
+                expect(await prizeDistributor.getDrawPayoutBalanceOf(wallet1.address, 0)).to.equal('0');
             });
         });
 
         describe('getToken()', () => {
             it('should succesfully read global token variable', async () => {
-                expect(await drawPrize.getToken()).to.equal(ticket.address);
+                expect(await prizeDistributor.getToken()).to.equal(ticket.address);
             });
         });
     });
@@ -72,29 +72,29 @@ describe('DrawPrize', () => {
     describe('Setter Functions', () => {
         describe('setDrawCalculator()', () => {
             it('should fail to set draw calculator from unauthorized wallet', async () => {
-                const drawPrizeUnauthorized = drawPrize.connect(wallet2);
+                const prizeDistributorUnauthorized = prizeDistributor.connect(wallet2);
                 await expect(
-                    drawPrizeUnauthorized.setDrawCalculator(AddressZero),
+                    prizeDistributorUnauthorized.setDrawCalculator(AddressZero),
                 ).to.be.revertedWith('Ownable/caller-not-owner');
             });
 
             it('should succeed to set new draw calculator for target draw id as owner', async () => {
-                expect(await drawPrize.setDrawCalculator(wallet2.address))
-                    .to.emit(drawPrize, 'DrawCalculatorSet')
+                expect(await prizeDistributor.setDrawCalculator(wallet2.address))
+                    .to.emit(prizeDistributor, 'DrawCalculatorSet')
                     .withArgs(wallet2.address);
             });
 
             it('should not allow a zero calculator', async () => {
-                await expect(drawPrize.setDrawCalculator(AddressZero)).to.be.revertedWith(
-                    'DrawPrize/calc-not-zero',
+                await expect(prizeDistributor.setDrawCalculator(AddressZero)).to.be.revertedWith(
+                    'PrizeDistributor/calc-not-zero',
                 );
             });
 
             it('should succeed to update draw calculator for target draw id as owner', async () => {
-                await drawPrize.setDrawCalculator(wallet2.address);
+                await prizeDistributor.setDrawCalculator(wallet2.address);
 
-                expect(await drawPrize.setDrawCalculator(wallet3.address))
-                    .to.emit(drawPrize, 'DrawCalculatorSet')
+                expect(await prizeDistributor.setDrawCalculator(wallet3.address))
+                    .to.emit(prizeDistributor, 'DrawCalculatorSet')
                     .withArgs(wallet3.address);
             });
         });
@@ -109,8 +109,8 @@ describe('DrawPrize', () => {
                 .withArgs(wallet1.address, [1], '0x')
                 .returns([toWei('10')]);
 
-            await expect(drawPrize.claim(wallet1.address, [1], '0x'))
-                .to.emit(drawPrize, 'ClaimedDraw')
+            await expect(prizeDistributor.claim(wallet1.address, [1], '0x'))
+                .to.emit(prizeDistributor, 'ClaimedDraw')
                 .withArgs(wallet1.address, 1, toWei('10'));
         });
 
@@ -120,11 +120,11 @@ describe('DrawPrize', () => {
                 .returns([toWei('10')]);
 
             // updated
-            await drawPrize.claim(wallet1.address, [0], '0x');
+            await prizeDistributor.claim(wallet1.address, [0], '0x');
 
             // try again: should fail!
-            await expect(drawPrize.claim(wallet1.address, [0], '0x')).to.be.revertedWith(
-                'DrawPrize/zero-payout',
+            await expect(prizeDistributor.claim(wallet1.address, [0], '0x')).to.be.revertedWith(
+                'PrizeDistributor/zero-payout',
             );
         });
 
@@ -134,9 +134,9 @@ describe('DrawPrize', () => {
                 .withArgs(wallet1.address, [1], '0x')
                 .returns([toWei('10')]);
 
-            await drawPrize.claim(wallet1.address, [1], '0x');
+            await prizeDistributor.claim(wallet1.address, [1], '0x');
 
-            expect(await drawPrize.getDrawPayoutBalanceOf(wallet1.address, 1)).to.equal(
+            expect(await prizeDistributor.getDrawPayoutBalanceOf(wallet1.address, 1)).to.equal(
                 toWei('10'),
             );
 
@@ -146,11 +146,11 @@ describe('DrawPrize', () => {
                 .returns([toWei('20')]);
 
             // try again; should reward diff
-            await expect(drawPrize.claim(wallet1.address, [1], '0x'))
-                .to.emit(drawPrize, 'ClaimedDraw')
+            await expect(prizeDistributor.claim(wallet1.address, [1], '0x'))
+                .to.emit(prizeDistributor, 'ClaimedDraw')
                 .withArgs(wallet1.address, 1, toWei('10'));
 
-            expect(await drawPrize.getDrawPayoutBalanceOf(wallet1.address, 1)).to.equal(
+            expect(await prizeDistributor.getDrawPayoutBalanceOf(wallet1.address, 1)).to.equal(
                 toWei('20'),
             );
         });
@@ -160,12 +160,12 @@ describe('DrawPrize', () => {
         let withdrawAmount: BigNumber = toWei('100');
 
         beforeEach(async () => {
-            await dai.mint(drawPrize.address, toWei('1000'));
+            await dai.mint(prizeDistributor.address, toWei('1000'));
         });
 
         it('should fail to withdraw ERC20 tokens as unauthorized account', async () => {
             expect(
-                drawPrize
+                prizeDistributor
                     .connect(wallet3)
                     .withdrawERC20(dai.address, wallet1.address, withdrawAmount),
             ).to.be.revertedWith('Ownable/caller-not-owner');
@@ -173,19 +173,19 @@ describe('DrawPrize', () => {
 
         it('should fail to withdraw ERC20 tokens if recipient address is address zero', async () => {
             await expect(
-                drawPrize.withdrawERC20(dai.address, AddressZero, withdrawAmount),
-            ).to.be.revertedWith('DrawPrize/recipient-not-zero-address');
+                prizeDistributor.withdrawERC20(dai.address, AddressZero, withdrawAmount),
+            ).to.be.revertedWith('PrizeDistributor/recipient-not-zero-address');
         });
 
         it('should fail to withdraw ERC20 tokens if token address is address zero', async () => {
             await expect(
-                drawPrize.withdrawERC20(AddressZero, wallet1.address, withdrawAmount),
-            ).to.be.revertedWith('DrawPrize/ERC20-not-zero-address');
+                prizeDistributor.withdrawERC20(AddressZero, wallet1.address, withdrawAmount),
+            ).to.be.revertedWith('PrizeDistributor/ERC20-not-zero-address');
         });
 
         it('should succeed to withdraw ERC20 tokens as owner', async () => {
-            await expect(drawPrize.withdrawERC20(dai.address, wallet1.address, withdrawAmount))
-                .to.emit(drawPrize, 'ERC20Withdrawn')
+            await expect(prizeDistributor.withdrawERC20(dai.address, wallet1.address, withdrawAmount))
+                .to.emit(prizeDistributor, 'ERC20Withdrawn')
                 .withArgs(dai.address, wallet1.address, withdrawAmount);
         });
     });

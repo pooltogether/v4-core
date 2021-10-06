@@ -6,20 +6,20 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
-import "./interfaces/IDrawPrize.sol";
+import "./interfaces/IPrizeDistributor.sol";
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/IDrawBeacon.sol";
 
 /**
-    * @title  PoolTogether V4 DrawPrize
+    * @title  PoolTogether V4 PrizeDistributor
     * @author PoolTogether Inc Team
-    * @notice The DrawPrize contract holds Tickets (captured interest) and distributes tickets to users with winning draw claims.
-              DrawPrize uses an external IDrawCalculator to validate a users draw claim, before awarding payouts. To prevent users 
+    * @notice The PrizeDistributor contract holds Tickets (captured interest) and distributes tickets to users with winning draw claims.
+              PrizeDistributor uses an external IDrawCalculator to validate a users draw claim, before awarding payouts. To prevent users 
               from reclaiming prizes, a payout history for each draw claim is mapped to user accounts. Reclaiming a draw can occur
               if an "optimal" prize was not included in previous claim pick indices and the new claims updated payout is greater then
-              the previous draw prize claim payout.
+              the previous prize distributor claim payout.
 */
-contract DrawPrize is IDrawPrize, Ownable {
+contract PrizeDistributor is IPrizeDistributor, Ownable {
     using SafeERC20 for IERC20;
 
     /* ============ Global Variables ============ */
@@ -36,7 +36,7 @@ contract DrawPrize is IDrawPrize, Ownable {
     /* ============ Initialize ============ */
 
     /**
-     * @notice Initialize DrawPrize smart contract.
+     * @notice Initialize PrizeDistributor smart contract.
      * @param _owner          Owner address
      * @param _token          Token address
      * @param _drawCalculator DrawCalculator address
@@ -47,14 +47,14 @@ contract DrawPrize is IDrawPrize, Ownable {
         IDrawCalculator _drawCalculator
     ) Ownable(_owner) {
         _setDrawCalculator(_drawCalculator);
-        require(address(_token) != address(0), "DrawPrize/token-not-zero-address");
+        require(address(_token) != address(0), "PrizeDistributor/token-not-zero-address");
         token = _token;
         emit TokenSet(_token);
     }
 
     /* ============ External Functions ============ */
 
-    /// @inheritdoc IDrawPrize
+    /// @inheritdoc IPrizeDistributor
     function claim(
         address _user,
         uint32[] calldata _drawIds,
@@ -75,7 +75,7 @@ contract DrawPrize is IDrawPrize, Ownable {
             }
 
             // helpfully short-circuit, in case the user screwed something up.
-            require(payoutDiff > 0, "DrawPrize/zero-payout");
+            require(payoutDiff > 0, "PrizeDistributor/zero-payout");
 
             totalPayout += payoutDiff;
 
@@ -87,14 +87,14 @@ contract DrawPrize is IDrawPrize, Ownable {
         return totalPayout;
     }
 
-    /// @inheritdoc IDrawPrize
+    /// @inheritdoc IPrizeDistributor
     function withdrawERC20(
         IERC20 _erc20Token,
         address _to,
         uint256 _amount
     ) external override onlyOwner returns (bool) {
-        require(_to != address(0), "DrawPrize/recipient-not-zero-address");
-        require(address(_erc20Token) != address(0), "DrawPrize/ERC20-not-zero-address");
+        require(_to != address(0), "PrizeDistributor/recipient-not-zero-address");
+        require(address(_erc20Token) != address(0), "PrizeDistributor/ERC20-not-zero-address");
 
         _erc20Token.safeTransfer(_to, _amount);
 
@@ -103,12 +103,12 @@ contract DrawPrize is IDrawPrize, Ownable {
         return true;
     }
 
-    /// @inheritdoc IDrawPrize
+    /// @inheritdoc IPrizeDistributor
     function getDrawCalculator() external view override returns (IDrawCalculator) {
         return drawCalculator;
     }
 
-    /// @inheritdoc IDrawPrize
+    /// @inheritdoc IPrizeDistributor
     function getDrawPayoutBalanceOf(address _user, uint32 _drawId)
         external
         view
@@ -118,12 +118,12 @@ contract DrawPrize is IDrawPrize, Ownable {
         return _getDrawPayoutBalanceOf(_user, _drawId);
     }
 
-    /// @inheritdoc IDrawPrize
+    /// @inheritdoc IPrizeDistributor
     function getToken() external view override returns (IERC20) {
         return token;
     }
 
-    /// @inheritdoc IDrawPrize
+    /// @inheritdoc IPrizeDistributor
     function setDrawCalculator(IDrawCalculator _newCalculator)
         external
         override
@@ -157,7 +157,7 @@ contract DrawPrize is IDrawPrize, Ownable {
      * @param _newCalculator  DrawCalculator address
      */
     function _setDrawCalculator(IDrawCalculator _newCalculator) internal {
-        require(address(_newCalculator) != address(0), "DrawPrize/calc-not-zero");
+        require(address(_newCalculator) != address(0), "PrizeDistributor/calc-not-zero");
         drawCalculator = _newCalculator;
 
         emit DrawCalculatorSet(_newCalculator);
