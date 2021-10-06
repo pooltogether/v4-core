@@ -3,10 +3,9 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
@@ -18,21 +17,20 @@ import "./libraries/DrawLib.sol";
   * @title  PoolTogether V4 DrawBeacon
   * @author PoolTogether Inc Team
   * @notice Manages RNG (random number generator) requests and pushing Draws onto DrawHistory.
-            The DrawBeacon has 3 major phases for requesting a random number: start, cancel and complete.
-            Once the complete phase is executed a new Draw (using nextDrawId) is pushed to the currently
-            set DrawHistory smart contracts. If the RNG service requires payment (i.e. ChainLink) the DrawBeacon
-            should have an available balance to cover the fees associated with random number generation.
+            The DrawBeacon has 3 major actions for requesting a random number: start, cancel and complete.
+            To create a new Draw, the user requests a new random number from the RNG service. 
+            When the random number is available, the user can create the draw using the create() method
+            which will push the draw onto the DrawHistory.
+            If the RNG service fails to deliver a rng, when the request timeout elapses, the user can cancel the request.
 */
 contract DrawBeacon is IDrawBeacon, Ownable {
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
-    using Address for address;
-    using ERC165Checker for address;
 
     /* ============ Variables ============ */
 
     /// @notice RNG contract interface
-    RNGInterface public rng;
+    RNGInterface internal rng;
 
     /// @notice Current RNG Request
     RngRequest internal rngRequest;
@@ -44,19 +42,19 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      * @notice RNG Request Timeout.  In fact, this is really a "complete draw" timeout.
      * @dev If the rng completes the award can still be cancelled.
      */
-    uint32 public rngTimeout;
+    uint32 internal rngTimeout;
 
     /// @notice Seconds between beacon period request
-    uint32 public beaconPeriodSeconds;
+    uint32 internal beaconPeriodSeconds;
 
     /// @notice Epoch timestamp when beacon period can start
-    uint64 public beaconPeriodStartedAt;
+    uint64 internal beaconPeriodStartedAt;
 
     /**
      * @notice Next Draw ID to use when pushing a Draw onto DrawHistory
      * @dev Starts at 1. This way we know that no Draw has been recorded at 0.
      */
-    uint32 public nextDrawId;
+    uint32 internal nextDrawId;
 
     /* ============ Structs ============ */
 
@@ -75,7 +73,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
     /* ============ Events ============ */
 
     /**
-     * @notice Emit when the DrawBeacon is initialized.
+     * @notice Emit when the DrawBeacon is deployed.
      * @param drawHistory Address of the draw history to push draws to.
      * @param rng Address of RNG service.
      * @param nextDrawId Draw ID at which the DrawBeacon should start. Can't be inferior to 1.
@@ -92,8 +90,8 @@ contract DrawBeacon is IDrawBeacon, Ownable {
 
     /* ============ Modifiers ============ */
 
-    modifier requireDrawNotInProgress() {
-        _requireDrawNotInProgress();
+    modifier requireDrawNotStarted() {
+        _requireDrawNotStarted();
         _;
     }
 
@@ -174,8 +172,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         if (rngRequest.requestedAt == 0) {
             return false;
         } else {
-            uint64 time = _currentTime();
-            return rngTimeout + rngRequest.requestedAt < time;
+            return rngTimeout + rngRequest.requestedAt < _currentTime();
         }
     }
 
@@ -234,13 +231,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         uint32 _beaconPeriodSeconds = beaconPeriodSeconds;
         uint64 _time = _currentTime();
 
-        /**
-         * A new DrawLib.Draw contains minimal data regarding the state "core" draw state.
-         * Ultimately a Draw.drawId(s) is linked with DrawLib.PrizeDistribution(s) creating
-         * the complete draw prize payout model: prize tiers, payouts, pick indices, etc...
-         * A single Draw struct can have a ONE-TO-MANY relationship with PrizeDistribution settings.
-         * Minimizing the total random numbers required to fairly distribute protocol pool payouts.
-         */
+        // create Draw struct
         DrawLib.Draw memory _draw = DrawLib.Draw({
             winningRandomNumber: randomNumber,
             drawId: _nextDrawId,
@@ -249,29 +240,26 @@ contract DrawBeacon is IDrawBeacon, Ownable {
             beaconPeriodSeconds: _beaconPeriodSeconds
         });
 
-        /**
-         * The DrawBeacon (deployed on L1) will have a Manager role authorized to push history onto DrawHistory.
-         */
         drawHistory.pushDraw(_draw);
 
         // to avoid clock drift, we should calculate the start time based on the previous period start time.
-        _beaconPeriodStartedAt = _calculateNextBeaconPeriodStartTime(
+        uint64 nextBeaconPeriodStartedAt = _calculateNextBeaconPeriodStartTime(
             _beaconPeriodStartedAt,
             _beaconPeriodSeconds,
             _time
         );
-        beaconPeriodStartedAt = _beaconPeriodStartedAt;
+        beaconPeriodStartedAt = nextBeaconPeriodStartedAt;
         nextDrawId = _nextDrawId + 1;
 
         // Reset the rngReqeust state so Beacon period can start again.
         delete rngRequest;
 
         emit DrawCompleted(msg.sender, randomNumber);
-        emit BeaconPeriodStarted(msg.sender, _beaconPeriodStartedAt);
+        emit BeaconPeriodStarted(msg.sender, nextBeaconPeriodStartedAt);
     }
 
     /// @inheritdoc IDrawBeacon
-    function beaconPeriodRemainingSeconds() external view override returns (uint32) {
+    function beaconPeriodRemainingSeconds() external view override returns (uint64) {
         return _beaconPeriodRemainingSeconds();
     }
 
@@ -280,6 +268,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         return _beaconPeriodEndAt();
     }
 
+    
     function getBeaconPeriodSeconds() external view returns (uint32) {
         return beaconPeriodSeconds;
     }
@@ -288,10 +277,12 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         return beaconPeriodStartedAt;
     }
 
+    
     function getDrawHistory() external view returns (IDrawHistory) {
         return drawHistory;
     }
-
+    
+    
     function getNextDrawId() external view returns (uint32) {
         return nextDrawId;
     }
@@ -349,7 +340,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         external
         override
         onlyOwner
-        requireDrawNotInProgress
+        requireDrawNotStarted
     {
         _setBeaconPeriodSeconds(_beaconPeriodSeconds);
     }
@@ -359,21 +350,20 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         external
         override
         onlyOwner
-        requireDrawNotInProgress
+        requireDrawNotStarted
     {
         _setRngTimeout(_rngTimeout);
     }
 
     /// @inheritdoc IDrawBeacon
-    function setRngService(RNGInterface rngService)
+    function setRngService(RNGInterface _rngService)
         external
         override
         onlyOwner
-        requireDrawNotInProgress
+        requireDrawNotStarted
     {
-        require(!isRngRequested(), "DrawBeacon/rng-in-flight");
-        rng = rngService;
-        emit RngServiceUpdated(rngService);
+        rng = _rngService;
+        emit RngServiceUpdated(_rngService);
     }
 
     /* ============ Internal Functions ============ */
@@ -414,7 +404,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      * @notice Returns the number of seconds remaining until the prize can be awarded.
      * @return The number of seconds remaining until the prize can be awarded.
      */
-    function _beaconPeriodRemainingSeconds() internal view returns (uint32) {
+    function _beaconPeriodRemainingSeconds() internal view returns (uint64) {
         uint64 endAt = _beaconPeriodEndAt();
         uint64 time = _currentTime();
 
@@ -422,7 +412,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
             return 0;
         }
 
-        return uint256(endAt - time).toUint32();
+        return endAt - time;
     }
 
     /**
@@ -430,14 +420,13 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      * @return True if the beacon period is over, false otherwise
      */
     function _isBeaconPeriodOver() internal view returns (bool) {
-        uint64 time = _currentTime();
-        return _beaconPeriodEndAt() <= time;
+        return _beaconPeriodEndAt() <= _currentTime();
     }
 
     /**
-     * @notice Check to see award is in progress.
+     * @notice Check to see draw is in progress.
      */
-    function _requireDrawNotInProgress() internal view {
+    function _requireDrawNotStarted() internal view {
         uint256 currentBlock = block.number;
 
         require(

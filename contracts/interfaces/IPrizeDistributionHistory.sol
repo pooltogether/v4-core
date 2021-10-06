@@ -14,7 +14,7 @@ interface IPrizeDistributionHistory {
     event DrawSet(uint32 indexed drawId, uint32 timestamp, uint256 winningRandomNumber);
 
     /**
-     * @notice Emitted when the DrawParams are set/updated
+     * @notice Emitted when the PrizeDistribution are set/updated
      * @param drawId       Draw id
      * @param prizeDistributions DrawLib.PrizeDistribution
      */
@@ -24,10 +24,10 @@ interface IPrizeDistributionHistory {
     );
 
     /**
-     * @notice Read newest PrizeDistributions from the prize distributions ring buffer.
-     * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
-     * @return prizeDistribution DrawLib.PrizeDistribution
-     * @return drawId Draw.drawId
+     * @notice Read the newest PrizeDistribution from the prize distributions ring buffer.
+     * @dev    Uses the nextDrawIndex to calculate the most recently added PrizeDistribution.
+     * @return prizeDistribution stored in ring buffer
+     * @return drawId stored in ring buffer
      */
     function getNewestPrizeDistribution()
         external
@@ -35,10 +35,10 @@ interface IPrizeDistributionHistory {
         returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
     /**
-     * @notice Read oldest PrizeDistributions from the prize distributions ring buffer.
+     * @notice Read the oldest PrizeDistribution from the prize distributions ring buffer.
      * @dev    Finds the oldest Draw by buffer.nextIndex and buffer.lastDrawId
-     * @return prizeDistribution DrawLib.PrizeDistribution
-     * @return drawId Draw.drawId
+     * @return prizeDistribution stored in ring buffer
+     * @return drawId stored in ring buffer
      */
     function getOldestPrizeDistribution()
         external
@@ -46,8 +46,8 @@ interface IPrizeDistributionHistory {
         returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
     /**
-     * @notice Gets array of PrizeDistributionHistory for Draw.drawID(s)
-     * @param drawIds Draw.drawId
+     * @notice Gets array of PrizeDistributions for drawIds
+     * @param drawIds drawIds to get PrizeDistribution for
      */
     function getPrizeDistributions(uint32[] calldata drawIds)
         external
@@ -55,7 +55,7 @@ interface IPrizeDistributionHistory {
         returns (DrawLib.PrizeDistribution[] memory);
 
     /**
-     * @notice Gets the PrizeDistributionHistory for a Draw.drawID
+     * @notice Gets the PrizeDistributionHistory for a drawId
      * @param drawId Draw.drawId
      */
     function getPrizeDistribution(uint32 drawId)
@@ -64,21 +64,21 @@ interface IPrizeDistributionHistory {
         returns (DrawLib.PrizeDistribution memory);
 
     /**
-     * @notice Gets the number of PrizeDistributions held in the prize distributions ring buffer.
+     * @notice Gets the number of PrizeDistributions stored in the prize distributions ring buffer.
      * @dev If no Draws have been pushed, it will return 0.
      * @dev If the ring buffer is full, it will return the cardinality.
      * @dev Otherwise, it will return the NewestPrizeDistribution index + 1.
-     * @return Number of PrizeDistributions held in the prize distributions ring buffer.
+     * @return Number of PrizeDistributions stored in the prize distributions ring buffer.
      */
     function getPrizeDistributionCount() external view returns (uint32);
 
     /**
-     * @notice Sets PrizeDistributionHistory for a Draw.drawID.
+     * @notice Stores a PrizeDistribution for a drawId
      * @dev    Only callable by the owner or manager
-     * @param drawId Draw.drawId
-     * @param draw   PrizeDistributionHistory struct
+     * @param drawId drawId to store PrizeDistribution for
+     * @param prizeDistribution   PrizeDistribution to store
      */
-    function pushPrizeDistribution(uint32 drawId, DrawLib.PrizeDistribution calldata draw)
+    function pushPrizeDistribution(uint32 drawId, DrawLib.PrizeDistribution calldata prizeDistribution)
         external
         returns (bool);
 

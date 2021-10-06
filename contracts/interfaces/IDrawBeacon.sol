@@ -65,7 +65,7 @@ interface IDrawBeacon {
      * @notice Returns the number of seconds remaining until the beacon period can be complete.
      * @return The number of seconds remaining until the beacon period can be complete.
      */
-    function beaconPeriodRemainingSeconds() external view returns (uint32);
+    function beaconPeriodRemainingSeconds() external view returns (uint64);
 
     /**
      * @notice Returns the timestamp at which the beacon period ends
@@ -74,13 +74,13 @@ interface IDrawBeacon {
     function beaconPeriodEndAt() external view returns (uint64);
 
     /**
-     * @notice Returns whether an Draw request can be started.
+     * @notice Returns whether a Draw can be started.
      * @return True if a Draw can be started, false otherwise.
      */
     function canStartDraw() external view returns (bool);
 
     /**
-     * @notice Returns whether an Draw request can be completed.
+     * @notice Returns whether a Draw can be completed.
      * @return True if a Draw can be completed, false otherwise.
      */
     function canCompleteDraw() external view returns (bool);

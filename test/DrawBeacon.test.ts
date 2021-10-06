@@ -89,9 +89,9 @@ describe('DrawBeacon', () => {
         });
 
         it('should set the params', async () => {
-            expect(await drawBeacon.rng()).to.equal(rng.address);
-            expect(await drawBeacon.beaconPeriodStartedAt()).to.equal(beaconPeriodStart);
-            expect(await drawBeacon.beaconPeriodSeconds()).to.equal(beaconPeriodSeconds);
+            expect(await drawBeacon.getRngService()).to.equal(rng.address);
+            expect(await drawBeacon.getBeaconPeriodStartedAt()).to.equal(beaconPeriodStart);
+            expect(await drawBeacon.getBeaconPeriodSeconds()).to.equal(beaconPeriodSeconds);
         });
 
         it('should reject rng request period', async () => {
@@ -137,7 +137,7 @@ describe('DrawBeacon', () => {
     describe('Core Functions', () => {
         describe('canStartDraw()', () => {
             it('should determine if a prize is able to be awarded', async () => {
-                const startTime = await drawBeacon.beaconPeriodStartedAt();
+                const startTime = await drawBeacon.getBeaconPeriodStartedAt();
 
                 // Prize-period not over, RNG not requested
                 await drawBeacon.setCurrentTime(startTime.add(10));
@@ -259,7 +259,7 @@ describe('DrawBeacon', () => {
                 // set it beyond request timeout
                 await drawBeacon.setCurrentTime(
                     (await drawBeacon.beaconPeriodEndAt())
-                        .add(await drawBeacon.rngTimeout())
+                        .add(await drawBeacon.getRngTimeout())
                         .add(1),
                 );
 
@@ -299,7 +299,7 @@ describe('DrawBeacon', () => {
                 debug('Completing rng request...');
 
                 const beaconPeriodEndAt = await drawBeacon.beaconPeriodEndAt();
-                const beaconPeriodStartedAt = await drawBeacon.beaconPeriodStartedAt();
+                const beaconPeriodStartedAt = await drawBeacon.getBeaconPeriodStartedAt();
 
                 await drawHistory.mock.pushDraw
                     .withArgs([
@@ -385,14 +385,14 @@ describe('DrawBeacon', () => {
                     'DrawBeacon/rng-timeout-gt-60-secs',
                 );
 
-                expect(await drawBeacon.rngTimeout()).to.equal(1800);
+                expect(await drawBeacon.getRngTimeout()).to.equal(1800);
             });
             it('should allow the owner to set the rngTimeout above 60', async () => {
                 await expect(drawBeacon.setRngTimeout(100))
                     .to.emit(drawBeacon, 'RngTimeoutSet')
                     .withArgs(100);
 
-                expect(await drawBeacon.rngTimeout()).to.equal(100);
+                expect(await drawBeacon.getRngTimeout()).to.equal(100);
             });
         });
 
@@ -402,7 +402,7 @@ describe('DrawBeacon', () => {
                     .to.emit(drawBeacon, 'BeaconPeriodSecondsUpdated')
                     .withArgs(99);
 
-                expect(await drawBeacon.beaconPeriodSeconds()).to.equal(99);
+                expect(await drawBeacon.getBeaconPeriodSeconds()).to.equal(99);
             });
 
             it('should not allow non-owners to set the prize period', async () => {
@@ -427,7 +427,7 @@ describe('DrawBeacon', () => {
         });
         describe('beaconPeriodRemainingSeconds()', () => {
             it('should calculate the remaining seconds of the prize period', async () => {
-                const startTime = await drawBeacon.beaconPeriodStartedAt();
+                const startTime = await drawBeacon.getBeaconPeriodStartedAt();
 
                 // Half-time
                 await drawBeacon.setCurrentTime(startTime.add(halfTime));
@@ -441,7 +441,7 @@ describe('DrawBeacon', () => {
 
         describe('calculateNextBeaconPeriodStartTime()', () => {
             it('should always sync to the last period start time', async () => {
-                let startedAt = await drawBeacon.beaconPeriodStartedAt();
+                let startedAt = await drawBeacon.getBeaconPeriodStartedAt();
 
                 expect(
                     await drawBeacon.calculateNextBeaconPeriodStartTime(
@@ -451,7 +451,7 @@ describe('DrawBeacon', () => {
             });
 
             it('should return the current if it is within', async () => {
-                let startedAt = await drawBeacon.beaconPeriodStartedAt();
+                let startedAt = await drawBeacon.getBeaconPeriodStartedAt();
 
                 expect(
                     await drawBeacon.calculateNextBeaconPeriodStartTime(
@@ -461,7 +461,7 @@ describe('DrawBeacon', () => {
             });
 
             it('should return the next if it is after', async () => {
-                let startedAt = await drawBeacon.beaconPeriodStartedAt();
+                let startedAt = await drawBeacon.getBeaconPeriodStartedAt();
 
                 expect(
                     await drawBeacon.calculateNextBeaconPeriodStartTime(
@@ -526,7 +526,7 @@ describe('DrawBeacon', () => {
         });
         describe('isBeaconPeriodOver()', () => {
             it('should determine if the prize-period is over', async () => {
-                const startTime = await drawBeacon.beaconPeriodStartedAt();
+                const startTime = await drawBeacon.getBeaconPeriodStartedAt();
 
                 // Half-time
                 await drawBeacon.setCurrentTime(startTime.add(halfTime));
