@@ -135,10 +135,6 @@ describe('PrizeDistributionHistory', () => {
             expect(draw.drawId).to.equal(14);
         });
 
-        // @TODO: Create PrizeDistributionHistory harness smart contract to expose
-        describe('_estimateDrawId()', () => {
-            it('should return Draw ID 0 when no history', async () => { });
-        });
     });
 
     describe('pushPrizeDistribution()', () => {

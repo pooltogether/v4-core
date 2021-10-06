@@ -39,7 +39,7 @@ describe('DrawHistory', () => {
         await drawHistory.setManager(wallet1.address);
     });
 
-    describe.only('getBufferCardinality()', () => {
+    describe('getBufferCardinality()', () => {
         it('should read buffer cardinality set in constructor', async () => {
             expect(await drawHistory.getBufferCardinality())
                 .to.equal(3)
