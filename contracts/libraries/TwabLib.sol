@@ -290,7 +290,7 @@ library TwabLib {
                 The balance is linearly interpolated: amount differences / timestamp differences
                 using the simple (after.amount - before.amount / end.timestamp - start.timestamp) formula.
     /** @dev    Binary search in _calculateTwab fails when searching out of bounds. Thus, before
-                searching we exclude searching for target timestamps out of range of newest/oldest TWAB(s).
+                searching we exclude target timestamps out of range of newest/oldest TWAB(s).
                 IF a search is before or after the range we "extrapolate" a Observation from the expected state.
       * @param _twabs           Individual user Observation recorded checkpoints passed as storage pointer
       * @param _accountDetails  User AccountDetails struct loaded in memory
