@@ -27,7 +27,7 @@ contract Ticket is ControlledToken, ITicket {
     /// @notice Record of token holders TWABs for each account.
     mapping(address => TwabLib.Account) internal userTwabs;
 
-    /// @notice Record of tickets total supply and most recent TWAB index.
+    /// @notice Record of tickets total supply and ring buff parameters used for observation.
     TwabLib.Account internal totalSupplyTwab;
 
     /// @notice Mapping of delegates.  Each address can delegate their ticket power to another.
