@@ -11,37 +11,33 @@ interface IDrawBeacon {
      * @notice Emit when a new DrawHistory has been set.
      * @param newDrawHistory       The new DrawHistory address
      */
-    event DrawHistoryTransferred(IDrawHistory indexed newDrawHistory);
+    event DrawHistoryUpdated(IDrawHistory indexed newDrawHistory);
 
     /**
      * @notice Emit when a draw has opened.
-     * @param operator             User address responsible for opening draw
      * @param startedAt Start timestamp
      */
-    event BeaconPeriodStarted(address indexed operator, uint64 indexed startedAt);
+    event BeaconPeriodStarted(uint64 indexed startedAt);
 
     /**
      * @notice Emit when a draw has started.
-     * @param operator      User address responsible for starting draw
      * @param rngRequestId  draw id
      * @param rngLockBlock  Block when draw becomes invalid
      */
-    event DrawStarted(address indexed operator, uint32 indexed rngRequestId, uint32 rngLockBlock);
+    event DrawStarted(uint32 indexed rngRequestId, uint32 rngLockBlock);
 
     /**
      * @notice Emit when a draw has been cancelled.
-     * @param operator      User address responsible for cancelling draw
      * @param rngRequestId  draw id
      * @param rngLockBlock  Block when draw becomes invalid
      */
-    event DrawCancelled(address indexed operator, uint32 indexed rngRequestId, uint32 rngLockBlock);
+    event DrawCancelled(uint32 indexed rngRequestId, uint32 rngLockBlock);
 
     /**
      * @notice Emit when a draw has been completed.
-     * @param operator      User address responsible for completing draw
      * @param randomNumber  Random number generated from draw
      */
-    event DrawCompleted(address indexed operator, uint256 randomNumber);
+    event DrawCompleted(uint256 randomNumber);
 
     /**
      * @notice Emit when a RNG service address is set.
