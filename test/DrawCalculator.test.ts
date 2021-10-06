@@ -342,6 +342,7 @@ describe('DrawCalculator', () => {
                     userRandomNumber,
                     winningRandomNumber,
                     bitMasks,
+                    prizeDistribution.matchCardinality
                 );
 
             // all numbers match so grand prize!
@@ -374,14 +375,14 @@ describe('DrawCalculator', () => {
 
             const bitMasks = await drawCalculator.createBitMasks(prizeDistribution);
 
-            expect(bitMasks.length).to.eq(2); // same as length of matchCardinality
+            expect(bitMasks.length).to.eq(4);
             expect(bitMasks[0]).to.eq(BigNumber.from(15));
 
-            const prizetierIndex: BigNumber =
-                await drawCalculator.calculateTierIndex(252, 255, bitMasks);
+            const prizeTierIndex: BigNumber =
+                await drawCalculator.calculateTierIndex(252, 255, bitMasks, prizeDistribution.matchCardinality);
 
             // since the first 4 bits do not match the tiers index will be: (matchCardinality - numberOfMatches )= 2-0 = 2
-            expect(prizetierIndex).to.eq(prizeDistribution.matchCardinality);
+            expect(prizeTierIndex).to.eq(2);
         });
 
         it('calculates tiers index 1', async () => {
@@ -410,11 +411,11 @@ describe('DrawCalculator', () => {
 
             const bitMasks = await drawCalculator.createBitMasks(prizeDistribution);
 
-            expect(bitMasks.length).to.eq(3); // same as length of matchCardinality
+            expect(bitMasks.length).to.eq(4);
             expect(bitMasks[0]).to.eq(BigNumber.from(15));
 
             const prizetierIndex: BigNumber =
-                await drawCalculator.calculateTierIndex(527, 271, bitMasks);
+                await drawCalculator.calculateTierIndex(527, 271, bitMasks, prizeDistribution.matchCardinality);
 
             // since the first 4 bits do not match the tiers index will be: (matchCardinality - numberOfMatches )= 3-2 = 1
             expect(prizetierIndex).to.eq(BigNumber.from(1));
@@ -651,9 +652,7 @@ describe('DrawCalculator', () => {
             );
 
             expect(result[0].won).to.be.false;
-            expect(result[0].tierIndex).to.equal(
-                prizeDistribution.matchCardinality.toNumber(),
-            );
+            expect(result[0].tierIndex).to.equal(prizeDistribution.matchCardinality); 
         });
 
         it('reverts if user has too many picks', async () => {

@@ -16,14 +16,15 @@ contract DrawCalculatorHarness is DrawCalculator {
     function calculateTierIndex(
         uint256 _randomNumberThisPick,
         uint256 _winningRandomNumber,
-        uint256[] memory _masks
-    ) public pure returns (uint256) {
-        return _calculateTierIndex(_randomNumberThisPick, _winningRandomNumber, _masks);
+        uint256[] memory _masks,
+        uint8 _matchCardinality
+    ) public view returns (uint256) {
+        return _calculateTierIndex(_randomNumberThisPick, _winningRandomNumber, _masks, _matchCardinality);
     }
 
     function createBitMasks(DrawLib.PrizeDistribution calldata _prizeDistribution)
         public
-        pure
+        view
         returns (uint256[] memory)
     {
         return _createBitMasks(_prizeDistribution);
@@ -36,13 +37,13 @@ contract DrawCalculatorHarness is DrawCalculator {
     function calculatePrizeTierFraction(
         DrawLib.PrizeDistribution calldata _prizeDistribution,
         uint256 _prizeTierIndex
-    ) external pure returns (uint256) {
+    ) external view returns (uint256) {
         return _calculatePrizeTierFraction(_prizeDistribution, _prizeTierIndex);
     }
 
     function numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeTierIndex)
         external
-        pure
+        view
         returns (uint256)
     {
         return _numberOfPrizesForIndex(_bitRangeSize, _prizeTierIndex);
@@ -51,7 +52,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     function calculateNumberOfUserPicks(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
-    ) external pure returns (uint64) {
+    ) external view returns (uint64) {
         return _calculateNumberOfUserPicks(_prizeDistribution, _normalizedUserBalance);
     }
 }

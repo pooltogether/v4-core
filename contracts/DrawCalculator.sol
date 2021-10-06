@@ -13,6 +13,8 @@ import "./interfaces/IPrizeDistributionHistory.sol";
 import "./libraries/DrawLib.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
+import "hardhat/console.sol";
+
 /**
   * @title  PoolTogether V4 DrawCalculator
   * @author PoolTogether Inc Team
@@ -149,6 +151,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
         uint256[] memory masks = _createBitMasks(_prizeDistributions[0]);
         PickPrize[] memory pickPrizes = new PickPrize[](_pickIndices.length);
+        uint8 _matchCardinality = _prizeDistributions[0].matchCardinality;
 
         bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
 
@@ -162,7 +165,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
             uint256 tierIndex = _calculateTierIndex(
                 randomNumberThisPick,
                 _draws[0].winningRandomNumber,
-                masks
+                masks,
+                _matchCardinality
             );
 
             pickPrizes[i] = PickPrize({
@@ -191,7 +195,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         DrawLib.Draw[] memory _draws,
         uint64[][] memory _pickIndicesForDraws,
         DrawLib.PrizeDistribution[] memory _prizeDistributions
-    ) internal pure returns (uint256[] memory) {
+    ) internal view returns (uint256[] memory) {
         uint256[] memory prizesAwardable = new uint256[](_normalizedUserBalances.length);
 
         // calculate prizes awardable for each Draw passed
@@ -223,7 +227,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     function _calculateNumberOfUserPicks(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
-    ) internal pure returns (uint64) {
+    ) internal view returns (uint64) {
         return uint64((_normalizedUserBalance * _prizeDistribution.numberOfPicks) / 1 ether);
     }
 
@@ -291,7 +295,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         bytes32 _userRandomNumber,
         uint64[] memory _picks,
         DrawLib.PrizeDistribution memory _prizeDistribution
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
         // prizeCounts stores the number of wins at a distribution index
         uint256[] memory prizeCounts = new uint256[](_prizeDistribution.tiers.length);
         
@@ -300,6 +304,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint32 picksLength = uint32(_picks.length);
 
         uint8 maxWinningTierIndex = 0;
+        uint8 _matchCardinality = _prizeDistribution.matchCardinality;
 
         require(
             picksLength <= _prizeDistribution.maxPicksPerUser,
@@ -319,10 +324,12 @@ contract DrawCalculator is IDrawCalculator, Ownable {
                 keccak256(abi.encode(_userRandomNumber, _picks[index]))
             );
 
+            // attempt to match the numbers
             uint8 tiersIndex = _calculateTierIndex(
                 randomNumberThisPick,
                 _winningRandomNumber,
-                masks
+                masks,
+                _matchCardinality
             );
 
             // there is prize for this tier index
@@ -362,51 +369,70 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     ///@param _randomNumberThisPick users random number for this Pick
     ///@param _winningRandomNumber The winning number for this draw
     ///@param _masks The pre-calculate bitmasks for the prizeDistributions
+    ///@param _matchCardinality The cardinality of the draw
     ///@return The position within the prize tier array (0 = top prize, 1 = runner-up prize, etc)
     function _calculateTierIndex(
         uint256 _randomNumberThisPick,
         uint256 _winningRandomNumber,
-        uint256[] memory _masks
-    ) internal pure returns (uint8) {
+        uint256[] memory _masks,
+        uint8 _matchCardinality
+    ) internal view returns (uint8) {
         uint8 numberOfMatches = 0;
         uint8 masksLength = uint8(_masks.length);
         
+        console.log("matchCardinality is" , _matchCardinality);
+
         // main number matching loop
-        for (uint8 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
+        for (uint8 matchIndex = 0; matchIndex < _matchCardinality; matchIndex++) {
             uint256 mask = _masks[matchIndex];
 
             if ((_randomNumberThisPick & mask) != (_winningRandomNumber & mask)) {
                 // there are no more sequential matches since this comparison is not a match
-                return masksLength - numberOfMatches;
+                console.log("calcTier:: early returning ",(_matchCardinality - numberOfMatches));
+                return _matchCardinality - numberOfMatches;
             }
 
             // else there was a match
+            console.log("incrementing matches");
             numberOfMatches++;
         }
-
-        return masksLength - numberOfMatches;
+        // this should always return 0
+        console.log("calcTier:: end returning ",(_matchCardinality - numberOfMatches));
+        return _matchCardinality - numberOfMatches;
     }
 
     /**
-     * @notice Create an array of bitmasks equal to the PrizeDistribution.matchCardinality length
+     * @notice Create an array of bitmasks equal to the greateer of non-zero tiers or matchCardinality
      * @param _prizeDistribution The PrizeDistribution to use to calculate the masks
      * @return An array of bitmasks
      */
     function _createBitMasks(DrawLib.PrizeDistribution memory _prizeDistribution)
         internal
-        pure
+        view
         returns (uint256[] memory)
     {
-        uint256[] memory masks = new uint256[](_prizeDistribution.matchCardinality);
+        
+        // calculate the non-zero length of the prize tiers
+        uint8 nonZeroPrizeTiersLength = 0;
+        for(uint i = 0; i < _prizeDistribution.tiers.length; i++) {
+            if(_prizeDistribution.tiers[i] > 0) {
+                nonZeroPrizeTiersLength++;
+            }
+        }
+        uint8 _matchCardinality = _prizeDistribution.matchCardinality;
+        uint8 createMasksLength = nonZeroPrizeTiersLength > _matchCardinality ? nonZeroPrizeTiersLength : _matchCardinality;
+
+        uint256[] memory masks = new uint256[](createMasksLength);
         uint256 _bitRangeMaskValue = (2**_prizeDistribution.bitRangeSize) - 1; // get a decimal representation of bitRangeSize
 
-        for (uint8 maskIndex = 0; maskIndex < _prizeDistribution.matchCardinality; maskIndex++) {
+        // now create the masks
+        for (uint8 maskIndex = 0; maskIndex < createMasksLength; maskIndex++) {
             // create mask of width bitRangeSize bits at index
             uint256 _matchIndexOffset = uint256(maskIndex) * uint256(_prizeDistribution.bitRangeSize);
             // shift mask bits to correct position and insert in result mask array
             masks[maskIndex] = _bitRangeMaskValue << _matchIndexOffset;
         }
-
+        console.log("returning bitmasks of length", masks.length);
         return masks;
     }
 
@@ -419,7 +445,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     function _calculatePrizeTierFraction(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _prizeTierIndex
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
          // get the prize fraction at that index
         uint256 prizeFraction = _prizeDistribution.tiers[_prizeTierIndex];
         
@@ -441,7 +467,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     function _calculatePrizeTierFractions(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint8 maxWinningTierIndex
-    ) internal pure returns (uint256[] memory) {
+    ) internal view returns (uint256[] memory) {
         uint256[] memory prizeDistributionFractions = new uint256[](
             maxWinningTierIndex + 1
         );
@@ -464,7 +490,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      */
     function _numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeTierIndex)
         internal
-        pure
+        view
         returns (uint256)
     {
         uint256 bitRangeDecimal = 2**uint256(_bitRangeSize);
