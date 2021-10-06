@@ -9,25 +9,29 @@ import "./interfaces/IPrizeFlush.sol";
 
 /**
  * @title  PoolTogether V4 PrizeFlush
+ * @notice The PrizeFlush is a helper library to facilitate interest distribution.
  * @author PoolTogether Inc Team
- * @notice The PrizeFlush is a helper library to facilate interest distribution.
  */
 contract PrizeFlush is IPrizeFlush, Manageable {
-    /// @notice Static destination for captured interest
+    /**
+     * @notice Destination address for captured interest.
+     * @dev Should be set to the DrawPrize address.
+     */
     address internal destination;
 
-    /// @notice IReserve address
+    /// @notice Reserve address.
     IReserve internal reserve;
 
-    /// @notice IStrategy address
+    /// @notice Strategy address.
     IStrategy internal strategy;
 
     /* ============ Events ============ */
 
     /**
-     * @notice Emit when contract deployed.
-     * @param reserve IReserve
-     * @param strategy IStrategy
+     * @notice Emitted when contract has been deployed.
+     * @param destination Destination address.
+     * @param reserve Strategy address.
+     * @param strategy Reserve address.
      *
      */
     event Deployed(
@@ -39,11 +43,11 @@ contract PrizeFlush is IPrizeFlush, Manageable {
     /* ============ Constructor ============ */
 
     /**
-     * @notice Set owner, reserve and strategy when deployed.
-     * @param _owner       address
-     * @param _destination address
-     * @param _strategy    IStrategy
-     * @param _reserve     IReserve
+     * @notice Deploy Prize Flush.
+     * @param _owner Prize Flush owner address.
+     * @param _destination Destination address.
+     * @param _strategy Strategy address.
+     * @param _reserve Reserve address.
      *
      */
     constructor(
@@ -52,11 +56,10 @@ contract PrizeFlush is IPrizeFlush, Manageable {
         IStrategy _strategy,
         IReserve _reserve
     ) Ownable(_owner) {
-        destination = _destination;
-        strategy = _strategy;
-        reserve = _reserve;
+        _setDestination(_destination);
+        _setReserve(_reserve);
+        _setStrategy(_strategy);
 
-        // Emit Deploy State
         emit Deployed(_destination, _reserve, _strategy);
     }
 
@@ -79,31 +82,22 @@ contract PrizeFlush is IPrizeFlush, Manageable {
 
     /// @inheritdoc IPrizeFlush
     function setDestination(address _destination) external override onlyOwner returns (address) {
-        require(_destination != address(0), "Flush/destination-not-zero-address");
-        destination = _destination;
-
+        _setDestination(_destination);
         emit DestinationSet(_destination);
-
         return _destination;
     }
 
     /// @inheritdoc IPrizeFlush
     function setReserve(IReserve _reserve) external override onlyOwner returns (IReserve) {
-        require(address(_reserve) != address(0), "Flush/reserve-not-zero-address");
-        reserve = _reserve;
-
+        _setReserve(_reserve);
         emit ReserveSet(_reserve);
-
-        return reserve;
+        return _reserve;
     }
 
     /// @inheritdoc IPrizeFlush
     function setStrategy(IStrategy _strategy) external override onlyOwner returns (IStrategy) {
-        require(address(_strategy) != address(0), "Flush/strategy-not-zero-address");
-        strategy = _strategy;
-
+        _setStrategy(_strategy);
         emit StrategySet(_strategy);
-
         return _strategy;
     }
 
@@ -126,5 +120,37 @@ contract PrizeFlush is IPrizeFlush, Manageable {
         }
 
         return true;
+    }
+
+    /* ============ Internal Functions ============ */
+
+    /**
+     * @notice Set global destination variable.
+     * @dev `_destination` cannot be the zero address.
+     * @param _destination Destination address.
+     */
+    function _setDestination(address _destination) internal {
+        require(_destination != address(0), "Flush/destination-not-zero-address");
+        destination = _destination;
+    }
+
+    /**
+     * @notice Set global reserve variable.
+     * @dev `_reserve` cannot be the zero address.
+     * @param _reserve Reserve address.
+     */
+    function _setReserve(IReserve _reserve) internal {
+        require(address(_reserve) != address(0), "Flush/reserve-not-zero-address");
+        reserve = _reserve;
+    }
+
+    /**
+     * @notice Set global strategy variable.
+     * @dev `_strategy` cannot be the zero address.
+     * @param _strategy Strategy address.
+     */
+    function _setStrategy(IStrategy _strategy) internal {
+        require(address(_strategy) != address(0), "Flush/strategy-not-zero-address");
+        strategy = _strategy;
     }
 }
