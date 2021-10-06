@@ -21,7 +21,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     uint256 internal constant MAX_CARDINALITY = 256;
 
     uint256 internal constant DISTRIBUTION_CEILING = 1e9;
-    
+
     event Deployed(uint8 cardinality);
 
     /// @notice PrizeDistribution ring buffer history.
@@ -114,7 +114,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         returns (DrawLib.PrizeDistribution memory prizeDistribution, uint32 drawId)
     {
         DrawRingBufferLib.Buffer memory buffer = _prizeDistributionsRingBufferData;
-        
+
         // if the ring buffer is full, the oldest is at the nextIndex
         prizeDistribution = _prizeDistributionsRingBuffer[buffer.nextIndex];
 
@@ -161,10 +161,11 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
      * @param _buffer DrawRingBufferLib.Buffer
      * @param _drawId drawId
      */
-    function _getPrizeDistribution(
-        DrawRingBufferLib.Buffer memory _buffer,
-        uint32 _drawId
-    ) internal view returns (DrawLib.PrizeDistribution memory) {
+    function _getPrizeDistribution(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId)
+        internal
+        view
+        returns (DrawLib.PrizeDistribution memory)
+    {
         return _prizeDistributionsRingBuffer[_buffer.getIndex(_drawId)];
     }
 
@@ -208,13 +209,10 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
             "DrawCalc/matchCardinality-gte-distributions"
         );
 
-        DrawRingBufferLib.Buffer
-            memory buffer = _prizeDistributionsRingBufferData;
+        DrawRingBufferLib.Buffer memory buffer = _prizeDistributionsRingBufferData;
 
         // store the PrizeDistribution in the ring buffer
-        _prizeDistributionsRingBuffer[
-            buffer.nextIndex
-        ] = _prizeDistribution;
+        _prizeDistributionsRingBuffer[buffer.nextIndex] = _prizeDistribution;
 
         // update the ring buffer data
         _prizeDistributionsRingBufferData = buffer.push(_drawId);

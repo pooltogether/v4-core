@@ -18,7 +18,7 @@ import "./ObservationLib.sol";
             ring buffer parameters. Every token.transfer() creates a new TWAB checkpoint. The new TWAB
             checkpoint is stored in the circular ring buffer, as either a new checkpoint or rewriting
             a previous checkpoint with new parameters. The TwabLib (using existing blocktimes 1block/15sec)
-            guarantees on average 6 months of search history. 
+            guarantees minimum 7.4 years of search history.
  */
 library TwabLib {
     using OverflowSafeComparatorLib for uint32;
@@ -28,19 +28,24 @@ library TwabLib {
       * @notice Sets max ring buffer length in the Account.twabs Observation list.
                 As users transfer/mint/burn tickets new Observation checkpoints are
                 recorded. The current max cardinality guarantees a six month minimum,
-                of historical accurate lookups with current estimates of 1 new block 
-                every 15 seconds - the of course contain a transfer to trigger an 
+                of historical accurate lookups with current estimates of 1 new block
+                every 15 seconds - the of course contain a transfer to trigger an
                 observation write to storage.
       * @dev    The user Account.AccountDetails.cardinality parameter can NOT exceed
                 the max cardinality variable. Preventing "corrupted" ring buffer lookup
                 pointers and new observation checkpoints.
+
+                The MAX_CARDINALITY in fact guarantees at least 7.4 years of records:
+                If 14 = block time in seconds
+                (2**24) * 14 = 234881024 seconds of history
+                234881024 / (365 * 24 * 60 * 60) ~= 7.44 years
     */
     uint24 public constant MAX_CARDINALITY = 16777215; // 2**24
 
     /** @notice Struct ring buffer parameters for single user Account
       * @param balance       Current balance for an Account
       * @param nextTwabIndex Next uninitialized or updatable ring buffer checkpoint storage slot
-      * @param cardinality   Current total "initialized" ring buffer checkpoints for single user AccountDetails. 
+      * @param cardinality   Current total "initialized" ring buffer checkpoints for single user AccountDetails.
                              Used to set initial boundary conditions for an efficient binary search.
     */
     struct AccountDetails {
@@ -160,7 +165,9 @@ library TwabLib {
         ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
         AccountDetails memory _accountDetails
     ) internal view returns (uint24 index, ObservationLib.Observation memory twab) {
-        index = uint24(RingBufferLib.mostRecentIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY));
+        index = uint24(
+            RingBufferLib.mostRecentIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
+        );
         twab = _twabs[index];
     }
 
@@ -227,7 +234,7 @@ library TwabLib {
     }
 
     /** @notice Searches TWAB history and calculate the difference between amount(s)/timestamp(s) to return average balance
-                between the Observations closes to the supplied targetTime. 
+                between the Observations closes to the supplied targetTime.
       * @param _twabs          Individual user Observation recorded checkpoints passed as storage pointer
       * @param _accountDetails User AccountDetails struct loaded in memory
       * @param _target         Target timestamp to filter Observations in the ring buffer binary search
@@ -270,7 +277,8 @@ library TwabLib {
         );
 
         // Difference in amount / time
-        return (afterOrAt.amount - beforeOrAt.amount) / (afterOrAt.timestamp - beforeOrAt.timestamp);
+        return
+            (afterOrAt.amount - beforeOrAt.amount) / (afterOrAt.timestamp - beforeOrAt.timestamp);
     }
 
     /** @notice Calculates a user TWAB for a target timestamp using the historical TWAB records.
@@ -347,12 +355,12 @@ library TwabLib {
     }
 
     /**
-      * @notice Calculates the next TWAB using the newestTwab and updated balance.
-      * @dev    Storage of the TWAB obersation is managed by the calling function and not _computeNextTwab.
-      * @param _currentTwab    Newest Observation in the Account.twabs list
-      * @param _currentBalance User balance at time of most recent (newest) checkpoint write
-      * @param _time           Current block.timestamp
-      * @return TWAB Observation
+     * @notice Calculates the next TWAB using the newestTwab and updated balance.
+     * @dev    Storage of the TWAB obersation is managed by the calling function and not _computeNextTwab.
+     * @param _currentTwab    Newest Observation in the Account.twabs list
+     * @param _currentBalance User balance at time of most recent (newest) checkpoint write
+     * @param _time           Current block.timestamp
+     * @return TWAB Observation
      */
     function _computeNextTwab(
         ObservationLib.Observation memory _currentTwab,

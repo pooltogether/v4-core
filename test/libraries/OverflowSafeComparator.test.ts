@@ -70,7 +70,11 @@ describe('overflowSafeComparatorLib', () => {
             const timestampB = currentTimestamp - 100;
 
             expect(
-                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(
+                    timestampA,
+                    timestampB,
+                    currentTimestamp,
+                ),
             ).to.equal(true);
         });
 
@@ -79,7 +83,11 @@ describe('overflowSafeComparatorLib', () => {
             const timestampB = timestampA;
 
             expect(
-                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(
+                    timestampA,
+                    timestampB,
+                    currentTimestamp,
+                ),
             ).to.equal(true);
         });
 
@@ -88,7 +96,11 @@ describe('overflowSafeComparatorLib', () => {
             const timestampB = currentTimestamp + 1000;
 
             expect(
-                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(
+                    timestampA,
+                    timestampB,
+                    currentTimestamp,
+                ),
             ).to.equal(false);
         });
 
@@ -97,7 +109,11 @@ describe('overflowSafeComparatorLib', () => {
             const timestampB = currentTimestamp - 1000;
 
             expect(
-                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(
+                    timestampA,
+                    timestampB,
+                    currentTimestamp,
+                ),
             ).to.equal(true);
         });
 
@@ -106,7 +122,11 @@ describe('overflowSafeComparatorLib', () => {
             const timestampB = timestampA;
 
             expect(
-                await overflowSafeComparatorLib.lteHarness(timestampA, timestampB, currentTimestamp),
+                await overflowSafeComparatorLib.lteHarness(
+                    timestampA,
+                    timestampB,
+                    currentTimestamp,
+                ),
             ).to.equal(true);
         });
     });

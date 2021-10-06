@@ -268,7 +268,6 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         return _beaconPeriodEndAt();
     }
 
-    
     function getBeaconPeriodSeconds() external view returns (uint32) {
         return beaconPeriodSeconds;
     }
@@ -277,12 +276,10 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         return beaconPeriodStartedAt;
     }
 
-    
     function getDrawHistory() external view returns (IDrawHistory) {
         return drawHistory;
     }
-    
-    
+
     function getNextDrawId() external view returns (uint32) {
         return nextDrawId;
     }
@@ -346,12 +343,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
     }
 
     /// @inheritdoc IDrawBeacon
-    function setRngTimeout(uint32 _rngTimeout)
-        external
-        override
-        onlyOwner
-        requireDrawNotStarted
-    {
+    function setRngTimeout(uint32 _rngTimeout) external override onlyOwner requireDrawNotStarted {
         _setRngTimeout(_rngTimeout);
     }
 

@@ -337,7 +337,7 @@ describe('DrawCalculator', () => {
             const userRandomNumber =
                 '0x369ddb959b07c1d22a9bada1f3420961d0e0252f73c0f5b2173d7f7c6fe12b70'; // intentionally same as winning random number
 
-                const prizeDistributionIndex: BigNumber =
+            const prizeDistributionIndex: BigNumber =
                 await drawCalculator.calculateDistributionIndex(
                     userRandomNumber,
                     winningRandomNumber,
