@@ -178,8 +178,6 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
         _mint(_to, _amount, _ticket);
 
-        address _operator = msg.sender;
-
         _token().safeTransferFrom(_operator, address(this), _amount);
         _supply(_amount);
 

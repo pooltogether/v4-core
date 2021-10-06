@@ -80,8 +80,7 @@ describe('DrawBeacon', () => {
                 .to.emit(drawBeacon2, 'Deployed')
                 .withArgs(
                     nextDrawId,
-                    beaconPeriodStart,
-                    exampleBeaconPeriodSeconds,
+                    beaconPeriodStart
                 );
 
             await expect(drawBeacon2.deployTransaction)

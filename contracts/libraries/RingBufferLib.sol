@@ -45,7 +45,7 @@ library RingBufferLib {
             return 0;
         }
 
-        return wrap(_nextAvailableIndex + _cardinality - 1, _cardinality);
+        return wrap(_nextIndex + _cardinality - 1, _cardinality);
     }
 
     /// @notice Computes the ring buffer index that follows the given one, wrapped by cardinality
@@ -57,6 +57,6 @@ library RingBufferLib {
         pure
         returns (uint256)
     {
-        return wrap(_currentIndex + 1, _cardinality);
+        return wrap(_index + 1, _cardinality);
     }
 }
