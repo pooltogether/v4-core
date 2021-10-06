@@ -87,9 +87,7 @@ library TwabLib {
     }
 
     /** @notice Calculates the next TWAB checkpoint for an account with a decreasing balance.
-      * @dev    Given an Account struct and amount decreasing will calculate the
-                next TWAB observable checkpoint. Generally the function calling
-                will update the contract state with return values.
+      * @dev    With Account struct and amount decreasing calculates the next TWAB observable checkpoint.
       * @param _account        Account whose balance will be decreased
       * @param _amount         Amount to decrease the balance by
       * @param _revertMessage  Revert message for insufficient balance
