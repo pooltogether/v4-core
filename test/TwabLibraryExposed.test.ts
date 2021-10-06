@@ -41,14 +41,6 @@ describe('TwabLib', () => {
                 .withArgs([200, 1, 1], [0, timestamp], false);
         });
 
-        it('should require the timestamp to always increase', async () => {
-            await twabLib.increaseBalance(100, timestamp);
-
-            await expect(twabLib.increaseBalance(100, timestamp - 10)).to.be.revertedWith(
-                'TwabLib/twab-time-monotonic',
-            );
-        });
-
         it('should add second twab', async () => {
             await expect(twabLib.increaseBalance(100, timestamp))
                 .to.emit(twabLib, 'Updated')

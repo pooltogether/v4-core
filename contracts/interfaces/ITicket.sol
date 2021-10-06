@@ -127,7 +127,7 @@ interface ITicket is IControlledToken {
      * @param timestamp Timestamp at which we want to retrieve the TWAB balance.
      * @return The TWAB balance at the given timestamp.
      */
-    function getBalanceAt(address user, uint256 timestamp) external view returns (uint256);
+    function getBalanceAt(address user, uint64 timestamp) external view returns (uint256);
 
     /**
      * @notice Retrieves `user` TWAB balances.
@@ -135,7 +135,7 @@ interface ITicket is IControlledToken {
      * @param timestamps Timestamps range at which we want to retrieve the TWAB balances.
      * @return `user` TWAB balances.
      */
-    function getBalancesAt(address user, uint32[] calldata timestamps)
+    function getBalancesAt(address user, uint64[] calldata timestamps)
         external
         view
         returns (uint256[] memory);
@@ -149,8 +149,8 @@ interface ITicket is IControlledToken {
      */
     function getAverageBalanceBetween(
         address user,
-        uint256 startTime,
-        uint256 endTime
+        uint64 startTime,
+        uint64 endTime
     ) external view returns (uint256);
 
     /**
@@ -162,8 +162,8 @@ interface ITicket is IControlledToken {
      */
     function getAverageBalancesBetween(
         address user,
-        uint32[] calldata startTimes,
-        uint32[] calldata endTimes
+        uint64[] calldata startTimes,
+        uint64[] calldata endTimes
     ) external view returns (uint256[] memory);
 
     /**
@@ -171,14 +171,14 @@ interface ITicket is IControlledToken {
      * @param timestamp Timestamp at which we want to retrieve the total supply TWAB balance.
      * @return The total supply TWAB balance at the given timestamp.
      */
-    function getTotalSupplyAt(uint32 timestamp) external view returns (uint256);
+    function getTotalSupplyAt(uint64 timestamp) external view returns (uint256);
 
     /**
      * @notice Retrieves the total supply TWAB balance between the given timestamps range.
      * @param timestamps Timestamps range at which we want to retrieve the total supply TWAB balance.
      * @return Total supply TWAB balances.
      */
-    function getTotalSuppliesAt(uint32[] calldata timestamps)
+    function getTotalSuppliesAt(uint64[] calldata timestamps)
         external
         view
         returns (uint256[] memory);
@@ -190,7 +190,7 @@ interface ITicket is IControlledToken {
      * @return The average total supplies held during the time frame.
      */
     function getAverageTotalSuppliesBetween(
-        uint32[] calldata startTimes,
-        uint32[] calldata endTimes
+        uint64[] calldata startTimes,
+        uint64[] calldata endTimes
     ) external view returns (uint256[] memory);
 }

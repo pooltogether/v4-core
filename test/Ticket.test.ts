@@ -965,4 +965,31 @@ describe('Ticket', () => {
 
         })
     })
+
+    context('when the timestamp overflows', () => {
+
+        let overflowMintTimestamp: number
+
+        beforeEach(async () => {
+            await ticket.mint(wallet1.address, toWei('100'))
+            const timestamp = (await ethers.provider.getBlock('latest')).timestamp
+            const timeUntilOverflow = (2**32 - timestamp)
+            await increaseTime(timeUntilOverflow)
+            await ticket.mint(wallet1.address, toWei('100'))
+            overflowMintTimestamp = (await ethers.provider.getBlock('latest')).timestamp
+            await increaseTime(100)
+        })
+
+        describe('getAverageBalanceBetween()', () => {
+            it('should function across overflow boundary', async () => {
+                expect(await ticket.getAverageBalanceBetween(wallet1.address, overflowMintTimestamp-100, overflowMintTimestamp+100)).to.equal(toWei('150'))
+            })
+        })
+
+        describe('getBalanceAt', () => {
+            it('should function across overflow boundary', async () => {
+                expect(await ticket.getBalanceAt(wallet1.address, overflowMintTimestamp)).to.equal(toWei('200'))
+            })
+        })
+    })
 });

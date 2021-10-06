@@ -19,7 +19,7 @@ contract OverflowSafeComparatorLibHarness {
         uint32 _a,
         uint32 _b,
         uint32 _timestamp
-    ) external pure returns (bool) {
+    ) external view returns (bool) {
         return _a.lte(_b, _timestamp);
     }
 

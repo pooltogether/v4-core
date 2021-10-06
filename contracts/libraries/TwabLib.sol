@@ -228,7 +228,7 @@ library TwabLib {
         );
 
         // Difference in amount / time
-        return (endTwab.amount - startTwab.amount) / (endTwab.timestamp - startTwab.timestamp);
+        return (endTwab.amount - startTwab.amount) / OverflowSafeComparatorLib.checkedSub(endTwab.timestamp, startTwab.timestamp, _currentTime);
     }
 
     /** @notice Searches TWAB history and calculate the difference between amount(s)/timestamp(s) to return average balance
@@ -278,7 +278,7 @@ library TwabLib {
         // The time-weighted average balance uses time measured between two epoch timestamps as
         // a constaint on the measurement when calculating the time weighted average balance.
         return
-            (afterOrAt.amount - beforeOrAt.amount) / (afterOrAt.timestamp - beforeOrAt.timestamp);
+            (afterOrAt.amount - beforeOrAt.amount) / OverflowSafeComparatorLib.checkedSub(afterOrAt.timestamp, beforeOrAt.timestamp, _currentTime);
     }
 
     /** @notice Calculates a user TWAB for a target timestamp using the historical TWAB records.
@@ -339,7 +339,7 @@ library TwabLib {
             );
 
         uint224 heldBalance = (afterOrAtStart.amount - beforeOrAtStart.amount) /
-            (afterOrAtStart.timestamp - beforeOrAtStart.timestamp);
+            OverflowSafeComparatorLib.checkedSub(afterOrAtStart.timestamp, beforeOrAtStart.timestamp, _time);
 
         return _computeNextTwab(beforeOrAtStart, heldBalance, _targetTimestamp);
     }
@@ -368,6 +368,7 @@ library TwabLib {
     }
 
     /// @notice Sets a new TWAB Observation at the next available index and returns the new account details.
+    /// @dev Note that if _currentTime is before the last observation timestamp, it appears as an overflow
     /// @param _twabs The twabs array to insert into
     /// @param _accountDetails The current account details
     /// @param _currentTime The current time
@@ -387,7 +388,6 @@ library TwabLib {
         )
     {
         (, ObservationLib.Observation memory _newestTwab) = newestTwab(_twabs, _accountDetails);
-        require(_currentTime >= _newestTwab.timestamp, "TwabLib/twab-time-monotonic");
 
         // if we're in the same block, return
         if (_newestTwab.timestamp == _currentTime) {
