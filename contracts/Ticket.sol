@@ -13,12 +13,11 @@ import "./ControlledToken.sol";
 /**
   * @title  PoolTogether V4 Ticket
   * @author PoolTogether Inc Team
-  * @notice The Ticket extends the standard ERC20 and ControlledToken interfaces with time-weighed average balance functionality.
-            The TWAB (time-weighed average balance) enables contract-to-contract lookups of a user's average balance
-            between timestamps. The timestamp/balance checkpoints are stored in a ring buffer for each user Account.
-            Historical searches of a TWAB(s) are limited to the storage of these checkpoints. A user's average balance can
-            be delegated to an alternative address. When delegating, the average weighted balance is added to the delegate
-            TWAB lookup and removed from the delegaters TWAB lookup.
+  * @notice The Ticket extends the standard ERC20 and ControlledToken interfaces with time-weighted average balance functionality.
+            The average balance held by a user between two timestamps can be calculated, as well as the historic balance.  The 
+            historic total supply is available as well as the average total supply between two timestamps.
+
+            A user may "delegate" their balance; increasing another user's historic balance while retaining their tokens.
 */
 contract Ticket is ControlledToken, ITicket {
     using SafeERC20 for IERC20;
