@@ -107,4 +107,8 @@ contract TwabLibExposed {
     function getBalanceAt(uint32 _target, uint32 _currentTime) external view returns (uint256) {
         return TwabLib.getBalanceAt(account.twabs, account.details, _target, _currentTime);
     }
+
+    function push(TwabLib.AccountDetails memory _accountDetails) external pure returns (TwabLib.AccountDetails memory) {
+        return TwabLib.push(_accountDetails);
+    }
 }
