@@ -51,7 +51,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     function calculateNumberOfUserPicks(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
-    ) external pure returns (uint256) {
+    ) external pure returns (uint64) {
         return _calculateNumberOfUserPicks(_prizeDistribution, _normalizedUserBalance);
     }
 }

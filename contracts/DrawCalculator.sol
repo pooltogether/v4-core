@@ -142,7 +142,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
             _prizeDistributions
         );
 
-        uint256 totalUserPicks = _calculateNumberOfUserPicks(
+        uint64 totalUserPicks = _calculateNumberOfUserPicks(
             _prizeDistributions[0],
             userBalances[0]
         );
@@ -196,7 +196,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
         // calculate prizes awardable for each Draw passed
         for (uint32 drawIndex = 0; drawIndex < _draws.length; drawIndex++) {
-            uint256 totalUserPicks = _calculateNumberOfUserPicks(
+            uint64 totalUserPicks = _calculateNumberOfUserPicks(
                 _prizeDistributions[drawIndex],
                 _normalizedUserBalances[drawIndex]
             );
@@ -223,8 +223,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     function _calculateNumberOfUserPicks(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
-    ) internal pure returns (uint256) {
-        return (_normalizedUserBalance * _prizeDistribution.numberOfPicks) / 1 ether;
+    ) internal pure returns (uint64) {
+        return uint64((_normalizedUserBalance * _prizeDistribution.numberOfPicks) / 1 ether);
     }
 
     /**
