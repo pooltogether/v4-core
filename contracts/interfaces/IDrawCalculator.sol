@@ -16,7 +16,7 @@ import "../libraries/DrawLib.sol";
 interface IDrawCalculator {
     struct PickPrize {
         bool won;
-        uint8 distributionIndex;
+        uint8 tierIndex;
     }
 
     ///@notice Emitted when the contract is initialized
@@ -65,12 +65,12 @@ interface IDrawCalculator {
 
     /**
      * @notice Returns a users balances expressed as a fraction of the total supply over time.
-     * @param _user The user for which to calculate the distribution indices
+     * @param _user The user for which to calculate the tiers indices
      * @param _pickIndices The users pick indices for a draw
-     * @param _drawId The draw for which to calculate the distribution indices
-     * @return List of distributions for Draw.drawId
+     * @param _drawId The draw for which to calculate the tiers indices
+     * @return List of PrizePicks for Draw.drawId
      */
-    function checkPrizeDistributionIndicesForDrawId(
+    function checkPrizeTierIndexForDrawId(
         address _user,
         uint64[] calldata _pickIndices,
         uint32 _drawId

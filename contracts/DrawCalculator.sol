@@ -34,7 +34,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     IPrizeDistributionHistory public immutable prizeDistributionHistory;
 
     /// @notice The tiers array length
-    uint8 public constant DISTRIBUTIONS_LENGTH = 16;
+    uint8 public constant TIERS_LENGTH = 16;
 
     /* ============ Constructor ============ */
 
@@ -124,7 +124,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     }
 
     /// @inheritdoc IDrawCalculator
-    function checkPrizeDistributionIndicesForDrawId(
+    function checkPrizeTierIndexForDrawId(
         address _user,
         uint64[] calldata _pickIndices,
         uint32 _drawId
@@ -159,16 +159,15 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
             require(_pickIndices[i] < totalUserPicks, "DrawCalc/insufficient-user-picks");
 
-            uint256 distributionIndex = _calculateTierIndex(
+            uint256 tierIndex = _calculateTierIndex(
                 randomNumberThisPick,
                 _draws[0].winningRandomNumber,
                 masks
             );
 
             pickPrizes[i] = PickPrize({
-                won: distributionIndex < _prizeDistributions[0].tiers.length &&
-                    _prizeDistributions[0].tiers[distributionIndex] > 0,
-                distributionIndex: uint8(distributionIndex)
+                won: tierIndex < _prizeDistributions[0].tiers.length && _prizeDistributions[0].tiers[tierIndex] > 0,
+                tierIndex: uint8(tierIndex)
             });
         }
 
@@ -300,7 +299,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint256[] memory masks = _createBitMasks(_prizeDistribution);
         uint32 picksLength = uint32(_picks.length);
 
-        uint8 maxWinningDistributionIndex = 0;
+        uint8 maxWinningTierIndex = 0;
 
         require(
             picksLength <= _prizeDistribution.maxPicksPerUser,
@@ -320,38 +319,45 @@ contract DrawCalculator is IDrawCalculator, Ownable {
                 keccak256(abi.encode(_userRandomNumber, _picks[index]))
             );
 
-            uint8 distributionIndex = _calculateTierIndex(
+            uint8 tiersIndex = _calculateTierIndex(
                 randomNumberThisPick,
                 _winningRandomNumber,
                 masks
             );
 
+<<<<<<< HEAD
             // if there is a prize for this distribution index, 
             // update the maxWinningDistributionIndex and increment prizeCounts for that distribution index
             if (distributionIndex < DISTRIBUTIONS_LENGTH) {
                 if (distributionIndex > maxWinningDistributionIndex) {
                     maxWinningDistributionIndex = distributionIndex;
+=======
+            // there is prize for this tier index
+            if (tiersIndex < TIERS_LENGTH) {
+                if (tiersIndex > maxWinningTierIndex) {
+                    maxWinningTierIndex = tiersIndex;
+>>>>>>> more renaming
                 }
-                prizeCounts[distributionIndex]++;
+                prizeCounts[tiersIndex]++;
             }
         }
 
         // now calculate prizeFraction given prizeCounts
         uint256 prizeFraction = 0;
-        uint256[] memory prizeDistributionFractions = _calculatePrizeDistributionFractions(
+        uint256[] memory prizeTiersFractions = _calculatePrizeTierFractions(
             _prizeDistribution,
-            maxWinningDistributionIndex
+            maxWinningTierIndex
         );
 
         // multiple the fractions by the prizeCounts and add them up
         for (
             uint256 prizeCountIndex = 0;
-            prizeCountIndex <= maxWinningDistributionIndex;
+            prizeCountIndex <= maxWinningTierIndex;
             prizeCountIndex++
         ) {
             if (prizeCounts[prizeCountIndex] > 0) {
                 prizeFraction +=
-                    prizeDistributionFractions[prizeCountIndex] *
+                    prizeTiersFractions[prizeCountIndex] *
                     prizeCounts[prizeCountIndex];
             }
         }
@@ -418,7 +424,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      * @param _prizeTierIndex Index of the prize tiers array to calculate
      * @return returns the fraction of the total prize (base 1e18)
      */
-    function _calculatePrizeDistributionFraction(
+    function _calculatePrizeTierFraction(
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _prizeTierIndex
     ) internal pure returns (uint256) {
@@ -434,19 +440,19 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     /**
      * @notice Generates an array of prize tiers fractions
      * @param _prizeDistribution prizeDistribution struct for Draw
-     * @param maxWinningDistributionIndex Max length of the prize tiers array
+     * @param maxWinningTierIndex Max length of the prize tiers array
      * @return returns an array of prize tiers fractions
      */
-    function _calculatePrizeDistributionFractions(
+    function _calculatePrizeTierFractions(
         DrawLib.PrizeDistribution memory _prizeDistribution,
-        uint8 _maxWinningDistributionIndex
+        uint8 maxWinningTierIndex
     ) internal pure returns (uint256[] memory) {
         uint256[] memory prizeDistributionFractions = new uint256[](
-            _maxWinningDistributionIndex + 1
+            maxWinningTierIndex + 1
         );
 
-        for (uint8 i = 0; i <= _maxWinningDistributionIndex; i++) {
-            prizeDistributionFractions[i] = _calculatePrizeDistributionFraction(
+        for (uint8 i = 0; i <= maxWinningTierIndex; i++) {
+            prizeDistributionFractions[i] = _calculatePrizeTierFraction(
                 _prizeDistribution,
                 i
             );

@@ -177,7 +177,7 @@ describe('PrizeDistributionHistory', () => {
                 ).to.be.revertedWith('DrawCalc/bitRangeSize-too-large');
             });
 
-            it('cannot set over 100pc of prize for distribution', async () => {
+            it('cannot set over 100pc of prize for tiers', async () => {
                 prizeDistribution.tiers[0] = ethers.utils.parseUnits('1', 9);
 
                 await expect(

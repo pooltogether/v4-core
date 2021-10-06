@@ -33,11 +33,11 @@ contract DrawCalculatorHarness is DrawCalculator {
     ///@param _prizeDistribution prizeDistribution struct for Draw
     ///@param _prizeTierIndex Index of the prize tiers array to calculate
     ///@return returns the fraction of the total prize
-    function calculatePrizeDistributionFraction(
+    function calculatePrizeTierFraction(
         DrawLib.PrizeDistribution calldata _prizeDistribution,
         uint256 _prizeTierIndex
     ) external pure returns (uint256) {
-        return _calculatePrizeDistributionFraction(_prizeDistribution, _prizeTierIndex);
+        return _calculatePrizeTierFraction(_prizeDistribution, _prizeTierIndex);
     }
 
     function numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeTierIndex)

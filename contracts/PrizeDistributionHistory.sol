@@ -208,7 +208,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
             }
         }
 
-        // Each distribution amount stored as uint32 - summed can't exceed 1e9
+        // Each tier amount stored as uint32 - summed can't exceed 1e9
         require(sumTotalTiers <= TIERS_CEILING, "DrawCalc/tiers-gt-100%");
 
         require(
