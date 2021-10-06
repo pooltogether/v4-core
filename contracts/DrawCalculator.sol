@@ -293,7 +293,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         DrawLib.PrizeDistribution memory _prizeDistribution
     ) internal pure returns (uint256) {
         // prizeCounts stores the number of wins at a distribution index
-        uint256[] memory prizeCounts = new uint256[](DISTRIBUTIONS_LENGTH);
+        uint256[] memory prizeCounts = new uint256[](_prizeDistribution.tiers.length);
         
         // create bitmasks for the PrizeDistribution
         uint256[] memory masks = _createBitMasks(_prizeDistribution);
@@ -420,7 +420,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         DrawLib.PrizeDistribution memory _prizeDistribution,
         uint256 _prizeTierIndex
     ) internal pure returns (uint256) {
-        uint256 prizeDistributions = _prizeDistribution.tiers[_prizeTierIndex];
+         // get the prize fraction at that index
+        uint256 prizeFraction = _prizeDistribution.tiers[_prizeTierIndex];
+        
+        // calculate number of prizes for that index
         uint256 numberOfPrizesForIndex = _numberOfPrizesForIndex(
             _prizeDistribution.bitRangeSize,
             _prizeTierIndex
