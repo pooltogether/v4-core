@@ -116,10 +116,8 @@ contract PrizeFlush is IPrizeFlush, Manageable {
 
         // IF the tokens were succesfully moved to the Reserve, now move the to the destination (PrizeDistributor) address.
         if (_amount > 0) {
-            // Create checkpoint and transfers new total balance to DrawPrize
             address _destination = destination;
-            _reserve.withdrawTo(_destination, _token.balanceOf(address(_reserve)));
-
+            _reserve.withdrawTo(_destination, _amount);
             emit Flushed(_destination, _amount);
         }
 
