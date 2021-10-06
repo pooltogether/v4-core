@@ -729,7 +729,7 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe.only('calculate()', () => {
+    describe('calculate()', () => {
         const debug = newDebug('pt:DrawCalculator.test.ts:calculate()');
 
         context('with draw 1 set', () => {
@@ -1299,7 +1299,7 @@ describe('DrawCalculator', () => {
                 ).to.revertedWith('DrawCalc/exceeds-max-user-picks');
             });
 
-            it.only('should calculate and win nothing', async () => {
+            it('should calculate and win nothing', async () => {
                 const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
                 const userRandomNumber = utils.solidityKeccak256(
                     ['bytes32', 'uint256'],
@@ -1346,8 +1346,8 @@ describe('DrawCalculator', () => {
 
                 expect(prizesAwardable[0][0]).to.equal(utils.parseEther('0'));
                 const prizeCounts = encoder.decode(['uint256[][]'], prizesAwardable[1])
-                console.log(prizeCounts[0][0])
-                assertEmptyArrayOfBigNumbers(prizeCounts[0][0])
+                // there will always be a prizeCount at matchCardinality index
+                assertEmptyArrayOfBigNumbers(prizeCounts[0][0].slice(prizeDistribution.matchCardinality.toNumber() + 1))
             });
         });
     });
