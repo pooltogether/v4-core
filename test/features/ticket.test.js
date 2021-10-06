@@ -33,7 +33,7 @@ describe('Tickets', () => {
         await env.buyTicketsForPrizeDistributor({
             user: 1,
             tickets: 100,
-            drawPrize: (await env.drawPrize()).address,
+            prizeDistributor: (await env.prizeDistributor()).address,
         });
 
         const wallet = await env.wallet(1);

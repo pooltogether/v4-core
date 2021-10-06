@@ -211,10 +211,10 @@ describe('PrizeDistributionHistory', () => {
         });
 
         it('should fail to create a new draw when called from non-draw-manager', async () => {
-            const drawPrizeWallet2 = prizeDistributionHistory.connect(wallet2);
+            const prizeDistributorWallet2 = prizeDistributionHistory.connect(wallet2);
 
             await expect(
-                drawPrizeWallet2.pushPrizeDistribution(1, newPrizeDistribution()),
+                prizeDistributorWallet2.pushPrizeDistribution(1, newPrizeDistribution()),
             ).to.be.revertedWith('Manageable/caller-not-manager-or-owner');
         });
 

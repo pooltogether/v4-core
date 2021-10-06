@@ -23,8 +23,8 @@ interface IDrawCalculator {
      IDrawHistory indexed drawHistory,
     IPrizeDistributionHistory indexed prizeDistributionHistory);
 
-    ///@notice Emitted when the drawPrize is set/updated
-    event PrizeDistributorSet(PrizeDistributor indexed drawPrize);
+    ///@notice Emitted when the prizeDistributor is set/updated
+    event PrizeDistributorSet(PrizeDistributor indexed prizeDistributor);
 
     /**
      * @notice Calculates the prize amount for a user for Multiple Draws. Typically called by a PrizeDistributor.
