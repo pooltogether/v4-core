@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, ContractFactory, BigNumber } from 'ethers';
 import hre, { ethers } from 'hardhat';
-
+import { delegateSignature } from './helpers/delegateSignature';
 import { increaseTime as increaseTimeHelper } from './helpers/increaseTime';
 
 const newDebug = require('debug');
@@ -62,7 +62,6 @@ async function printTwabs(
 }
 
 describe('Ticket', () => {
-    let prizePool: MockContract;
     let ticket: Contract;
 
     let wallet1: SignerWithAddress;
@@ -77,19 +76,12 @@ describe('Ticket', () => {
     beforeEach(async () => {
         [wallet1, wallet2, wallet3, wallet4] = await getSigners();
 
-        const PrizePool = await hre.artifacts.readArtifact(
-            'contracts/prize-pool/PrizePool.sol:PrizePool',
-        );
-
-        prizePool = await deployMockContract(wallet1 as Signer, PrizePool.abi);
         ticket = await deployTicketContract(
             ticketName,
             ticketSymbol,
             ticketDecimals,
-            prizePool.address,
+            wallet1.address,
         );
-
-        prizePool.mock.getBalanceCap.returns(MaxUint256);
 
         // delegate for each of the users
         await ticket.delegate(wallet1.address)
@@ -104,17 +96,18 @@ describe('Ticket', () => {
                 ticketName,
                 ticketSymbol,
                 ticketDecimals,
-                prizePool.address,
+                wallet1.address,
             );
 
             expect(await ticket.name()).to.equal(ticketName);
             expect(await ticket.symbol()).to.equal(ticketSymbol);
             expect(await ticket.decimals()).to.equal(ticketDecimals);
+            expect(await ticket.controller()).to.equal(wallet1.address)
         });
 
         it('should fail if token decimal is not greater than 0', async () => {
             await expect(
-                deployTicketContract(ticketName, ticketSymbol, 0, prizePool.address),
+                deployTicketContract(ticketName, ticketSymbol, 0, wallet1.address),
             ).to.be.revertedWith('ControlledToken/decimals-gt-zero');
         });
 
@@ -949,4 +942,32 @@ describe('Ticket', () => {
             );
         });
     });
+
+    describe('delegateWithSignature()', () => {
+        it('should allow somone to delegate with a signature', async () => {
+            // @ts-ignore
+            const { user, delegate, nonce, deadline, v, r, s } = await delegateSignature({
+                ticket, userWallet: wallet1, delegate: wallet2.address
+            })
+
+            await ticket.connect(wallet3).delegateWithSignature(user, delegate, deadline, v, r, s)
+
+            expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address)
+        })
+    })
+
+    describe('controllerDelegateFor', () => {
+        it('should allow the controller to delegate for a user', async () => {
+            await ticket.controllerDelegateFor(wallet2.address, wallet3.address)
+
+            expect(await ticket.delegateOf(wallet2.address)).to.equal(wallet3.address)
+        })
+
+        it('should not allow anyone else to delegate', async () => {
+            await expect(
+                ticket.connect(wallet2).controllerDelegateFor(wallet1.address, wallet3.address)
+            ).to.be.revertedWith('ControlledToken/only-controller')
+
+        })
+    })
 });
