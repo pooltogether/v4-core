@@ -218,6 +218,9 @@ contract Ticket is ControlledToken, ITicket {
         _delegate(msg.sender, _to);
     }
 
+    /// @notice Delegates a users chance to another
+    /// @param _user The user whose balance should be delegated
+    /// @param _to The delegate
     function _delegate(address _user, address _to) internal {
         uint256 balance = balanceOf(_user);
         address currentDelegate = delegates[_user];
@@ -280,6 +283,7 @@ contract Ticket is ControlledToken, ITicket {
         return averageBalances;
     }
 
+    // @inheritdoc ERC20
     function _beforeTokenTransfer(address _from, address _to, uint256 _amount) internal override {
         address _fromDelegate;
         if (_from != address(0)) {
@@ -377,7 +381,8 @@ contract Ticket is ControlledToken, ITicket {
         }
     }
 
-    /// @notice Increases the total supply twab.  Should be called anytime
+    /// @notice Decreases the total supply twab.  Should be called anytime a balance moves from delegated to undelegated
+    /// @param _amount The amount to decrease the total by
     function _decreaseTotalSupplyTwab(uint256 _amount) internal {
         if (_amount == 0) {
             return;
@@ -401,6 +406,8 @@ contract Ticket is ControlledToken, ITicket {
         }
     }
 
+    /// @notice Increases the total supply twab.  Should be called anytime a balance moves from undelegated to delegated
+    /// @param _amount The amount to increase the total by
     function _increaseTotalSupplyTwab(uint256 _amount) internal {
         if (_amount == 0) {
             return;
