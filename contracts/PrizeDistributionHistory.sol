@@ -158,14 +158,14 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
     /**
      * @notice Gets the PrizeDistributionHistory for a drawId
-     * @param _prizeDistributionsRingBufferData DrawRingBufferLib.Buffer
-     * @param drawId drawId
+     * @param _buffer DrawRingBufferLib.Buffer
+     * @param _drawId drawId
      */
     function _getPrizeDistribution(
-        DrawRingBufferLib.Buffer memory _prizeDistributionsRingBufferData,
-        uint32 drawId
+        DrawRingBufferLib.Buffer memory _buffer,
+        uint32 _drawId
     ) internal view returns (DrawLib.PrizeDistribution memory) {
-        return _prizeDistributionsRingBuffer[_prizeDistributionsRingBufferData.getIndex(drawId)];
+        return _prizeDistributionsRingBuffer[_buffer.getIndex(_drawId)];
     }
 
     /**
