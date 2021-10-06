@@ -200,11 +200,14 @@ library TwabLib {
         return (endTwab.amount - startTwab.amount) / (endTwab.timestamp - startTwab.timestamp);
     }
 
-    /// @notice Retrieves amount at `_target` timestamp
-    /// @param _twabs List of TWABs to search through.
-    /// @param _accountDetails Accounts details
-    /// @param _target Timestamp at which the reserved TWAB should be for.
-    /// @return uint256 TWAB amount at `_target`.
+    /** @notice Searches TWAB history and calculate the difference between amount(s)/timestamp(s) to return average balance
+                between the Observations closes to the supplied targetTime. 
+      * @param _twabs          Individual user Observation recorded checkpoints passed as storage pointer
+      * @param _accountDetails User AccountDetails struct loaded in memory
+      * @param _target         Target timestamp to filter Observations in the ring buffer binary search
+      * @param _currentTime    Block.timestamp
+      * @return uint256 Time-weighted average amount between two closest observations.
+    */
     function _getBalanceAt(
         ObservationLib.Observation[MAX_CARDINALITY] storage _twabs,
         AccountDetails memory _accountDetails,
