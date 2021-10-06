@@ -359,10 +359,19 @@ library TwabLib {
 
         _twabs[_accountDetails.nextTwabIndex] = newTwab;
 
+        _accountDetails = push(_accountDetails);
+
+        return (_accountDetails, newTwab, true);
+    }
+
+    /// @notice "Pushes" a new element on the AccountDetails ring buffer, and returns the new AccountDetails
+    /// @param _accountDetails The account details from which to pull the cardinality and next index
+    /// @return The new AccountDetails
+    function push(AccountDetails memory _accountDetails) internal pure returns (AccountDetails memory) {
         _accountDetails.nextTwabIndex = uint24(
             RingBufferLib.nextIndex(_accountDetails.nextTwabIndex, MAX_CARDINALITY)
         );
-        
+
         // Prevent the Account specific cardinality from exceeding the MAX_CARDINALITY.
         // The ring buffer length is limited by MAX_CARDINALITY. IF the account.cardinality
         // exceeds the max cardinality, new observations would be incorrectly set or the
@@ -372,6 +381,6 @@ library TwabLib {
             _accountDetails.cardinality += 1;
         }
 
-        return (_accountDetails, newTwab, true);
+        return _accountDetails;
     }
 }

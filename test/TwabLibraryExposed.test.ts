@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { utils, Contract, ContractFactory } from 'ethers';
+import { utils, Contract, ContractFactory, BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 
 const { getSigners } = ethers;
@@ -298,4 +298,24 @@ describe('TwabLib', () => {
             });
         });
     });
+
+    describe('push()', () => {
+        it('should increment the cardinality', async () => {
+            const result = await twabLib.push({ balance: '0', nextTwabIndex: 2, cardinality: 10 })
+            expect(
+                result.map((obj: any) => obj.toString())
+            ).to.deep.equals(
+                [ '0', '3', `11` ]
+            )
+        })
+
+        it('should correctly limit the cardinality', async () => {
+            const result = await twabLib.push({ balance: '0', nextTwabIndex: 2, cardinality: 2**24-1 })
+            expect(
+                result.map((obj: any) => obj.toString())
+            ).to.deep.equals(
+                [ '0', '3', `${2**24-1}` ]
+            )
+        })
+    })
 });
