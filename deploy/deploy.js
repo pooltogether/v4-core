@@ -148,7 +148,7 @@ module.exports = async (hardhat) => {
   });
   displayResult('PrizeDistributionHistory', tsunamiDrawSettindsHistoryResult);
 
-  const rngTimout = 3600
+  const rngTimeout = 3600
 
   cyan('\nDeploying DrawBeacon...');
   const drawBeaconResult = await deploy('DrawBeacon', {
@@ -160,7 +160,7 @@ module.exports = async (hardhat) => {
       1,
       parseInt('' + new Date().getTime() / 1000),
       120, // 2 minute intervals
-      rngTimout
+      rngTimeout
     ],
   });
 
