@@ -52,6 +52,11 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     /* ============ External Functions ============ */
 
     /// @inheritdoc IPrizeDistributionHistory
+    function getBufferCardinality() external view override returns (uint32) {
+        return bufferMetadata.cardinality;
+    }
+
+    /// @inheritdoc IPrizeDistributionHistory
     function getPrizeDistribution(uint32 _drawId)
         external
         view

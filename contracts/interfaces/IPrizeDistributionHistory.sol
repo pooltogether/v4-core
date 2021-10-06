@@ -39,6 +39,12 @@ interface IPrizeDistributionHistory {
     );
 
     /**
+     * @notice Read a ring buffer cardinality
+     * @return Ring buffer cardinality
+     */
+    function getBufferCardinality() external view returns (uint32);
+
+    /**
      * @notice Read newest PrizeDistribution from prize distributions ring buffer.
      * @dev    Uses nextDrawIndex to calculate the most recently added PrizeDistribution.
      * @return prizeDistribution
