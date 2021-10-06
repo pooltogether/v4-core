@@ -69,7 +69,7 @@ library TwabLib {
     /// @return isNew Whether the TWAB is new
     function increaseBalance(
         Account storage _account,
-        uint256 _amount,
+        uint208 _amount,
         uint32 _currentTime
     )
         internal
@@ -81,7 +81,7 @@ library TwabLib {
     {
         AccountDetails memory _accountDetails = _account.details;
         (accountDetails, twab, isNew) = _nextTwab(_account.twabs, _accountDetails, _currentTime);
-        accountDetails.balance = (_accountDetails.balance + _amount).toUint208();
+        accountDetails.balance = _accountDetails.balance + _amount;
     }
 
     /** @notice Calculates the next TWAB checkpoint for an account with a decreasing balance.
