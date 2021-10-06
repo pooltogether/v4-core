@@ -285,6 +285,10 @@ contract Ticket is ControlledToken, ITicket {
 
     // @inheritdoc ERC20
     function _beforeTokenTransfer(address _from, address _to, uint256 _amount) internal override {
+        if (_from == _to) {
+            return;
+        }
+
         address _fromDelegate;
         if (_from != address(0)) {
             _fromDelegate = delegates[_from];
