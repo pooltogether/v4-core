@@ -17,6 +17,12 @@ interface IDrawHistory {
     event DrawSet(uint32 indexed drawId, IDrawBeacon.Draw draw);
 
     /**
+     * @notice Read a ring buffer cardinality
+     * @return Ring buffer cardinality
+     */
+    function getBufferCardinality() external view returns (uint32);
+
+    /**
      * @notice Read a Draw from the draws ring buffer.
      * @dev    Read a Draw using the Draw.drawId to calculate position in the draws ring buffer.
      * @param drawId Draw.drawId

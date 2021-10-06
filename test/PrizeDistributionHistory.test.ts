@@ -53,6 +53,13 @@ describe('PrizeDistributionHistory', () => {
         await prizeDistributionHistory.setManager(wallet1.address);
     });
 
+    describe('getBufferCardinality()', () => {
+        it('should read buffer cardinality set in constructor', async () => {
+            expect(await prizeDistributionHistory.getBufferCardinality())
+                .to.equal(3)
+        });
+    })
+
     describe('getNewestPrizeDistribution()', () => {
         it('should error when no draw history', async () => {
             await expect(prizeDistributionHistory.getNewestPrizeDistribution()).to.be.revertedWith(
@@ -130,7 +137,7 @@ describe('PrizeDistributionHistory', () => {
 
         // @TODO: Create PrizeDistributionHistory harness smart contract to expose
         describe('_estimateDrawId()', () => {
-            it('should return Draw ID 0 when no history', async () => {});
+            it('should return Draw ID 0 when no history', async () => { });
         });
     });
 
