@@ -39,7 +39,7 @@ interface IDrawCalculator {
         address user,
         uint32[] calldata drawIds,
         bytes calldata data
-    ) external view returns (uint256[] memory);
+    ) external view returns (uint256[] memory, bytes memory);
 
     /**
      * @notice Read global DrawBuffer variable.
@@ -64,16 +64,4 @@ interface IDrawCalculator {
         view
         returns (uint256[] memory);
 
-    /**
-     * @notice Returns a users balances expressed as a fraction of the total supply over time.
-     * @param user The user for which to calculate the tiers indices
-     * @param pickIndices The users pick indices for a draw
-     * @param drawId The draw for which to calculate the tiers indices
-     * @return List of PrizePicks for Draw.drawId
-     */
-    function checkPrizeTierIndexForDrawId(
-        address user,
-        uint64[] calldata pickIndices,
-        uint32 drawId
-    ) external view returns (PickPrize[] memory);
 }

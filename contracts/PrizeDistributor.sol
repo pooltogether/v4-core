@@ -60,8 +60,10 @@ contract PrizeDistributor is IPrizeDistributor, Ownable {
         uint32[] calldata _drawIds,
         bytes calldata _data
     ) external override returns (uint256) {
+        
         uint256 totalPayout;
-        uint256[] memory drawPayouts = drawCalculator.calculate(_user, _drawIds, _data);
+        
+        (uint256[] memory drawPayouts, ) = drawCalculator.calculate(_user, _drawIds, _data); // neglect the prizeCounts since we are not interested in them here
 
         for (uint256 payoutIndex = 0; payoutIndex < drawPayouts.length; payoutIndex++) {
             uint32 drawId = _drawIds[payoutIndex];

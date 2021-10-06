@@ -20,6 +20,12 @@ function newDraw(overrides: any): Draw {
     };
 }
 
+function assertEmptyArrayOfBigNumbers(array: BigNumber[]){
+    array.forEach((element: BigNumber) => {
+        expect(element).to.equal(BigNumber.from(0))
+    })
+}
+
 export async function deployDrawCalculator(
     signer: any,
     ticketAddress: string,
@@ -537,174 +543,6 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe('checkPrizeTierIndexForDrawId()', () => {
-        const prizeDistribution: PrizeDistribution = {
-            matchCardinality: BigNumber.from(5),
-            tiers: [
-                ethers.utils.parseUnits('0.6', 9),
-                ethers.utils.parseUnits('0.1', 9),
-                ethers.utils.parseUnits('0.1', 9),
-                ethers.utils.parseUnits('0.1', 9),
-            ],
-            numberOfPicks: BigNumber.from('10'),
-            bitRangeSize: BigNumber.from(4),
-            prize: ethers.utils.parseEther('1'),
-            startTimestampOffset: BigNumber.from(1),
-            endTimestampOffset: BigNumber.from(1),
-            maxPicksPerUser: BigNumber.from(10),
-        };
-
-        prizeDistribution.tiers = fillPrizeTiersWithZeros(
-            prizeDistribution.tiers,
-        );
-
-        it('calculates the grand prize tier index', async () => {
-            const timestamps = [42];
-            const offsetStartTimestamps = modifyTimestampsWithOffset(
-                timestamps,
-                prizeDistribution.startTimestampOffset.toNumber(),
-            );
-
-            const offsetEndTimestamps = modifyTimestampsWithOffset(
-                timestamps,
-                prizeDistribution.startTimestampOffset.toNumber(),
-            );
-
-            const winningNumber = utils.solidityKeccak256(['address'], [wallet1.address]);
-            const winningRandomNumber = utils.solidityKeccak256(
-                ['bytes32', 'uint256'],
-                [winningNumber, 1],
-            );
-
-            const draw: Draw = newDraw({
-                drawId: BigNumber.from(1),
-                winningRandomNumber: BigNumber.from(winningRandomNumber),
-                timestamp: BigNumber.from(timestamps[0]),
-            });
-
-            await prizeDistributionBuffer.mock.getPrizeDistributions
-                .withArgs([draw.drawId])
-                .returns([prizeDistribution]);
-
-            await drawBuffer.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
-
-            await ticket.mock.getAverageBalancesBetween
-                .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
-                .returns([utils.parseEther('20'), utils.parseEther('30')]); // (user, timestamp): [balance]
-
-            await ticket.mock.getAverageTotalSuppliesBetween
-                .withArgs(offsetStartTimestamps, offsetEndTimestamps)
-                .returns([utils.parseEther('100'), utils.parseEther('600')]);
-
-            const result = await drawCalculator.checkPrizeTierIndexForDrawId(
-                wallet1.address,
-                [1],
-                draw.drawId,
-            );
-
-            expect(result[0].won).to.be.true;
-            expect(result[0].tierIndex).to.equal(0);
-        });
-
-        it('no matches to return won = false', async () => {
-            const timestamps = [42];
-            const offsetStartTimestamps = modifyTimestampsWithOffset(
-                timestamps,
-                prizeDistribution.startTimestampOffset.toNumber(),
-            );
-
-            const offsetEndTimestamps = modifyTimestampsWithOffset(
-                timestamps,
-                prizeDistribution.startTimestampOffset.toNumber(),
-            );
-
-            const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
-            const winningRandomNumber = utils.solidityKeccak256(
-                ['bytes32', 'uint256'],
-                [winningNumber, 1],
-            );
-
-            const draw: Draw = newDraw({
-                drawId: BigNumber.from(1),
-                winningRandomNumber: BigNumber.from(winningRandomNumber),
-                timestamp: BigNumber.from(timestamps[0]),
-            });
-
-            await prizeDistributionBuffer.mock.getPrizeDistributions
-                .withArgs([draw.drawId])
-                .returns([prizeDistribution]);
-
-            await drawBuffer.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
-
-            await ticket.mock.getAverageBalancesBetween
-                .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
-                .returns([utils.parseEther('20'), utils.parseEther('30')]); // (user, timestamp): [balance]
-
-            await ticket.mock.getAverageTotalSuppliesBetween
-                .withArgs(offsetStartTimestamps, offsetEndTimestamps)
-                .returns([utils.parseEther('100'), utils.parseEther('600')]);
-
-            const result = await drawCalculator.checkPrizeTierIndexForDrawId(
-                wallet1.address,
-                [1],
-                draw.drawId,
-            );
-
-            expect(result[0].won).to.be.false;
-            expect(result[0].tierIndex).to.equal(
-                prizeDistribution.matchCardinality.toNumber(),
-            );
-        });
-
-        it('reverts if user has too many picks', async () => {
-            const timestamps = [42];
-            const offsetStartTimestamps = modifyTimestampsWithOffset(
-                timestamps,
-                prizeDistribution.startTimestampOffset.toNumber(),
-            );
-
-            const offsetEndTimestamps = modifyTimestampsWithOffset(
-                timestamps,
-                prizeDistribution.startTimestampOffset.toNumber(),
-            );
-
-            const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
-            const winningRandomNumber = utils.solidityKeccak256(
-                ['bytes32', 'uint256'],
-                [winningNumber, 1],
-            );
-
-            const draw: Draw = newDraw({
-                drawId: BigNumber.from(1),
-                winningRandomNumber: BigNumber.from(winningRandomNumber),
-                timestamp: BigNumber.from(timestamps[0]),
-            });
-
-            await prizeDistributionBuffer.mock.getPrizeDistributions
-                .withArgs([draw.drawId])
-                .returns([prizeDistribution]);
-
-            await drawBuffer.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
-
-            await ticket.mock.getAverageBalancesBetween
-                .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
-                .returns([utils.parseEther('2')]); // (user, timestamp): [balance]
-
-            await ticket.mock.getAverageTotalSuppliesBetween
-                .withArgs(offsetStartTimestamps, offsetEndTimestamps)
-                .returns([utils.parseEther('10')]);
-
-            // 20pc of the total supply, 10 picks in the draw = 2 picks trying with 3 picks
-            await expect(
-                drawCalculator.checkPrizeTierIndexForDrawId(
-                    wallet1.address,
-                    [1, 2, 3],
-                    draw.drawId,
-                ),
-            ).to.be.revertedWith('DrawCalc/insufficient-user-picks');
-        });
-    });
-
     describe('getNormalizedBalancesAt()', () => {
         it('calculates the correct normalized balance', async () => {
             const timestamps = [42, 77];
@@ -891,7 +729,7 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe('calculate()', () => {
+    describe.only('calculate()', () => {
         const debug = newDebug('pt:DrawCalculator.test.ts:calculate()');
 
         context('with draw 1 set', () => {
@@ -967,13 +805,16 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const prizesAwardable = await drawCalculator.calculate(
+                const result = await drawCalculator.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
                 );
 
-                expect(prizesAwardable[0]).to.equal(utils.parseEther('80'));
+                expect(result[0][0]).to.equal(utils.parseEther('80'));
+                const prizeCounts = encoder.decode(['uint256[][]'], result[1])
+                expect(prizeCounts[0][0][0]).to.equal(BigNumber.from(1)); // has a prizeCount = 1 at grand winner index
+                assertEmptyArrayOfBigNumbers(prizeCounts[0][0].slice(1))
 
                 debug(
                     'GasUsed for calculate(): ',
@@ -1146,7 +987,7 @@ describe('DrawCalculator', () => {
                     pickIndices,
                 );
 
-                expect(prizesAwardable[0]).to.equal(utils.parseEther('0'));
+                expect(prizesAwardable[0][0]).to.equal(utils.parseEther('0'));
             });
 
             it('should match all numbers but prize tiers is 0 at index 1', async () => {
@@ -1208,7 +1049,10 @@ describe('DrawCalculator', () => {
                     pickIndices,
                 );
 
-                expect(prizesAwardable[0]).to.equal(utils.parseEther('0'));
+                expect(prizesAwardable[0][0]).to.equal(utils.parseEther('0'));
+                const prizeCounts = encoder.decode(['uint256[][]'], prizesAwardable[1])
+                expect(prizeCounts[0][0][1]).to.equal(BigNumber.from(1)); // has a prizeCount = 1 at runner up index
+                assertEmptyArrayOfBigNumbers(prizeCounts[0][0].slice(2))
             });
 
             it('should calculate for multiple picks, first pick grand prize winner, second pick no winnings', async () => {
@@ -1284,15 +1128,19 @@ describe('DrawCalculator', () => {
                     .withArgs([1, 2])
                     .returns([prizeDistribution, prizeDistribution2]);
 
-                debug(`PUSHED`);
-
-                const prizesAwardable = await drawCalculator.calculate(
+                const result = await drawCalculator.calculate(
                     wallet1.address,
                     [draw1.drawId, draw2.drawId],
                     pickIndices,
                 );
 
-                expect(prizesAwardable[0]).to.equal(utils.parseEther('80'));
+                expect(result[0][0]).to.equal(utils.parseEther('80'));
+                expect(result[0][1]).to.equal(utils.parseEther('0'));
+
+                const prizeCounts = encoder.decode(['uint256[][]'], result[1])
+                expect(prizeCounts[0][0][0]).to.equal(BigNumber.from(1)); // has a prizeCount = 1 at grand winner index for first draw
+                expect(prizeCounts[0][1][0]).to.equal(BigNumber.from(0)); // has a prizeCount = 1 at grand winner index for second draw
+
 
                 debug(
                     'GasUsed for 2 calculate() calls: ',
@@ -1451,11 +1299,11 @@ describe('DrawCalculator', () => {
                 ).to.revertedWith('DrawCalc/exceeds-max-user-picks');
             });
 
-            it('should calculate and win nothing', async () => {
+            it.only('should calculate and win nothing', async () => {
                 const winningNumber = utils.solidityKeccak256(['address'], [wallet2.address]);
                 const userRandomNumber = utils.solidityKeccak256(
                     ['bytes32', 'uint256'],
-                    [winningNumber, 1],
+                    [winningNumber, 112312312],
                 );
 
                 const timestamps = [42];
@@ -1496,7 +1344,10 @@ describe('DrawCalculator', () => {
                     pickIndices,
                 );
 
-                expect(prizesAwardable[0]).to.equal(utils.parseEther('0'));
+                expect(prizesAwardable[0][0]).to.equal(utils.parseEther('0'));
+                const prizeCounts = encoder.decode(['uint256[][]'], prizesAwardable[1])
+                console.log(prizeCounts[0][0])
+                assertEmptyArrayOfBigNumbers(prizeCounts[0][0])
             });
         });
     });
