@@ -411,7 +411,7 @@ describe('Ticket', () => {
             await ticket.mint(wallet1.address, insufficientMintAmount);
 
             await expect(ticket.burn(wallet1.address, mintAmount)).to.be.revertedWith(
-                'ERC20: burn amount exceeds balance',
+                'Ticket/burn-amount-exceeds-total-supply-twab',
             );
         });
 
@@ -861,18 +861,13 @@ describe('Ticket', () => {
             expect(await ticket.getBalanceAt(wallet2.address, timestamp)).to.equal(toWei('100'));
         });
 
-        it('should revert if delegate address has already been set to passed address', async () => {
+        it('should be a no-op if delegate address has already been set to passed address', async () => {
             await ticket.mint(wallet1.address, toWei('100'));
             await ticket.delegate(wallet2.address);
 
-            await expect(ticket.delegate(wallet2.address)).to.be.revertedWith(
-                'Ticket/delegate-already-set',
-            );
-
-            const timestamp = (await provider.getBlock('latest')).timestamp;
-
-            expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
-            expect(await ticket.getBalanceAt(wallet2.address, timestamp)).to.equal(toWei('100'));
+            await expect(
+                ticket.delegate(wallet2.address)
+            ).to.not.emit(ticket, 'Delegated')
         });
 
         it('should allow the delegate to be reset by passing zero', async () => {

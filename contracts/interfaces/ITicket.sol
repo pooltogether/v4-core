@@ -46,12 +46,10 @@ interface ITicket is IControlledToken {
 
     /**
      * @notice Emitted when a new TWAB has been recorded.
-     * @param user The Ticket holder address.
      * @param delegate The recipient of the ticket power (may be the same as the user).
      * @param newTwab Updated TWAB of a ticket holder after a successful TWAB recording.
      */
     event NewUserTwab(
-        address indexed user,
         address indexed delegate,
         ObservationLib.Observation newTwab
     );

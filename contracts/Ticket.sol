@@ -225,26 +225,13 @@ contract Ticket is ControlledToken, ITicket {
         uint256 balance = balanceOf(_user);
         address currentDelegate = delegates[_user];
 
-        require(currentDelegate != _to, "Ticket/delegate-already-set");
+        if (currentDelegate == _to) {
+            return;
+        }
 
         delegates[_user] = _to;
 
-        // if we are going from a delegated address to an undelegated address
-        if (currentDelegate != address(0) && _to == address(0)) {
-            _decreaseTotalSupplyTwab(balance);
-        } else
-        // if we are going from undelegated address to a delegated address
-        if (currentDelegate == address(0) && _to != address(0)) {
-            _increaseTotalSupplyTwab(balance);
-        }
-
-        if (currentDelegate != address(0)) {
-            _decreaseUserTwab(_user, currentDelegate, balance);
-        }
-
-        if (_to != address(0)) {
-            _increaseUserTwab(_user, _to, balance);
-        }
+        _transferTwab(currentDelegate, _to, balance);
 
         emit Delegated(_user, _to);
     }
@@ -299,33 +286,37 @@ contract Ticket is ControlledToken, ITicket {
             _toDelegate = delegates[_to];
         }
 
-        // If we are transferring tokens from an undelegated account to a delegated account
-        if (_fromDelegate == address(0) && _toDelegate != address(0)) {
-            _increaseTotalSupplyTwab(_amount);
-        } // otherwise, if the from delegate is set, then decrease their twab
-        else if (_fromDelegate != address(0)) {
-            _decreaseUserTwab(_from, _fromDelegate, _amount);
-        }
+        _transferTwab(_fromDelegate, _toDelegate, _amount);
+    }
 
-        // if we are transferring tokens from a delegated account to an undelegated account
-        if (_fromDelegate != address(0) && _toDelegate == address(0)) {
+    /// @notice Transfers the given TWAB balance from one user to another
+    /// @param _from The user to transfer the balance from.  May be zero in the event of a mint.
+    /// @param _to The user to transfer the balance to.  May be zero in the event of a burn.
+    /// @param _amount The balance that is being transferred.
+    function _transferTwab(address _from, address _to, uint256 _amount) internal {
+        // If we are transferring tokens from an undelegated account to a delegated account
+        if (_from == address(0) && _to != address(0)) {
+            _increaseTotalSupplyTwab(_amount);
+        } else // if we are transferring tokens from a delegated account to an undelegated account
+        if (_from != address(0) && _to == address(0)) {
             _decreaseTotalSupplyTwab(_amount);
         } // otherwise if the to delegate is set, then increase their twab
-        else if (_toDelegate != address(0)) {
-            _increaseUserTwab(_to, _toDelegate, _amount);
+
+        if (_from != address(0)) {
+            _decreaseUserTwab(_from, _amount);
+        }
+        
+        if (_to != address(0)) {
+            _increaseUserTwab(_to, _amount);
         }
     }
 
     /**
-     * @notice Increase `_user` TWAB balance.
-     * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be increased.
-     * @dev Otherwise, `_delegate` TWAB balance will be increased.
-     * @param _user Address of the user.
+     * @notice Increase `_to` TWAB balance.
      * @param _to Address of the delegate.
-     * @param _amount Amount of tokens to be added to `_user` TWAB balance.
+     * @param _amount Amount of tokens to be added to `_to` TWAB balance.
      */
     function _increaseUserTwab(
-        address _user,
         address _to,
         uint256 _amount
     ) internal {
@@ -344,20 +335,16 @@ contract Ticket is ControlledToken, ITicket {
         _account.details = accountDetails;
 
         if (isNew) {
-            emit NewUserTwab(_user, _to, twab);
+            emit NewUserTwab(_to, twab);
         }
     }
 
     /**
-     * @notice Decrease `_user` TWAB balance.
-     * @dev If `_user` has not set a delegate address, `_user` TWAB balance will be decreased.
-     * @dev Otherwise, `_delegate` TWAB balance will be decreased.
-     * @param _user Address of the user.
+     * @notice Decrease `_to` TWAB balance.
      * @param _to Address of the delegate.
-     * @param _amount Amount of tokens to be added to `_user` TWAB balance.
+     * @param _amount Amount of tokens to be added to `_to` TWAB balance.
      */
     function _decreaseUserTwab(
-        address _user,
         address _to,
         uint256 _amount
     ) internal {
@@ -381,7 +368,7 @@ contract Ticket is ControlledToken, ITicket {
         _account.details = accountDetails;
 
         if (isNew) {
-            emit NewUserTwab(_user, _to, twab);
+            emit NewUserTwab(_to, twab);
         }
     }
 
