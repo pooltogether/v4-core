@@ -11,7 +11,7 @@ import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawHistory.sol";
-import "./libraries/DrawLib.sol";
+
 
 /**
   * @title  PoolTogether V4 DrawBeacon
@@ -223,7 +223,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         uint64 _time = _currentTime();
 
         // create Draw struct
-        DrawLib.Draw memory _draw = DrawLib.Draw({
+        IDrawBeacon.Draw memory _draw = IDrawBeacon.Draw({
             winningRandomNumber: randomNumber,
             drawId: _nextDrawId,
             timestamp: rngRequest.requestedAt, // must use the startAward() timestamp to prevent front-running

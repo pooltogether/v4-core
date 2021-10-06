@@ -10,7 +10,7 @@ import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawHistory.sol";
 import "./interfaces/IPrizeDistributionHistory.sol";
-import "./libraries/DrawLib.sol";
+import "./interfaces/IDrawBeacon.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
 /**
@@ -71,11 +71,11 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
         require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
-        // READ list of DrawLib.Draw using the drawIds from drawHistory
-        DrawLib.Draw[] memory draws = drawHistory.getDraws(_drawIds);
+        // READ list of IDrawBeacon.Draw using the drawIds from drawHistory
+        IDrawBeacon.Draw[] memory draws = drawHistory.getDraws(_drawIds);
 
-        // READ list of DrawLib.PrizeDistribution using the drawIds
-        DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
+        // READ list of IPrizeDistributionHistory.PrizeDistribution using the drawIds
+        IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
             .getPrizeDistributions(_drawIds);
 
         // The userBalances are fractions representing their portion of the liquidity for a draw.
@@ -116,8 +116,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         override
         returns (uint256[] memory)
     {
-        DrawLib.Draw[] memory _draws = drawHistory.getDraws(_drawIds);
-        DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
+        IDrawBeacon.Draw[] memory _draws = drawHistory.getDraws(_drawIds);
+        IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
             .getPrizeDistributions(_drawIds);
 
         return _getNormalizedBalancesAt(_user, _draws, _prizeDistributions);
@@ -132,8 +132,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint32[] memory drawIds = new uint32[](1);
         drawIds[0] = _drawId;
 
-        DrawLib.Draw[] memory _draws = drawHistory.getDraws(drawIds);
-        DrawLib.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
+        IDrawBeacon.Draw[] memory _draws = drawHistory.getDraws(drawIds);
+        IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
             .getPrizeDistributions(drawIds);
 
         uint256[] memory userBalances = _getNormalizedBalancesAt(
@@ -188,9 +188,9 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     function _calculatePrizesAwardable(
         uint256[] memory _normalizedUserBalances,
         bytes32 _userRandomNumber,
-        DrawLib.Draw[] memory _draws,
+        IDrawBeacon.Draw[] memory _draws,
         uint64[][] memory _pickIndicesForDraws,
-        DrawLib.PrizeDistribution[] memory _prizeDistributions
+        IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions
     ) internal pure returns (uint256[] memory) {
         uint256[] memory prizesAwardable = new uint256[](_normalizedUserBalances.length);
 
@@ -221,7 +221,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      * @return The number of picks a user gets for a Draw
      */
     function _calculateNumberOfUserPicks(
-        DrawLib.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionHistory.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
     ) internal pure returns (uint64) {
         return uint64((_normalizedUserBalance * _prizeDistribution.numberOfPicks) / 1 ether);
@@ -236,8 +236,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      */
     function _getNormalizedBalancesAt(
         address _user,
-        DrawLib.Draw[] memory _draws,
-        DrawLib.PrizeDistribution[] memory _prizeDistributions
+        IDrawBeacon.Draw[] memory _draws,
+        IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions
     ) internal view returns (uint256[] memory) {
         uint32[] memory _timestampsWithStartCutoffTimes = new uint32[](_draws.length);
         uint32[] memory _timestampsWithEndCutoffTimes = new uint32[](_draws.length);
@@ -290,7 +290,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint256 _totalUserPicks,
         bytes32 _userRandomNumber,
         uint64[] memory _picks,
-        DrawLib.PrizeDistribution memory _prizeDistribution
+        IPrizeDistributionHistory.PrizeDistribution memory _prizeDistribution
     ) internal pure returns (uint256) {
         // prizeCounts stores the number of wins at a distribution index
         uint256[] memory prizeCounts = new uint256[](_prizeDistribution.tiers.length);
@@ -392,7 +392,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      * @param _prizeDistribution The PrizeDistribution to use to calculate the masks
      * @return An array of bitmasks
      */
-    function _createBitMasks(DrawLib.PrizeDistribution memory _prizeDistribution)
+    function _createBitMasks(IPrizeDistributionHistory.PrizeDistribution memory _prizeDistribution)
         internal
         pure
         returns (uint256[] memory)
@@ -417,7 +417,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      * @return returns the fraction of the total prize (base 1e18)
      */
     function _calculatePrizeTierFraction(
-        DrawLib.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionHistory.PrizeDistribution memory _prizeDistribution,
         uint256 _prizeTierIndex
     ) internal pure returns (uint256) {
          // get the prize fraction at that index
@@ -439,7 +439,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      * @return returns an array of prize tiers fractions
      */
     function _calculatePrizeTierFractions(
-        DrawLib.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionHistory.PrizeDistribution memory _prizeDistribution,
         uint8 maxWinningTierIndex
     ) internal pure returns (uint256[] memory) {
         uint256[] memory prizeDistributionFractions = new uint256[](
