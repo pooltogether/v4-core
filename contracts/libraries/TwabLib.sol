@@ -245,7 +245,7 @@ library TwabLib {
                 between the Observations closes to the supplied targetTime.
       * @param _twabs          Individual user Observation recorded checkpoints passed as storage pointer
       * @param _accountDetails User AccountDetails struct loaded in memory
-      * @param _target         Target timestamp to filter Observations in the ring buffer binary search
+      * @param _targetTime     Target timestamp to filter Observations in the ring buffer binary search
       * @param _currentTime    Block.timestamp
       * @return uint256 Time-weighted average amount between two closest observations.
     */
@@ -302,7 +302,7 @@ library TwabLib {
       * @param _oldestTwab      Olderst TWAB in history (end of ring buffer)
       * @param _newestTwabIndex Pointer in ring buffer to newest TWAB
       * @param _oldestTwabIndex Pointer in ring buffer to oldest TWAB
-      * @param targetTimestamp  Epoch timestamp to calculate for time (T) in the TWAB
+      * @param _targetTimestamp Epoch timestamp to calculate for time (T) in the TWAB
       * @param _time            Block.timestamp
       * @return accountDetails Updated Account.details struct
     */
