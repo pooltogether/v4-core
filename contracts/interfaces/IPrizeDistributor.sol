@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.6;
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "./IDrawHistory.sol";
 import "./IDrawCalculator.sol";
 
-/** @title  IDrawPrize
+/** @title  IPrizeDistributor
   * @author PoolTogether Inc Team
-  * @notice The DrawPrize interface.
+  * @notice The PrizeDistributor interface.
 */
-interface IDrawPrize {
-    
+interface IPrizeDistributor {
+
     /**
      * @notice Emit when user has claimed token from the PrizeDistributor.
      * @param user   User address receiving draw claim payouts
@@ -45,7 +47,7 @@ interface IDrawPrize {
                Prizes are always paid out to the designated user account and not the caller (msg.sender).
                Claiming prizes is not limited to a single transaction. Reclaiming can be executed
                subsequentially if an "optimal" prize was not included in previous claim pick indices. The
-               payout difference for the new claim is calculated during the award process and transfered to user. 
+               payout difference for the new claim is calculated during the award process and transfered to user.
      * @param user    Address of user to claim awards for. Does NOT need to be msg.sender
      * @param drawIds Draw IDs from global DrawHistory reference
      * @param data    The data to pass to the draw calculator

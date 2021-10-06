@@ -30,7 +30,7 @@ describe('Tickets', () => {
     // NOT a COMPLETE test. Needs to be fixed - out of scope for this PR.
     it.skip('should allow a user to pull their prizes', async () => {
         await env.buyTickets({ user: 1, tickets: 100 });
-        await env.buyTicketsForDrawPrize({
+        await env.buyTicketsForPrizeDistributor({
             user: 1,
             tickets: 100,
             drawPrize: (await env.drawPrize()).address,

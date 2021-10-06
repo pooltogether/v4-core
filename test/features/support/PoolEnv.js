@@ -45,7 +45,7 @@ function PoolEnv() {
 
   this.drawCalculator = async () => await ethers.getContract('DrawCalculator');
 
-  this.drawPrize = async (wallet) => (await ethers.getContract('DrawPrize')).connect(wallet);
+  this.drawPrize = async (wallet) => (await ethers.getContract('PrizeDistributor')).connect(wallet);
 
   this.rng = async () => await ethers.getContract('RNGServiceStub');
 
@@ -76,7 +76,7 @@ function PoolEnv() {
     debug(`Bought tickets`);
   };
 
-  this.buyTicketsForDrawPrize = async function ({ user, tickets, drawPrize }) {
+  this.buyTicketsForPrizeDistributor = async function ({ user, tickets, drawPrize }) {
     debug(`Buying tickets...`);
     const owner = await this.wallet(0);
     let wallet = await this.wallet(user);

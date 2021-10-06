@@ -7,7 +7,7 @@ const { getSigners } = ethers;
 const { parseEther: toWei } = utils;
 const { AddressZero } = constants;
 
-describe('DrawPrize', () => {
+describe('PrizeDistributor', () => {
     let wallet1: any;
     let wallet2: any;
     let wallet3: any;
@@ -31,7 +31,7 @@ describe('DrawPrize', () => {
         let IDrawCalculator = await artifacts.readArtifact('IDrawCalculator');
         drawCalculator = await deployMockContract(wallet1, IDrawCalculator.abi);
 
-        const drawPrizeFactory: ContractFactory = await ethers.getContractFactory('DrawPrize');
+        const drawPrizeFactory: ContractFactory = await ethers.getContractFactory('PrizeDistributor');
 
         drawPrize = await drawPrizeFactory.deploy(
             wallet1.address,
@@ -86,7 +86,7 @@ describe('DrawPrize', () => {
 
             it('should not allow a zero calculator', async () => {
                 await expect(drawPrize.setDrawCalculator(AddressZero)).to.be.revertedWith(
-                    'DrawPrize/calc-not-zero',
+                    'PrizeDistributor/calc-not-zero',
                 );
             });
 
@@ -124,7 +124,7 @@ describe('DrawPrize', () => {
 
             // try again: should fail!
             await expect(drawPrize.claim(wallet1.address, [0], '0x')).to.be.revertedWith(
-                'DrawPrize/zero-payout',
+                'PrizeDistributor/zero-payout',
             );
         });
 
@@ -174,13 +174,13 @@ describe('DrawPrize', () => {
         it('should fail to withdraw ERC20 tokens if recipient address is address zero', async () => {
             await expect(
                 drawPrize.withdrawERC20(dai.address, AddressZero, withdrawAmount),
-            ).to.be.revertedWith('DrawPrize/recipient-not-zero-address');
+            ).to.be.revertedWith('PrizeDistributor/recipient-not-zero-address');
         });
 
         it('should fail to withdraw ERC20 tokens if token address is address zero', async () => {
             await expect(
                 drawPrize.withdrawERC20(AddressZero, wallet1.address, withdrawAmount),
-            ).to.be.revertedWith('DrawPrize/ERC20-not-zero-address');
+            ).to.be.revertedWith('PrizeDistributor/ERC20-not-zero-address');
         });
 
         it('should succeed to withdraw ERC20 tokens as owner', async () => {
