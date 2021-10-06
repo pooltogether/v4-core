@@ -97,8 +97,9 @@ contract Reserve is IReserve, Manageable {
     function withdrawTo(address _recipient, uint256 _amount) external override onlyManagerOrOwner {
         _checkpoint();
 
-        token.safeTransfer(_recipient, _amount);
         withdrawAccumulator += uint224(_amount);
+        
+        token.safeTransfer(_recipient, _amount);
 
         emit Withdrawn(_recipient, _amount);
     }
