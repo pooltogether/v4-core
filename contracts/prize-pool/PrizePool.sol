@@ -151,13 +151,13 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         nonReentrant
         canAddLiquidity(_amount)
     {
-        address _operator = msg.sender;
-
-        require(_canDeposit(_operator, _amount), "PrizePool/exceeds-balance-cap");
+        require(_canDeposit(_to, _amount), "PrizePool/exceeds-balance-cap");
 
         IControlledToken _ticket = ticket;
 
         _mint(_to, _amount, _ticket);
+
+        address _operator = msg.sender;
 
         _token().safeTransferFrom(_operator, address(this), _amount);
         _supply(_amount);
