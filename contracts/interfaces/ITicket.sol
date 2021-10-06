@@ -122,7 +122,7 @@ interface ITicket is IControlledToken {
         returns (ObservationLib.Observation memory);
 
     /**
-     * @notice Retrieves `_user` TWAB balance.
+     * @notice Retrieves `user` TWAB balance.
      * @param user Address of the user whose TWAB is being fetched.
      * @param timestamp Timestamp at which we want to retrieve the TWAB balance.
      * @return The TWAB balance at the given timestamp.
@@ -130,10 +130,10 @@ interface ITicket is IControlledToken {
     function getBalanceAt(address user, uint256 timestamp) external view returns (uint256);
 
     /**
-     * @notice Retrieves `_user` TWAB balances.
+     * @notice Retrieves `user` TWAB balances.
      * @param user Address of the user whose TWABs are being fetched.
      * @param timestamps Timestamps range at which we want to retrieve the TWAB balances.
-     * @return `_user` TWAB balances.
+     * @return `user` TWAB balances.
      */
     function getBalancesAt(address user, uint32[] calldata timestamps)
         external

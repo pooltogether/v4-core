@@ -18,7 +18,7 @@ library RingBufferLib {
 
     /**
     * @notice Computes the negative offset from the given index, wrapped by the cardinality.
-    * @dev  We add `_cardinality` to `_index` to be able to offset event if `_amount` is superior to `_cardinality`.
+    * @dev  We add `_cardinality` to `_index` to be able to offset even if `_amount` is superior to `_cardinality`.
     * @param _index The index from which to offset
     * @param _amount The number of indices to offset.  This is subtracted from the given index.
     * @param _cardinality The number of elements in the ring buffer

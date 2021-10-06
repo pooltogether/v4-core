@@ -44,14 +44,14 @@ interface IPrizeSplit {
 
     /**
      * @notice Emitted when a PrizeSplitConfig config is removed.
-     * @dev    Emitted when a PrizeSplitConfig config is removed from the _prizeSplits array.
+     * @dev    Emitted when a PrizeSplitConfig config is removed from the prizeSplits array.
      * @param target Index of a previously active prize split config
      */
     event PrizeSplitRemoved(uint256 indexed target);
 
     /**
      * @notice Read prize split config from active PrizeSplits.
-     * @dev    Read PrizeSplitConfig struct from _prizeSplits array.
+     * @dev    Read PrizeSplitConfig struct from prizeSplits array.
      * @param prizeSplitIndex Index position of PrizeSplitConfig
      * @return PrizeSplitConfig Single prize split config
      */
@@ -59,8 +59,8 @@ interface IPrizeSplit {
 
     /**
      * @notice Read all prize splits configs.
-     * @dev    Read all PrizeSplitConfig structs stored in _prizeSplits.
-     * @return _prizeSplits Array of PrizeSplitConfig structs
+     * @dev    Read all PrizeSplitConfig structs stored in prizeSplits.
+     * @return Array of PrizeSplitConfig structs
      */
     function getPrizeSplits() external view returns (PrizeSplitConfig[] memory);
 
@@ -72,7 +72,7 @@ interface IPrizeSplit {
 
     /**
      * @notice Set and remove prize split(s) configs. Only callable by owner.
-     * @dev Set and remove prize split configs by passing a new PrizeSplitConfig structs array. Will remove existing PrizeSplitConfig(s) if passed array length is less than existing _prizeSplits length.
+     * @dev Set and remove prize split configs by passing a new PrizeSplitConfig structs array. Will remove existing PrizeSplitConfig(s) if passed array length is less than existing prizeSplits length.
      * @param newPrizeSplits Array of PrizeSplitConfig structs
      */
     function setPrizeSplits(PrizeSplitConfig[] calldata newPrizeSplits) external;

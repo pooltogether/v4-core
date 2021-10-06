@@ -15,51 +15,51 @@ contract EIP2612PermitAndDeposit {
     /**
      * @notice Permits this contract to spend on a user's behalf, and deposits into the prize pool.
      * @dev The `spender` address required by the permit function is the address of this contract.
-     * @param token Address of the EIP-2612 token to approve and deposit.
-     * @param owner Token owner's address (Authorizer).
-     * @param amount Amount of tokens to deposit.
-     * @param deadline Timestamp at which the signature expires.
-     * @param v `v` portion of the signature.
-     * @param r `r` portion of the signature.
-     * @param s `s` portion of the signature.
-     * @param prizePool Address of the prize pool to deposit into.
-     * @param to Address that will receive the tickets.
+     * @param _token Address of the EIP-2612 token to approve and deposit.
+     * @param _owner Token owner's address (Authorizer).
+     * @param _amount Amount of tokens to deposit.
+     * @param _deadline Timestamp at which the signature expires.
+     * @param _v `v` portion of the signature.
+     * @param _r `r` portion of the signature.
+     * @param _s `s` portion of the signature.
+     * @param _prizePool Address of the prize pool to deposit into.
+     * @param _to Address that will receive the tickets.
      */
     function permitAndDepositTo(
-        address token,
-        address owner,
-        uint256 amount,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s,
-        address prizePool,
-        address to
+        address _token,
+        address _owner,
+        uint256 _amount,
+        uint256 _deadline,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s,
+        address _prizePool,
+        address _to
     ) external {
-        require(msg.sender == owner, "EIP2612PermitAndDeposit/only-signer");
+        require(msg.sender == _owner, "EIP2612PermitAndDeposit/only-signer");
 
-        IERC20Permit(token).permit(owner, address(this), amount, deadline, v, r, s);
+        IERC20Permit(_token).permit(_owner, address(this), _amount, _deadline, _v, _r, _s);
 
-        _depositTo(token, owner, amount, prizePool, to);
+        _depositTo(_token, _owner, _amount, _prizePool, _to);
     }
 
     /**
      * @notice Deposits user's token into the prize pool.
-     * @param token Address of the EIP-2612 token to approve and deposit.
-     * @param owner Token owner's address (Authorizer).
-     * @param amount Amount of tokens to deposit.
-     * @param prizePool Address of the prize pool to deposit into.
-     * @param to Address that will receive the tickets.
+     * @param _token Address of the EIP-2612 token to approve and deposit.
+     * @param _owner Token owner's address (Authorizer).
+     * @param _amount Amount of tokens to deposit.
+     * @param _prizePool Address of the prize pool to deposit into.
+     * @param _to Address that will receive the tickets.
      */
     function _depositTo(
-        address token,
-        address owner,
-        uint256 amount,
-        address prizePool,
-        address to
+        address _token,
+        address _owner,
+        uint256 _amount,
+        address _prizePool,
+        address _to
     ) internal {
-        IERC20(token).safeTransferFrom(owner, address(this), amount);
-        IERC20(token).safeApprove(prizePool, amount);
-        IPrizePool(prizePool).depositTo(to, amount);
+        IERC20(_token).safeTransferFrom(_owner, address(this), _amount);
+        IERC20(_token).safeApprove(_prizePool, _amount);
+        IPrizePool(_prizePool).depositTo(_to, _amount);
     }
 }

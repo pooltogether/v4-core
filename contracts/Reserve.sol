@@ -119,7 +119,7 @@ contract Reserve is IReserve, Manageable {
      * @param _newestObservation ObservationLib.Observation
      * @param _oldestObservation ObservationLib.Observation
      * @param _cardinality       RingBuffer Range
-     * @param timestamp          Timestamp target
+     * @param _timestamp          Timestamp target
      *
      * @return Optimal reserveAccumlator for timestamp.
      */
@@ -127,7 +127,7 @@ contract Reserve is IReserve, Manageable {
         ObservationLib.Observation memory _newestObservation,
         ObservationLib.Observation memory _oldestObservation,
         uint24 _cardinality,
-        uint32 timestamp
+        uint32 _timestamp
     ) internal view returns (uint224) {
         uint32 timeNow = uint32(block.timestamp);
 
@@ -148,7 +148,7 @@ contract Reserve is IReserve, Manageable {
          * the Reserve did NOT have a balance or the ring buffer
          * no longer contains that timestamp checkpoint.
          */
-        if (_oldestObservation.timestamp > timestamp) {
+        if (_oldestObservation.timestamp > _timestamp) {
             return 0;
         }
 
@@ -157,7 +157,7 @@ contract Reserve is IReserve, Manageable {
          * return _newestObservation.amount since observation
          * contains the highest checkpointed reserveAccumulator.
          */
-        if (_newestObservation.timestamp <= timestamp) {
+        if (_newestObservation.timestamp <= _timestamp) {
             return _newestObservation.amount;
         }
 
@@ -170,7 +170,7 @@ contract Reserve is IReserve, Manageable {
                 reserveAccumulators,
                 _cardinality - 1,
                 0,
-                timestamp,
+                _timestamp,
                 _cardinality,
                 timeNow
             );
@@ -178,7 +178,7 @@ contract Reserve is IReserve, Manageable {
         // IF target timestamp is EXACT match for atOrAfter.timestamp observation return amount.
         // NOT having an exact match with atOrAfter means values will contain accumulator value AFTER the searchable range.
         // ELSE return observation.totalDepositedAccumulator closest to LEFT of target timestamp.
-        if (atOrAfter.timestamp == timestamp) {
+        if (atOrAfter.timestamp == _timestamp) {
             return atOrAfter.amount;
         } else {
             return beforeOrAt.amount;

@@ -53,25 +53,25 @@ interface IDrawCalculator {
 
     /**
      * @notice Returns a users balances expressed as a fraction of the total supply over time.
-     * @param _user The users address
-     * @param _drawIds The drawsId to consider
+     * @param user The users address
+     * @param drawIds The drawsId to consider
      * @return Array of balances
      */
-    function getNormalizedBalancesForDrawIds(address _user, uint32[] calldata _drawIds)
+    function getNormalizedBalancesForDrawIds(address user, uint32[] calldata drawIds)
         external
         view
         returns (uint256[] memory);
 
     /**
      * @notice Returns a users balances expressed as a fraction of the total supply over time.
-     * @param _user The user for which to calculate the tiers indices
-     * @param _pickIndices The users pick indices for a draw
-     * @param _drawId The draw for which to calculate the tiers indices
+     * @param user The user for which to calculate the tiers indices
+     * @param pickIndices The users pick indices for a draw
+     * @param drawId The draw for which to calculate the tiers indices
      * @return List of PrizePicks for Draw.drawId
      */
     function checkPrizeTierIndexForDrawId(
-        address _user,
-        uint64[] calldata _pickIndices,
-        uint32 _drawId
+        address user,
+        uint64[] calldata pickIndices,
+        uint32 drawId
     ) external view returns (PickPrize[] memory);
 }
