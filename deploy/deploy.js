@@ -134,12 +134,12 @@ module.exports = async (hardhat) => {
 
   const cardinality = 8;
 
-  cyan('\nDeploying DrawHistory...');
-  const drawHistoryResult = await deploy('DrawHistory', {
+  cyan('\nDeploying DrawBuffer...');
+  const drawBufferResult = await deploy('DrawBuffer', {
     from: deployer,
     args: [deployer, cardinality],
   });
-  displayResult('DrawHistory', drawHistoryResult);
+  displayResult('DrawBuffer', drawBufferResult);
 
   cyan('\nDeploying PrizeDistributionHistory...');
   const tsunamiDrawSettindsHistoryResult = await deploy('PrizeDistributionHistory', {
@@ -155,7 +155,7 @@ module.exports = async (hardhat) => {
     from: deployer,
     args: [
       deployer,
-      drawHistoryResult.address,
+      drawBufferResult.address,
       rngServiceResult.address,
       1,
       parseInt('' + new Date().getTime() / 1000),
@@ -166,9 +166,9 @@ module.exports = async (hardhat) => {
 
   displayResult('DrawBeacon', drawBeaconResult);
 
-  cyan('\nSet DrawBeacon as manager for DrawHistory...');
-  const drawHistory = await ethers.getContract('DrawHistory');
-  await drawHistory.setManager(drawBeaconResult.address);
+  cyan('\nSet DrawBeacon as manager for DrawBuffer...');
+  const drawBuffer = await ethers.getContract('DrawBuffer');
+  await drawBuffer.setManager(drawBeaconResult.address);
   green('DrawBeacon manager set!');
 
   cyan('\nDeploying DrawCalculator...');
@@ -177,7 +177,7 @@ module.exports = async (hardhat) => {
     args: [
       deployer,
       ticketResult.address,
-      drawHistoryResult.address,
+      drawBufferResult.address,
       tsunamiDrawSettindsHistoryResult.address,
     ],
   });

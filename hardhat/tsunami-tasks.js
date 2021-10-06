@@ -13,12 +13,12 @@ task('deposit-to')
   });
 
 task('push-draw')
-  .addPositionalParam('address', 'Draw History address')
+  .addPositionalParam('address', 'Draw Buffer address')
   .addPositionalParam('drawId', 'drawId')
   .addPositionalParam('timestamp', 'timestamp')
   .addPositionalParam('winningRandomNumber', 'winningRandomNumber')
   .setAction(async function ({ address, drawId, timestamp, winningRandomNumber }) {
-    const contract = await ethers.getContractAt('DrawHistory', address);
+    const contract = await ethers.getContractAt('DrawBuffer', address);
     await contract.addDraw({
       drawId: drawId,
       timestamp: timestamp,
@@ -42,7 +42,7 @@ task('set-draw-settings')
     numberOfPicks,
     prize,
   }) {
-    const contract = await ethers.getContractAt('DrawHistory', address);
+    const contract = await ethers.getContractAt('DrawBuffer', address);
     await contract.pushPrizeDistribution(drawId, {
       bitRangeSize: BigNumber.from(bitRangeSize),
       matchCardinality: BigNumber.from(matchCardinality),

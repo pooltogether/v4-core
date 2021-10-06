@@ -30,7 +30,7 @@ https://docs.pooltogether.com
 # Overview
 - [DrawBeacon](/contracts/DrawBeacon.sol)
 - [DrawCalculator](/contracts/DrawCalculator.sol)
-- [DrawHistory](/contracts/DrawHistory.sol)
+- [DrawBuffer](/contracts/DrawBuffer.sol)
 - [PrizeDistributor](/contracts/PrizeDistributor.sol)
 - [PrizeSplitStrategy](/contracts/PrizeSplitStrategy.sol)
 - [Reserve](/contracts/Reserve.sol)
@@ -100,7 +100,7 @@ $ ./scripts/setup.sh
 # Deployment
 
 ## Testnets
-Deployment is maintained in a different [repo](https://github.com/pooltogether/v4-testnet). 
+Deployment is maintained in a different [repo](https://github.com/pooltogether/v4-testnet).
 
 ## Mainnet
-Todo: insert deployment repo link here. 
+Todo: insert deployment repo link here.

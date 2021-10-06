@@ -22,7 +22,7 @@ describe('DrawRingBufferLib', () => {
     });
 
     describe('isInitialized()', () => {
-        it('should return TRUE to signal an initalized DrawHistory', async () => {
+        it('should return TRUE to signal an initalized DrawBuffer', async () => {
             expect(
                 await DrawRingBufferLib._isInitialized({
                     lastDrawId: 1,
@@ -32,7 +32,7 @@ describe('DrawRingBufferLib', () => {
             ).to.eql(true);
         });
 
-        it('should return FALSE to signal an uninitalized DrawHistory', async () => {
+        it('should return FALSE to signal an uninitalized DrawBuffer', async () => {
             expect(
                 await DrawRingBufferLib._isInitialized({
                     lastDrawId: 0,
@@ -44,7 +44,7 @@ describe('DrawRingBufferLib', () => {
     });
 
     describe('push()', () => {
-        it('should return the next valid Buffer struct assuming DrawHistory with 0 draws', async () => {
+        it('should return the next valid Buffer struct assuming DrawBuffer with 0 draws', async () => {
             const nextBuffer = await DrawRingBufferLib._push(
                 {
                     lastDrawId: 0,
@@ -59,7 +59,7 @@ describe('DrawRingBufferLib', () => {
             expect(nextBuffer.cardinality).to.eql(256);
         });
 
-        it('should return the next valid Buffer struct assuming DrawHistory with 1 draws', async () => {
+        it('should return the next valid Buffer struct assuming DrawBuffer with 1 draws', async () => {
             const nextBuffer = await DrawRingBufferLib._push(
                 {
                     lastDrawId: 0,
@@ -74,7 +74,7 @@ describe('DrawRingBufferLib', () => {
             expect(nextBuffer.cardinality).to.eql(256);
         });
 
-        it('should return the next valid Buffer struct assuming DrawHistory with 255 draws', async () => {
+        it('should return the next valid Buffer struct assuming DrawBuffer with 255 draws', async () => {
             const nextBuffer = await DrawRingBufferLib._push(
                 {
                     lastDrawId: 255,
@@ -101,7 +101,7 @@ describe('DrawRingBufferLib', () => {
     });
 
     describe('getIndex()', () => {
-        it('should return valid draw index assuming DrawHistory with 1 draw ', async () => {
+        it('should return valid draw index assuming DrawBuffer with 1 draw ', async () => {
             const Buffer = {
                 lastDrawId: 0,
                 nextIndex: 1,
@@ -111,7 +111,7 @@ describe('DrawRingBufferLib', () => {
             expect(await DrawRingBufferLib._getIndex(Buffer, 0)).to.eql(0);
         });
 
-        it('should return valid draw index assuming DrawHistory with 255 draws', async () => {
+        it('should return valid draw index assuming DrawBuffer with 255 draws', async () => {
             const Buffer = {
                 lastDrawId: 255,
                 nextIndex: 0,

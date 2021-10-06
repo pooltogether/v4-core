@@ -4,23 +4,23 @@ pragma solidity 0.8.6;
 
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
-import "./interfaces/IDrawHistory.sol";
+import "./interfaces/IDrawBuffer.sol";
 import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawBeacon.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
 /**
-  * @title  PoolTogether V4 DrawHistory
+  * @title  PoolTogether V4 DrawBuffer
   * @author PoolTogether Inc Team
-  * @notice The DrawHistory provides historical lookups of Draws via a circular ring buffer.
+  * @notice The DrawBuffer provides historical lookups of Draws via a circular ring buffer.
             Historical Draws can be accessed on-chain using a drawId to calculate ring buffer storage slot.
             The Draw settings can be created by manager/owner and existing Draws can only be updated the owner.
             Once a starting Draw has been added to the ring buffer, all following draws must have a sequential Draw ID.
-    @dev    A DrawHistory store a limited number of Draws before beginning to overwrite (managed via the cardinality) previous Draws.
-    @dev    All mainnet DrawHistory(s) are updated directly from a DrawBeacon, but non-mainnet DrawHistory(s) (Matic, Optimism, Arbitrum, etc...)
+    @dev    A DrawBuffer store a limited number of Draws before beginning to overwrite (managed via the cardinality) previous Draws.
+    @dev    All mainnet DrawBuffer(s) are updated directly from a DrawBeacon, but non-mainnet DrawBuffer(s) (Matic, Optimism, Arbitrum, etc...)
             will receive a cross-chain message, duplicating the mainnet Draw configuration - enabling a prize savings liquidity network.
 */
-contract DrawHistory is IDrawHistory, Manageable {
+contract DrawBuffer is IDrawBuffer, Manageable {
     using DrawRingBufferLib for DrawRingBufferLib.Buffer;
 
     /// @notice Draws ring buffer max length.
@@ -35,8 +35,8 @@ contract DrawHistory is IDrawHistory, Manageable {
     /* ============ Deploy ============ */
 
     /**
-     * @notice Deploy DrawHistory smart contract.
-     * @param _owner Address of the owner of the DrawHistory.
+     * @notice Deploy DrawBuffer smart contract.
+     * @param _owner Address of the owner of the DrawBuffer.
      * @param _cardinality Draw ring buffer cardinality.
      */
     constructor(address _owner, uint8 _cardinality) Ownable(_owner) {
@@ -45,17 +45,17 @@ contract DrawHistory is IDrawHistory, Manageable {
 
     /* ============ External Functions ============ */
 
-    /// @inheritdoc IDrawHistory
+    /// @inheritdoc IDrawBuffer
     function getBufferCardinality() external view override returns (uint32) {
         return drawRingBuffer.cardinality;
     }
 
-    /// @inheritdoc IDrawHistory
+    /// @inheritdoc IDrawBuffer
     function getDraw(uint32 drawId) external view override returns (IDrawBeacon.Draw memory) {
         return _draws[_drawIdToDrawIndex(drawRingBuffer, drawId)];
     }
 
-    /// @inheritdoc IDrawHistory
+    /// @inheritdoc IDrawBuffer
     function getDraws(uint32[] calldata _drawIds)
         external
         view
@@ -72,7 +72,7 @@ contract DrawHistory is IDrawHistory, Manageable {
         return draws;
     }
 
-    /// @inheritdoc IDrawHistory
+    /// @inheritdoc IDrawBuffer
     function getDrawCount() external view override returns (uint32) {
         DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
 
@@ -89,12 +89,12 @@ contract DrawHistory is IDrawHistory, Manageable {
         }
     }
 
-    /// @inheritdoc IDrawHistory
+    /// @inheritdoc IDrawBuffer
     function getNewestDraw() external view override returns (IDrawBeacon.Draw memory) {
         return _getNewestDraw(drawRingBuffer);
     }
 
-    /// @inheritdoc IDrawHistory
+    /// @inheritdoc IDrawBuffer
     function getOldestDraw() external view override returns (IDrawBeacon.Draw memory) {
         // oldest draw should be next available index, otherwise it's at 0
         DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
@@ -108,7 +108,7 @@ contract DrawHistory is IDrawHistory, Manageable {
         return draw;
     }
 
-    /// @inheritdoc IDrawHistory
+    /// @inheritdoc IDrawBuffer
     function pushDraw(IDrawBeacon.Draw memory _draw)
         external
         override
@@ -118,7 +118,7 @@ contract DrawHistory is IDrawHistory, Manageable {
         return _pushDraw(_draw);
     }
 
-    /// @inheritdoc IDrawHistory
+    /// @inheritdoc IDrawBuffer
     function setDraw(IDrawBeacon.Draw memory _newDraw) external override onlyOwner returns (uint32) {
         DrawRingBufferLib.Buffer memory buffer = drawRingBuffer;
         uint32 index = buffer.getIndex(_newDraw.drawId);

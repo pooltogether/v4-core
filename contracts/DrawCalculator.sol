@@ -8,7 +8,7 @@ import "./PrizeDistributor.sol";
 
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
-import "./interfaces/IDrawHistory.sol";
+import "./interfaces/IDrawBuffer.sol";
 import "./interfaces/IPrizeDistributionHistory.sol";
 import "./interfaces/IDrawBeacon.sol";
 import "./libraries/DrawRingBufferLib.sol";
@@ -23,9 +23,9 @@ import "./libraries/DrawRingBufferLib.sol";
             picks to choose from, and thus a higher chance to match the winning numbers.
 */
 contract DrawCalculator is IDrawCalculator, Ownable {
- 
-    /// @notice DrawHistory address
-    IDrawHistory public immutable drawHistory;
+
+    /// @notice DrawBuffer address
+    IDrawBuffer public immutable drawBuffer;
 
     /// @notice Ticket associated with DrawCalculator
     ITicket public immutable ticket;
@@ -41,23 +41,23 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     /// @notice Constructor for DrawCalculator
     /// @param _owner Address of the DrawCalculator owner
     /// @param _ticket Ticket associated with this DrawCalculator
-    /// @param _drawHistory The address of the draw history to push draws to
+    /// @param _drawBuffer The address of the draw buffer to push draws to
     /// @param _prizeDistributionHistory PrizeDistributionHistory address
     constructor(
         address _owner,
         ITicket _ticket,
-        IDrawHistory _drawHistory,
+        IDrawBuffer _drawBuffer,
         IPrizeDistributionHistory _prizeDistributionHistory
     ) Ownable(_owner) {
         require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
         require(address(_prizeDistributionHistory) != address(0), "DrawCalc/pdh-not-zero");
-        require(address(_drawHistory) != address(0), "DrawCalc/dh-not-zero");
+        require(address(_drawBuffer) != address(0), "DrawCalc/dh-not-zero");
 
         ticket = _ticket;
-        drawHistory = _drawHistory;
+        drawBuffer = _drawBuffer;
         prizeDistributionHistory = _prizeDistributionHistory;
 
-        emit Deployed(_ticket, _drawHistory, _prizeDistributionHistory);
+        emit Deployed(_ticket, _drawBuffer, _prizeDistributionHistory);
     }
 
     /* ============ External Functions ============ */
@@ -71,8 +71,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
         require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
-        // READ list of IDrawBeacon.Draw using the drawIds from drawHistory
-        IDrawBeacon.Draw[] memory draws = drawHistory.getDraws(_drawIds);
+        // READ list of IDrawBeacon.Draw using the drawIds from drawBuffer
+        IDrawBeacon.Draw[] memory draws = drawBuffer.getDraws(_drawIds);
 
         // READ list of IPrizeDistributionHistory.PrizeDistribution using the drawIds
         IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
@@ -81,7 +81,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         // The userBalances are fractions representing their portion of the liquidity for a draw.
         uint256[] memory userBalances = _getNormalizedBalancesAt(_user, draws, _prizeDistributions);
 
-        // The users address is hashed once. 
+        // The users address is hashed once.
         bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user));
 
         return
@@ -95,8 +95,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     }
 
     /// @inheritdoc IDrawCalculator
-    function getDrawHistory() external view override returns (IDrawHistory) {
-        return drawHistory;
+    function getDrawBuffer() external view override returns (IDrawBuffer) {
+        return drawBuffer;
     }
 
     /// @inheritdoc IDrawCalculator
@@ -116,7 +116,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         override
         returns (uint256[] memory)
     {
-        IDrawBeacon.Draw[] memory _draws = drawHistory.getDraws(_drawIds);
+        IDrawBeacon.Draw[] memory _draws = drawBuffer.getDraws(_drawIds);
         IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
             .getPrizeDistributions(_drawIds);
 
@@ -132,7 +132,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint32[] memory drawIds = new uint32[](1);
         drawIds[0] = _drawId;
 
-        IDrawBeacon.Draw[] memory _draws = drawHistory.getDraws(drawIds);
+        IDrawBeacon.Draw[] memory _draws = drawBuffer.getDraws(drawIds);
         IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions = prizeDistributionHistory
             .getPrizeDistributions(drawIds);
 
@@ -294,7 +294,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     ) internal pure returns (uint256) {
         // prizeCounts stores the number of wins at a distribution index
         uint256[] memory prizeCounts = new uint256[](_prizeDistribution.tiers.length);
-        
+
         // create bitmasks for the PrizeDistribution
         uint256[] memory masks = _createBitMasks(_prizeDistribution);
         uint32 picksLength = uint32(_picks.length);
@@ -370,7 +370,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     ) internal pure returns (uint8) {
         uint8 numberOfMatches = 0;
         uint8 masksLength = uint8(_masks.length);
-        
+
         // main number matching loop
         for (uint8 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
             uint256 mask = _masks[matchIndex];
@@ -422,7 +422,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     ) internal pure returns (uint256) {
          // get the prize fraction at that index
         uint256 prizeFraction = _prizeDistribution.tiers[_prizeTierIndex];
-        
+
         // calculate number of prizes for that index
         uint256 numberOfPrizesForIndex = _numberOfPrizesForIndex(
             _prizeDistribution.bitRangeSize,

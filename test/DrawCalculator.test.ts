@@ -23,14 +23,14 @@ function newDraw(overrides: any): Draw {
 export async function deployDrawCalculator(
     signer: any,
     ticketAddress: string,
-    drawHistoryAddress: string,
+    drawBufferAddress: string,
     prizeDistributionsHistoryAddress: string,
 ): Promise<Contract> {
     const drawCalculatorFactory = await ethers.getContractFactory('DrawCalculatorHarness', signer);
     const drawCalculator: Contract = await drawCalculatorFactory.deploy(
         signer.address,
         ticketAddress,
-        drawHistoryAddress,
+        drawBufferAddress,
         prizeDistributionsHistoryAddress,
     );
 
@@ -68,7 +68,7 @@ function modifyTimestampsWithOffset(timestamps: number[], offset: number): numbe
 describe('DrawCalculator', () => {
     let drawCalculator: Contract;
     let ticket: MockContract;
-    let drawHistory: MockContract;
+    let drawBuffer: MockContract;
     let prizeDistributionHistory: MockContract;
     let wallet1: any;
     let wallet2: any;
@@ -82,8 +82,8 @@ describe('DrawCalculator', () => {
         let ticketArtifact = await artifacts.readArtifact('Ticket');
         ticket = await deployMockContract(wallet1, ticketArtifact.abi);
 
-        let drawHistoryArtifact = await artifacts.readArtifact('DrawHistory');
-        drawHistory = await deployMockContract(wallet1, drawHistoryArtifact.abi);
+        let drawBufferArtifact = await artifacts.readArtifact('DrawBuffer');
+        drawBuffer = await deployMockContract(wallet1, drawBufferArtifact.abi);
 
         let prizeDistributionHistoryArtifact = await artifacts.readArtifact(
             'PrizeDistributionHistory',
@@ -97,7 +97,7 @@ describe('DrawCalculator', () => {
         drawCalculator = await deployDrawCalculator(
             wallet1,
             ticket.address,
-            drawHistory.address,
+            drawBuffer.address,
             prizeDistributionHistory.address,
         );
     });
@@ -108,7 +108,7 @@ describe('DrawCalculator', () => {
                 deployDrawCalculator(
                     wallet1,
                     ethers.constants.AddressZero,
-                    drawHistory.address,
+                    drawBuffer.address,
                     prizeDistributionHistory.address,
                 ),
             ).to.be.revertedWith('DrawCalc/ticket-not-zero');
@@ -119,7 +119,7 @@ describe('DrawCalculator', () => {
                 deployDrawCalculator(
                     wallet1,
                     ticket.address,
-                    drawHistory.address,
+                    drawBuffer.address,
                     ethers.constants.AddressZero,
                 ),
             ).to.be.revertedWith('DrawCalc/pdh-not-zero');
@@ -137,14 +137,14 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe('getDrawHistory()', () => {
-        it('should succesfully read draw history', async () => {
-            expect(await drawCalculator.getDrawHistory()).to.equal(drawHistory.address);
+    describe('getDrawBuffer()', () => {
+        it('should succesfully read draw buffer', async () => {
+            expect(await drawCalculator.getDrawBuffer()).to.equal(drawBuffer.address);
         });
     });
 
     describe('getPrizeDistributionHistory()', () => {
-        it('should succesfully read draw history', async () => {
+        it('should succesfully read draw buffer', async () => {
             expect(await drawCalculator.getPrizeDistributionHistory()).to.equal(
                 prizeDistributionHistory.address,
             );
@@ -586,7 +586,7 @@ describe('DrawCalculator', () => {
                 .withArgs([draw.drawId])
                 .returns([prizeDistribution]);
 
-            await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
+            await drawBuffer.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
 
             await ticket.mock.getAverageBalancesBetween
                 .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
@@ -634,7 +634,7 @@ describe('DrawCalculator', () => {
                 .withArgs([draw.drawId])
                 .returns([prizeDistribution]);
 
-            await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
+            await drawBuffer.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
 
             await ticket.mock.getAverageBalancesBetween
                 .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
@@ -684,7 +684,7 @@ describe('DrawCalculator', () => {
                 .withArgs([draw.drawId])
                 .returns([prizeDistribution]);
 
-            await drawHistory.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
+            await drawBuffer.mock.getDraws.withArgs([draw.drawId]).returns([draw]);
 
             await ticket.mock.getAverageBalancesBetween
                 .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
@@ -751,7 +751,7 @@ describe('DrawCalculator', () => {
                 timestamp: BigNumber.from(timestamps[1]),
             });
 
-            await drawHistory.mock.getDraws.returns([draw1, draw2]);
+            await drawBuffer.mock.getDraws.returns([draw1, draw2]);
             await prizeDistributionHistory.mock.getPrizeDistributions.returns([
                 prizeDistribution,
                 prizeDistribution,
@@ -819,7 +819,7 @@ describe('DrawCalculator', () => {
                 timestamp: BigNumber.from(timestamps[1]),
             });
 
-            await drawHistory.mock.getDraws.returns([draw1, draw2]);
+            await drawBuffer.mock.getDraws.returns([draw1, draw2]);
             await prizeDistributionHistory.mock.getPrizeDistributions.returns([
                 prizeDistribution,
                 prizeDistribution,
@@ -862,7 +862,7 @@ describe('DrawCalculator', () => {
                 timestamp: BigNumber.from(timestamps[0]),
             });
 
-            await drawHistory.mock.getDraws.returns([draw1]);
+            await drawBuffer.mock.getDraws.returns([draw1]);
             await prizeDistributionHistory.mock.getPrizeDistributions.returns([prizeDistribution]);
 
             const offsetStartTimestamps = modifyTimestampsWithOffset(
@@ -965,7 +965,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[0]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw]);
+                await drawBuffer.mock.getDraws.returns([draw]);
 
                 const prizesAwardable = await drawCalculator.calculate(
                     wallet1.address,
@@ -1023,7 +1023,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[0]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw]);
+                await drawBuffer.mock.getDraws.returns([draw]);
 
                 await expect(
                     drawCalculator.calculate(wallet1.address, [draw.drawId], pickIndices),
@@ -1072,7 +1072,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[0]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw]);
+                await drawBuffer.mock.getDraws.returns([draw]);
 
                 debug(
                     'GasUsed for calculate 1000 picks(): ',
@@ -1138,7 +1138,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[0]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw]);
+                await drawBuffer.mock.getDraws.returns([draw]);
 
                 const prizesAwardable = await drawCalculator.calculate(
                     wallet1.address,
@@ -1200,7 +1200,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[0]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw]);
+                await drawBuffer.mock.getDraws.returns([draw]);
 
                 const prizesAwardable = await drawCalculator.calculate(
                     wallet1.address,
@@ -1240,7 +1240,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[1]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw1, draw2]);
+                await drawBuffer.mock.getDraws.returns([draw1, draw2]);
 
                 const offsetStartTimestamps = modifyTimestampsWithOffset(
                     timestamps,
@@ -1370,7 +1370,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[1]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw1, draw2]);
+                await drawBuffer.mock.getDraws.returns([draw1, draw2]);
 
                 await prizeDistributionHistory.mock.getPrizeDistributions
                     .withArgs([1, 2])
@@ -1440,7 +1440,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[0]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw1]);
+                await drawBuffer.mock.getDraws.returns([draw1]);
 
                 await prizeDistributionHistory.mock.getPrizeDistributions
                     .withArgs([2])
@@ -1488,7 +1488,7 @@ describe('DrawCalculator', () => {
                     timestamp: BigNumber.from(timestamps[0]),
                 });
 
-                await drawHistory.mock.getDraws.returns([draw1]);
+                await drawBuffer.mock.getDraws.returns([draw1]);
 
                 const prizesAwardable = await drawCalculator.calculate(
                     wallet1.address,

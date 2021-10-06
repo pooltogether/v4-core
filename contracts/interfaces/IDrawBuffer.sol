@@ -4,11 +4,11 @@ pragma solidity 0.8.6;
 
 import "../interfaces/IDrawBeacon.sol";
 
-/** @title  IDrawHistory
+/** @title  IDrawBuffer
   * @author PoolTogether Inc Team
-  * @notice The DrawHistory interface.
+  * @notice The DrawBuffer interface.
 */
-interface IDrawHistory {
+interface IDrawBuffer {
     /**
      * @notice Emit when a new draw has been created.
      * @param drawId Draw id

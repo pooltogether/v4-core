@@ -10,17 +10,17 @@ import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IDrawBeacon.sol";
-import "./interfaces/IDrawHistory.sol";
+import "./interfaces/IDrawBuffer.sol";
 
 
 /**
   * @title  PoolTogether V4 DrawBeacon
   * @author PoolTogether Inc Team
-  * @notice Manages RNG (random number generator) requests and pushing Draws onto DrawHistory.
+  * @notice Manages RNG (random number generator) requests and pushing Draws onto DrawBuffer.
             The DrawBeacon has 3 major actions for requesting a random number: start, cancel and complete.
-            To create a new Draw, the user requests a new random number from the RNG service. 
+            To create a new Draw, the user requests a new random number from the RNG service.
             When the random number is available, the user can create the draw using the create() method
-            which will push the draw onto the DrawHistory.
+            which will push the draw onto the DrawBuffer.
             If the RNG service fails to deliver a rng, when the request timeout elapses, the user can cancel the request.
 */
 contract DrawBeacon is IDrawBeacon, Ownable {
@@ -35,8 +35,8 @@ contract DrawBeacon is IDrawBeacon, Ownable {
     /// @notice Current RNG Request
     RngRequest internal rngRequest;
 
-    /// @notice DrawHistory address
-    IDrawHistory internal drawHistory;
+    /// @notice DrawBuffer address
+    IDrawBuffer internal drawBuffer;
 
     /**
      * @notice RNG Request Timeout.  In fact, this is really a "complete draw" timeout.
@@ -51,7 +51,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
     uint64 internal beaconPeriodStartedAt;
 
     /**
-     * @notice Next Draw ID to use when pushing a Draw onto DrawHistory
+     * @notice Next Draw ID to use when pushing a Draw onto DrawBuffer
      * @dev Starts at 1. This way we know that no Draw has been recorded at 0.
      */
     uint32 internal nextDrawId;
@@ -106,7 +106,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
     /**
      * @notice Deploy the DrawBeacon smart contract.
      * @param _owner Address of the DrawBeacon owner
-     * @param _drawHistory The address of the draw history to push draws to
+     * @param _drawBuffer The address of the draw buffer to push draws to
      * @param _rng The RNG service to use
      * @param _nextDrawId Draw ID at which the DrawBeacon should start. Can't be inferior to 1.
      * @param _beaconPeriodStart The starting timestamp of the beacon period.
@@ -114,7 +114,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      */
     constructor(
         address _owner,
-        IDrawHistory _drawHistory,
+        IDrawBuffer _drawBuffer,
         RNGInterface _rng,
         uint32 _nextDrawId,
         uint64 _beaconPeriodStart,
@@ -129,7 +129,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         nextDrawId = _nextDrawId;
 
         _setBeaconPeriodSeconds(_beaconPeriodSeconds);
-        _setDrawHistory(_drawHistory);
+        _setDrawBuffer(_drawBuffer);
         _setRngService(_rng);
         _setRngTimeout(_rngTimeout);
 
@@ -231,7 +231,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
             beaconPeriodSeconds: _beaconPeriodSeconds
         });
 
-        drawHistory.pushDraw(_draw);
+        drawBuffer.pushDraw(_draw);
 
         // to avoid clock drift, we should calculate the start time based on the previous period start time.
         uint64 nextBeaconPeriodStartedAt = _calculateNextBeaconPeriodStartTime(
@@ -267,8 +267,8 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         return beaconPeriodStartedAt;
     }
 
-    function getDrawHistory() external view returns (IDrawHistory) {
-        return drawHistory;
+    function getDrawBuffer() external view returns (IDrawBuffer) {
+        return drawBuffer;
     }
 
     function getNextDrawId() external view returns (uint32) {
@@ -298,13 +298,13 @@ contract DrawBeacon is IDrawBeacon, Ownable {
     }
 
     /// @inheritdoc IDrawBeacon
-    function setDrawHistory(IDrawHistory newDrawHistory)
+    function setDrawBuffer(IDrawBuffer newDrawBuffer)
         external
         override
         onlyOwner
-        returns (IDrawHistory)
+        returns (IDrawBuffer)
     {
-        return _setDrawHistory(newDrawHistory);
+        return _setDrawBuffer(newDrawBuffer);
     }
 
     /// @inheritdoc IDrawBeacon
@@ -428,25 +428,25 @@ contract DrawBeacon is IDrawBeacon, Ownable {
     }
 
     /**
-     * @notice Set global DrawHistory variable.
-     * @dev    All subsequent Draw requests/completions will be pushed to the new DrawHistory.
-     * @param _newDrawHistory  DrawHistory address
-     * @return DrawHistory
+     * @notice Set global DrawBuffer variable.
+     * @dev    All subsequent Draw requests/completions will be pushed to the new DrawBuffer.
+     * @param _newDrawBuffer  DrawBuffer address
+     * @return DrawBuffer
      */
-    function _setDrawHistory(IDrawHistory _newDrawHistory) internal returns (IDrawHistory) {
-        IDrawHistory _previousDrawHistory = drawHistory;
-        require(address(_newDrawHistory) != address(0), "DrawBeacon/draw-history-not-zero-address");
+    function _setDrawBuffer(IDrawBuffer _newDrawBuffer) internal returns (IDrawBuffer) {
+        IDrawBuffer _previousDrawBuffer = drawBuffer;
+        require(address(_newDrawBuffer) != address(0), "DrawBeacon/draw-history-not-zero-address");
 
         require(
-            address(_newDrawHistory) != address(_previousDrawHistory),
+            address(_newDrawBuffer) != address(_previousDrawBuffer),
             "DrawBeacon/existing-draw-history-address"
         );
 
-        drawHistory = _newDrawHistory;
+        drawBuffer = _newDrawBuffer;
 
-        emit DrawHistoryUpdated(_newDrawHistory);
+        emit DrawBufferUpdated(_newDrawBuffer);
 
-        return _newDrawHistory;
+        return _newDrawBuffer;
     }
 
     /**

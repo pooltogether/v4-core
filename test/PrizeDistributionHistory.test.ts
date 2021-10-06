@@ -61,7 +61,7 @@ describe('PrizeDistributionHistory', () => {
     })
 
     describe('getNewestPrizeDistribution()', () => {
-        it('should error when no draw history', async () => {
+        it('should error when no draw buffer', async () => {
             await expect(prizeDistributionHistory.getNewestPrizeDistribution()).to.be.revertedWith(
                 'DRB/future-draw',
             );
@@ -229,7 +229,7 @@ describe('PrizeDistributionHistory', () => {
     });
 
     describe('getPrizeDistribution()', () => {
-        it('should read fail when no draw history', async () => {
+        it('should read fail when no draw buffer', async () => {
             await expect(prizeDistributionHistory.getPrizeDistribution(0)).to.revertedWith(
                 'DRB/future-draw',
             );
@@ -265,7 +265,7 @@ describe('PrizeDistributionHistory', () => {
     });
 
     describe('getPrizeDistributionCount()', () => {
-        it('should return 0 when no draw history', async () => {
+        it('should return 0 when no draw buffer', async () => {
             expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(0);
         });
 

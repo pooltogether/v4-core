@@ -8,9 +8,9 @@ contract DrawCalculatorHarness is DrawCalculator {
     constructor(
         address _owner,
         ITicket _ticket,
-        IDrawHistory _drawHistory,
+        IDrawBuffer _drawBuffer,
         PrizeDistributionHistory _prizeDistributionHistory
-    ) DrawCalculator(_owner, _ticket, _drawHistory, _prizeDistributionHistory) {}
+    ) DrawCalculator(_owner, _ticket, _drawBuffer, _prizeDistributionHistory) {}
 
     function calculateTierIndex(
         uint256 _randomNumberThisPick,

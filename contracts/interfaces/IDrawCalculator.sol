@@ -3,7 +3,7 @@
 pragma solidity 0.8.6;
 
 import "./ITicket.sol";
-import "./IDrawHistory.sol";
+import "./IDrawBuffer.sol";
 import "../PrizeDistributionHistory.sol";
 import "../PrizeDistributor.sol";
 
@@ -20,7 +20,7 @@ interface IDrawCalculator {
 
     ///@notice Emitted when the contract is initialized
     event Deployed(ITicket indexed ticket,
-     IDrawHistory indexed drawHistory,
+     IDrawBuffer indexed drawBuffer,
     IPrizeDistributionHistory indexed prizeDistributionHistory);
 
     ///@notice Emitted when the prizeDistributor is set/updated
@@ -40,14 +40,14 @@ interface IDrawCalculator {
     ) external view returns (uint256[] memory);
 
     /**
-     * @notice Read global DrawHistory variable.
-     * @return IDrawHistory
+     * @notice Read global DrawBuffer variable.
+     * @return IDrawBuffer
      */
-    function getDrawHistory() external view returns (IDrawHistory);
+    function getDrawBuffer() external view returns (IDrawBuffer);
 
     /**
-     * @notice Read global DrawHistory variable.
-     * @return IDrawHistory
+     * @notice Read global DrawBuffer variable.
+     * @return IDrawBuffer
      */
     function getPrizeDistributionHistory() external view returns (IPrizeDistributionHistory);
 

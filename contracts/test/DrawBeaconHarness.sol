@@ -5,18 +5,18 @@ pragma solidity 0.8.6;
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 
 import "../DrawBeacon.sol";
-import "../interfaces/IDrawHistory.sol";
+import "../interfaces/IDrawBuffer.sol";
 
 contract DrawBeaconHarness is DrawBeacon {
     constructor(
         address _owner,
-        IDrawHistory _drawHistory,
+        IDrawBuffer _drawBuffer,
         RNGInterface _rng,
         uint32 _nextDrawId,
         uint64 _beaconPeriodStart,
         uint32 _drawPeriodSeconds,
         uint32 _rngTimeout
-    ) DrawBeacon(_owner, _drawHistory, _rng, _nextDrawId, _beaconPeriodStart, _drawPeriodSeconds, _rngTimeout) {}
+    ) DrawBeacon(_owner, _drawBuffer, _rng, _nextDrawId, _beaconPeriodStart, _drawPeriodSeconds, _rngTimeout) {}
 
     uint64 internal time;
 
