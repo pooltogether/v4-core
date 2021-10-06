@@ -12,7 +12,7 @@ import "./libraries/ObservationLib.sol";
 /**
     * @title  PoolTogether V4 Reserve
     * @author PoolTogether Inc Team
-    * @notice The Reserve contract enables historical searches of a token balance increase during a target timerange.
+    * @notice The Reserve contract provides historical lookups of a token balance increase during a target timerange.
               As the Reserve contract transfers OUT tokens, the withdraw accumulator is increased. When tokens are
               transfered IN new checkpoint *can* be created if checkpoint() is called after transfering tokens.
               By using the reserve and withdraw accumulators to create a new checkpoint, any contract or account

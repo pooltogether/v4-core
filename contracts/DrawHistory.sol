@@ -12,13 +12,13 @@ import "./libraries/DrawRingBufferLib.sol";
 /**
   * @title  PoolTogether V4 DrawHistory
   * @author PoolTogether Inc Team
-  * @notice The DrawHistory keeps a historical record of Draws created/pushed by DrawBeacon(s).
-            Once a DrawBeacon (on mainnet) completes a RNG request, a new Draw will be added
-            to the DrawHistory draws ring buffer. A DrawHistory will store a limited number
-            of Draws before beginning to overwrite (managed via the cardinality) previous Draws.
-            All mainnet DrawHistory(s) are updated directly from a DrawBeacon, but non-mainnet
-            DrawHistory(s) (Matic, Optimism, Arbitrum, etc...) will receive a cross-chain message,
-            duplicating the mainnet Draw configuration - enabling a prize savings liquidity network.
+  * @notice The DrawHistory provides historical lookups of Draws via a circular ring buffer.
+            Historical Draws can be accessed on-chain using a drawId to calculate ring buffer storage slot.
+            The Draw settings can be created by manager/owner and existing Draws can only be updated the owner.
+            Once a starting Draw has been added to the ring buffer, all following draws must have a sequential Draw ID.
+    @dev    A DrawHistory store a limited number of Draws before beginning to overwrite (managed via the cardinality) previous Draws.
+    @dev    All mainnet DrawHistory(s) are updated directly from a DrawBeacon, but non-mainnet DrawHistory(s) (Matic, Optimism, Arbitrum, etc...)
+            will receive a cross-chain message, duplicating the mainnet Draw configuration - enabling a prize savings liquidity network.
 */
 contract DrawHistory is IDrawHistory, Manageable {
     using DrawRingBufferLib for DrawRingBufferLib.Buffer;
