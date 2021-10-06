@@ -88,7 +88,7 @@ library TwabLib {
 
     /** @notice Calculates the next TWAB checkpoint for an account with a decreasing balance.
       * @dev    Given an Account struct and amount decreasing will calculate the
-                next TWAB observable checkpoint. Generally the function calling 
+                next TWAB observable checkpoint. Generally the function calling
                 will update the contract state with return values.
       * @param _account        Account whose balance will be decreased
       * @param _amount         Amount to decrease the balance by
@@ -280,9 +280,10 @@ library TwabLib {
             _currentTime
         );
 
-        // Difference in amount / time
-        return
-            (afterOrAt.amount - beforeOrAt.amount) / (afterOrAt.timestamp - beforeOrAt.timestamp);
+        // Sum the difference in amounts and divide by the difference in timestamps.
+        // The time-weighted average balance uses time measured between two epoch timestamps as
+        // a constaint on the measurement when calculating the time weighted average balance.
+        return afterOrAt.amount - beforeOrAt.amount / afterOrAt.timestamp - beforeOrAt.timestamp;
     }
 
     /** @notice Calculates a user TWAB for a target timestamp using the historical TWAB records.
