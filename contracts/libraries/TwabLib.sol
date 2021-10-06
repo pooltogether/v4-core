@@ -16,7 +16,17 @@ library TwabLib {
     using OverflowSafeComparatorLib for uint32;
     using ExtendedSafeCastLib for uint256;
 
-    /// @notice The maximum number of twab entries
+    /**
+      * @notice Sets max ring buffer length in the Account.twabs Observation list.
+                As users transfer/mint/burn tickets new Observation checkpoints are
+                recorded. The current max cardinality guarantees a six month minimum,
+                of historical accurate lookups with current estimates of 1 new block 
+                every 15 seconds - the of course contain a transfer to trigger an 
+                observation write to storage.
+      * @dev    The user Account.AccountDetails.cardinality parameter can NOT exceed
+                the max cardinality variable. Preventing "corrupted" ring buffer lookup
+                pointers and new observation checkpoints.
+    */
     uint24 public constant MAX_CARDINALITY = 16777215; // 2**24
 
     /** @notice Struct ring buffer parameters for single user Account
