@@ -211,10 +211,6 @@ library TwabLib {
             _accountDetails
         );
 
-        // Check ring buffer timestamp range and compare to the requested start and end epoch timestamps.
-        // IF start time is out of range S[o n] OR IF end time is out of range [o n]E the calculation is reverted with out of range error.
-        require(_startTime >= oldTwab.timestamp && _endTime <= newTwab.timestamp, "TwabLib/twab-out-of-range");
-
         ObservationLib.Observation memory startTwab = _calculateTwab(
             _twabs,
             _accountDetails,
@@ -287,7 +283,7 @@ library TwabLib {
         // Sum the difference in amounts and divide by the difference in timestamps.
         // The time-weighted average balance uses time measured between two epoch timestamps as
         // a constaint on the measurement when calculating the time weighted average balance.
-        return afterOrAt.amount - beforeOrAt.amount / afterOrAt.timestamp - beforeOrAt.timestamp;
+        return (afterOrAt.amount - beforeOrAt.amount) / (afterOrAt.timestamp - beforeOrAt.timestamp);
     }
 
     /** @notice Calculates a user TWAB for a target timestamp using the historical TWAB records.
@@ -421,9 +417,9 @@ library TwabLib {
 
         _twabs[_accountDetails.nextTwabIndex] = newTwab;
 
-        _accountDetails = push(_accountDetails);
+        AccountDetails memory nextAccountDetails = push(_accountDetails);
 
-        return (_accountDetails, newTwab, true);
+        return (nextAccountDetails, newTwab, true);
     }
 
     /// @notice "Pushes" a new element on the AccountDetails ring buffer, and returns the new AccountDetails
