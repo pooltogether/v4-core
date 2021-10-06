@@ -41,7 +41,7 @@ function PoolEnv() {
 
   this.drawBuffer = async () => await ethers.getContract('DrawBuffer');
 
-  this.prizeDistributionHistory = async () => await ethers.getContract('PrizeDistributionHistory');
+  this.prizeDistributionBuffer = async () => await ethers.getContract('PrizeDistributionBuffer');
 
   this.drawCalculator = async () => await ethers.getContract('DrawCalculator');
 
@@ -183,7 +183,7 @@ function PoolEnv() {
     prize,
     maxPicksPerUser,
   }) {
-    const prizeDistributionHistory = await this.prizeDistributionHistory();
+    const prizeDistributionBuffer = await this.prizeDistributionBuffer();
 
     const prizeDistributions = {
       bitRangeSize,
@@ -196,7 +196,7 @@ function PoolEnv() {
       maxPicksPerUser,
     };
 
-    await prizeDistributionHistory.pushPrizeDistribution(drawId, prizeDistributions);
+    await prizeDistributionBuffer.pushPrizeDistribution(drawId, prizeDistributions);
   };
 }
 

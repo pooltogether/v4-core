@@ -5,18 +5,18 @@ pragma solidity 0.8.6;
 import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
 import "./libraries/DrawRingBufferLib.sol";
-import "./interfaces/IPrizeDistributionHistory.sol";
+import "./interfaces/IPrizeDistributionBuffer.sol";
 
 /**
-  * @title  PoolTogether V4 PrizeDistributionHistory
+  * @title  PoolTogether V4 PrizeDistributionBuffer
   * @author PoolTogether Inc Team
-  * @notice The PrizeDistributionHistory contract provides historical lookups of PrizeDistribution struct parameters (linked with a Draw ID) via a 
+  * @notice The PrizeDistributionBuffer contract provides historical lookups of PrizeDistribution struct parameters (linked with a Draw ID) via a
             circular ring buffer. Historical PrizeDistribution parameters can be accessed on-chain using a drawId to calculate
             ring buffer storage slot. The PrizeDistribution parameters can be created by manager/owner and existing PrizeDistribution
             parameters can only be updated the owner. When adding a new PrizeDistribution basic sanity checks will be used to
             validate the incoming parameters.
 */
-contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
+contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
     using DrawRingBufferLib for DrawRingBufferLib.Buffer;
 
     /// @notice The maximum cardinality of the prize distribution ring buffer.
@@ -32,7 +32,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     event Deployed(uint8 cardinality);
 
     /// @notice PrizeDistribution ring buffer history.
-    IPrizeDistributionHistory.PrizeDistribution[MAX_CARDINALITY] internal prizeDistributionRingBuffer;
+    IPrizeDistributionBuffer.PrizeDistribution[MAX_CARDINALITY] internal prizeDistributionRingBuffer;
 
     /// @notice Ring buffer metadata (nextIndex, lastId, cardinality)
     DrawRingBufferLib.Buffer internal bufferMetadata;
@@ -40,8 +40,8 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     /* ============ Constructor ============ */
 
     /**
-     * @notice Constructor for PrizeDistributionHistory
-     * @param _owner Address of the PrizeDistributionHistory owner
+     * @notice Constructor for PrizeDistributionBuffer
+     * @param _owner Address of the PrizeDistributionBuffer owner
      * @param _cardinality Cardinality of the `bufferMetadata`
      */
     constructor(address _owner, uint8 _cardinality) Ownable(_owner) {
@@ -51,30 +51,30 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
 
     /* ============ External Functions ============ */
 
-    /// @inheritdoc IPrizeDistributionHistory
+    /// @inheritdoc IPrizeDistributionBuffer
     function getBufferCardinality() external view override returns (uint32) {
         return bufferMetadata.cardinality;
     }
 
-    /// @inheritdoc IPrizeDistributionHistory
+    /// @inheritdoc IPrizeDistributionBuffer
     function getPrizeDistribution(uint32 _drawId)
         external
         view
         override
-        returns (IPrizeDistributionHistory.PrizeDistribution memory)
+        returns (IPrizeDistributionBuffer.PrizeDistribution memory)
     {
         return _getPrizeDistribution(bufferMetadata, _drawId);
     }
 
-    /// @inheritdoc IPrizeDistributionHistory
+    /// @inheritdoc IPrizeDistributionBuffer
     function getPrizeDistributions(uint32[] calldata _drawIds)
         external
         view
         override
-        returns (IPrizeDistributionHistory.PrizeDistribution[] memory)
+        returns (IPrizeDistributionBuffer.PrizeDistribution[] memory)
     {
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
-        IPrizeDistributionHistory.PrizeDistribution[] memory _prizeDistributions = new IPrizeDistributionHistory.PrizeDistribution[](
+        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = new IPrizeDistributionBuffer.PrizeDistribution[](
             _drawIds.length
         );
 
@@ -85,7 +85,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         return _prizeDistributions;
     }
 
-    /// @inheritdoc IPrizeDistributionHistory
+    /// @inheritdoc IPrizeDistributionBuffer
     function getPrizeDistributionCount() external view override returns (uint32) {
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
 
@@ -103,12 +103,12 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         }
     }
 
-    /// @inheritdoc IPrizeDistributionHistory
+    /// @inheritdoc IPrizeDistributionBuffer
     function getNewestPrizeDistribution()
         external
         view
         override
-        returns (IPrizeDistributionHistory.PrizeDistribution memory prizeDistribution, uint32 drawId)
+        returns (IPrizeDistributionBuffer.PrizeDistribution memory prizeDistribution, uint32 drawId)
     {
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
 
@@ -118,12 +118,12 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         );
     }
 
-    /// @inheritdoc IPrizeDistributionHistory
+    /// @inheritdoc IPrizeDistributionBuffer
     function getOldestPrizeDistribution()
         external
         view
         override
-        returns (IPrizeDistributionHistory.PrizeDistribution memory prizeDistribution, uint32 drawId)
+        returns (IPrizeDistributionBuffer.PrizeDistribution memory prizeDistribution, uint32 drawId)
     {
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
 
@@ -144,18 +144,18 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         }
     }
 
-    /// @inheritdoc IPrizeDistributionHistory
+    /// @inheritdoc IPrizeDistributionBuffer
     function pushPrizeDistribution(
         uint32 _drawId,
-        IPrizeDistributionHistory.PrizeDistribution calldata _prizeDistribution
+        IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution
     ) external override onlyManagerOrOwner returns (bool) {
         return _pushPrizeDistribution(_drawId, _prizeDistribution);
     }
 
-    /// @inheritdoc IPrizeDistributionHistory
+    /// @inheritdoc IPrizeDistributionBuffer
     function setPrizeDistribution(
         uint32 _drawId,
-        IPrizeDistributionHistory.PrizeDistribution calldata _prizeDistribution
+        IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution
     ) external override onlyOwner returns (uint32) {
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
         uint32 index = buffer.getIndex(_drawId);
@@ -169,26 +169,26 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     /* ============ Internal Functions ============ */
 
     /**
-     * @notice Gets the PrizeDistributionHistory for a drawId
+     * @notice Gets the PrizeDistributionBuffer for a drawId
      * @param _buffer DrawRingBufferLib.Buffer
      * @param _drawId drawId
      */
     function _getPrizeDistribution(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId)
         internal
         view
-        returns (IPrizeDistributionHistory.PrizeDistribution memory)
+        returns (IPrizeDistributionBuffer.PrizeDistribution memory)
     {
         return prizeDistributionRingBuffer[_buffer.getIndex(_drawId)];
     }
 
     /**
-     * @notice Set newest PrizeDistributionHistory in ring buffer storage.
+     * @notice Set newest PrizeDistributionBuffer in ring buffer storage.
      * @param _drawId       drawId
-     * @param _prizeDistribution PrizeDistributionHistory struct
+     * @param _prizeDistribution PrizeDistributionBuffer struct
      */
     function _pushPrizeDistribution(
         uint32 _drawId,
-        IPrizeDistributionHistory.PrizeDistribution calldata _prizeDistribution
+        IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution
     ) internal returns (bool) {
 
         require(_drawId > 0, "DrawCalc/draw-id-gt-0");

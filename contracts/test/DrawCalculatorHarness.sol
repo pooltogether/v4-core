@@ -9,8 +9,8 @@ contract DrawCalculatorHarness is DrawCalculator {
         address _owner,
         ITicket _ticket,
         IDrawBuffer _drawBuffer,
-        PrizeDistributionHistory _prizeDistributionHistory
-    ) DrawCalculator(_owner, _ticket, _drawBuffer, _prizeDistributionHistory) {}
+        PrizeDistributionBuffer _prizeDistributionBuffer
+    ) DrawCalculator(_owner, _ticket, _drawBuffer, _prizeDistributionBuffer) {}
 
     function calculateTierIndex(
         uint256 _randomNumberThisPick,
@@ -20,7 +20,7 @@ contract DrawCalculatorHarness is DrawCalculator {
         return _calculateTierIndex(_randomNumberThisPick, _winningRandomNumber, _masks);
     }
 
-    function createBitMasks(IPrizeDistributionHistory.PrizeDistribution calldata _prizeDistribution)
+    function createBitMasks(IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution)
         public
         pure
         returns (uint256[] memory)
@@ -33,7 +33,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     ///@param _prizeTierIndex Index of the prize tiers array to calculate
     ///@return returns the fraction of the total prize
     function calculatePrizeTierFraction(
-        IPrizeDistributionHistory.PrizeDistribution calldata _prizeDistribution,
+        IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution,
         uint256 _prizeTierIndex
     ) external pure returns (uint256) {
         return _calculatePrizeTierFraction(_prizeDistribution, _prizeTierIndex);
@@ -48,7 +48,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     }
 
     function calculateNumberOfUserPicks(
-        IPrizeDistributionHistory.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
     ) external pure returns (uint64) {
         return _calculateNumberOfUserPicks(_prizeDistribution, _normalizedUserBalance);

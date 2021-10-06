@@ -7,11 +7,11 @@ import { fillPrizeTiersWithZeros } from './helpers/fillPrizeTiersWithZeros';
 
 const { getSigners } = ethers;
 
-describe('PrizeDistributionHistory', () => {
+describe('PrizeDistributionBuffer', () => {
     let wallet1: SignerWithAddress;
     let wallet2: SignerWithAddress;
     let wallet3: SignerWithAddress;
-    let prizeDistributionHistory: Contract;
+    let prizeDistributionBuffer: Contract;
 
     const prizeDistribution: PrizeDistribution = {
         matchCardinality: BigNumber.from(5),
@@ -40,37 +40,37 @@ describe('PrizeDistributionHistory', () => {
     });
 
     beforeEach(async () => {
-        const prizeDistributionHistoryFactory: ContractFactory = await ethers.getContractFactory(
-            'PrizeDistributionHistory',
+        const prizeDistributionBufferFactory: ContractFactory = await ethers.getContractFactory(
+            'PrizeDistributionBuffer',
         );
 
-        prizeDistributionHistory = await prizeDistributionHistoryFactory.deploy(wallet1.address, 3);
+        prizeDistributionBuffer = await prizeDistributionBufferFactory.deploy(wallet1.address, 3);
 
         prizeDistribution.tiers = fillPrizeTiersWithZeros(
             prizeDistribution.tiers,
         );
 
-        await prizeDistributionHistory.setManager(wallet1.address);
+        await prizeDistributionBuffer.setManager(wallet1.address);
     });
 
     describe('getBufferCardinality()', () => {
         it('should read buffer cardinality set in constructor', async () => {
-            expect(await prizeDistributionHistory.getBufferCardinality())
+            expect(await prizeDistributionBuffer.getBufferCardinality())
                 .to.equal(3)
         });
     })
 
     describe('getNewestPrizeDistribution()', () => {
         it('should error when no draw buffer', async () => {
-            await expect(prizeDistributionHistory.getNewestPrizeDistribution()).to.be.revertedWith(
+            await expect(prizeDistributionBuffer.getNewestPrizeDistribution()).to.be.revertedWith(
                 'DRB/future-draw',
             );
         });
 
         it('should get the last draw after pushing a draw', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(5));
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution(5));
 
-            const settings = await prizeDistributionHistory.getNewestPrizeDistribution();
+            const settings = await prizeDistributionBuffer.getNewestPrizeDistribution();
 
             expect(settings.prizeDistribution.matchCardinality).to.equal(
                 prizeDistribution.matchCardinality,
@@ -82,26 +82,26 @@ describe('PrizeDistributionHistory', () => {
 
     describe('getOldestPrizeDistribution()', () => {
         it('should yield an empty draw when no history', async () => {
-            const draw = await prizeDistributionHistory.getOldestPrizeDistribution();
+            const draw = await prizeDistributionBuffer.getOldestPrizeDistribution();
 
             expect(draw.prizeDistribution.matchCardinality).to.equal(0);
             expect(draw.drawId).to.equal(0);
         });
 
         it('should yield the first draw when only one', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(5, newPrizeDistribution());
+            await prizeDistributionBuffer.pushPrizeDistribution(5, newPrizeDistribution());
 
-            const draw = await prizeDistributionHistory.getOldestPrizeDistribution();
+            const draw = await prizeDistributionBuffer.getOldestPrizeDistribution();
 
             expect(draw.prizeDistribution.matchCardinality).to.equal(5);
             expect(draw.drawId).to.equal(5);
         });
 
         it('should give the first draw when the buffer is not full', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(7, newPrizeDistribution());
-            await prizeDistributionHistory.pushPrizeDistribution(8, newPrizeDistribution());
+            await prizeDistributionBuffer.pushPrizeDistribution(7, newPrizeDistribution());
+            await prizeDistributionBuffer.pushPrizeDistribution(8, newPrizeDistribution());
 
-            const draw = await prizeDistributionHistory.getOldestPrizeDistribution();
+            const draw = await prizeDistributionBuffer.getOldestPrizeDistribution();
 
             expect(draw.prizeDistribution.matchCardinality).to.equal(
                 prizeDistribution.matchCardinality,
@@ -111,11 +111,11 @@ describe('PrizeDistributionHistory', () => {
         });
 
         it('should give the first draw when the buffer is full', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(9, newPrizeDistribution(1));
-            await prizeDistributionHistory.pushPrizeDistribution(10, newPrizeDistribution(2));
-            await prizeDistributionHistory.pushPrizeDistribution(11, newPrizeDistribution(3));
+            await prizeDistributionBuffer.pushPrizeDistribution(9, newPrizeDistribution(1));
+            await prizeDistributionBuffer.pushPrizeDistribution(10, newPrizeDistribution(2));
+            await prizeDistributionBuffer.pushPrizeDistribution(11, newPrizeDistribution(3));
 
-            const draw = await prizeDistributionHistory.getOldestPrizeDistribution();
+            const draw = await prizeDistributionBuffer.getOldestPrizeDistribution();
 
             expect(draw.prizeDistribution.matchCardinality).to.equal(1);
             expect(draw.drawId).to.equal(9);
@@ -123,18 +123,17 @@ describe('PrizeDistributionHistory', () => {
 
         it('should give the oldest draw when the buffer has wrapped', async () => {
             // buffer can only hold 3, so the oldest should be drawId 14
-            await prizeDistributionHistory.pushPrizeDistribution(12, newPrizeDistribution(4));
-            await prizeDistributionHistory.pushPrizeDistribution(13, newPrizeDistribution(5));
-            await prizeDistributionHistory.pushPrizeDistribution(14, newPrizeDistribution(6));
-            await prizeDistributionHistory.pushPrizeDistribution(15, newPrizeDistribution(7));
-            await prizeDistributionHistory.pushPrizeDistribution(16, newPrizeDistribution(8));
+            await prizeDistributionBuffer.pushPrizeDistribution(12, newPrizeDistribution(4));
+            await prizeDistributionBuffer.pushPrizeDistribution(13, newPrizeDistribution(5));
+            await prizeDistributionBuffer.pushPrizeDistribution(14, newPrizeDistribution(6));
+            await prizeDistributionBuffer.pushPrizeDistribution(15, newPrizeDistribution(7));
+            await prizeDistributionBuffer.pushPrizeDistribution(16, newPrizeDistribution(8));
 
-            const draw = await prizeDistributionHistory.getOldestPrizeDistribution();
+            const draw = await prizeDistributionBuffer.getOldestPrizeDistribution();
 
             expect(draw.prizeDistribution.matchCardinality).to.equal(6);
             expect(draw.drawId).to.equal(14);
         });
-
     });
 
     describe('pushPrizeDistribution()', () => {
@@ -167,7 +166,7 @@ describe('PrizeDistributionHistory', () => {
                 prizeDistribution.matchCardinality = BigNumber.from(3);
 
                 await expect(
-                    prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
+                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
                 ).to.be.revertedWith('DrawCalc/matchCardinality-gte-tiers');
             });
 
@@ -176,7 +175,7 @@ describe('PrizeDistributionHistory', () => {
                 prizeDistribution.bitRangeSize = BigNumber.from(9);
 
                 await expect(
-                    prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
+                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
                 ).to.be.revertedWith('DrawCalc/bitRangeSize-too-large');
             });
 
@@ -184,7 +183,7 @@ describe('PrizeDistributionHistory', () => {
                 prizeDistribution.tiers[0] = ethers.utils.parseUnits('1', 9);
 
                 await expect(
-                    prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
+                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
                 ).to.be.revertedWith('DrawCalc/tiers-gt-100%');
             });
 
@@ -192,7 +191,7 @@ describe('PrizeDistributionHistory', () => {
                 prizeDistribution.bitRangeSize = BigNumber.from(0);
 
                 await expect(
-                    prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
+                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
                 ).to.be.revertedWith('DrawCalc/bitRangeSize-gt-0');
             });
 
@@ -200,7 +199,7 @@ describe('PrizeDistributionHistory', () => {
                 prizeDistribution.matchCardinality = BigNumber.from(0);
 
                 await expect(
-                    prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
+                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
                 ).to.be.revertedWith('DrawCalc/matchCardinality-gt-0');
             });
 
@@ -208,13 +207,13 @@ describe('PrizeDistributionHistory', () => {
                 prizeDistribution.maxPicksPerUser = BigNumber.from(0);
 
                 await expect(
-                    prizeDistributionHistory.pushPrizeDistribution(1, prizeDistribution),
+                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
                 ).to.be.revertedWith('DrawCalc/maxPicksPerUser-gt-0');
             });
         });
 
         it('should fail to create a new draw when called from non-draw-manager', async () => {
-            const prizeDistributorWallet2 = prizeDistributionHistory.connect(wallet2);
+            const prizeDistributorWallet2 = prizeDistributionBuffer.connect(wallet2);
 
             await expect(
                 prizeDistributorWallet2.pushPrizeDistribution(1, newPrizeDistribution()),
@@ -223,22 +222,22 @@ describe('PrizeDistributionHistory', () => {
 
         it('should create a new draw and emit DrawCreated', async () => {
             await expect(
-                await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution()),
-            ).to.emit(prizeDistributionHistory, 'PrizeDistributionSet');
+                await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution()),
+            ).to.emit(prizeDistributionBuffer, 'PrizeDistributionSet');
         });
     });
 
     describe('getPrizeDistribution()', () => {
         it('should read fail when no draw buffer', async () => {
-            await expect(prizeDistributionHistory.getPrizeDistribution(0)).to.revertedWith(
+            await expect(prizeDistributionBuffer.getPrizeDistribution(0)).to.revertedWith(
                 'DRB/future-draw',
             );
         });
 
         it('should read the recently created draw struct', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(6));
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution(6));
 
-            const draw = await prizeDistributionHistory.getPrizeDistribution(1);
+            const draw = await prizeDistributionBuffer.getPrizeDistribution(1);
 
             expect(draw.matchCardinality).to.equal(6);
         });
@@ -246,17 +245,17 @@ describe('PrizeDistributionHistory', () => {
 
     describe('getPrizeDistributions()', () => {
         it('should fail to read if draws history is empty', async () => {
-            await expect(prizeDistributionHistory.getPrizeDistributions([0])).to.revertedWith(
+            await expect(prizeDistributionBuffer.getPrizeDistributions([0])).to.revertedWith(
                 'DRB/future-draw',
             );
         });
 
         it('should successfully read an array of draws', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(4));
-            await prizeDistributionHistory.pushPrizeDistribution(2, newPrizeDistribution(5));
-            await prizeDistributionHistory.pushPrizeDistribution(3, newPrizeDistribution(6));
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution(4));
+            await prizeDistributionBuffer.pushPrizeDistribution(2, newPrizeDistribution(5));
+            await prizeDistributionBuffer.pushPrizeDistribution(3, newPrizeDistribution(6));
 
-            const draws = await prizeDistributionHistory.getPrizeDistributions([1, 2, 3]);
+            const draws = await prizeDistributionBuffer.getPrizeDistributions([1, 2, 3]);
 
             for (let index = 0; index < draws.length; index++) {
                 expect(draws[index].matchCardinality).to.equal(index + 4);
@@ -266,65 +265,65 @@ describe('PrizeDistributionHistory', () => {
 
     describe('getPrizeDistributionCount()', () => {
         it('should return 0 when no draw buffer', async () => {
-            expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(0);
+            expect(await prizeDistributionBuffer.getPrizeDistributionCount()).to.equal(0);
         });
 
         it('should return 2 if 2 draws have been pushed', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(4));
-            await prizeDistributionHistory.pushPrizeDistribution(2, newPrizeDistribution(5));
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution(4));
+            await prizeDistributionBuffer.pushPrizeDistribution(2, newPrizeDistribution(5));
 
-            expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(2);
+            expect(await prizeDistributionBuffer.getPrizeDistributionCount()).to.equal(2);
         });
 
         it('should return 3 if buffer of cardinality 3 is full', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(4));
-            await prizeDistributionHistory.pushPrizeDistribution(2, newPrizeDistribution(5));
-            await prizeDistributionHistory.pushPrizeDistribution(3, newPrizeDistribution(6));
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution(4));
+            await prizeDistributionBuffer.pushPrizeDistribution(2, newPrizeDistribution(5));
+            await prizeDistributionBuffer.pushPrizeDistribution(3, newPrizeDistribution(6));
 
-            expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(3);
+            expect(await prizeDistributionBuffer.getPrizeDistributionCount()).to.equal(3);
         });
 
         it('should return 3 if ring buffer has wrapped', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution(4));
-            await prizeDistributionHistory.pushPrizeDistribution(2, newPrizeDistribution(5));
-            await prizeDistributionHistory.pushPrizeDistribution(3, newPrizeDistribution(6));
-            await prizeDistributionHistory.pushPrizeDistribution(4, newPrizeDistribution(7));
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution(4));
+            await prizeDistributionBuffer.pushPrizeDistribution(2, newPrizeDistribution(5));
+            await prizeDistributionBuffer.pushPrizeDistribution(3, newPrizeDistribution(6));
+            await prizeDistributionBuffer.pushPrizeDistribution(4, newPrizeDistribution(7));
 
-            expect(await prizeDistributionHistory.getPrizeDistributionCount()).to.equal(3);
+            expect(await prizeDistributionBuffer.getPrizeDistributionCount()).to.equal(3);
         });
     });
 
     describe('setPrizeDistribution()', () => {
         it('should fail to set existing draw as unauthorized account', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution());
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution());
 
             await expect(
-                prizeDistributionHistory
+                prizeDistributionBuffer
                     .connect(wallet3)
                     .setPrizeDistribution(1, newPrizeDistribution()),
             ).to.be.revertedWith('Ownable/caller-not-owner');
         });
 
         it('should fail to set existing draw as manager ', async () => {
-            await prizeDistributionHistory.setManager(wallet2.address);
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution());
+            await prizeDistributionBuffer.setManager(wallet2.address);
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution());
 
             await expect(
-                prizeDistributionHistory
+                prizeDistributionBuffer
                     .connect(wallet2)
                     .setPrizeDistribution(1, newPrizeDistribution()),
             ).to.be.revertedWith('Ownable/caller-not-owner');
         });
 
         it('should succeed to set existing draw as owner', async () => {
-            await prizeDistributionHistory.pushPrizeDistribution(1, newPrizeDistribution());
+            await prizeDistributionBuffer.pushPrizeDistribution(1, newPrizeDistribution());
 
             await expect(
-                prizeDistributionHistory.setPrizeDistribution(1, newPrizeDistribution(6)),
-            ).to.emit(prizeDistributionHistory, 'PrizeDistributionSet');
+                prizeDistributionBuffer.setPrizeDistribution(1, newPrizeDistribution(6)),
+            ).to.emit(prizeDistributionBuffer, 'PrizeDistributionSet');
 
             expect(
-                (await prizeDistributionHistory.getPrizeDistribution(1)).matchCardinality,
+                (await prizeDistributionBuffer.getPrizeDistribution(1)).matchCardinality,
             ).to.equal(6);
         });
     });

@@ -2,11 +2,11 @@
 
 pragma solidity 0.8.6;
 
-/** @title  IPrizeDistributionHistory
+/** @title  IPrizeDistributionBuffer
   * @author PoolTogether Inc Team
-  * @notice The PrizeDistributionHistory interface.
+  * @notice The PrizeDistributionBuffer interface.
 */
-interface IPrizeDistributionHistory {
+interface IPrizeDistributionBuffer {
 
     ///@notice PrizeDistribution struct created every draw
     ///@param bitRangeSize Decimal representation of bitRangeSize
@@ -31,11 +31,11 @@ interface IPrizeDistributionHistory {
     /**
      * @notice Emit when PrizeDistribution is set.
      * @param drawId       Draw id
-     * @param prizeDistribution IPrizeDistributionHistory.PrizeDistribution
+     * @param prizeDistribution IPrizeDistributionBuffer.PrizeDistribution
      */
     event PrizeDistributionSet(
         uint32 indexed drawId,
-        IPrizeDistributionHistory.PrizeDistribution prizeDistribution
+        IPrizeDistributionBuffer.PrizeDistribution prizeDistribution
     );
 
     /**
@@ -53,7 +53,7 @@ interface IPrizeDistributionHistory {
     function getNewestPrizeDistribution()
         external
         view
-        returns (IPrizeDistributionHistory.PrizeDistribution memory prizeDistribution, uint32 drawId);
+        returns (IPrizeDistributionBuffer.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
     /**
      * @notice Read oldest PrizeDistribution from prize distributions ring buffer.
@@ -64,7 +64,7 @@ interface IPrizeDistributionHistory {
     function getOldestPrizeDistribution()
         external
         view
-        returns (IPrizeDistributionHistory.PrizeDistribution memory prizeDistribution, uint32 drawId);
+        returns (IPrizeDistributionBuffer.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
     /**
      * @notice Gets PrizeDistribution list from array of drawIds
@@ -74,17 +74,17 @@ interface IPrizeDistributionHistory {
     function getPrizeDistributions(uint32[] calldata drawIds)
         external
         view
-        returns (IPrizeDistributionHistory.PrizeDistribution[] memory);
+        returns (IPrizeDistributionBuffer.PrizeDistribution[] memory);
 
     /**
-     * @notice Gets the PrizeDistributionHistory for a drawId
+     * @notice Gets the PrizeDistributionBuffer for a drawId
      * @param drawId drawId
      * @return prizeDistribution
      */
     function getPrizeDistribution(uint32 drawId)
         external
         view
-        returns (IPrizeDistributionHistory.PrizeDistribution memory);
+        returns (IPrizeDistributionBuffer.PrizeDistribution memory);
 
     /**
      * @notice Gets the number of PrizeDistributions stored in the prize distributions ring buffer.
@@ -103,7 +103,7 @@ interface IPrizeDistributionHistory {
      */
     function pushPrizeDistribution(
         uint32 drawId,
-        IPrizeDistributionHistory.PrizeDistribution calldata prizeDistribution
+        IPrizeDistributionBuffer.PrizeDistribution calldata prizeDistribution
     ) external returns (bool);
 
     /**
@@ -113,7 +113,7 @@ interface IPrizeDistributionHistory {
                the invalid parameters with correct parameters.
      * @return drawId
      */
-    function setPrizeDistribution(uint32 drawId, IPrizeDistributionHistory.PrizeDistribution calldata draw)
+    function setPrizeDistribution(uint32 drawId, IPrizeDistributionBuffer.PrizeDistribution calldata draw)
         external
         returns (uint32);
 }

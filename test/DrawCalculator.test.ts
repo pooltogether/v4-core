@@ -69,7 +69,7 @@ describe('DrawCalculator', () => {
     let drawCalculator: Contract;
     let ticket: MockContract;
     let drawBuffer: MockContract;
-    let prizeDistributionHistory: MockContract;
+    let prizeDistributionBuffer: MockContract;
     let wallet1: any;
     let wallet2: any;
     let wallet3: any;
@@ -85,20 +85,20 @@ describe('DrawCalculator', () => {
         let drawBufferArtifact = await artifacts.readArtifact('DrawBuffer');
         drawBuffer = await deployMockContract(wallet1, drawBufferArtifact.abi);
 
-        let prizeDistributionHistoryArtifact = await artifacts.readArtifact(
-            'PrizeDistributionHistory',
+        let prizeDistributionBufferArtifact = await artifacts.readArtifact(
+            'PrizeDistributionBuffer',
         );
 
-        prizeDistributionHistory = await deployMockContract(
+        prizeDistributionBuffer = await deployMockContract(
             wallet1,
-            prizeDistributionHistoryArtifact.abi,
+            prizeDistributionBufferArtifact.abi,
         );
 
         drawCalculator = await deployDrawCalculator(
             wallet1,
             ticket.address,
             drawBuffer.address,
-            prizeDistributionHistory.address,
+            prizeDistributionBuffer.address,
         );
     });
 
@@ -109,7 +109,7 @@ describe('DrawCalculator', () => {
                     wallet1,
                     ethers.constants.AddressZero,
                     drawBuffer.address,
-                    prizeDistributionHistory.address,
+                    prizeDistributionBuffer.address,
                 ),
             ).to.be.revertedWith('DrawCalc/ticket-not-zero');
         });
@@ -122,7 +122,7 @@ describe('DrawCalculator', () => {
                     drawBuffer.address,
                     ethers.constants.AddressZero,
                 ),
-            ).to.be.revertedWith('DrawCalc/pdh-not-zero');
+            ).to.be.revertedWith('DrawCalc/pdb-not-zero');
         });
 
         it('should require a non-zero history', async () => {
@@ -131,7 +131,7 @@ describe('DrawCalculator', () => {
                     wallet1,
                     ticket.address,
                     ethers.constants.AddressZero,
-                    prizeDistributionHistory.address,
+                    prizeDistributionBuffer.address,
                 ),
             ).to.be.revertedWith('DrawCalc/dh-not-zero');
         });
@@ -143,10 +143,10 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe('getPrizeDistributionHistory()', () => {
+    describe('getPrizeDistributionBuffer()', () => {
         it('should succesfully read draw buffer', async () => {
-            expect(await drawCalculator.getPrizeDistributionHistory()).to.equal(
-                prizeDistributionHistory.address,
+            expect(await drawCalculator.getPrizeDistributionBuffer()).to.equal(
+                prizeDistributionBuffer.address,
             );
         });
     });
@@ -175,7 +175,7 @@ describe('DrawCalculator', () => {
                 prizeDistribution.tiers,
             );
 
-            await prizeDistributionHistory.mock.getPrizeDistributions.returns([prizeDistribution]);
+            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([prizeDistribution]);
         });
 
         it('grand prize gets the full fraction at index 0', async () => {
@@ -582,7 +582,7 @@ describe('DrawCalculator', () => {
                 timestamp: BigNumber.from(timestamps[0]),
             });
 
-            await prizeDistributionHistory.mock.getPrizeDistributions
+            await prizeDistributionBuffer.mock.getPrizeDistributions
                 .withArgs([draw.drawId])
                 .returns([prizeDistribution]);
 
@@ -630,7 +630,7 @@ describe('DrawCalculator', () => {
                 timestamp: BigNumber.from(timestamps[0]),
             });
 
-            await prizeDistributionHistory.mock.getPrizeDistributions
+            await prizeDistributionBuffer.mock.getPrizeDistributions
                 .withArgs([draw.drawId])
                 .returns([prizeDistribution]);
 
@@ -680,7 +680,7 @@ describe('DrawCalculator', () => {
                 timestamp: BigNumber.from(timestamps[0]),
             });
 
-            await prizeDistributionHistory.mock.getPrizeDistributions
+            await prizeDistributionBuffer.mock.getPrizeDistributions
                 .withArgs([draw.drawId])
                 .returns([prizeDistribution]);
 
@@ -752,7 +752,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1, draw2]);
-            await prizeDistributionHistory.mock.getPrizeDistributions.returns([
+            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([
                 prizeDistribution,
                 prizeDistribution,
             ]);
@@ -820,7 +820,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1, draw2]);
-            await prizeDistributionHistory.mock.getPrizeDistributions.returns([
+            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([
                 prizeDistribution,
                 prizeDistribution,
             ]);
@@ -863,7 +863,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1]);
-            await prizeDistributionHistory.mock.getPrizeDistributions.returns([prizeDistribution]);
+            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([prizeDistribution]);
 
             const offsetStartTimestamps = modifyTimestampsWithOffset(
                 timestamps,
@@ -916,7 +916,7 @@ describe('DrawCalculator', () => {
                     prizeDistribution.tiers,
                 );
 
-                await prizeDistributionHistory.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
             });
@@ -1105,7 +1105,7 @@ describe('DrawCalculator', () => {
                     prizeDistribution.tiers,
                 );
 
-                await prizeDistributionHistory.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -1165,7 +1165,7 @@ describe('DrawCalculator', () => {
                     prizeDistribution.tiers,
                 );
 
-                await prizeDistributionHistory.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -1280,7 +1280,7 @@ describe('DrawCalculator', () => {
 
                 debug(`pushing settings for draw 2...`);
 
-                await prizeDistributionHistory.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1, 2])
                     .returns([prizeDistribution, prizeDistribution2]);
 
@@ -1372,7 +1372,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw1, draw2]);
 
-                await prizeDistributionHistory.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1, 2])
                     .returns([prizeDistribution, prizeDistribution]);
 
@@ -1442,7 +1442,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw1]);
 
-                await prizeDistributionHistory.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([2])
                     .returns([prizeDistribution]);
 
