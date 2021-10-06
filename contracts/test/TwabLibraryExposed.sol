@@ -44,7 +44,7 @@ contract TwabLibExposed {
             bool isNew
         )
     {
-        (accountDetails, twab, isNew) = TwabLib.increaseBalance(account, _amount, _currentTime);
+        (accountDetails, twab, isNew) = TwabLib.increaseBalance(account, uint208(_amount), _currentTime);
         account.details = accountDetails;
         emit Updated(accountDetails, twab, isNew);
     }
@@ -63,7 +63,7 @@ contract TwabLibExposed {
     {
         (accountDetails, twab, isNew) = TwabLib.decreaseBalance(
             account,
-            _amount,
+            uint208(_amount),
             _revertMessage,
             _currentTime
         );

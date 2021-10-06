@@ -4,8 +4,8 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
+import "./libraries/ExtendedSafeCastLib.sol";
 import "./libraries/TwabLib.sol";
 import "./interfaces/ITicket.sol";
 import "./ControlledToken.sol";
@@ -21,7 +21,7 @@ import "./ControlledToken.sol";
 */
 contract Ticket is ControlledToken, ITicket {
     using SafeERC20 for IERC20;
-    using SafeCast for uint256;
+    using ExtendedSafeCastLib for uint256;
 
     // solhint-disable-next-line var-name-mixedcase
     bytes32 private immutable _DELEGATE_TYPEHASH =
@@ -330,7 +330,7 @@ contract Ticket is ControlledToken, ITicket {
             TwabLib.AccountDetails memory accountDetails,
             ObservationLib.Observation memory twab,
             bool isNew
-        ) = TwabLib.increaseBalance(_account, _amount, uint32(block.timestamp));
+        ) = TwabLib.increaseBalance(_account, _amount.toUint208(), uint32(block.timestamp));
 
         _account.details = accountDetails;
 
@@ -360,7 +360,7 @@ contract Ticket is ControlledToken, ITicket {
             bool isNew
         ) = TwabLib.decreaseBalance(
                 _account,
-                _amount,
+                _amount.toUint208(),
                 "ERC20: burn amount exceeds balance",
                 uint32(block.timestamp)
             );
@@ -385,7 +385,7 @@ contract Ticket is ControlledToken, ITicket {
             bool tsIsNew
         ) = TwabLib.decreaseBalance(
                 totalSupplyTwab,
-                _amount,
+                _amount.toUint208(),
                 "Ticket/burn-amount-exceeds-total-supply-twab",
                 uint32(block.timestamp)
             );
@@ -408,7 +408,7 @@ contract Ticket is ControlledToken, ITicket {
             TwabLib.AccountDetails memory accountDetails,
             ObservationLib.Observation memory _totalSupply,
             bool tsIsNew
-        ) = TwabLib.increaseBalance(totalSupplyTwab, _amount, uint32(block.timestamp));
+        ) = TwabLib.increaseBalance(totalSupplyTwab, _amount.toUint208(), uint32(block.timestamp));
 
         totalSupplyTwab.details = accountDetails;
 
