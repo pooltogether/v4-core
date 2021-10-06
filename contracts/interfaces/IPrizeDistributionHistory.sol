@@ -2,6 +2,10 @@
 
 pragma solidity 0.8.6;
 
+/** @title  IPrizeDistributionHistory
+  * @author PoolTogether Inc Team
+  * @notice The PrizeDistributionHistory interface.
+*/
 interface IPrizeDistributionHistory {
 
     ///@notice PrizeDistribution struct created every draw
@@ -25,15 +29,7 @@ interface IPrizeDistributionHistory {
     }
 
     /**
-     * @notice Emit when a new draw has been created.
-     * @param drawId       Draw id
-     * @param timestamp    Epoch timestamp when the draw is created.
-     * @param winningRandomNumber Randomly generated number used to calculate draw winning numbers
-     */
-    event DrawSet(uint32 indexed drawId, uint32 timestamp, uint256 winningRandomNumber);
-
-    /**
-     * @notice Emitted when the PrizeDistribution are set/updated
+     * @notice Emit when PrizeDistribution is set.
      * @param drawId       Draw id
      * @param prizeDistribution IPrizeDistributionHistory.PrizeDistribution
      */
@@ -43,10 +39,10 @@ interface IPrizeDistributionHistory {
     );
 
     /**
-     * @notice Read the newest PrizeDistribution from the prize distributions ring buffer.
-     * @dev    Uses the nextDrawIndex to calculate the most recently added PrizeDistribution.
-     * @return prizeDistribution stored in ring buffer
-     * @return drawId stored in ring buffer
+     * @notice Read newest PrizeDistribution from prize distributions ring buffer.
+     * @dev    Uses nextDrawIndex to calculate the most recently added PrizeDistribution.
+     * @return prizeDistribution
+     * @return drawId
      */
     function getNewestPrizeDistribution()
         external
@@ -54,10 +50,10 @@ interface IPrizeDistributionHistory {
         returns (IPrizeDistributionHistory.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
     /**
-     * @notice Read the oldest PrizeDistribution from the prize distributions ring buffer.
+     * @notice Read oldest PrizeDistribution from prize distributions ring buffer.
      * @dev    Finds the oldest Draw by buffer.nextIndex and buffer.lastDrawId
-     * @return prizeDistribution stored in ring buffer
-     * @return drawId stored in ring buffer
+     * @return prizeDistribution
+     * @return drawId
      */
     function getOldestPrizeDistribution()
         external
@@ -65,8 +61,9 @@ interface IPrizeDistributionHistory {
         returns (IPrizeDistributionHistory.PrizeDistribution memory prizeDistribution, uint32 drawId);
 
     /**
-     * @notice Gets array of PrizeDistributions for drawIds
+     * @notice Gets PrizeDistribution list from array of drawIds
      * @param drawIds drawIds to get PrizeDistribution for
+     * @return prizeDistributionList
      */
     function getPrizeDistributions(uint32[] calldata drawIds)
         external
@@ -75,7 +72,8 @@ interface IPrizeDistributionHistory {
 
     /**
      * @notice Gets the PrizeDistributionHistory for a drawId
-     * @param drawId Draw.drawId
+     * @param drawId drawId
+     * @return prizeDistribution
      */
     function getPrizeDistribution(uint32 drawId)
         external
@@ -92,10 +90,10 @@ interface IPrizeDistributionHistory {
     function getPrizeDistributionCount() external view returns (uint32);
 
     /**
-     * @notice Stores a PrizeDistribution for a drawId
+     * @notice Adds new PrizeDistribution record to ring buffer storage.
      * @dev    Only callable by the owner or manager
-     * @param drawId drawId to store PrizeDistribution for
-     * @param prizeDistribution   PrizeDistribution to store
+     * @param drawId            Draw ID linked to PrizeDistribution parameters
+     * @param prizeDistribution PrizeDistribution parameters struct
      */
     function pushPrizeDistribution(
         uint32 drawId,
@@ -103,11 +101,13 @@ interface IPrizeDistributionHistory {
     ) external returns (bool);
 
     /**
-     * @notice Set existing Draw in prize distributions ring buffer with new parameters.
-     * @dev    Updating a Draw should be used sparingly and only in the event an incorrect Draw parameter has been stored.
-     * @return Draw.drawId
+     * @notice Sets existing PrizeDistribution with new PrizeDistribution parameters in ring buffer storage.
+     * @dev    Retroactively updates an existing PrizeDistribution and should be thought of as a "safety"
+               fallback. If the manager is setting invalid PrizeDistribution parameters the Owner can update
+               the invalid parameters with correct parameters.
+     * @return drawId
      */
     function setPrizeDistribution(uint32 drawId, IPrizeDistributionHistory.PrizeDistribution calldata draw)
         external
-        returns (uint32); // maybe return drawIndex
+        returns (uint32);
 }

@@ -8,7 +8,7 @@ import "../PrizeDistributionHistory.sol";
 import "../DrawPrize.sol";
 
 /**
- * @title  PoolTogether V4 DrawCalculator
+ * @title  PoolTogether V4 IDrawCalculator
  * @author PoolTogether Inc Team
  * @notice The DrawCalculator interface.
  */

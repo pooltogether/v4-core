@@ -4,6 +4,10 @@ pragma solidity 0.8.6;
 
 import "../interfaces/IDrawBeacon.sol";
 
+/** @title  IDrawHistory
+  * @author PoolTogether Inc Team
+  * @notice The DrawHistory interface.
+*/
 interface IDrawHistory {
     /**
      * @notice Emit when a new draw has been created.
@@ -22,8 +26,8 @@ interface IDrawHistory {
 
     /**
      * @notice Read multiple Draws from the draws ring buffer.
-     * @dev    Read multiple Draws using each Draw.drawId to calculate position in the draws ring buffer.
-     * @param drawIds Array of Draw.drawIds
+     * @dev    Read multiple Draws using each drawId to calculate position in the draws ring buffer.
+     * @param drawIds Array of drawIds
      * @return IDrawBeacon.Draw[]
      */
     function getDraws(uint32[] calldata drawIds) external view returns (IDrawBeacon.Draw[] memory);
@@ -38,14 +42,14 @@ interface IDrawHistory {
     function getDrawCount() external view returns (uint32);
 
     /**
-     * @notice Read newest Draw from the draws ring buffer.
+     * @notice Read newest Draw from draws ring buffer.
      * @dev    Uses the nextDrawIndex to calculate the most recently added Draw.
      * @return IDrawBeacon.Draw
      */
     function getNewestDraw() external view returns (IDrawBeacon.Draw memory);
 
     /**
-     * @notice Read oldest Draw from the draws ring buffer.
+     * @notice Read oldest Draw from draws ring buffer.
      * @dev    Finds the oldest Draw by comparing and/or diffing totalDraws with the cardinality.
      * @return IDrawBeacon.Draw
      */

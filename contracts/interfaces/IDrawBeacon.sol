@@ -5,6 +5,10 @@ pragma solidity 0.8.6;
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "./IDrawHistory.sol";
 
+/** @title  IDrawBeacon
+  * @author PoolTogether Inc Team
+  * @notice The DrawBeacon interface.
+*/
 interface IDrawBeacon {
 
     /// @notice Draw struct created every draw
