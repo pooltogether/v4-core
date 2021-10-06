@@ -20,17 +20,19 @@ interface IDrawCalculator {
     }
 
     ///@notice Emitted when the contract is initialized
-    event Deployed(ITicket indexed ticket);
+    event Deployed(ITicket indexed ticket,
+     IDrawHistory indexed drawHistory,
+    IPrizeDistributionHistory indexed prizeDistributionHistory);
 
     ///@notice Emitted when the drawPrize is set/updated
     event DrawPrizeSet(DrawPrize indexed drawPrize);
 
     /**
-     * @notice Calulates the prize amount for a user for Multiple Draws. Typically called by a DrawPrize.
-     * @param user User for which to calcualte prize amount
-     * @param drawIds draw array for which to calculate prize amounts for
-     * @param data The encoded pick indices for all Draws. Expected to be just indices of winning claims. Populated values must be less than totalUserPicks.
-     * @return List of awardable prizes ordered by linked drawId
+     * @notice Calculates the prize amount for a user for Multiple Draws. Typically called by a DrawPrize.
+     * @param user User for which to calculate prize amount.
+     * @param drawIds drawId array for which to calculate prize amounts for.
+     * @param data The ABI encoded pick indices for all Draws. Expected to be winning picks. Pick indices must be less than the totalUserPicks.
+     * @return List of awardable prize amounts ordered by drawId.
      */
     function calculate(
         address user,
@@ -48,14 +50,7 @@ interface IDrawCalculator {
      * @notice Read global DrawHistory variable.
      * @return IDrawHistory
      */
-    function getPrizeDistributionHistory() external view returns (PrizeDistributionHistory);
-
-    /**
-     * @notice Set global DrawHistory reference.
-     * @param _drawHistory DrawHistory address
-     * @return New DrawHistory address
-     */
-    function setDrawHistory(IDrawHistory _drawHistory) external returns (IDrawHistory);
+    function getPrizeDistributionHistory() external view returns (IPrizeDistributionHistory);
 
     /**
      * @notice Returns a users balances expressed as a fraction of the total supply over time.

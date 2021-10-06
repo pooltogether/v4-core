@@ -22,11 +22,11 @@ describe('DrawBeacon', () => {
     let rngFeeToken: MockContract;
 
     let beaconPeriodStart = now();
-    const beaconPeriodSeconds = 1000;
+    const exampleBeaconPeriodSeconds = 1000;
     const nextDrawId = 1;
 
-    const halfTime = beaconPeriodSeconds / 2;
-    const overTime = beaconPeriodSeconds + 1;
+    const halfTime = exampleBeaconPeriodSeconds / 2;
+    const overTime = exampleBeaconPeriodSeconds + 1;
 
     let IERC20;
 
@@ -58,7 +58,7 @@ describe('DrawBeacon', () => {
             rng.address,
             nextDrawId,
             beaconPeriodStart,
-            beaconPeriodSeconds,
+            exampleBeaconPeriodSeconds,
         );
     });
 
@@ -70,7 +70,7 @@ describe('DrawBeacon', () => {
                 rng.address,
                 nextDrawId,
                 beaconPeriodStart,
-                beaconPeriodSeconds,
+                exampleBeaconPeriodSeconds,
             );
 
             await expect(drawBeacon2.deployTransaction)
@@ -80,7 +80,7 @@ describe('DrawBeacon', () => {
                     rng.address,
                     nextDrawId,
                     beaconPeriodStart,
-                    beaconPeriodSeconds,
+                    exampleBeaconPeriodSeconds,
                 );
 
             await expect(drawBeacon2.deployTransaction)
@@ -91,7 +91,7 @@ describe('DrawBeacon', () => {
         it('should set the params', async () => {
             expect(await drawBeacon.getRngService()).to.equal(rng.address);
             expect(await drawBeacon.getBeaconPeriodStartedAt()).to.equal(beaconPeriodStart);
-            expect(await drawBeacon.getBeaconPeriodSeconds()).to.equal(beaconPeriodSeconds);
+            expect(await drawBeacon.getBeaconPeriodSeconds()).to.equal(exampleBeaconPeriodSeconds);
         });
 
         it('should reject rng request period', async () => {
@@ -102,7 +102,7 @@ describe('DrawBeacon', () => {
                     rng.address,
                     nextDrawId,
                     0,
-                    beaconPeriodSeconds,
+                    exampleBeaconPeriodSeconds,
                 ),
             ).to.be.revertedWith('DrawBeacon/beacon-period-greater-than-zero');
         });
@@ -115,7 +115,7 @@ describe('DrawBeacon', () => {
                     AddressZero,
                     nextDrawId,
                     beaconPeriodStart,
-                    beaconPeriodSeconds,
+                    exampleBeaconPeriodSeconds,
                 ),
             ).to.be.revertedWith('DrawBeacon/rng-not-zero');
         });
@@ -128,7 +128,7 @@ describe('DrawBeacon', () => {
                     rng.address,
                     0,
                     beaconPeriodStart,
-                    beaconPeriodSeconds,
+                    exampleBeaconPeriodSeconds,
                 ),
             ).to.be.revertedWith('DrawBeacon/next-draw-id-gte-one');
         });
@@ -150,12 +150,12 @@ describe('DrawBeacon', () => {
                 expect(await drawBeacon.canStartDraw()).to.equal(false);
 
                 // Prize-period over, RNG requested
-                await drawBeacon.setCurrentTime(startTime.add(beaconPeriodSeconds));
+                await drawBeacon.setCurrentTime(startTime.add(exampleBeaconPeriodSeconds));
                 await drawBeacon.setRngRequest(1, 100);
                 expect(await drawBeacon.canStartDraw()).to.equal(false);
 
                 // Prize-period over, RNG not requested
-                await drawBeacon.setCurrentTime(startTime.add(beaconPeriodSeconds));
+                await drawBeacon.setCurrentTime(startTime.add(exampleBeaconPeriodSeconds));
                 await drawBeacon.setRngRequest(0, 0);
                 expect(await drawBeacon.canStartDraw()).to.equal(true);
             });
@@ -191,7 +191,7 @@ describe('DrawBeacon', () => {
                     rng.address,
                     nextDrawId,
                     beaconPeriodStart,
-                    beaconPeriodSeconds,
+                    exampleBeaconPeriodSeconds,
                 );
             });
 
@@ -307,7 +307,7 @@ describe('DrawBeacon', () => {
                         1,
                         beaconPeriodEndAt,
                         beaconPeriodStartedAt,
-                        beaconPeriodSeconds,
+                        exampleBeaconPeriodSeconds,
                     ])
                     .returns(1);
 
@@ -445,9 +445,9 @@ describe('DrawBeacon', () => {
 
                 expect(
                     await drawBeacon.calculateNextBeaconPeriodStartTime(
-                        startedAt.add(beaconPeriodSeconds * 14),
+                        startedAt.add(exampleBeaconPeriodSeconds * 14),
                     ),
-                ).to.equal(startedAt.add(beaconPeriodSeconds * 14));
+                ).to.equal(startedAt.add(exampleBeaconPeriodSeconds * 14));
             });
 
             it('should return the current if it is within', async () => {
@@ -455,7 +455,7 @@ describe('DrawBeacon', () => {
 
                 expect(
                     await drawBeacon.calculateNextBeaconPeriodStartTime(
-                        startedAt.add(beaconPeriodSeconds / 2),
+                        startedAt.add(exampleBeaconPeriodSeconds / 2),
                     ),
                 ).to.equal(startedAt);
             });
@@ -465,9 +465,9 @@ describe('DrawBeacon', () => {
 
                 expect(
                     await drawBeacon.calculateNextBeaconPeriodStartTime(
-                        startedAt.add(parseInt('' + beaconPeriodSeconds * 1.5)),
+                        startedAt.add(parseInt('' + exampleBeaconPeriodSeconds * 1.5)),
                     ),
-                ).to.equal(startedAt.add(beaconPeriodSeconds));
+                ).to.equal(startedAt.add(exampleBeaconPeriodSeconds));
             });
         });
 
@@ -489,7 +489,7 @@ describe('DrawBeacon', () => {
                 expect(await drawBeacon.getLastRngRequestId()).to.equal(1);
             });
         });
-        it('should get the beaconPeriodSeconds', async () => {
+        it('should get the getBeaconPeriodSeconds', async () => {
             expect(await drawBeacon.getBeaconPeriodSeconds()).to.equal(1000);
         });
         it('should get the beaconPeriodEndAt', async () => {
@@ -497,7 +497,7 @@ describe('DrawBeacon', () => {
                 await drawBeacon.beaconPeriodEndAt(),
             );
         });
-        it('should get the beaconPeriodSeconds', async () => {
+        it('should get the getBeaconPeriodSeconds', async () => {
             expect(await drawBeacon.getBeaconPeriodSeconds()).to.equal(1000);
         });
         it('should get the getBeaconPeriodStartedAt', async () => {

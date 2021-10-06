@@ -122,7 +122,7 @@ describe('DrawCalculator', () => {
                     drawHistory.address,
                     ethers.constants.AddressZero,
                 ),
-            ).to.be.revertedWith('DrawCalc/tdsh-not-zero');
+            ).to.be.revertedWith('DrawCalc/pdh-not-zero');
         });
 
         it('should require a non-zero history', async () => {
@@ -474,28 +474,6 @@ describe('DrawCalculator', () => {
 
             expect(bitMasks[0]).to.eq(BigNumber.from(15)); // 1111
             expect(bitMasks[1]).to.eq(BigNumber.from(240)); // 11110000
-        });
-    });
-
-    describe('setDrawHistory()', () => {
-        it('should fail to set DrawHistory by unauthorized user', async () => {
-            await expect(
-                drawCalculator
-                    .connect(wallet3)
-                    .setDrawHistory(ethers.Wallet.createRandom().address),
-            ).to.be.revertedWith('Ownable/caller-not-owner');
-        });
-
-        it('should fail to set DrawHistory with zero address', async () => {
-            await expect(
-                drawCalculator.setDrawHistory(ethers.constants.AddressZero),
-            ).to.be.revertedWith('DrawCalc/dh-not-zero');
-        });
-
-        it('should succeed to set DrawHistory as owner', async () => {
-            await expect(drawCalculator.setDrawHistory(wallet2.address))
-                .to.emit(drawCalculator, 'DrawHistorySet')
-                .withArgs(wallet2.address);
         });
     });
 
