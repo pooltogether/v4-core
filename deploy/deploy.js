@@ -141,12 +141,12 @@ module.exports = async (hardhat) => {
   });
   displayResult('DrawBuffer', drawBufferResult);
 
-  cyan('\nDeploying PrizeDistributionHistory...');
-  const tsunamiDrawSettindsHistoryResult = await deploy('PrizeDistributionHistory', {
+  cyan('\nDeploying PrizeDistributionBuffer...');
+  const tsunamiDrawSettindsHistoryResult = await deploy('PrizeDistributionBuffer', {
     from: deployer,
     args: [deployer, cardinality],
   });
-  displayResult('PrizeDistributionHistory', tsunamiDrawSettindsHistoryResult);
+  displayResult('PrizeDistributionBuffer', tsunamiDrawSettindsHistoryResult);
 
   const rngTimeout = 3600
 
