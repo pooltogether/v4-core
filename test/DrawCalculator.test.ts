@@ -652,7 +652,7 @@ describe('DrawCalculator', () => {
             );
 
             expect(result[0].won).to.be.false;
-            expect(result[0].tierIndex).to.equal(prizeDistribution.matchCardinality); 
+            expect(result[0].tierIndex).to.equal(prizeDistribution.matchCardinality);
         });
 
         it('reverts if user has too many picks', async () => {

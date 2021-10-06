@@ -379,7 +379,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint8 numberOfMatches = 0;
         
         // main number matching loop
-        uint256 masksLength = masks.lenth;
+        uint256 masksLength = _masks.length;
         for (uint8 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
             uint256 mask = _masks[matchIndex];
 
