@@ -3,7 +3,7 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./IDrawHistory.sol";
+import "./IDrawBuffer.sol";
 import "./IDrawCalculator.sol";
 
 /** @title  IPrizeDistributor
@@ -49,7 +49,7 @@ interface IPrizeDistributor {
                subsequentially if an "optimal" prize was not included in previous claim pick indices. The
                payout difference for the new claim is calculated during the award process and transfered to user.
      * @param user    Address of user to claim awards for. Does NOT need to be msg.sender
-     * @param drawIds Draw IDs from global DrawHistory reference
+     * @param drawIds Draw IDs from global DrawBuffer reference
      * @param data    The data to pass to the draw calculator
      * @return Total claim payout. May include calcuations from multiple draws.
      */

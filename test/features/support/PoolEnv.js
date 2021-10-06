@@ -39,7 +39,7 @@ function PoolEnv() {
 
   this.drawBeacon = async () => await ethers.getContract('DrawBeacon');
 
-  this.drawHistory = async () => await ethers.getContract('DrawHistory');
+  this.drawBuffer = async () => await ethers.getContract('DrawBuffer');
 
   this.prizeDistributionHistory = async () => await ethers.getContract('PrizeDistributionHistory');
 
@@ -166,8 +166,8 @@ function PoolEnv() {
   };
 
   this.expectDrawRandomNumber = async function ({ drawId, randomNumber }) {
-    const drawHistory = await this.drawHistory();
-    const draw = await drawHistory.getDraw(drawId);
+    const drawBuffer = await this.drawBuffer();
+    const draw = await drawBuffer.getDraw(drawId);
     debug(`expectDrawRandomNumber draw: `, draw);
     expect(draw.winningRandomNumber).to.equal(randomNumber);
   };

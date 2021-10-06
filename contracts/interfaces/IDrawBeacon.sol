@@ -3,7 +3,7 @@
 pragma solidity 0.8.6;
 
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
-import "./IDrawHistory.sol";
+import "./IDrawBuffer.sol";
 
 /** @title  IDrawBeacon
   * @author PoolTogether Inc Team
@@ -26,10 +26,10 @@ interface IDrawBeacon {
     }
 
     /**
-     * @notice Emit when a new DrawHistory has been set.
-     * @param newDrawHistory       The new DrawHistory address
+     * @notice Emit when a new DrawBuffer has been set.
+     * @param newDrawBuffer       The new DrawBuffer address
      */
-    event DrawHistoryUpdated(IDrawHistory indexed newDrawHistory);
+    event DrawBufferUpdated(IDrawBuffer indexed newDrawBuffer);
 
     /**
      * @notice Emit when a draw has opened.
@@ -101,10 +101,10 @@ interface IDrawBeacon {
 
     /**
      * @notice Calculates when the next beacon period will start.
-     * @param currentTime The timestamp to use as the current time
+     * @param time The timestamp to use as the current time
      * @return The timestamp at which the next beacon period would start
      */
-    function calculateNextBeaconPeriodStartTime(uint256 currentTime) external view returns (uint64);
+    function calculateNextBeaconPeriodStartTime(uint256 time) external view returns (uint64);
 
     /**
      * @notice Can be called by anyone to cancel the draw request if the RNG has timed out.
@@ -112,7 +112,7 @@ interface IDrawBeacon {
     function cancelDraw() external;
 
     /**
-     * @notice Completes the Draw (RNG) request and pushes a Draw onto DrawHistory.
+     * @notice Completes the Draw (RNG) request and pushes a Draw onto DrawBuffer.
      */
     function completeDraw() external;
 
@@ -177,10 +177,10 @@ interface IDrawBeacon {
     function startDraw() external;
 
     /**
-     * @notice Set global DrawHistory variable.
-     * @dev    All subsequent Draw requests/completions will be pushed to the new DrawHistory.
-     * @param newDrawHistory DrawHistory address
-     * @return DrawHistory
+     * @notice Set global DrawBuffer variable.
+     * @dev    All subsequent Draw requests/completions will be pushed to the new DrawBuffer.
+     * @param newDrawBuffer DrawBuffer address
+     * @return DrawBuffer
      */
-    function setDrawHistory(IDrawHistory newDrawHistory) external returns (IDrawHistory);
+    function setDrawBuffer(IDrawBuffer newDrawBuffer) external returns (IDrawBuffer);
 }

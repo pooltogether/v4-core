@@ -16,7 +16,7 @@ describe('DrawBeacon', () => {
     let wallet: SignerWithAddress;
     let wallet2: SignerWithAddress;
     let DrawBeaconFactory: ContractFactory;
-    let drawHistory: MockContract;
+    let drawBuffer: MockContract;
     let drawBeacon: Contract;
     let rng: MockContract;
     let rngFeeToken: MockContract;
@@ -40,9 +40,9 @@ describe('DrawBeacon', () => {
 
         debug(`using wallet ${wallet.address}`);
 
-        debug(`deploy draw history...`);
-        const DrawHistory = await artifacts.readArtifact('DrawHistory');
-        drawHistory = await deployMockContract(wallet as Signer, DrawHistory.abi);
+        debug(`deploy draw buffer...`);
+        const DrawBuffer = await artifacts.readArtifact('DrawBuffer');
+        drawBuffer = await deployMockContract(wallet as Signer, DrawBuffer.abi);
 
         debug('mocking rng...');
         const RNGInterface = await artifacts.readArtifact('RNGInterface');
@@ -55,7 +55,7 @@ describe('DrawBeacon', () => {
         DrawBeaconFactory = await ethers.getContractFactory('DrawBeaconHarness', wallet);
         drawBeacon = await DrawBeaconFactory.deploy(
             wallet.address,
-            drawHistory.address,
+            drawBuffer.address,
             rng.address,
             nextDrawId,
             beaconPeriodStart,
@@ -68,7 +68,7 @@ describe('DrawBeacon', () => {
         it('should emit a Deployed event', async () => {
             const drawBeacon2 = await DrawBeaconFactory.deploy(
                 wallet.address,
-                drawHistory.address,
+                drawBuffer.address,
                 rng.address,
                 nextDrawId,
                 beaconPeriodStart,
@@ -98,7 +98,7 @@ describe('DrawBeacon', () => {
             await expect(
                 DrawBeaconFactory.deploy(
                     wallet.address,
-                    drawHistory.address,
+                    drawBuffer.address,
                     rng.address,
                     nextDrawId,
                     0,
@@ -112,7 +112,7 @@ describe('DrawBeacon', () => {
             await expect(
                 DrawBeaconFactory.deploy(
                     wallet.address,
-                    drawHistory.address,
+                    drawBuffer.address,
                     AddressZero,
                     nextDrawId,
                     beaconPeriodStart,
@@ -126,7 +126,7 @@ describe('DrawBeacon', () => {
             await expect(
                 DrawBeaconFactory.deploy(
                     wallet.address,
-                    drawHistory.address,
+                    drawBuffer.address,
                     rng.address,
                     0,
                     beaconPeriodStart,
@@ -190,7 +190,7 @@ describe('DrawBeacon', () => {
                 beaconPeriodStart = 10000;
                 drawBeaconBase2 = await DrawBeaconFactory.deploy(
                     wallet.address,
-                    drawHistory.address,
+                    drawBuffer.address,
                     rng.address,
                     nextDrawId,
                     beaconPeriodStart,
@@ -305,7 +305,7 @@ describe('DrawBeacon', () => {
                 const beaconPeriodEndAt = await drawBeacon.beaconPeriodEndAt();
                 const beaconPeriodStartedAt = await drawBeacon.getBeaconPeriodStartedAt();
 
-                await drawHistory.mock.pushDraw
+                await drawBuffer.mock.pushDraw
                     .withArgs([
                         '0x6c00000000000000000000000000000000000000000000000000000000000000',
                         1,
@@ -334,23 +334,23 @@ describe('DrawBeacon', () => {
     });
 
     describe('Setter Functions', () => {
-        describe('setDrawHistory()', () => {
-            it('should allow the owner to set the draw history', async () => {
-                await expect(drawBeacon.setDrawHistory(wallet2.address))
-                    .to.emit(drawBeacon, 'DrawHistoryUpdated')
+        describe('setDrawBuffer()', () => {
+            it('should allow the owner to set the draw buffer', async () => {
+                await expect(drawBeacon.setDrawBuffer(wallet2.address))
+                    .to.emit(drawBeacon, 'DrawBufferUpdated')
                     .withArgs(wallet2.address);
 
-                expect(await drawBeacon.getDrawHistory()).to.equal(wallet2.address);
+                expect(await drawBeacon.getDrawBuffer()).to.equal(wallet2.address);
             });
 
-            it('should not allow setting a zero draw history', async () => {
+            it('should not allow setting a zero draw buffer', async () => {
                 await expect(
-                    drawBeacon.setDrawHistory(ethers.constants.AddressZero),
+                    drawBeacon.setDrawBuffer(ethers.constants.AddressZero),
                 ).to.be.revertedWith('DrawBeacon/draw-history-not-zero-address');
             });
 
-            it('should be a different draw history', async () => {
-                await expect(drawBeacon.setDrawHistory(drawHistory.address)).to.be.revertedWith(
+            it('should be a different draw buffer', async () => {
+                await expect(drawBeacon.setDrawBuffer(drawBuffer.address)).to.be.revertedWith(
                     'DrawBeacon/existing-draw-history-address',
                 );
             });
@@ -508,8 +508,8 @@ describe('DrawBeacon', () => {
                 await drawBeacon.getBeaconPeriodStartedAt(),
             );
         });
-        it('should get the getDrawHistory', async () => {
-            expect(await drawBeacon.getDrawHistory()).to.equal(drawHistory.address);
+        it('should get the getDrawBuffer', async () => {
+            expect(await drawBeacon.getDrawBuffer()).to.equal(drawBuffer.address);
         });
         it('should get the getLastRngLockBlock', async () => {
             expect(await drawBeacon.getLastRngLockBlock()).to.equal(0);

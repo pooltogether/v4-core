@@ -2,11 +2,11 @@
 
 pragma solidity 0.8.6;
 
-import "../DrawHistory.sol";
+import "../DrawBuffer.sol";
 import "../interfaces/IDrawBeacon.sol";
 
-contract DrawHistoryHarness is DrawHistory {
-    constructor(address owner, uint8 card) DrawHistory(owner, card) {}
+contract DrawBufferHarness is DrawBuffer {
+    constructor(address owner, uint8 card) DrawBuffer(owner, card) {}
 
     function addMultipleDraws(
         uint256 _start,
