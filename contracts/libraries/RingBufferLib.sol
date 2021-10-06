@@ -17,7 +17,7 @@ library RingBufferLib {
         uint256 _amount,
         uint256 _cardinality
     ) internal pure returns (uint256) {
-        return (_index + _cardinality - _amount) % _cardinality;
+        return wrap(_index + _cardinality - _amount, _cardinality);
     }
 
     /// @notice Returns the index of the last recorded TWAB
@@ -33,7 +33,7 @@ library RingBufferLib {
             return 0;
         }
 
-        return (_nextAvailableIndex + _cardinality - 1) % _cardinality;
+        return wrap(_nextAvailableIndex + _cardinality - 1, _cardinality);
     }
 
     function nextIndex(uint256 _currentIndex, uint256 _cardinality)
@@ -41,6 +41,6 @@ library RingBufferLib {
         pure
         returns (uint256)
     {
-        return (_currentIndex + 1) % _cardinality;
+        return wrap(_currentIndex + 1, _cardinality);
     }
 }
