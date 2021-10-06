@@ -4,9 +4,24 @@ pragma solidity 0.8.6;
 
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "./IDrawHistory.sol";
-import "../libraries/DrawLib.sol";
+// import "../libraries/DrawLib.sol";
 
 interface IDrawBeacon {
+
+    /// @notice Draw struct created every draw
+    /// @param winningRandomNumber The random number returned from the RNG service
+    /// @param drawId The monotonically increasing drawId for each draw
+    /// @param timestamp Unix timestamp of the draw. Recorded when the draw is created by the DrawBeacon.
+    /// @param beaconPeriodStartedAt Unix timestamp of when the draw started
+    /// @param beaconPeriodSeconds Unix timestamp of the beacon draw period for this draw.
+    struct Draw {
+        uint256 winningRandomNumber;
+        uint32 drawId;
+        uint64 timestamp;
+        uint64 beaconPeriodStartedAt;
+        uint32 beaconPeriodSeconds;
+    }
+
     /**
      * @notice Emit when a new DrawHistory has been set.
      * @param newDrawHistory       The new DrawHistory address
