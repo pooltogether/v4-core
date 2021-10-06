@@ -32,7 +32,6 @@ https://docs.pooltogether.com
 - [DrawCalculator](/contracts/DrawCalculator.sol)
 - [DrawHistory](/contracts/DrawHistory.sol)
 - [DrawPrize](/contracts/DrawPrize.sol)
-- [PrizeFlush](/contracts/PrizeFlush.sol)
 - [PrizeSplitStrategy](/contracts/PrizeSplitStrategy.sol)
 - [Reserve](/contracts/Reserve.sol)
 
