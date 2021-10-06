@@ -23,6 +23,7 @@ describe('DrawBeacon', () => {
 
     let beaconPeriodStart = now();
     const exampleBeaconPeriodSeconds = 1000;
+    const rngTimeout = 2000
     const nextDrawId = 1;
 
     const halfTime = exampleBeaconPeriodSeconds / 2;
@@ -59,6 +60,7 @@ describe('DrawBeacon', () => {
             nextDrawId,
             beaconPeriodStart,
             exampleBeaconPeriodSeconds,
+            rngTimeout
         );
     });
 
@@ -71,13 +73,12 @@ describe('DrawBeacon', () => {
                 nextDrawId,
                 beaconPeriodStart,
                 exampleBeaconPeriodSeconds,
+                rngTimeout
             );
 
             await expect(drawBeacon2.deployTransaction)
                 .to.emit(drawBeacon2, 'Deployed')
                 .withArgs(
-                    drawHistory.address,
-                    rng.address,
                     nextDrawId,
                     beaconPeriodStart,
                     exampleBeaconPeriodSeconds,
@@ -85,7 +86,7 @@ describe('DrawBeacon', () => {
 
             await expect(drawBeacon2.deployTransaction)
                 .to.emit(drawBeacon2, 'BeaconPeriodStarted')
-                .withArgs(wallet.address, beaconPeriodStart);
+                .withArgs(beaconPeriodStart);
         });
 
         it('should set the params', async () => {
@@ -103,6 +104,7 @@ describe('DrawBeacon', () => {
                     nextDrawId,
                     0,
                     exampleBeaconPeriodSeconds,
+                    rngTimeout
                 ),
             ).to.be.revertedWith('DrawBeacon/beacon-period-greater-than-zero');
         });
@@ -116,6 +118,7 @@ describe('DrawBeacon', () => {
                     nextDrawId,
                     beaconPeriodStart,
                     exampleBeaconPeriodSeconds,
+                    rngTimeout
                 ),
             ).to.be.revertedWith('DrawBeacon/rng-not-zero');
         });
@@ -129,6 +132,7 @@ describe('DrawBeacon', () => {
                     0,
                     beaconPeriodStart,
                     exampleBeaconPeriodSeconds,
+                    rngTimeout
                 ),
             ).to.be.revertedWith('DrawBeacon/next-draw-id-gte-one');
         });
@@ -192,6 +196,7 @@ describe('DrawBeacon', () => {
                     nextDrawId,
                     beaconPeriodStart,
                     exampleBeaconPeriodSeconds,
+                    rngTimeout
                 );
             });
 
@@ -268,7 +273,7 @@ describe('DrawBeacon', () => {
 
                 await expect(drawBeacon.cancelDraw())
                     .to.emit(drawBeacon, 'DrawCancelled')
-                    .withArgs(wallet.address, 11, 1);
+                    .withArgs(11, 1);
             });
         });
 
@@ -319,11 +324,10 @@ describe('DrawBeacon', () => {
                 expect(await drawBeacon.completeDraw())
                     .to.emit(drawBeacon, 'DrawCompleted')
                     .withArgs(
-                        wallet.address,
                         '0x6c00000000000000000000000000000000000000000000000000000000000000',
                     )
                     .and.to.emit(drawBeacon, 'BeaconPeriodStarted')
-                    .withArgs(wallet.address, nextStartTime);
+                    .withArgs(nextStartTime);
 
                 expect(await drawBeacon.getBeaconPeriodStartedAt()).to.equal(nextStartTime);
             });
@@ -334,7 +338,7 @@ describe('DrawBeacon', () => {
         describe('setDrawHistory()', () => {
             it('should allow the owner to set the draw history', async () => {
                 await expect(drawBeacon.setDrawHistory(wallet2.address))
-                    .to.emit(drawBeacon, 'DrawHistoryTransferred')
+                    .to.emit(drawBeacon, 'DrawHistoryUpdated')
                     .withArgs(wallet2.address);
 
                 expect(await drawBeacon.getDrawHistory()).to.equal(wallet2.address);
@@ -385,7 +389,7 @@ describe('DrawBeacon', () => {
                     'DrawBeacon/rng-timeout-gt-60-secs',
                 );
 
-                expect(await drawBeacon.getRngTimeout()).to.equal(1800);
+                expect(await drawBeacon.getRngTimeout()).to.equal(rngTimeout);
             });
             it('should allow the owner to set the rngTimeout above 60', async () => {
                 await expect(drawBeacon.setRngTimeout(100))
@@ -515,7 +519,7 @@ describe('DrawBeacon', () => {
             expect(await drawBeacon.getLastRngRequestId()).to.equal(0);
         });
         it('should get the getRngTimeout', async () => {
-            expect(await drawBeacon.getRngTimeout()).to.equal(1800);
+            expect(await drawBeacon.getRngTimeout()).to.equal(rngTimeout);
         });
         it('should get the getRngService', async () => {
             expect(await drawBeacon.getRngService()).to.equal(rng.address);

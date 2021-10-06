@@ -74,18 +74,12 @@ contract DrawBeacon is IDrawBeacon, Ownable {
 
     /**
      * @notice Emit when the DrawBeacon is deployed.
-     * @param drawHistory Address of the draw history to push draws to.
-     * @param rng Address of RNG service.
      * @param nextDrawId Draw ID at which the DrawBeacon should start. Can't be inferior to 1.
      * @param beaconPeriodStartedAt Timestamp when beacon period starts.
-     * @param beaconPeriodSeconds Minimum seconds between draw period.
      */
     event Deployed(
-        IDrawHistory indexed drawHistory,
-        RNGInterface indexed rng,
         uint32 nextDrawId,
-        uint64 beaconPeriodStartedAt,
-        uint32 beaconPeriodSeconds
+        uint64 beaconPeriodStartedAt
     );
 
     /* ============ Modifiers ============ */
@@ -124,26 +118,23 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         RNGInterface _rng,
         uint32 _nextDrawId,
         uint64 _beaconPeriodStart,
-        uint32 _beaconPeriodSeconds
+        uint32 _beaconPeriodSeconds,
+        uint32 _rngTimeout
     ) Ownable(_owner) {
         require(_beaconPeriodStart > 0, "DrawBeacon/beacon-period-greater-than-zero");
         require(address(_rng) != address(0), "DrawBeacon/rng-not-zero");
-        rng = _rng;
-
-        _setBeaconPeriodSeconds(_beaconPeriodSeconds);
-        beaconPeriodStartedAt = _beaconPeriodStart;
-
-        _setDrawHistory(_drawHistory);
-
-        // 30 min timeout
-        _setRngTimeout(1800);
-
         require(_nextDrawId >= 1, "DrawBeacon/next-draw-id-gte-one");
+
+        beaconPeriodStartedAt = _beaconPeriodStart;
         nextDrawId = _nextDrawId;
 
-        emit Deployed(_drawHistory, _rng, _nextDrawId, _beaconPeriodStart, _beaconPeriodSeconds);
+        _setBeaconPeriodSeconds(_beaconPeriodSeconds);
+        _setDrawHistory(_drawHistory);
+        _setRngService(_rng);
+        _setRngTimeout(_rngTimeout);
 
-        emit BeaconPeriodStarted(msg.sender, _beaconPeriodStart);
+        emit Deployed(_nextDrawId, _beaconPeriodStart);
+        emit BeaconPeriodStarted(_beaconPeriodStart);
     }
 
     /* ============ Public Functions ============ */
@@ -220,7 +211,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         uint32 requestId = rngRequest.id;
         uint32 lockBlock = rngRequest.lockBlock;
         delete rngRequest;
-        emit DrawCancelled(msg.sender, requestId, lockBlock);
+        emit DrawCancelled(requestId, lockBlock);
     }
 
     /// @inheritdoc IDrawBeacon
@@ -254,8 +245,8 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         // Reset the rngReqeust state so Beacon period can start again.
         delete rngRequest;
 
-        emit DrawCompleted(msg.sender, randomNumber);
-        emit BeaconPeriodStarted(msg.sender, nextBeaconPeriodStartedAt);
+        emit DrawCompleted(randomNumber);
+        emit BeaconPeriodStarted(nextBeaconPeriodStartedAt);
     }
 
     /// @inheritdoc IDrawBeacon
@@ -329,7 +320,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         rngRequest.lockBlock = lockBlock;
         rngRequest.requestedAt = _currentTime();
 
-        emit DrawStarted(msg.sender, requestId, lockBlock);
+        emit DrawStarted(requestId, lockBlock);
     }
 
     /// @inheritdoc IDrawBeacon
@@ -353,6 +344,15 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         override
         onlyOwner
         requireDrawNotStarted
+    {
+        _setRngService(_rngService);
+    }
+
+    /**
+     * @notice Sets the RNG service that the Prize Strategy is connected to
+     * @param _rngService The address of the new RNG service interface
+     */
+    function _setRngService(RNGInterface _rngService) internal
     {
         rng = _rngService;
         emit RngServiceUpdated(_rngService);
@@ -444,7 +444,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
 
         drawHistory = _newDrawHistory;
 
-        emit DrawHistoryTransferred(_newDrawHistory);
+        emit DrawHistoryUpdated(_newDrawHistory);
 
         return _newDrawHistory;
     }

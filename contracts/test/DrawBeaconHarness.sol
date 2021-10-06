@@ -14,8 +14,9 @@ contract DrawBeaconHarness is DrawBeacon {
         RNGInterface _rng,
         uint32 _nextDrawId,
         uint64 _beaconPeriodStart,
-        uint32 _drawPeriodSeconds
-    ) DrawBeacon(_owner, _drawHistory, _rng, _nextDrawId, _beaconPeriodStart, _drawPeriodSeconds) {}
+        uint32 _drawPeriodSeconds,
+        uint32 _rngTimeout
+    ) DrawBeacon(_owner, _drawHistory, _rng, _nextDrawId, _beaconPeriodStart, _drawPeriodSeconds, _rngTimeout) {}
 
     uint64 internal time;
 
