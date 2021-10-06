@@ -6,7 +6,7 @@ import "./ITicket.sol";
 import "./IDrawHistory.sol";
 import "../PrizeDistributionHistory.sol";
 import "../DrawPrize.sol";
-import "../libraries/DrawLib.sol";
+
 
 /**
  * @title  PoolTogether V4 DrawCalculator

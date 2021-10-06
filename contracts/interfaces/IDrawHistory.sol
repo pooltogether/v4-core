@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.6;
 
-import "../libraries/DrawLib.sol";
 import "./IDrawBeacon.sol";
 
 interface IDrawHistory {

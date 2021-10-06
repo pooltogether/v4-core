@@ -11,7 +11,6 @@ import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IDrawBeacon.sol";
 import "./interfaces/IDrawHistory.sol";
-import "./libraries/DrawLib.sol";
 
 /**
   * @title  PoolTogether V4 DrawBeacon

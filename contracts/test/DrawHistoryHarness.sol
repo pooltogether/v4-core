@@ -3,7 +3,6 @@
 pragma solidity 0.8.6;
 
 import "../DrawHistory.sol";
-import "../libraries/DrawLib.sol";
 import "../interfaces/IDrawBeacon.sol";
 
 contract DrawHistoryHarness is DrawHistory {

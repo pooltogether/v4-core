@@ -3,7 +3,6 @@
 pragma solidity 0.8.6;
 
 import "../DrawCalculator.sol";
-import "../libraries/DrawLib.sol";
 
 contract DrawCalculatorHarness is DrawCalculator {
     constructor(
@@ -21,7 +20,7 @@ contract DrawCalculatorHarness is DrawCalculator {
         return _calculateDistributionIndex(_randomNumberThisPick, _winningRandomNumber, _masks);
     }
 
-    function createBitMasks(DrawLib.PrizeDistribution calldata _prizeDistribution)
+    function createBitMasks(IPrizeDistributionHistory.PrizeDistribution calldata _prizeDistribution)
         public
         pure
         returns (uint256[] memory)
@@ -34,7 +33,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     ///@param _prizeDistributionIndex Index of the prize distributions array to calculate
     ///@return returns the fraction of the total prize
     function calculatePrizeDistributionFraction(
-        DrawLib.PrizeDistribution calldata _prizeDistribution,
+        IPrizeDistributionHistory.PrizeDistribution calldata _prizeDistribution,
         uint256 _prizeDistributionIndex
     ) external pure returns (uint256) {
         return _calculatePrizeDistributionFraction(_prizeDistribution, _prizeDistributionIndex);
@@ -49,7 +48,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     }
 
     function calculateNumberOfUserPicks(
-        DrawLib.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionHistory.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
     ) external pure returns (uint256) {
         return _calculateNumberOfUserPicks(_prizeDistribution, _normalizedUserBalance);

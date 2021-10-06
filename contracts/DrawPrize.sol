@@ -8,7 +8,7 @@ import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IDrawPrize.sol";
 import "./interfaces/IDrawCalculator.sol";
-import "./libraries/DrawLib.sol";
+
 
 /**
   * @title  PoolTogether V4 DrawPrize

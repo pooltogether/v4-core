@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IDrawHistory.sol";
 import "./IDrawCalculator.sol";
 import "./IDrawBeacon.sol";
-import "../libraries/DrawLib.sol";
+
 
 interface IDrawPrize {
     /**
