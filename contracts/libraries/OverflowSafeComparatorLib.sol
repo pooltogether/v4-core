@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.6;
 
-import "hardhat/console.sol";
-
 /// @title OverflowSafeComparatorLib library to share comparator functions between contracts
 /// @dev Code taken from Uniswap V3 Oracle.sol: https://github.com/Uniswap/v3-core/blob/3e88af408132fc957e3e406f65a0ce2b1ca06c3d/contracts/libraries/Oracle.sol
 /// @author PoolTogether Inc.
@@ -38,7 +36,7 @@ library OverflowSafeComparatorLib {
         uint32 _a,
         uint32 _b,
         uint32 _timestamp
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
 
         // No need to adjust if there hasn't been an overflow
         if (_a <= _timestamp && _b <= _timestamp) return _a <= _b;

@@ -245,12 +245,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         // generate timestamps with draw cutoff offsets included
         for (uint32 i = 0; i < _draws.length; i++) {
             unchecked {
-                _timestampsWithStartCutoffTimes[i] = (
-                    _draws[i].timestamp - _prizeDistributions[i].startTimestampOffset
-                );
-                _timestampsWithEndCutoffTimes[i] = (
-                    _draws[i].timestamp - _prizeDistributions[i].endTimestampOffset
-                );
+                _timestampsWithStartCutoffTimes[i] =
+                    _draws[i].timestamp - _prizeDistributions[i].startTimestampOffset;
+                _timestampsWithEndCutoffTimes[i] =
+                    _draws[i].timestamp - _prizeDistributions[i].endTimestampOffset;
             }
         }
 
