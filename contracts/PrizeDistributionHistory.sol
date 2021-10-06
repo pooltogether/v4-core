@@ -18,10 +18,16 @@ import "./interfaces/IPrizeDistributionHistory.sol";
 contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
     using DrawRingBufferLib for DrawRingBufferLib.Buffer;
 
+    /// @notice The maximum cardinality of the prize distribution ring buffer.
+    /// @dev even with daily draws, 256 will give us over 8 months of history.
     uint256 internal constant MAX_CARDINALITY = 256;
 
+    /// @notice The ceiling for prize distributions.  1e9 = 100%.
+    /// @dev It's fixed point 9 because 1e9 is the largest "1" that fits into 2**32
     uint256 internal constant DISTRIBUTION_CEILING = 1e9;
 
+    /// @notice Emitted when the contract is deployed.
+    /// @param cardinality The maximum number of records in the buffer before they begin to expire.
     event Deployed(uint8 cardinality);
 
     /// @notice PrizeDistribution ring buffer history.
@@ -149,7 +155,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         uint32 index = buffer.getIndex(_drawId);
         _prizeDistributionsRingBuffer[index] = _prizeDistribution;
 
-        emit PrizeDistributionsSet(_drawId, _prizeDistribution);
+        emit PrizeDistributionSet(_drawId, _prizeDistribution);
 
         return _drawId;
     }
@@ -218,7 +224,7 @@ contract PrizeDistributionHistory is IPrizeDistributionHistory, Manageable {
         // update the ring buffer data
         _prizeDistributionsRingBufferData = buffer.push(_drawId);
 
-        emit PrizeDistributionsSet(_drawId, _prizeDistribution);
+        emit PrizeDistributionSet(_drawId, _prizeDistribution);
 
         return true;
     }

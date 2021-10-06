@@ -16,11 +16,11 @@ interface IPrizeDistributionHistory {
     /**
      * @notice Emitted when the PrizeDistribution are set/updated
      * @param drawId       Draw id
-     * @param prizeDistributions DrawLib.PrizeDistribution
+     * @param prizeDistribution DrawLib.PrizeDistribution
      */
-    event PrizeDistributionsSet(
+    event PrizeDistributionSet(
         uint32 indexed drawId,
-        DrawLib.PrizeDistribution prizeDistributions
+        DrawLib.PrizeDistribution prizeDistribution
     );
 
     /**

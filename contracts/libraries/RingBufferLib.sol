@@ -17,11 +17,11 @@ library RingBufferLib {
     }
 
     /**
-    * @notice Returns the `_index` offsetted by `_amount`.
+    * @notice Computes the negative offset from the given index, wrapped by the cardinality.
     * @dev  We add `_cardinality` to `_index` to be able to offset event if `_amount` is superior to `_cardinality`.
-    * @param _index Index to offset.
-    * @param _amount Amount we want to offset the `_index` by.
-    * @param _cardinality TWAB buffer cardinality.
+    * @param _index The index from which to offset
+    * @param _amount The number of indices to offset.  This is subtracted from the given index.
+    * @param _cardinality The number of elements in the ring buffer
     * @return Offsetted index.
      */
     function offset(
@@ -32,13 +32,11 @@ library RingBufferLib {
         return wrap(_index + _cardinality - _amount, _cardinality);
     }
 
-    /**
-    * @notice Returns index of the last recorded TWAB.
-    * @param _nextAvailableIndex Next available twab index to which will be recorded the next TWAB.
-    * @param _cardinality TWAB buffer cardinality.
-    * @return Index of the last recorded TWAB.
-     */
-    function mostRecentIndex(uint256 _nextAvailableIndex, uint256 _cardinality)
+    /// @notice Returns the index of the last recorded TWAB
+    /// @param _nextIndex The next available twab index.  This will be recorded to next.
+    /// @param _cardinality The cardinality of the TWAB history.
+    /// @return The index of the last recorded TWAB
+    function newestIndex(uint256 _nextIndex, uint256 _cardinality)
         internal
         pure
         returns (uint256)
@@ -50,13 +48,11 @@ library RingBufferLib {
         return wrap(_nextAvailableIndex + _cardinality - 1, _cardinality);
     }
 
-    /**
-    * @notice Returns the next available TWAB index.
-    * @param _currentIndex Current TWAB buffer index.
-    * @param _cardinality TWAB buffer cardinality.
-    * @return Next available TWAB index.
-    */
-    function nextIndex(uint256 _currentIndex, uint256 _cardinality)
+    /// @notice Computes the ring buffer index that follows the given one, wrapped by cardinality
+    /// @param _index The index to increment
+    /// @param _cardinality The number of elements in the Ring Buffer
+    /// @return The next index relative to the given index.  Will wrap around to 0 if the next index == cardinality
+    function nextIndex(uint256 _index, uint256 _cardinality)
         internal
         pure
         returns (uint256)
