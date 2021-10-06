@@ -299,16 +299,16 @@ contract Ticket is ControlledToken, ITicket {
             _toDelegate = delegates[_to];
         }
 
-        // If we are minting, or transferring tokens from an undelegated account to a delegated account
-        if (_from == address(0) || (_fromDelegate == address(0) && _toDelegate != address(0))) {
+        // If we are transferring tokens from an undelegated account to a delegated account
+        if (_fromDelegate == address(0) && _toDelegate != address(0)) {
             _increaseTotalSupplyTwab(_amount);
         } // otherwise, if the from delegate is set, then decrease their twab
         else if (_fromDelegate != address(0)) {
             _decreaseUserTwab(_from, _fromDelegate, _amount);
         }
 
-        // if we are burning, or transferring tokens from a delegated account to an undelegated account
-        if (_to == address(0) || (_fromDelegate != address(0) && _toDelegate == address(0))) {
+        // if we are transferring tokens from a delegated account to an undelegated account
+        if (_fromDelegate != address(0) && _toDelegate == address(0)) {
             _decreaseTotalSupplyTwab(_amount);
         } // otherwise if the to delegate is set, then increase their twab
         else if (_toDelegate != address(0)) {
