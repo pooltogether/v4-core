@@ -67,7 +67,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         address _user,
         uint32[] calldata _drawIds,
         bytes calldata _pickIndicesForDraws
-    ) external view override returns (uint256[] memory) {
+    ) external view override returns (uint256[] memory, bytes memory) {
         uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
         require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
@@ -84,8 +84,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         // The users address is hashed once.
         bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user));
 
-        return
-            _calculatePrizesAwardable(
+        return _calculatePrizesAwardable(
                 userBalances,
                 _userRandomNumber,
                 draws,
@@ -123,57 +122,6 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         return _getNormalizedBalancesAt(_user, _draws, _prizeDistributions);
     }
 
-    /// @inheritdoc IDrawCalculator
-    function checkPrizeTierIndexForDrawId(
-        address _user,
-        uint64[] calldata _pickIndices,
-        uint32 _drawId
-    ) external view override returns (PickPrize[] memory) {
-        uint32[] memory drawIds = new uint32[](1);
-        drawIds[0] = _drawId;
-
-        IDrawBeacon.Draw[] memory _draws = drawBuffer.getDraws(drawIds);
-        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = prizeDistributionBuffer
-            .getPrizeDistributions(drawIds);
-
-        uint256[] memory userBalances = _getNormalizedBalancesAt(
-            _user,
-            _draws,
-            _prizeDistributions
-        );
-
-        uint64 totalUserPicks = _calculateNumberOfUserPicks(
-            _prizeDistributions[0],
-            userBalances[0]
-        );
-
-        uint256[] memory masks = _createBitMasks(_prizeDistributions[0]);
-        PickPrize[] memory pickPrizes = new PickPrize[](_pickIndices.length);
-
-        bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user)); // hash the users address
-
-        for (uint64 i = 0; i < _pickIndices.length; i++) {
-            uint256 randomNumberThisPick = uint256(
-                keccak256(abi.encode(_userRandomNumber, _pickIndices[i]))
-            );
-
-            require(_pickIndices[i] < totalUserPicks, "DrawCalc/insufficient-user-picks");
-
-            uint256 tierIndex = _calculateTierIndex(
-                randomNumberThisPick,
-                _draws[0].winningRandomNumber,
-                masks
-            );
-
-            pickPrizes[i] = PickPrize({
-                won: tierIndex < _prizeDistributions[0].tiers.length && _prizeDistributions[0].tiers[tierIndex] > 0,
-                tierIndex: uint8(tierIndex)
-            });
-        }
-
-        return pickPrizes;
-    }
-
     /* ============ Internal Functions ============ */
 
     /**
@@ -183,7 +131,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      * @param _draws                  List of Draws
      * @param _pickIndicesForDraws    Pick indices for each Draw
      * @param _prizeDistributions     PrizeDistribution for each Draw
-     * @return List of prizes for each Draw
+
      */
     function _calculatePrizesAwardable(
         uint256[] memory _normalizedUserBalances,
@@ -191,8 +139,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         IDrawBeacon.Draw[] memory _draws,
         uint64[][] memory _pickIndicesForDraws,
         IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions
-    ) internal pure returns (uint256[] memory) {
-        uint256[] memory prizesAwardable = new uint256[](_normalizedUserBalances.length);
+    ) internal pure returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
+        
+        uint256[] memory _prizesAwardable = new uint256[](_normalizedUserBalances.length);
+        uint256[][] memory _prizeCounts = new uint256[][](_normalizedUserBalances.length);
 
         // calculate prizes awardable for each Draw passed
         for (uint32 drawIndex = 0; drawIndex < _draws.length; drawIndex++) {
@@ -201,7 +151,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
                 _normalizedUserBalances[drawIndex]
             );
 
-            prizesAwardable[drawIndex] = _calculate(
+            (_prizesAwardable[drawIndex], _prizeCounts[drawIndex]) = _calculate(
                 _draws[drawIndex].winningRandomNumber,
                 totalUserPicks,
                 _userRandomNumber,
@@ -209,8 +159,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
                 _prizeDistributions[drawIndex]
             );
         }
-
-        return prizesAwardable;
+        prizeCounts = abi.encode(_prizeCounts);
+        prizesAwardable = _prizesAwardable;
     }
 
     /**
@@ -281,7 +231,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      * @param _userRandomNumber    users randomNumber for that draw
      * @param _picks               users picks for that draw
      * @param _prizeDistribution   PrizeDistribution for that draw
-     * @return prize (if any)
+     * @return prize (if any), prizeCounts (if any)
      */
     function _calculate(
         uint256 _winningRandomNumber,
@@ -289,13 +239,12 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         bytes32 _userRandomNumber,
         uint64[] memory _picks,
         IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution
-    ) internal pure returns (uint256) {
-        // prizeCounts stores the number of wins at a distribution index
-        uint256[] memory prizeCounts = new uint256[](_prizeDistribution.tiers.length);
-
+    ) internal pure returns (uint256 prize, uint256[] memory prizeCounts) {
+        
         // create bitmasks for the PrizeDistribution
         uint256[] memory masks = _createBitMasks(_prizeDistribution);
         uint32 picksLength = uint32(_picks.length);
+        uint256[] memory _prizeCounts = new uint256[](_prizeDistribution.tiers.length);
 
         uint8 maxWinningTierIndex = 0;
 
@@ -328,7 +277,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
                 if (tiersIndex > maxWinningTierIndex) {
                     maxWinningTierIndex = tiersIndex;
                 }
-                prizeCounts[tiersIndex]++;
+                _prizeCounts[tiersIndex]++;
             }
         }
 
@@ -345,15 +294,17 @@ contract DrawCalculator is IDrawCalculator, Ownable {
             prizeCountIndex <= maxWinningTierIndex;
             prizeCountIndex++
         ) {
-            if (prizeCounts[prizeCountIndex] > 0) {
+            if (_prizeCounts[prizeCountIndex] > 0) {
                 prizeFraction +=
                     prizeTiersFractions[prizeCountIndex] *
-                    prizeCounts[prizeCountIndex];
+                    _prizeCounts[prizeCountIndex];
             }
         }
 
         // return the absolute amount of prize awardable
-        return (prizeFraction * _prizeDistribution.prize) / 1e9; // div by 1e9 as prize tiers are base 1e9
+        // div by 1e9 as prize tiers are base 1e9
+        prize = (prizeFraction * _prizeDistribution.prize) / 1e9; 
+        prizeCounts = _prizeCounts;
     }
 
     ///@notice Calculates the tier index given the random numbers and masks

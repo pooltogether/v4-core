@@ -107,7 +107,7 @@ describe('PrizeDistributor', () => {
         it('should succeed to claim and emit ClaimedDraw event', async () => {
             await drawCalculator.mock.calculate
                 .withArgs(wallet1.address, [1], '0x')
-                .returns([toWei('10')]);
+                .returns([toWei('10')], "0x");
 
             await expect(prizeDistributor.claim(wallet1.address, [1], '0x'))
                 .to.emit(prizeDistributor, 'ClaimedDraw')
@@ -117,7 +117,7 @@ describe('PrizeDistributor', () => {
         it('should fail to claim a previously claimed prize', async () => {
             await drawCalculator.mock.calculate
                 .withArgs(wallet1.address, [0], '0x')
-                .returns([toWei('10')]);
+                .returns([toWei('10')], "0x");
 
             // updated
             await prizeDistributor.claim(wallet1.address, [0], '0x');
@@ -132,7 +132,7 @@ describe('PrizeDistributor', () => {
             // first time
             await drawCalculator.mock.calculate
                 .withArgs(wallet1.address, [1], '0x')
-                .returns([toWei('10')]);
+                .returns([toWei('10')], "0x");
 
             await prizeDistributor.claim(wallet1.address, [1], '0x');
 
@@ -143,7 +143,7 @@ describe('PrizeDistributor', () => {
             // second time
             await drawCalculator.mock.calculate
                 .withArgs(wallet1.address, [1], '0x')
-                .returns([toWei('20')]);
+                .returns([toWei('20')], "0x");
 
             // try again; should reward diff
             await expect(prizeDistributor.claim(wallet1.address, [1], '0x'))
