@@ -12,10 +12,10 @@ contract DrawRingBufferLibExposed {
     using DrawRingBufferLib for DrawRingBufferLib.Buffer;
 
     uint16 public constant MAX_CARDINALITY = 256;
-    DrawRingBufferLib.Buffer internal drawRingBuffer;
+    DrawRingBufferLib.Buffer internal bufferMetadata;
 
     constructor(uint8 _cardinality) {
-        drawRingBuffer.cardinality = _cardinality;
+        bufferMetadata.cardinality = _cardinality;
     }
 
     function _push(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId)
