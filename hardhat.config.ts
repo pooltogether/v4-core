@@ -72,6 +72,11 @@ const config: HardhatUserConfig = {
             },
         ],
     },
+    dependencyCompiler: {
+        paths: [
+            '@pooltogether/yield-source-interface/contracts/test/MockYieldSource.sol',
+        ],
+    },
 };
 
 export default config;

@@ -5,7 +5,7 @@ require('../../helpers/chaiMatchers');
 
 const { ethers, deployments } = hardhat;
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 
 const debug = require('debug')('pt:PoolEnv.js');
 
@@ -29,7 +29,9 @@ function PoolEnv() {
   this.token = async function (wallet) {
     const yieldSource = await this.yieldSource();
     const tokenAddress = await yieldSource.depositToken();
-    return (await ethers.getContractAt('ERC20Mintable', tokenAddress)).connect(wallet);
+    return (
+        await ethers.getContractAt('contracts/test/ERC20Mintable.sol:ERC20Mintable', tokenAddress)
+    ).connect(wallet);
   };
 
   this.ticket = async (wallet) => (await ethers.getContract('Ticket')).connect(wallet);

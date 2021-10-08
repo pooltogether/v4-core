@@ -20,9 +20,8 @@ contract ERC20Mintable is ERC20 {
      *
      * - the caller must have the {MinterRole}.
      */
-    function mint(address account, uint256 amount) public returns (bool) {
+    function mint(address account, uint256 amount) public {
         _mint(account, amount);
-        return true;
     }
 
     function burn(address account, uint256 amount) public returns (bool) {
