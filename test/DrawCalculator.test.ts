@@ -612,7 +612,7 @@ describe('DrawCalculator', () => {
             expect(userNormalizedBalances[1]).to.eq(utils.parseEther('0.05'));
         });
 
-        it('reverts when totalSupply is zero', async () => {
+        it('returns 0 when totalSupply is zero', async () => {
             const timestamps = [42, 77];
 
             const prizeDistribution: PrizeDistribution = {
@@ -671,9 +671,10 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('0'), utils.parseEther('600')]);
 
-            await expect(
-                drawCalculator.getNormalizedBalancesForDrawIds(wallet1.address, [1, 2]),
-            ).to.be.revertedWith('DrawCalc/total-supply-zero');
+            
+            const balancesResult = await drawCalculator.getNormalizedBalancesForDrawIds(wallet1.address, [1, 2])
+            expect(balancesResult[0]).to.equal(0)
+            
         });
 
         it('returns zero when the balance is very small', async () => {

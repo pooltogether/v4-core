@@ -217,8 +217,12 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
         // divide balances by total supplies (normalize)
         for (uint256 i = 0; i < _draws.length; i++) {
-            require(totalSupplies[i] > 0, "DrawCalc/total-supply-zero");
-            normalizedBalances[i] = (balances[i] * 1 ether) / totalSupplies[i];
+            if(totalSupplies[i] == 0){
+                normalizedBalances[i] = 0;
+            }
+            else {
+                normalizedBalances[i] = (balances[i] * 1 ether) / totalSupplies[i];
+            }
         }
 
         return normalizedBalances;
