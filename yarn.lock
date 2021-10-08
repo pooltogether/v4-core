@@ -704,10 +704,10 @@
   resolved "https://registry.yarnpkg.com/@pooltogether/uniform-random-number/-/uniform-random-number-1.0.0-beta.2.tgz#fcc388269098a7303c83de6f07cdc5d46dede0e9"
   integrity sha512-xwEpcg+WXcoWtRdG9WPmE5B93YvkhBi4XCEVQ/kfkXS5tVsrhCjFHWQOuqvX2P7zMyCuI/Bq6Y84QQJnRywJhg==
 
-"@pooltogether/yield-source-interface@1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@pooltogether/yield-source-interface/-/yield-source-interface-1.2.0.tgz#ffed283f43fb5f099760dd287e784678b7cc42ad"
-  integrity sha512-OHakTHeSS3KPpmm6QjBNXc8jvC38SxoCvWe/HKV7zBLZMZ7NqY5Uby0rjzxej9taDc9ssE6p1p7RSWtpF4iz9Q==
+"@pooltogether/yield-source-interface@1.3.0":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@pooltogether/yield-source-interface/-/yield-source-interface-1.3.0.tgz#93e9c12bb2d62e2215bb2f9c9d391a092e6eb6d5"
+  integrity sha512-HEo4iB/emXz/QZ0J1ilWVtBk0NFAmIQe80xG3hbSfLI/SnAMIHixGq/TSw3IWu4RGEf2ttoMc44Bxd+IdbZisA==
 
 "@resolver-engine/core@^0.3.3":
   version "0.3.3"

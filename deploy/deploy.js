@@ -100,7 +100,7 @@ module.exports = async (hardhat) => {
   cyan('\nDeploying MockYieldSource...');
   const mockYieldSourceResult = await deploy('MockYieldSource', {
     from: deployer,
-    args: ['Token', 'TOK'],
+    args: ['Token', 'TOK', 18],
   });
 
   displayResult('MockYieldSource', mockYieldSourceResult);

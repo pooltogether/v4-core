@@ -31,7 +31,7 @@
     "@pooltogether/fixed-point": "1.0.0",
     "@pooltogether/owner-manager-contracts": "1.1.0",
     "@pooltogether/pooltogether-rng-contracts": "1.4.0",
-    "@pooltogether/yield-source-interface": "1.2.0",
+    "@pooltogether/yield-source-interface": "1.3.0",
     "deploy-eip-1820": "1.0.0"
   },
   "devDependencies": {
