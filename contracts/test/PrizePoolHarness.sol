@@ -55,7 +55,7 @@ contract PrizePoolHarness is PrizePool {
     }
 
     function _supply(uint256 mintAmount) internal override {
-        return stubYieldSource.supplyTokenTo(mintAmount, address(this));
+        stubYieldSource.supplyTokenTo(mintAmount, address(this));
     }
 
     function _redeem(uint256 redeemAmount) internal override returns (uint256) {
