@@ -22,6 +22,7 @@ describe('PrizeDistributionBuffer', () => {
         startTimestampOffset: BigNumber.from(0),
         endTimestampOffset: BigNumber.from(3600),
         maxPicksPerUser: BigNumber.from(10),
+        expiryDuration: BigNumber.from(100),
     };
 
     prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -155,6 +156,7 @@ describe('PrizeDistributionBuffer', () => {
                     startTimestampOffset: BigNumber.from(1),
                     endTimestampOffset: BigNumber.from(1),
                     maxPicksPerUser: BigNumber.from(1001),
+                    expiryDuration: BigNumber.from(100),
                 };
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(

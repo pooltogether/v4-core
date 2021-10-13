@@ -175,6 +175,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -291,6 +292,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             for (
@@ -329,6 +331,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -369,6 +372,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -405,6 +409,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -443,6 +448,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -470,6 +476,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -499,6 +506,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -528,6 +536,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -561,6 +570,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -629,6 +639,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -689,6 +700,7 @@ describe('DrawCalculator', () => {
                 startTimestampOffset: BigNumber.from(1),
                 endTimestampOffset: BigNumber.from(1),
                 maxPicksPerUser: BigNumber.from(1001),
+                expiryDuration: BigNumber.from(1000),
             };
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -749,6 +761,7 @@ describe('DrawCalculator', () => {
                     startTimestampOffset: BigNumber.from(1),
                     endTimestampOffset: BigNumber.from(1),
                     maxPicksPerUser: BigNumber.from(1001),
+                    expiryDuration: BigNumber.from(1000),
                 };
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -767,7 +780,7 @@ describe('DrawCalculator', () => {
                     [winningNumber, 1],
                 );
 
-                const timestamps = [42];
+                const timestamps = [(await ethers.provider.getBlock("latest")).timestamp];
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
                 const ticketBalance = utils.parseEther('10');
                 const totalSupply = utils.parseEther('100');
@@ -836,7 +849,7 @@ describe('DrawCalculator', () => {
                     [winningNumber, 1],
                 );
 
-                const timestamps = [42];
+                const timestamps = [(await ethers.provider.getBlock("latest")).timestamp];
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1', '1']]]); // this isn't valid
                 const ticketBalance = utils.parseEther('10');
                 const totalSupply = utils.parseEther('100');
@@ -879,7 +892,7 @@ describe('DrawCalculator', () => {
                     [winningNumber, 1],
                 );
 
-                const timestamps = [42];
+                const timestamps = [(await ethers.provider.getBlock("latest")).timestamp];
 
                 const pickIndices = encoder.encode(
                     ['uint256[][]'],
@@ -951,7 +964,7 @@ describe('DrawCalculator', () => {
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
-                const timestamps = [42];
+                const timestamps = [(await ethers.provider.getBlock("latest")).timestamp];
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
                 const ticketBalance = utils.parseEther('10');
                 const totalSupply = utils.parseEther('100');
@@ -1011,7 +1024,7 @@ describe('DrawCalculator', () => {
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
-                const timestamps = [42];
+                const timestamps = [(await ethers.provider.getBlock("latest")).timestamp];
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
                 const ticketBalance = utils.parseEther('10');
                 const totalSupply = utils.parseEther('100');
@@ -1065,7 +1078,10 @@ describe('DrawCalculator', () => {
                     [winningNumber, 1],
                 );
 
-                const timestamps = [42, 48];
+                const timestamps = [
+                    (await ethers.provider.getBlock("latest")).timestamp -10,
+                    (await ethers.provider.getBlock("latest")).timestamp -5
+                ]
 
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
                 const ticketBalance = utils.parseEther('10');
@@ -1117,6 +1133,7 @@ describe('DrawCalculator', () => {
                     startTimestampOffset: BigNumber.from(1),
                     endTimestampOffset: BigNumber.from(1),
                     maxPicksPerUser: BigNumber.from(1001),
+                    expiryDuration: BigNumber.from(1000),
                 };
 
                 prizeDistribution2.tiers = fillPrizeTiersWithZeros(
@@ -1163,7 +1180,9 @@ describe('DrawCalculator', () => {
                     [winningNumber, 1],
                 );
 
-                const timestamps = [42, 77];
+                const timestamps = [
+                    (await ethers.provider.getBlock("latest")).timestamp - 9,
+                    (await ethers.provider.getBlock("latest")).timestamp - 5];
                 const totalSupply1 = utils.parseEther('100');
                 const totalSupply2 = utils.parseEther('100');
 
@@ -1182,6 +1201,7 @@ describe('DrawCalculator', () => {
                     startTimestampOffset: BigNumber.from(1),
                     endTimestampOffset: BigNumber.from(1),
                     maxPicksPerUser: BigNumber.from(1001),
+                    expiryDuration: BigNumber.from(1000),
                 };
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -1242,7 +1262,7 @@ describe('DrawCalculator', () => {
                     [winningNumber, 1],
                 );
 
-                const timestamps = [42];
+                const timestamps = [(await ethers.provider.getBlock("latest")).timestamp];
                 const totalSupply1 = utils.parseEther('100');
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1', '2', '3']]]);
                 const ticketBalance = ethers.utils.parseEther('6');
@@ -1259,6 +1279,7 @@ describe('DrawCalculator', () => {
                     startTimestampOffset: BigNumber.from(1),
                     endTimestampOffset: BigNumber.from(1),
                     maxPicksPerUser: BigNumber.from(2),
+                    expiryDuration: BigNumber.from(1000),
                 };
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -1307,7 +1328,7 @@ describe('DrawCalculator', () => {
                     [winningNumber, 112312312],
                 );
 
-                const timestamps = [42];
+                const timestamps = [(await ethers.provider.getBlock("latest")).timestamp];
                 const totalSupply = utils.parseEther('100');
 
                 const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);

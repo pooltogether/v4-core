@@ -180,6 +180,7 @@ function PoolEnv() {
     startTimestampOffset,
     endTimestampOffset,
     matchCardinality,
+    expiryDuration,
     numberOfPicks,
     tiers,
     prize,
@@ -190,6 +191,7 @@ function PoolEnv() {
     const prizeDistributions = {
       bitRangeSize,
       matchCardinality,
+      expiryDuration, 
       startTimestampOffset,
       endTimestampOffset,
       numberOfPicks,

@@ -13,6 +13,7 @@ import "./interfaces/IPrizeDistributionBuffer.sol";
 import "./interfaces/IDrawBeacon.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
+import "hardhat/console.sol";
 /**
   * @title  PoolTogether V4 DrawCalculator
   * @author PoolTogether Inc Team
@@ -144,12 +145,16 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         uint256[] memory _prizesAwardable = new uint256[](_normalizedUserBalances.length);
         uint256[][] memory _prizeCounts = new uint256[][](_normalizedUserBalances.length);
 
-        uint32 timeNow = uint32(block.timestamp);
+        uint64 timeNow = uint64(block.timestamp);
+
+
 
         // calculate prizes awardable for each Draw passed
         for (uint32 drawIndex = 0; drawIndex < _draws.length; drawIndex++) {
-            
-            require(timeNow < _draws[drawIndex].timestamp + _prizeDistributions[drawIndex].expiryDuration,"DrawCalc/draw-expired");
+                    console.log("_draws[drawIndex].timestamp", _draws[drawIndex].timestamp);
+        console.log("timeNow", timeNow);
+        console.log("_prizeDistributions[drawIndex].expiryDuration", _prizeDistributions[drawIndex].expiryDuration);
+            require(timeNow < _draws[drawIndex].timestamp + _prizeDistributions[drawIndex].expiryDuration, "DrawCalc/draw-expired");
 
             uint64 totalUserPicks = _calculateNumberOfUserPicks(
                 _prizeDistributions[drawIndex],

@@ -9,6 +9,7 @@ export type PrizeDistribution = {
     startTimestampOffset: BigNumber;
     endTimestampOffset: BigNumber;
     maxPicksPerUser: BigNumber;
+    expiryDuration: BigNumber;
 };
 
 export type Draw = { drawId: BigNumber, winningRandomNumber: BigNumber, timestamp: BigNumber }

@@ -29,6 +29,7 @@ describe('Oracle jobs', () => {
         startTimestampOffset = 1;
         endTimestampOffset = 2;
         maxPicksPerUser = 1000;
+        expiryDuration = 100;
 
         await env.pushPrizeDistribution({
             drawId: 1,
@@ -36,6 +37,7 @@ describe('Oracle jobs', () => {
             matchCardinality,
             startTimestampOffset,
             endTimestampOffset,
+            expiryDuration,
             numberOfPicks,
             tiers,
             prize,
