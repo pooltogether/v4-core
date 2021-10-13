@@ -13,7 +13,6 @@ import "./interfaces/IPrizeDistributionBuffer.sol";
 import "./interfaces/IDrawBeacon.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
-import "hardhat/console.sol";
 /**
   * @title  PoolTogether V4 DrawCalculator
   * @author PoolTogether Inc Team
@@ -151,9 +150,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
         // calculate prizes awardable for each Draw passed
         for (uint32 drawIndex = 0; drawIndex < _draws.length; drawIndex++) {
-                    console.log("_draws[drawIndex].timestamp", _draws[drawIndex].timestamp);
-        console.log("timeNow", timeNow);
-        console.log("_prizeDistributions[drawIndex].expiryDuration", _prizeDistributions[drawIndex].expiryDuration);
+
             require(timeNow < _draws[drawIndex].timestamp + _prizeDistributions[drawIndex].expiryDuration, "DrawCalc/draw-expired");
 
             uint64 totalUserPicks = _calculateNumberOfUserPicks(
