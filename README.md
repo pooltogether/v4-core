@@ -103,4 +103,4 @@ $ ./scripts/setup.sh
 Deployment is maintained in a different [repo](https://github.com/pooltogether/v4-testnet).
 
 ## Mainnet
-Todo: insert deployment repo link here.
+Deployment is maintained in a different [repo](https://github.com/pooltogether/v4-mainnet).
