@@ -123,7 +123,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     /// @inheritdoc IPrizePool
     function captureAwardBalance() external override nonReentrant returns (uint256) {
         uint256 ticketTotalSupply = _ticketTotalSupply();
-        uint256 currentAwardBalance = _currentAwardBalance; //sload
+        uint256 currentAwardBalance = _currentAwardBalance;
 
         // it's possible for the balance to be slightly less due to rounding errors in the underlying yield source
         uint256 currentBalance = _balance();
@@ -136,8 +136,8 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
             : 0;
 
         if (unaccountedPrizeBalance > 0) {
-            currentAwardBalance = currentAwardBalance + unaccountedPrizeBalance;
-            _currentAwardBalance = currentAwardBalance; //sstore
+            currentAwardBalance = totalInterest;
+            _currentAwardBalance = currentAwardBalance;
 
             emit AwardCaptured(unaccountedPrizeBalance);
         }
