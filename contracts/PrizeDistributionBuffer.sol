@@ -200,6 +200,7 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
 
         require(_prizeDistribution.bitRangeSize > 0, "DrawCalc/bitRangeSize-gt-0");
         require(_prizeDistribution.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
+        require(_prizeDistribution.expiryDuration > 0, "DrawCalc/expiryDuration-gt-0");
 
         // ensure that the sum of the tiers are not gt 100% and record number of non-zero tiers entries
         uint256 sumTotalTiers = 0;

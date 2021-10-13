@@ -212,6 +212,14 @@ describe('PrizeDistributionBuffer', () => {
                     prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
                 ).to.be.revertedWith('DrawCalc/maxPicksPerUser-gt-0');
             });
+
+            it('cannot set expiryDuration = 0', async () => {
+                prizeDistribution.expiryDuration = BigNumber.from(0);
+
+                await expect(
+                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
+                ).to.be.revertedWith('DrawCalc/expiryDuration-gt-0');
+            });
         });
 
         it('should fail to create a new draw when called from non-draw-manager', async () => {
