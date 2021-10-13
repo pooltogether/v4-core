@@ -254,19 +254,6 @@ describe('Reserve', () => {
         });
     });
 
-    describe('_getReserveAccumulatedAt()', () => {
-        it('should return 0 if cardinality is equal to 0', async () => {
-            const newestObservation = { timestamp: 8, amount: 72 };
-            const oldestObservation = { timestamp: 5, amount: 70 };
-
-            await reserve.setObservationsAt([oldestObservation, newestObservation]);
-
-            expect(
-                await reserve.getReserveAccumulatedAt(newestObservation, oldestObservation, 0, 5),
-            ).to.equal(0);
-        });
-    });
-
     describe('withdrawTo()', () => {
         it('should emit Checkpoint, Transfer and Withdrawn events', async () => {
             await ticket.mint(reserve.address, toWei('100'));

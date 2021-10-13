@@ -10,6 +10,8 @@ import "./interfaces/IReserve.sol";
 import "./libraries/ObservationLib.sol";
 import "./libraries/RingBufferLib.sol";
 
+import "hardhat/console.sol";
+
 /**
     * @title  PoolTogether V4 Reserve
     * @author PoolTogether Inc Team
@@ -77,18 +79,16 @@ contract Reserve is IReserve, Manageable {
     {
         require(_startTimestamp < _endTimestamp, "Reserve/start-less-then-end");
         uint24 _cardinality = cardinality;
+        uint24 _nextIndex = nextIndex;
 
-        ObservationLib.Observation memory _newestObservation;
-
-        if (_cardinality > 0) {
-            _newestObservation = reserveAccumulators[_cardinality - 1];
-        }
-
-        ObservationLib.Observation memory _oldestObservation = reserveAccumulators[0];
+        (uint24 _newestIndex, ObservationLib.Observation memory _newestObservation) = _getNewestObservation(_nextIndex);
+        (uint24 _oldestIndex, ObservationLib.Observation memory _oldestObservation) = _getOldestObservation(_nextIndex);
 
         uint224 _start = _getReserveAccumulatedAt(
             _newestObservation,
             _oldestObservation,
+            _newestIndex,
+            _oldestIndex,
             _cardinality,
             _startTimestamp
         );
@@ -96,6 +96,8 @@ contract Reserve is IReserve, Manageable {
         uint224 _end = _getReserveAccumulatedAt(
             _newestObservation,
             _oldestObservation,
+            _newestIndex,
+            _oldestIndex,
             _cardinality,
             _endTimestamp
         );
@@ -121,6 +123,8 @@ contract Reserve is IReserve, Manageable {
      * @dev    Uses binary search if target timestamp is within ring buffer range.
      * @param _newestObservation ObservationLib.Observation
      * @param _oldestObservation ObservationLib.Observation
+     * @param _newestIndex The index of the newest observation
+     * @param _oldestIndex The index of the oldest observation
      * @param _cardinality       RingBuffer Range
      * @param _timestamp          Timestamp target
      *
@@ -129,6 +133,8 @@ contract Reserve is IReserve, Manageable {
     function _getReserveAccumulatedAt(
         ObservationLib.Observation memory _newestObservation,
         ObservationLib.Observation memory _oldestObservation,
+        uint24 _newestIndex,
+        uint24 _oldestIndex,
         uint24 _cardinality,
         uint32 _timestamp
     ) internal view returns (uint224) {
@@ -171,8 +177,8 @@ contract Reserve is IReserve, Manageable {
             ObservationLib.Observation memory atOrAfter
         ) = ObservationLib.binarySearch(
                 reserveAccumulators,
-                _cardinality - 1,
-                0,
+                _newestIndex,
+                _oldestIndex,
                 _timestamp,
                 _cardinality,
                 timeNow
@@ -194,7 +200,7 @@ contract Reserve is IReserve, Manageable {
         uint24 _nextIndex = nextIndex;
         uint256 _balanceOfReserve = token.balanceOf(address(this));
         uint224 _withdrawAccumulator = withdrawAccumulator; //sload
-        (uint24 newestIndex, ObservationLib.Observation memory newestObservation) = _getNewestObservation(_nextIndex, _cardinality);
+        (uint24 newestIndex, ObservationLib.Observation memory newestObservation) = _getNewestObservation(_nextIndex);
 
         /**
          * IF tokens have been deposited into Reserve contract since the last checkpoint
@@ -231,8 +237,23 @@ contract Reserve is IReserve, Manageable {
         }
     }
 
+    function _getOldestObservation(uint24 _nextIndex)
+        internal
+        view
+        returns (uint24 index, ObservationLib.Observation memory observation)
+    {
+        index = _nextIndex;
+        observation = reserveAccumulators[index];
+
+        // If the TWAB is not initialized we go to the beginning of the TWAB circular buffer at index 0
+        if (observation.timestamp == 0) {
+            index = 0;
+            observation = reserveAccumulators[0];
+        }
+    }
+
     /// @notice Retrieves the newest observation
-    function _getNewestObservation(uint24 _nextIndex, uint24 _cardinality)
+    function _getNewestObservation(uint24 _nextIndex)
         internal
         view
         returns (uint24 index, ObservationLib.Observation memory observation)
