@@ -146,9 +146,9 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
      * @return Total prize award distribution amount exlcuding the awarded prize split(s)
      */
     function _distributePrizeSplits(uint256 _prize) internal returns (uint256) {
-        // Store temporary total prize amount for multiple calculations using initial prize amount.
         uint256 _prizeTemp = _prize;
         uint256 prizeSplitsLength = _prizeSplits.length;
+
         for (uint256 index = 0; index < prizeSplitsLength; index++) {
             PrizeSplitConfig memory split = _prizeSplits[index];
             uint256 _splitAmount = _getPrizeSplitAmount(_prize, split.percentage);
@@ -157,10 +157,10 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
             _awardPrizeSplitAmount(split.target, _splitAmount);
 
             // Update the remaining prize amount after distributing the prize split percentage.
-            _prizeTemp = _prizeTemp - _splitAmount;
+            _prizeTemp -= _splitAmount;
         }
 
-        return _prize;
+        return _prizeTemp;
     }
 
     /**
