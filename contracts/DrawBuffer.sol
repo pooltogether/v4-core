@@ -130,34 +130,6 @@ contract DrawBuffer is IDrawBuffer, Manageable {
     /* ============ Internal Functions ============ */
 
     /**
-     * @notice Convert a Draw.drawId to a Draws ring buffer index pointer.
-     * @dev    The getNewestDraw.drawId() is used to calculate a Draws ID delta position.
-     * @param _drawId Draw.drawId
-     * @return Draws ring buffer index pointer
-     */
-    function _drawIdToDrawIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId)
-        internal
-        pure
-        returns (uint32)
-    {
-        return _buffer.getIndex(_drawId);
-    }
-
-    /**
-     * @notice Read newest Draw from the draws ring buffer.
-     * @dev    Uses the lastDrawId to calculate the most recently added Draw.
-     * @param _buffer Draw ring buffer
-     * @return IDrawBeacon.Draw
-     */
-    function _getNewestDraw(DrawRingBufferLib.Buffer memory _buffer)
-        internal
-        view
-        returns (IDrawBeacon.Draw memory)
-    {
-        return drawRingBuffer[_buffer.getIndex(_buffer.lastDrawId)];
-    }
-
-    /**
      * @notice Push Draw onto draws ring buffer history.
      * @dev    Push new draw onto draws list via authorized manager or owner.
      * @param _newDraw IDrawBeacon.Draw
@@ -171,5 +143,35 @@ contract DrawBuffer is IDrawBuffer, Manageable {
         emit DrawSet(_newDraw.drawId, _newDraw);
 
         return _newDraw.drawId;
+    }
+
+    /* ============ Private Functions ============ */
+
+    /**
+     * @notice Convert a Draw.drawId to a Draws ring buffer index pointer.
+     * @dev    The getNewestDraw.drawId() is used to calculate a Draws ID delta position.
+     * @param _drawId Draw.drawId
+     * @return Draws ring buffer index pointer
+     */
+    function _drawIdToDrawIndex(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId)
+        private
+        pure
+        returns (uint32)
+    {
+        return _buffer.getIndex(_drawId);
+    }
+
+    /**
+     * @notice Read newest Draw from the draws ring buffer.
+     * @dev    Uses the lastDrawId to calculate the most recently added Draw.
+     * @param _buffer Draw ring buffer
+     * @return IDrawBeacon.Draw
+     */
+    function _getNewestDraw(DrawRingBufferLib.Buffer memory _buffer)
+        private
+        view
+        returns (IDrawBeacon.Draw memory)
+    {
+        return drawRingBuffer[_buffer.getIndex(_buffer.lastDrawId)];
     }
 }
