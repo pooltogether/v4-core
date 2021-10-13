@@ -14,7 +14,7 @@ import "./interfaces/IDrawBeacon.sol";
     * @title  PoolTogether V4 PrizeDistributor
     * @author PoolTogether Inc Team
     * @notice The PrizeDistributor contract holds Tickets (captured interest) and distributes tickets to users with winning draw claims.
-              PrizeDistributor uses an external IDrawCalculator to validate a users draw claim, before awarding payouts. To prevent users 
+              PrizeDistributor uses an external IDrawCalculator to validate a users draw claim, before awarding payouts. To prevent users
               from reclaiming prizes, a payout history for each draw claim is mapped to user accounts. Reclaiming a draw can occur
               if an "optimal" prize was not included in previous claim pick indices and the new claims updated payout is greater then
               the previous prize distributor claim payout.
@@ -60,9 +60,9 @@ contract PrizeDistributor is IPrizeDistributor, Ownable {
         uint32[] calldata _drawIds,
         bytes calldata _data
     ) external override returns (uint256) {
-        
+
         uint256 totalPayout;
-        
+
         (uint256[] memory drawPayouts, ) = drawCalculator.calculate(_user, _drawIds, _data); // neglect the prizeCounts since we are not interested in them here
 
         for (uint256 payoutIndex = 0; payoutIndex < drawPayouts.length; payoutIndex++) {
@@ -136,29 +136,36 @@ contract PrizeDistributor is IPrizeDistributor, Ownable {
         return _newCalculator;
     }
 
-    /* ============ Internal Functions ============ */
+    /* ============ Private Functions ============ */
 
+    /**
+     * @notice Transfer claimed draw(s) total payout to user.
+     * @param _to      User address
+     * @param _amount  Transfer amount
+     */
+    function _awardPayout(address _to, uint256 _amount) private {
+        token.safeTransfer(_to, _amount);
+    }
+
+    /**
+     * @notice Get `_user` paid out balance.
+     * @param _user    Address of user to get paid out balance for
+     * @param _drawId  Draw ID to get paid out balance for
+     * @return Payout amount
+     */
     function _getDrawPayoutBalanceOf(address _user, uint32 _drawId)
-        internal
+        private
         view
         returns (uint256)
     {
         return userDrawPayouts[_user][_drawId];
     }
 
-    function _setDrawPayoutBalanceOf(
-        address _user,
-        uint32 _drawId,
-        uint256 _payout
-    ) internal {
-        userDrawPayouts[_user][_drawId] = _payout;
-    }
-
     /**
      * @notice Sets DrawCalculator reference for individual draw id.
      * @param _newCalculator  DrawCalculator address
      */
-    function _setDrawCalculator(IDrawCalculator _newCalculator) internal {
+    function _setDrawCalculator(IDrawCalculator _newCalculator) private {
         require(address(_newCalculator) != address(0), "PrizeDistributor/calc-not-zero");
         drawCalculator = _newCalculator;
 
@@ -166,12 +173,16 @@ contract PrizeDistributor is IPrizeDistributor, Ownable {
     }
 
     /**
-     * @notice Transfer claimed draw(s) total payout to user.
-     * @param _to      User address
-     * @param _amount  Transfer amount
+     * @notice Set `_user` paid out balance.
+     * @param _user    Address of user to set paid out balance for
+     * @param _drawId  Draw ID to set paid out balance for
+     * @param _payout  Payout amount
      */
-    function _awardPayout(address _to, uint256 _amount) internal {
-        token.safeTransfer(_to, _amount);
+    function _setDrawPayoutBalanceOf(
+        address _user,
+        uint32 _drawId,
+        uint256 _payout
+    ) private {
+        userDrawPayouts[_user][_drawId] = _payout;
     }
-
 }

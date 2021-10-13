@@ -41,7 +41,7 @@ interface IPrizeDistributor {
     event ERC20Withdrawn(IERC20 indexed token, address indexed to, uint256 amount);
 
     /**
-     * @notice Claim prize payout(s) by submitting valud drawId(s) and winning pick indice(s). The user address
+     * @notice Claim prize payout(s) by submitting valid drawId(s) and winning pick indice(s). The user address
                is used as the "seed" phrase to generate random numbers.
      * @dev    The claim function is public and any wallet may execute claim on behalf of another user.
                Prizes are always paid out to the designated user account and not the caller (msg.sender).
