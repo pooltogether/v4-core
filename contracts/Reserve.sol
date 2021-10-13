@@ -16,10 +16,10 @@ import "./libraries/ObservationLib.sol";
               As the Reserve contract transfers OUT tokens, the withdraw accumulator is increased. When tokens are
               transfered IN new checkpoint *can* be created if checkpoint() is called after transfering tokens.
               By using the reserve and withdraw accumulators to create a new checkpoint, any contract or account
-              can lookup the balance increase of the reserve for a target timerange.   
-    * @dev    By calculating the total held tokens in a speicific time range, contracts that require knowledge 
+              can lookup the balance increase of the reserve for a target timerange.
+    * @dev    By calculating the total held tokens in a speicific time range, contracts that require knowledge
               of captured interest during a draw period, can easily call into the Reserve and determininstially
-              determine the newly aqcuired tokens for that time range. 
+              determine the newly aqcuired tokens for that time range.
  */
 contract Reserve is IReserve, Manageable {
     using SafeERC20 for IERC20;
@@ -105,7 +105,7 @@ contract Reserve is IReserve, Manageable {
         _checkpoint();
 
         withdrawAccumulator += uint224(_amount);
-        
+
         token.safeTransfer(_recipient, _amount);
 
         emit Withdrawn(_recipient, _amount);
@@ -225,9 +225,11 @@ contract Reserve is IReserve, Manageable {
         }
     }
 
+    /* ============ Private Functions ============ */
+
     /// @notice Retrieves the newest observation
     function _getNewestObservation(uint24 _cardinality)
-        internal
+        private
         view
         returns (ObservationLib.Observation memory _observation)
     {
