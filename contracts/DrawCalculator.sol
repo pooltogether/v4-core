@@ -139,13 +139,20 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         IDrawBeacon.Draw[] memory _draws,
         uint64[][] memory _pickIndicesForDraws,
         IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions
-    ) internal pure returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
+    ) internal view returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
         
         uint256[] memory _prizesAwardable = new uint256[](_normalizedUserBalances.length);
         uint256[][] memory _prizeCounts = new uint256[][](_normalizedUserBalances.length);
 
+        uint64 timeNow = uint64(block.timestamp);
+
+
+
         // calculate prizes awardable for each Draw passed
         for (uint32 drawIndex = 0; drawIndex < _draws.length; drawIndex++) {
+
+            require(timeNow < _draws[drawIndex].timestamp + _prizeDistributions[drawIndex].expiryDuration, "DrawCalc/draw-expired");
+
             uint64 totalUserPicks = _calculateNumberOfUserPicks(
                 _prizeDistributions[drawIndex],
                 _normalizedUserBalances[drawIndex]

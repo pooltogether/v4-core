@@ -22,6 +22,7 @@ describe('PrizeDistributionBuffer', () => {
         startTimestampOffset: BigNumber.from(0),
         endTimestampOffset: BigNumber.from(3600),
         maxPicksPerUser: BigNumber.from(10),
+        expiryDuration: BigNumber.from(100),
     };
 
     prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -155,6 +156,7 @@ describe('PrizeDistributionBuffer', () => {
                     startTimestampOffset: BigNumber.from(1),
                     endTimestampOffset: BigNumber.from(1),
                     maxPicksPerUser: BigNumber.from(1001),
+                    expiryDuration: BigNumber.from(100),
                 };
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(
@@ -209,6 +211,14 @@ describe('PrizeDistributionBuffer', () => {
                 await expect(
                     prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
                 ).to.be.revertedWith('DrawCalc/maxPicksPerUser-gt-0');
+            });
+
+            it('cannot set expiryDuration = 0', async () => {
+                prizeDistribution.expiryDuration = BigNumber.from(0);
+
+                await expect(
+                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
+                ).to.be.revertedWith('DrawCalc/expiryDuration-gt-0');
             });
         });
 

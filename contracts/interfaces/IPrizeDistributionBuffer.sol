@@ -14,6 +14,7 @@ interface IPrizeDistributionBuffer {
     ///@param startTimestampOffset The starting time offset in seconds from which Ticket balances are calculated.
     ///@param endTimestampOffset The end time offset in seconds from which Ticket balances are calculated.
     ///@param maxPicksPerUser Maximum number of picks a user can make in this draw
+    ///@param expiryDuration Length of time in seconds the PrizeDistribution is valid for. Relative to the Draw.timestamp.
     ///@param numberOfPicks Number of picks this draw has (may vary across networks according to how much the network has contributed to the Reserve)
     ///@param tiers Array of prize tiers percentages, expressed in fraction form with base 1e9. Ordering: index0: grandPrize, index1: runnerUp, etc.
     ///@param prize Total prize amount available in this draw calculator for this draw (may vary from across networks)
@@ -23,7 +24,8 @@ interface IPrizeDistributionBuffer {
         uint32 startTimestampOffset;
         uint32 endTimestampOffset;
         uint32 maxPicksPerUser;
-        uint136 numberOfPicks;
+        uint32 expiryDuration;
+        uint104 numberOfPicks;
         uint32[16] tiers;
         uint256 prize;
     }
