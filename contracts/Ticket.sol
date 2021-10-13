@@ -14,7 +14,7 @@ import "./ControlledToken.sol";
   * @title  PoolTogether V4 Ticket
   * @author PoolTogether Inc Team
   * @notice The Ticket extends the standard ERC20 and ControlledToken interfaces with time-weighted average balance functionality.
-            The average balance held by a user between two timestamps can be calculated, as well as the historic balance.  The 
+            The average balance held by a user between two timestamps can be calculated, as well as the historic balance.  The
             historic total supply is available as well as the average total supply between two timestamps.
 
             A user may "delegate" their balance; increasing another user's historic balance while retaining their tokens.
@@ -218,6 +218,8 @@ contract Ticket is ControlledToken, ITicket {
         _delegate(msg.sender, _to);
     }
 
+    /* ============ Internal Functions ============ */
+
     /// @notice Delegates a users chance to another
     /// @param _user The user whose balance should be delegated
     /// @param _to The delegate
@@ -234,40 +236,6 @@ contract Ticket is ControlledToken, ITicket {
         _transferTwab(currentDelegate, _to, balance);
 
         emit Delegated(_user, _to);
-    }
-
-    /* ============ Internal Functions ============ */
-
-    /**
-     * @notice Retrieves the average balances held by a user for a given time frame.
-     * @param _account The user whose balance is checked.
-     * @param _startTimes The start time of the time frame.
-     * @param _endTimes The end time of the time frame.
-     * @return The average balance that the user held during the time frame.
-     */
-    function _getAverageBalancesBetween(
-        TwabLib.Account storage _account,
-        uint64[] calldata _startTimes,
-        uint64[] calldata _endTimes
-    ) internal view returns (uint256[] memory) {
-        require(_startTimes.length == _endTimes.length, "Ticket/start-end-times-length-match");
-
-        TwabLib.AccountDetails memory accountDetails = _account.details;
-
-        uint256[] memory averageBalances = new uint256[](_startTimes.length);
-        uint32 currentTimestamp = uint32(block.timestamp);
-
-        for (uint256 i = 0; i < _startTimes.length; i++) {
-            averageBalances[i] = TwabLib.getAverageBalanceBetween(
-                _account.twabs,
-                accountDetails,
-                uint32(_startTimes[i]),
-                uint32(_endTimes[i]),
-                currentTimestamp
-            );
-        }
-
-        return averageBalances;
     }
 
     // @inheritdoc ERC20
@@ -289,54 +257,38 @@ contract Ticket is ControlledToken, ITicket {
         _transferTwab(_fromDelegate, _toDelegate, _amount);
     }
 
-    /// @notice Transfers the given TWAB balance from one user to another
-    /// @param _from The user to transfer the balance from.  May be zero in the event of a mint.
-    /// @param _to The user to transfer the balance to.  May be zero in the event of a burn.
-    /// @param _amount The balance that is being transferred.
-    function _transferTwab(address _from, address _to, uint256 _amount) internal {
-        // If we are transferring tokens from an undelegated account to a delegated account
-        if (_from == address(0) && _to != address(0)) {
-            _increaseTotalSupplyTwab(_amount);
-        } else // if we are transferring tokens from a delegated account to an undelegated account
-        if (_from != address(0) && _to == address(0)) {
-            _decreaseTotalSupplyTwab(_amount);
-        } // otherwise if the to delegate is set, then increase their twab
-
-        if (_from != address(0)) {
-            _decreaseUserTwab(_from, _amount);
-        }
-        
-        if (_to != address(0)) {
-            _increaseUserTwab(_to, _amount);
-        }
-    }
+    /* ============ Private Functions ============ */
 
     /**
-     * @notice Increase `_to` TWAB balance.
-     * @param _to Address of the delegate.
-     * @param _amount Amount of tokens to be added to `_to` TWAB balance.
+     * @notice Retrieves the average balances held by a user for a given time frame.
+     * @param _account The user whose balance is checked.
+     * @param _startTimes The start time of the time frame.
+     * @param _endTimes The end time of the time frame.
+     * @return The average balance that the user held during the time frame.
      */
-    function _increaseUserTwab(
-        address _to,
-        uint256 _amount
-    ) internal {
-        if (_amount == 0) {
-            return;
+    function _getAverageBalancesBetween(
+        TwabLib.Account storage _account,
+        uint64[] calldata _startTimes,
+        uint64[] calldata _endTimes
+    ) private view returns (uint256[] memory) {
+        require(_startTimes.length == _endTimes.length, "Ticket/start-end-times-length-match");
+
+        TwabLib.AccountDetails memory accountDetails = _account.details;
+
+        uint256[] memory averageBalances = new uint256[](_startTimes.length);
+        uint32 currentTimestamp = uint32(block.timestamp);
+
+        for (uint256 i = 0; i < _startTimes.length; i++) {
+            averageBalances[i] = TwabLib.getAverageBalanceBetween(
+                _account.twabs,
+                accountDetails,
+                uint32(_startTimes[i]),
+                uint32(_endTimes[i]),
+                currentTimestamp
+            );
         }
 
-        TwabLib.Account storage _account = userTwabs[_to];
-
-        (
-            TwabLib.AccountDetails memory accountDetails,
-            ObservationLib.Observation memory twab,
-            bool isNew
-        ) = TwabLib.increaseBalance(_account, _amount.toUint208(), uint32(block.timestamp));
-
-        _account.details = accountDetails;
-
-        if (isNew) {
-            emit NewUserTwab(_to, twab);
-        }
+        return averageBalances;
     }
 
     /**
@@ -347,7 +299,7 @@ contract Ticket is ControlledToken, ITicket {
     function _decreaseUserTwab(
         address _to,
         uint256 _amount
-    ) internal {
+    ) private {
         if (_amount == 0) {
             return;
         }
@@ -372,9 +324,37 @@ contract Ticket is ControlledToken, ITicket {
         }
     }
 
+    /**
+     * @notice Increase `_to` TWAB balance.
+     * @param _to Address of the delegate.
+     * @param _amount Amount of tokens to be added to `_to` TWAB balance.
+     */
+    function _increaseUserTwab(
+        address _to,
+        uint256 _amount
+    ) private {
+        if (_amount == 0) {
+            return;
+        }
+
+        TwabLib.Account storage _account = userTwabs[_to];
+
+        (
+            TwabLib.AccountDetails memory accountDetails,
+            ObservationLib.Observation memory twab,
+            bool isNew
+        ) = TwabLib.increaseBalance(_account, _amount.toUint208(), uint32(block.timestamp));
+
+        _account.details = accountDetails;
+
+        if (isNew) {
+            emit NewUserTwab(_to, twab);
+        }
+    }
+
     /// @notice Decreases the total supply twab.  Should be called anytime a balance moves from delegated to undelegated
     /// @param _amount The amount to decrease the total by
-    function _decreaseTotalSupplyTwab(uint256 _amount) internal {
+    function _decreaseTotalSupplyTwab(uint256 _amount) private {
         if (_amount == 0) {
             return;
         }
@@ -399,7 +379,7 @@ contract Ticket is ControlledToken, ITicket {
 
     /// @notice Increases the total supply twab.  Should be called anytime a balance moves from undelegated to delegated
     /// @param _amount The amount to increase the total by
-    function _increaseTotalSupplyTwab(uint256 _amount) internal {
+    function _increaseTotalSupplyTwab(uint256 _amount) private {
         if (_amount == 0) {
             return;
         }
@@ -414,6 +394,28 @@ contract Ticket is ControlledToken, ITicket {
 
         if (tsIsNew) {
             emit NewTotalSupplyTwab(_totalSupply);
+        }
+    }
+
+    /// @notice Transfers the given TWAB balance from one user to another
+    /// @param _from The user to transfer the balance from.  May be zero in the event of a mint.
+    /// @param _to The user to transfer the balance to.  May be zero in the event of a burn.
+    /// @param _amount The balance that is being transferred.
+    function _transferTwab(address _from, address _to, uint256 _amount) private {
+        // If we are transferring tokens from an undelegated account to a delegated account
+        if (_from == address(0) && _to != address(0)) {
+            _increaseTotalSupplyTwab(_amount);
+        } else // if we are transferring tokens from a delegated account to an undelegated account
+        if (_from != address(0) && _to == address(0)) {
+            _decreaseTotalSupplyTwab(_amount);
+        } // otherwise if the to delegate is set, then increase their twab
+
+        if (_from != address(0)) {
+            _decreaseUserTwab(_from, _amount);
+        }
+
+        if (_to != address(0)) {
+            _increaseUserTwab(_to, _amount);
         }
     }
 }
