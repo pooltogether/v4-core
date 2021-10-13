@@ -380,11 +380,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     /// @param _controlledToken The address of the token to check
     /// @return True if the token is a controlled token, false otherwise
     function _isControlled(ITicket _controlledToken) internal view returns (bool) {
-        if (ticket == _controlledToken) {
-            return true;
-        }
-
-        return false;
+        return (ticket == _controlledToken);
     }
 
     /// @notice Allows the owner to set a balance cap per `token` for the pool.
