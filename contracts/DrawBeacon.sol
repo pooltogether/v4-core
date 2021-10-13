@@ -348,17 +348,27 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         _setRngService(_rngService);
     }
 
+    /* ============ Internal Functions ============ */
+
+    /**
+     * @notice returns the current time.  Used for testing.
+     * @return The current time (block.timestamp)
+     */
+    function _currentTime() internal view virtual returns (uint64) {
+        return uint64(block.timestamp);
+    }
+
+    /* ============ Private Functions ============ */
+
     /**
      * @notice Sets the RNG service that the Prize Strategy is connected to
      * @param _rngService The address of the new RNG service interface
      */
-    function _setRngService(RNGInterface _rngService) internal
+    function _setRngService(RNGInterface _rngService) private
     {
         rng = _rngService;
         emit RngServiceUpdated(_rngService);
     }
-
-    /* ============ Internal Functions ============ */
 
     /**
      * @notice Calculates when the next beacon period will start
@@ -371,24 +381,16 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         uint64 _beaconPeriodStartedAt,
         uint32 _beaconPeriodSeconds,
         uint64 _time
-    ) internal pure returns (uint64) {
+    ) private pure returns (uint64) {
         uint64 elapsedPeriods = (_time - _beaconPeriodStartedAt) / _beaconPeriodSeconds;
         return _beaconPeriodStartedAt + (elapsedPeriods * _beaconPeriodSeconds);
-    }
-
-    /**
-     * @notice returns the current time.  Used for testing.
-     * @return The current time (block.timestamp)
-     */
-    function _currentTime() internal view virtual returns (uint64) {
-        return uint64(block.timestamp);
     }
 
     /**
      * @notice Returns the timestamp at which the beacon period ends
      * @return The timestamp at which the beacon period ends
      */
-    function _beaconPeriodEndAt() internal view returns (uint64) {
+    function _beaconPeriodEndAt() private view returns (uint64) {
         return beaconPeriodStartedAt + beaconPeriodSeconds;
     }
 
@@ -396,7 +398,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      * @notice Returns the number of seconds remaining until the prize can be awarded.
      * @return The number of seconds remaining until the prize can be awarded.
      */
-    function _beaconPeriodRemainingSeconds() internal view returns (uint64) {
+    function _beaconPeriodRemainingSeconds() private view returns (uint64) {
         uint64 endAt = _beaconPeriodEndAt();
         uint64 time = _currentTime();
 
@@ -411,14 +413,14 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      * @notice Returns whether the beacon period is over.
      * @return True if the beacon period is over, false otherwise
      */
-    function _isBeaconPeriodOver() internal view returns (bool) {
+    function _isBeaconPeriodOver() private view returns (bool) {
         return _beaconPeriodEndAt() <= _currentTime();
     }
 
     /**
      * @notice Check to see draw is in progress.
      */
-    function _requireDrawNotStarted() internal view {
+    function _requireDrawNotStarted() private view {
         uint256 currentBlock = block.number;
 
         require(
@@ -433,7 +435,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      * @param _newDrawBuffer  DrawBuffer address
      * @return DrawBuffer
      */
-    function _setDrawBuffer(IDrawBuffer _newDrawBuffer) internal returns (IDrawBuffer) {
+    function _setDrawBuffer(IDrawBuffer _newDrawBuffer) private returns (IDrawBuffer) {
         IDrawBuffer _previousDrawBuffer = drawBuffer;
         require(address(_newDrawBuffer) != address(0), "DrawBeacon/draw-history-not-zero-address");
 
@@ -453,7 +455,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      * @notice Sets the beacon period in seconds.
      * @param _beaconPeriodSeconds The new beacon period in seconds.  Must be greater than zero.
      */
-    function _setBeaconPeriodSeconds(uint32 _beaconPeriodSeconds) internal {
+    function _setBeaconPeriodSeconds(uint32 _beaconPeriodSeconds) private {
         require(_beaconPeriodSeconds > 0, "DrawBeacon/beacon-period-greater-than-zero");
         beaconPeriodSeconds = _beaconPeriodSeconds;
 
@@ -464,7 +466,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
      * @notice Sets the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
      * @param _rngTimeout The RNG request timeout in seconds.
      */
-    function _setRngTimeout(uint32 _rngTimeout) internal {
+    function _setRngTimeout(uint32 _rngTimeout) private {
         require(_rngTimeout > 60, "DrawBeacon/rng-timeout-gt-60-secs");
         rngTimeout = _rngTimeout;
 
