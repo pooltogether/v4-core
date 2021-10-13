@@ -109,37 +109,6 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     /* ============ Internal Functions ============ */
 
     /**
-     * @notice Calculate single prize split distribution amount.
-     * @dev Calculate single prize split distribution amount using the total prize amount and prize split percentage.
-     * @param _amount Total prize award distribution amount
-     * @param _percentage Percentage with single decimal precision using 0-1000 ranges
-     */
-    function _getPrizeSplitAmount(uint256 _amount, uint16 _percentage)
-        internal
-        pure
-        returns (uint256)
-    {
-        return (_amount * _percentage) / 1000;
-    }
-
-    /**
-     * @notice Calculates total prize split percentage amount.
-     * @dev Calculates total PrizeSplitConfig percentage(s) amount. Used to check the total does not exceed 100% of award distribution.
-     * @return Total prize split(s) percentage amount
-     */
-    function _totalPrizeSplitPercentageAmount() internal view returns (uint256) {
-        uint256 _tempTotalPercentage;
-        uint256 prizeSplitsLength = _prizeSplits.length;
-
-        for (uint8 index = 0; index < prizeSplitsLength; index++) {
-            PrizeSplitConfig memory split = _prizeSplits[index];
-            _tempTotalPercentage = _tempTotalPercentage + split.percentage;
-        }
-
-        return _tempTotalPercentage;
-    }
-
-    /**
      * @notice Distributes prize split(s).
      * @dev Distributes prize split(s) by awarding ticket or sponsorship tokens.
      * @param _prize Starting prize award amount
@@ -170,4 +139,37 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
      * @param _amount Amount of minted tokens
      */
     function _awardPrizeSplitAmount(address _target, uint256 _amount) internal virtual;
+
+    /* ============ Private Functions ============ */
+
+    /**
+     * @notice Calculate single prize split distribution amount.
+     * @dev Calculate single prize split distribution amount using the total prize amount and prize split percentage.
+     * @param _amount Total prize award distribution amount
+     * @param _percentage Percentage with single decimal precision using 0-1000 ranges
+     */
+    function _getPrizeSplitAmount(uint256 _amount, uint16 _percentage)
+        private
+        pure
+        returns (uint256)
+    {
+        return (_amount * _percentage) / 1000;
+    }
+
+    /**
+     * @notice Calculates total prize split percentage amount.
+     * @dev Calculates total PrizeSplitConfig percentage(s) amount. Used to check the total does not exceed 100% of award distribution.
+     * @return Total prize split(s) percentage amount
+     */
+    function _totalPrizeSplitPercentageAmount() private view returns (uint256) {
+        uint256 _tempTotalPercentage;
+        uint256 prizeSplitsLength = _prizeSplits.length;
+
+        for (uint8 index = 0; index < prizeSplitsLength; index++) {
+            PrizeSplitConfig memory split = _prizeSplits[index];
+            _tempTotalPercentage = _tempTotalPercentage + split.percentage;
+        }
+
+        return _tempTotalPercentage;
+    }
 }
