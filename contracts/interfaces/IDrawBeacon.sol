@@ -104,7 +104,7 @@ interface IDrawBeacon {
      * @param time The timestamp to use as the current time
      * @return The timestamp at which the next beacon period would start
      */
-    function calculateNextBeaconPeriodStartTime(uint256 time) external view returns (uint64);
+    function calculateNextBeaconPeriodStartTime(uint64 time) external view returns (uint64);
 
     /**
      * @notice Can be called by anyone to cancel the draw request if the RNG has timed out.
