@@ -59,7 +59,7 @@ contract EIP2612PermitAndDeposit {
         address _to
     ) internal {
         IERC20(_token).safeTransferFrom(_owner, address(this), _amount);
-        IERC20(_token).safeApprove(_prizePool, _amount);
+        IERC20(_token).safeIncreaseAllowance(_prizePool, _amount);
         IPrizePool(_prizePool).depositTo(_to, _amount);
     }
 }

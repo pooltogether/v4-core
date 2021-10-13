@@ -71,7 +71,7 @@ contract YieldSourcePrizePool is PrizePool {
     /// @notice Supplies asset tokens to the yield source.
     /// @param _mintAmount The amount of asset tokens to be supplied
     function _supply(uint256 _mintAmount) internal override {
-        _token().safeApprove(address(yieldSource), _mintAmount);
+        _token().safeIncreaseAllowance(address(yieldSource), _mintAmount);
         yieldSource.supplyTokenTo(_mintAmount, address(this));
     }
 
