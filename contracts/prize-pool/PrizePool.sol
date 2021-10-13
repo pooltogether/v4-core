@@ -320,26 +320,10 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
     /* ============ Internal Functions ============ */
 
-    /// @notice Transfer out `amount` of `externalToken` to recipient `to`
-    /// @dev Only awardable `externalToken` can be transferred out
-    /// @param _to Recipient address
-    /// @param _externalToken Address of the external asset token being transferred
-    /// @param _amount Amount of external assets to be transferred
-    /// @return True if transfer is successful
-    function _transferOut(
-        address _to,
-        address _externalToken,
-        uint256 _amount
-    ) internal returns (bool) {
-        require(_canAwardExternal(_externalToken), "PrizePool/invalid-external-token");
-
-        if (_amount == 0) {
-            return false;
-        }
-
-        IERC20(_externalToken).safeTransfer(_to, _amount);
-
-        return true;
+    /// @dev Gets the current time as represented by the current block
+    /// @return The timestamp of the current block
+    function _currentTime() internal view virtual returns (uint256) {
+        return block.timestamp;
     }
 
     /// @notice Called to mint controlled tokens.  Ensures that token listener callbacks are fired.
@@ -354,11 +338,35 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         _controlledToken.controllerMint(_to, _amount);
     }
 
+    /* ============ Private Functions ============ */
+
+    /// @notice Transfer out `amount` of `externalToken` to recipient `to`
+    /// @dev Only awardable `externalToken` can be transferred out
+    /// @param _to Recipient address
+    /// @param _externalToken Address of the external asset token being transferred
+    /// @param _amount Amount of external assets to be transferred
+    /// @return True if transfer is successful
+    function _transferOut(
+        address _to,
+        address _externalToken,
+        uint256 _amount
+    ) private returns (bool) {
+        require(_canAwardExternal(_externalToken), "PrizePool/invalid-external-token");
+
+        if (_amount == 0) {
+            return false;
+        }
+
+        IERC20(_externalToken).safeTransfer(_to, _amount);
+
+        return true;
+    }
+
     /// @dev Checks if `user` can deposit in the Prize Pool based on the current balance cap.
     /// @param _user Address of the user depositing.
     /// @param _amount The amount of tokens to be deposited into the Prize Pool.
     /// @return True if the Prize Pool can receive the specified `amount` of tokens.
-    function _canDeposit(address _user, uint256 _amount) internal view returns (bool) {
+    function _canDeposit(address _user, uint256 _amount) private view returns (bool) {
         ITicket _ticket = ticket;
         uint256 _balanceCap = balanceCap;
 
@@ -370,7 +378,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     /// @dev Checks if the Prize Pool can receive liquidity based on the current cap
     /// @param _amount The amount of liquidity to be added to the Prize Pool
     /// @return True if the Prize Pool can receive the specified amount of liquidity
-    function _canAddLiquidity(uint256 _amount) internal view returns (bool) {
+    function _canAddLiquidity(uint256 _amount) private view returns (bool) {
         uint256 _liquidityCap = liquidityCap;
         if (_liquidityCap == type(uint256).max) return true;
         return (_ticketTotalSupply() + _amount <= _liquidityCap);
@@ -379,7 +387,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     /// @dev Checks if a specific token is controlled by the Prize Pool
     /// @param _controlledToken The address of the token to check
     /// @return True if the token is a controlled token, false otherwise
-    function _isControlled(ITicket _controlledToken) internal view returns (bool) {
+    function _isControlled(ITicket _controlledToken) private view returns (bool) {
         if (ticket == _controlledToken) {
             return true;
         }
@@ -389,21 +397,21 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
     /// @notice Allows the owner to set a balance cap per `token` for the pool.
     /// @param _balanceCap New balance cap.
-    function _setBalanceCap(uint256 _balanceCap) internal {
+    function _setBalanceCap(uint256 _balanceCap) private {
         balanceCap = _balanceCap;
         emit BalanceCapSet(_balanceCap);
     }
 
     /// @notice Allows the owner to set a liquidity cap for the pool
     /// @param _liquidityCap New liquidity cap
-    function _setLiquidityCap(uint256 _liquidityCap) internal {
+    function _setLiquidityCap(uint256 _liquidityCap) private {
         liquidityCap = _liquidityCap;
         emit LiquidityCapSet(_liquidityCap);
     }
 
     /// @notice Sets the prize strategy of the prize pool.  Only callable by the owner.
     /// @param _prizeStrategy The new prize strategy
-    function _setPrizeStrategy(address _prizeStrategy) internal {
+    function _setPrizeStrategy(address _prizeStrategy) private {
         require(_prizeStrategy != address(0), "PrizePool/prizeStrategy-not-zero");
 
         prizeStrategy = _prizeStrategy;
@@ -413,14 +421,8 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
     /// @notice The current total of tickets.
     /// @return Ticket total supply.
-    function _ticketTotalSupply() internal view returns (uint256) {
+    function _ticketTotalSupply() private view returns (uint256) {
         return ticket.totalSupply();
-    }
-
-    /// @dev Gets the current time as represented by the current block
-    /// @return The timestamp of the current block
-    function _currentTime() internal view virtual returns (uint256) {
-        return block.timestamp;
     }
 
     /* ============ Abstract Contract Implementatiton ============ */
