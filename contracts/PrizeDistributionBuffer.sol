@@ -166,7 +166,7 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
         return _drawId;
     }
 
-    /* ============ Internal Functions ============ */
+    /* ============ Private Functions ============ */
 
     /**
      * @notice Gets the PrizeDistributionBuffer for a drawId
@@ -174,7 +174,7 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
      * @param _drawId drawId
      */
     function _getPrizeDistribution(DrawRingBufferLib.Buffer memory _buffer, uint32 _drawId)
-        internal
+        private
         view
         returns (IPrizeDistributionBuffer.PrizeDistribution memory)
     {
@@ -189,7 +189,7 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
     function _pushPrizeDistribution(
         uint32 _drawId,
         IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution
-    ) internal returns (bool) {
+    ) private returns (bool) {
 
         require(_drawId > 0, "DrawCalc/draw-id-gt-0");
         require(_prizeDistribution.matchCardinality > 0, "DrawCalc/matchCardinality-gt-0");
