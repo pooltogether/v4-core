@@ -207,9 +207,10 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
         uint256 tiersLength = _prizeDistribution.tiers.length;
 
         for (uint256 index = 0; index < tiersLength; index++) {
-            sumTotalTiers += _prizeDistribution.tiers[index];
+            uint256 tier = _prizeDistribution.tiers[index];
+            sumTotalTiers += tier;
 
-            if (_prizeDistribution.tiers[index] > 0) {
+            if (tier > 0) {
                 nonZeroTiers++;
             }
         }
