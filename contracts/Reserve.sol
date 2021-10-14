@@ -10,8 +10,6 @@ import "./interfaces/IReserve.sol";
 import "./libraries/ObservationLib.sol";
 import "./libraries/RingBufferLib.sol";
 
-import "hardhat/console.sol";
-
 /**
     * @title  PoolTogether V4 Reserve
     * @author PoolTogether Inc Team
