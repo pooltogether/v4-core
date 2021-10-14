@@ -372,7 +372,7 @@ contract DrawCalculator is IDrawCalculator, Ownable {
      * @notice Calculates the expected prize fraction per PrizeDistributions and distributionIndex
      * @param _prizeDistribution prizeDistribution struct for Draw
      * @param _prizeTierIndex Index of the prize tiers array to calculate
-     * @return returns the fraction of the total prize (base 1e18)
+     * @return returns the fraction of the total prize (fixed point 9 number)
      */
     function _calculatePrizeTierFraction(
         IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution,
