@@ -141,6 +141,10 @@ describe('YieldSourcePrizePool', function () {
         it('should not allow the prize pool to award its token, as its likely the receipt', async () => {
             expect(await prizePool.canAwardExternal(yieldSource.address)).to.equal(false);
         });
+
+        it('should not allow the prize pool to award the deposit token', async () =>  {
+            expect(await prizePool.canAwardExternal(depositToken.address)).to.equal(false);
+        })
     });
 
     describe('sweep()', () => {

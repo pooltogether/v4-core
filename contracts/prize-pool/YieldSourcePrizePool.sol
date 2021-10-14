@@ -66,9 +66,10 @@ contract YieldSourcePrizePool is PrizePool {
     /// @param _externalToken The address of the token to check
     /// @return True if the token may be awarded, false otherwise
     function _canAwardExternal(address _externalToken) internal view override returns (bool) {
+        IYieldSource _yieldSource = yieldSource;
         return (
-            _externalToken != address(yieldSource) &&
-            _externalToken != yieldSource.depositToken()
+            _externalToken != address(_yieldSource) &&
+            _externalToken != _yieldSource.depositToken()
         );
     }
 
