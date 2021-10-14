@@ -143,7 +143,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
      * @notice Distributes prize split(s).
      * @dev Distributes prize split(s) by awarding ticket or sponsorship tokens.
      * @param _prize Starting prize award amount
-     * @return Total prize award distribution amount exlcuding the awarded prize split(s)
+     * @return The remainder after splits are taken
      */
     function _distributePrizeSplits(uint256 _prize) internal returns (uint256) {
         // Store temporary total prize amount for multiple calculations using initial prize amount.
@@ -160,7 +160,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
             _prizeTemp = _prizeTemp - _splitAmount;
         }
 
-        return _prize;
+        return _prizeTemp;
     }
 
     /**
