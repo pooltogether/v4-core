@@ -214,6 +214,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         uint256 currentAwardBalance = _currentAwardBalance;
 
         require(_amount <= currentAwardBalance, "PrizePool/award-exceeds-avail");
+
         unchecked {
             _currentAwardBalance = currentAwardBalance - _amount;
         }
