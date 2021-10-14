@@ -73,12 +73,13 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
         override
         returns (IPrizeDistributionBuffer.PrizeDistribution[] memory)
     {
+        uint256 drawIdsLength = _drawIds.length;
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
         IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = new IPrizeDistributionBuffer.PrizeDistribution[](
-            _drawIds.length
+            drawIdsLength
         );
 
-        for (uint256 i = 0; i < _drawIds.length; i++) {
+        for (uint256 i = 0; i < drawIdsLength; i++) {
             _prizeDistributions[i] = _getPrizeDistribution(buffer, _drawIds[i]);
         }
 

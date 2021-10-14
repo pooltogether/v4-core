@@ -193,11 +193,12 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         IDrawBeacon.Draw[] memory _draws,
         IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions
     ) internal view returns (uint256[] memory) {
-        uint64[] memory _timestampsWithStartCutoffTimes = new uint64[](_draws.length);
-        uint64[] memory _timestampsWithEndCutoffTimes = new uint64[](_draws.length);
+        uint256 drawsLength = _draws.length;
+        uint64[] memory _timestampsWithStartCutoffTimes = new uint64[](drawsLength);
+        uint64[] memory _timestampsWithEndCutoffTimes = new uint64[](drawsLength);
 
         // generate timestamps with draw cutoff offsets included
-        for (uint32 i = 0; i < _draws.length; i++) {
+        for (uint32 i = 0; i < drawsLength; i++) {
             unchecked {
                 _timestampsWithStartCutoffTimes[i] =
                     _draws[i].timestamp - _prizeDistributions[i].startTimestampOffset;
@@ -217,10 +218,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
             _timestampsWithEndCutoffTimes
         );
 
-        uint256[] memory normalizedBalances = new uint256[](_draws.length);
+        uint256[] memory normalizedBalances = new uint256[](drawsLength);
 
         // divide balances by total supplies (normalize)
-        for (uint256 i = 0; i < _draws.length; i++) {
+        for (uint256 i = 0; i < drawsLength; i++) {
             if(totalSupplies[i] == 0){
                 normalizedBalances[i] = 0;
             }

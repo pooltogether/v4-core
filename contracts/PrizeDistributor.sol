@@ -64,7 +64,8 @@ contract PrizeDistributor is IPrizeDistributor, Ownable {
         
         (uint256[] memory drawPayouts, ) = drawCalculator.calculate(_user, _drawIds, _data); // neglect the prizeCounts since we are not interested in them here
 
-        for (uint256 payoutIndex = 0; payoutIndex < drawPayouts.length; payoutIndex++) {
+        uint256 drawPayoutsLength = drawPayouts.length;
+        for (uint256 payoutIndex = 0; payoutIndex < drawPayoutsLength; payoutIndex++) {
             uint32 drawId = _drawIds[payoutIndex];
             uint256 payout = drawPayouts[payoutIndex];
             uint256 oldPayout = _getDrawPayoutBalanceOf(_user, drawId);

@@ -250,14 +250,15 @@ contract Ticket is ControlledToken, ITicket {
         uint64[] calldata _startTimes,
         uint64[] calldata _endTimes
     ) internal view returns (uint256[] memory) {
-        require(_startTimes.length == _endTimes.length, "Ticket/start-end-times-length-match");
+        uint256 startTimesLength = _startTimes.length;
+        require(startTimesLength == _endTimes.length, "Ticket/start-end-times-length-match");
 
         TwabLib.AccountDetails memory accountDetails = _account.details;
 
-        uint256[] memory averageBalances = new uint256[](_startTimes.length);
+        uint256[] memory averageBalances = new uint256[](startTimesLength);
         uint32 currentTimestamp = uint32(block.timestamp);
 
-        for (uint256 i = 0; i < _startTimes.length; i++) {
+        for (uint256 i = 0; i < startTimesLength; i++) {
             averageBalances[i] = TwabLib.getAverageBalanceBetween(
                 _account.twabs,
                 accountDetails,
