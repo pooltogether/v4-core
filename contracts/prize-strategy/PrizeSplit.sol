@@ -160,7 +160,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
             _prizeTemp = _prizeTemp - _splitAmount;
         }
 
-        return _prize;
+        return _prizeTemp;
     }
 
     /**
