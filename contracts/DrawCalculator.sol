@@ -358,11 +358,8 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         returns (uint256[] memory)
     {
         uint256[] memory masks = new uint256[](_prizeDistribution.matchCardinality);
-        uint256 _bitRangeMaskValue = (2**_prizeDistribution.bitRangeSize) - 1; // get a decimal representation of bitRangeSize
+        masks[0] =  (2**_prizeDistribution.bitRangeSize) - 1;
 
-        if(_prizeDistribution.matchCardinality == 0) return masks;
-
-        masks[0] = _bitRangeMaskValue;
         for (uint8 maskIndex = 1; maskIndex < _prizeDistribution.matchCardinality; maskIndex++) {
             // shift mask bits to correct position and insert in result mask array
             masks[maskIndex] = masks[maskIndex - 1] << _prizeDistribution.bitRangeSize;
