@@ -260,15 +260,19 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
             return;
         }
 
+        uint256[] memory _awardedTokenIds = new uint256[](_tokenIds.length); 
+
         for (uint256 i = 0; i < _tokenIds.length; i++) {
-            try IERC721(_externalToken).safeTransferFrom(address(this), _to, _tokenIds[i]) {} catch (
+            try IERC721(_externalToken).safeTransferFrom(address(this), _to, _tokenIds[i]) {
+                _awardedTokenIds[i] = _tokenIds[i];
+            } catch (
                 bytes memory error
             ) {
                 emit ErrorAwardingExternalERC721(error);
             }
         }
 
-        emit AwardedExternalERC721(_to, _externalToken, _tokenIds);
+        emit AwardedExternalERC721(_to, _externalToken, _awardedTokenIds);
     }
 
     /// @inheritdoc IPrizePool
