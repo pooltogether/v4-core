@@ -20,7 +20,7 @@ contract YieldSourcePrizePool is PrizePool {
     using Address for address;
 
     /// @notice Address of the yield source.
-    IYieldSource public yieldSource;
+    IYieldSource public immutable yieldSource;
 
     /// @dev Emitted when yield source prize pool is deployed.
     /// @param yieldSource Address of the yield source.
