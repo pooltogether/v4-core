@@ -312,7 +312,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         (address feeToken, uint256 requestFee) = rng.getRequestFee();
 
         if (feeToken != address(0) && requestFee > 0) {
-            IERC20(feeToken).safeApprove(address(rng), requestFee);
+            IERC20(feeToken).safeIncreaseAllowance(address(rng), requestFee);
         }
 
         (uint32 requestId, uint32 lockBlock) = rng.requestRandomNumber();
