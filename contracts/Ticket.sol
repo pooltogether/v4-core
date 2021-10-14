@@ -361,7 +361,7 @@ contract Ticket is ControlledToken, ITicket {
         ) = TwabLib.decreaseBalance(
                 _account,
                 _amount.toUint208(),
-                "ERC20: burn amount exceeds balance",
+                "Ticket/twab-burn-lt-balance",
                 uint32(block.timestamp)
             );
 

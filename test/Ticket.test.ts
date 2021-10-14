@@ -288,7 +288,7 @@ describe('Ticket', () => {
 
             await expect(
                 ticket.transferTo(wallet1.address, wallet2.address, insufficientMintAmount),
-            ).to.be.revertedWith('ERC20: burn amount exceeds balance');
+            ).to.be.revertedWith('Ticket/twab-burn-lt-balance');
         });
     });
 
@@ -422,7 +422,7 @@ describe('Ticket', () => {
             await ticket.mint(wallet2.address, mintAmount);
 
             await expect(ticket.burn(wallet1.address, mintAmount)).to.be.revertedWith(
-                'ERC20: burn amount exceeds balance',
+                'Ticket/twab-burn-lt-balance',
             );
         });
     });
