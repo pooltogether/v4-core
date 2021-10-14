@@ -74,7 +74,10 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
 
         // Remove old prize splits configs. Match storage _prizesSplits.length with the passed newPrizeSplits.length
         while (_prizeSplits.length > newPrizeSplitsLength) {
-            uint256 _index = _prizeSplits.length - 1;
+            uint256 _index;
+            unchecked {
+                _index = _prizeSplits.length - 1;
+            }
             _prizeSplits.pop();
             emit PrizeSplitRemoved(_index);
         }
