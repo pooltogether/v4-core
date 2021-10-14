@@ -53,9 +53,9 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
 
         if (prize == 0) return 0;
 
-        uint256 distributed = _distributePrizeSplits(prize);
+        uint256 remainder = _distributePrizeSplits(prize);
 
-        emit Distributed(distributed);
+        emit Distributed(prize - remainder);
 
         return prize;
     }
