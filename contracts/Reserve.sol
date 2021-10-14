@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IReserve.sol";
 import "./libraries/ObservationLib.sol";
+import "./libraries/RingBufferLib.sol";
 
 /**
     * @title  PoolTogether V4 Reserve
@@ -29,13 +30,15 @@ contract Reserve is IReserve, Manageable {
 
     /// @notice Total withdraw amount from reserve
     uint224 public withdrawAccumulator;
+    uint32 private _gap;
+
+    uint24 internal nextIndex;
+    uint24 internal cardinality;
 
     /// @notice The maximum number of twab entries
-    uint24 internal constant MAX_CARDINALITY = 16777215; // 2**24
+    uint24 internal constant MAX_CARDINALITY = 16777215; // 2**24 - 1
 
     ObservationLib.Observation[MAX_CARDINALITY] internal reserveAccumulators;
-
-    uint24 internal cardinality;
 
     /* ============ Events ============ */
 
@@ -74,18 +77,16 @@ contract Reserve is IReserve, Manageable {
     {
         require(_startTimestamp < _endTimestamp, "Reserve/start-less-then-end");
         uint24 _cardinality = cardinality;
+        uint24 _nextIndex = nextIndex;
 
-        ObservationLib.Observation memory _newestObservation;
-
-        if (_cardinality > 0) {
-            _newestObservation = reserveAccumulators[_cardinality - 1];
-        }
-
-        ObservationLib.Observation memory _oldestObservation = reserveAccumulators[0];
+        (uint24 _newestIndex, ObservationLib.Observation memory _newestObservation) = _getNewestObservation(_nextIndex);
+        (uint24 _oldestIndex, ObservationLib.Observation memory _oldestObservation) = _getOldestObservation(_nextIndex);
 
         uint224 _start = _getReserveAccumulatedAt(
             _newestObservation,
             _oldestObservation,
+            _newestIndex,
+            _oldestIndex,
             _cardinality,
             _startTimestamp
         );
@@ -93,6 +94,8 @@ contract Reserve is IReserve, Manageable {
         uint224 _end = _getReserveAccumulatedAt(
             _newestObservation,
             _oldestObservation,
+            _newestIndex,
+            _oldestIndex,
             _cardinality,
             _endTimestamp
         );
@@ -118,6 +121,8 @@ contract Reserve is IReserve, Manageable {
      * @dev    Uses binary search if target timestamp is within ring buffer range.
      * @param _newestObservation ObservationLib.Observation
      * @param _oldestObservation ObservationLib.Observation
+     * @param _newestIndex The index of the newest observation
+     * @param _oldestIndex The index of the oldest observation
      * @param _cardinality       RingBuffer Range
      * @param _timestamp          Timestamp target
      *
@@ -126,6 +131,8 @@ contract Reserve is IReserve, Manageable {
     function _getReserveAccumulatedAt(
         ObservationLib.Observation memory _newestObservation,
         ObservationLib.Observation memory _oldestObservation,
+        uint24 _newestIndex,
+        uint24 _oldestIndex,
         uint24 _cardinality,
         uint32 _timestamp
     ) internal view returns (uint224) {
@@ -168,8 +175,8 @@ contract Reserve is IReserve, Manageable {
             ObservationLib.Observation memory atOrAfter
         ) = ObservationLib.binarySearch(
                 reserveAccumulators,
-                _cardinality - 1,
-                0,
+                _newestIndex,
+                _oldestIndex,
                 _timestamp,
                 _cardinality,
                 timeNow
@@ -188,34 +195,37 @@ contract Reserve is IReserve, Manageable {
     /// @notice Records the currently accrued reserve amount.
     function _checkpoint() internal {
         uint24 _cardinality = cardinality;
+        uint24 _nextIndex = nextIndex;
         uint256 _balanceOfReserve = token.balanceOf(address(this));
         uint224 _withdrawAccumulator = withdrawAccumulator; //sload
-        ObservationLib.Observation memory _newestObservation = _getNewestObservation(_cardinality);
+        (uint24 newestIndex, ObservationLib.Observation memory newestObservation) = _getNewestObservation(_nextIndex);
 
         /**
          * IF tokens have been deposited into Reserve contract since the last checkpoint
          * create a new Reserve balance checkpoint. The will will update multiple times in a single block.
          */
-        if (_balanceOfReserve + _withdrawAccumulator > _newestObservation.amount) {
+        if (_balanceOfReserve + _withdrawAccumulator > newestObservation.amount) {
             uint32 nowTime = uint32(block.timestamp);
 
             // checkpointAccumulator = currentBalance + totalWithdraws
             uint224 newReserveAccumulator = uint224(_balanceOfReserve) + _withdrawAccumulator;
 
-            // IF _newestObservation IS NOT in the current block.
+            // IF newestObservation IS NOT in the current block.
             // CREATE observation in the accumulators ring buffer.
-            if (_newestObservation.timestamp != nowTime) {
-                reserveAccumulators[_cardinality] = ObservationLib.Observation({
+            if (newestObservation.timestamp != nowTime) {
+                reserveAccumulators[_nextIndex] = ObservationLib.Observation({
                     amount: newReserveAccumulator,
                     timestamp: nowTime
                 });
-
-                cardinality++;
+                nextIndex = uint24(RingBufferLib.nextIndex(_nextIndex, MAX_CARDINALITY));
+                if (_cardinality < MAX_CARDINALITY) {
+                    cardinality = _cardinality + 1;
+                }
             }
-            // ELSE IF _newestObservation IS in the current block.
+            // ELSE IF newestObservation IS in the current block.
             // UPDATE the checkpoint previously created in block history.
             else {
-                reserveAccumulators[_cardinality - 1] = ObservationLib.Observation({
+                reserveAccumulators[newestIndex] = ObservationLib.Observation({
                     amount: newReserveAccumulator,
                     timestamp: nowTime
                 });
@@ -225,12 +235,31 @@ contract Reserve is IReserve, Manageable {
         }
     }
 
-    /// @notice Retrieves the newest observation
-    function _getNewestObservation(uint24 _cardinality)
+    /// @notice Retrieves the oldest observation
+    /// @param _nextIndex The next index of the Reserve observations
+    function _getOldestObservation(uint24 _nextIndex)
         internal
         view
-        returns (ObservationLib.Observation memory _observation)
+        returns (uint24 index, ObservationLib.Observation memory observation)
     {
-        if (_cardinality > 0) _observation = reserveAccumulators[_cardinality - 1];
+        index = _nextIndex;
+        observation = reserveAccumulators[index];
+
+        // If the TWAB is not initialized we go to the beginning of the TWAB circular buffer at index 0
+        if (observation.timestamp == 0) {
+            index = 0;
+            observation = reserveAccumulators[0];
+        }
+    }
+
+    /// @notice Retrieves the newest observation
+    /// @param _nextIndex The next index of the Reserve observations
+    function _getNewestObservation(uint24 _nextIndex)
+        internal
+        view
+        returns (uint24 index, ObservationLib.Observation memory observation)
+    {
+        index = uint24(RingBufferLib.newestIndex(_nextIndex, MAX_CARDINALITY));
+        observation = reserveAccumulators[index];
     }
 }
