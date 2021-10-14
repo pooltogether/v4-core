@@ -40,6 +40,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
         onlyOwner
     {
         uint256 newPrizeSplitsLength = _newPrizeSplits.length;
+        require(newPrizeSplitsLength <= type(uint8).max, "PrizeSplit/invalid-prizesplits-length");
 
         // Add and/or update prize split configs using _newPrizeSplits PrizeSplitConfig structs array.
         for (uint256 index = 0; index < newPrizeSplitsLength; index++) {
@@ -122,7 +123,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
         uint256 _tempTotalPercentage;
         uint256 prizeSplitsLength = _prizeSplits.length;
 
-        for (uint8 index = 0; index < prizeSplitsLength; index++) {
+        for (uint256 index = 0; index < prizeSplitsLength; index++) {
             _tempTotalPercentage += _prizeSplits[index].percentage;
         }
 

@@ -26,6 +26,22 @@ describe('PrizeSplitStrategy', () => {
     });
 
     describe('setPrizeSplits()', () => {
+        it('should fail to set more than 256 prize splits', async () => {
+            const newPrizeSplits = [];
+
+            for (let i = 0; i < 256; i++) {
+                newPrizeSplits.push({
+                    target: wallet2.address,
+                    percentage: 1,
+                    token: 1,
+                });
+            }
+
+            await expect(
+                prizeSplit.setPrizeSplits(newPrizeSplits),
+            ).to.be.revertedWith('PrizeSplit/invalid-prizesplits-length');
+        });
+
         it('should revert with invalid prize split target address', async () => {
             await expect(
                 prizeSplit.setPrizeSplits([
