@@ -77,6 +77,7 @@ contract PrizeDistributor is IPrizeDistributor, Ownable {
             unchecked {
                 payoutDiff = payout - oldPayout;
             }
+
             _setDrawPayoutBalanceOf(_user, drawId, payout);
 
             totalPayout += payoutDiff;
