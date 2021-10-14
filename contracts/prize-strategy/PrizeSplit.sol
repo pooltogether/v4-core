@@ -14,6 +14,8 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     /* ============ Global Variables ============ */
     PrizeSplitConfig[] internal _prizeSplits;
 
+    uint16 public constant ONE_AS_FIXED_POINT_3 = 1000;
+
     /* ============ External Functions ============ */
 
     /// @inheritdoc IPrizeSplit
@@ -79,7 +81,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
 
         // Total prize split do not exceed 100%
         uint256 totalPercentage = _totalPrizeSplitPercentageAmount();
-        require(totalPercentage <= 1000, "PrizeSplit/invalid-prizesplit-percentage-total");
+        require(totalPercentage <= ONE_AS_FIXED_POINT_3, "PrizeSplit/invalid-prizesplit-percentage-total");
     }
 
     /// @inheritdoc IPrizeSplit
@@ -96,7 +98,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
 
         // Total prize split do not exceed 100%
         uint256 totalPercentage = _totalPrizeSplitPercentageAmount();
-        require(totalPercentage <= 1000, "PrizeSplit/invalid-prizesplit-percentage-total");
+        require(totalPercentage <= ONE_AS_FIXED_POINT_3, "PrizeSplit/invalid-prizesplit-percentage-total");
 
         // Emit updated prize split config
         emit PrizeSplitSet(
@@ -119,7 +121,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
         pure
         returns (uint256)
     {
-        return (_amount * _percentage) / 1000;
+        return (_amount * _percentage) / ONE_AS_FIXED_POINT_3;
     }
 
     /**
