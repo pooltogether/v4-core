@@ -359,12 +359,11 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
     /// @param _amount The amount of tokens to be deposited into the Prize Pool.
     /// @return True if the Prize Pool can receive the specified `amount` of tokens.
     function _canDeposit(address _user, uint256 _amount) internal view returns (bool) {
-        ITicket _ticket = ticket;
         uint256 _balanceCap = balanceCap;
 
         if (_balanceCap == type(uint256).max) return true;
 
-        return (_ticket.balanceOf(_user) + _amount <= _balanceCap);
+        return (ticket.balanceOf(_user) + _amount <= _balanceCap);
     }
 
     /// @dev Checks if the Prize Pool can receive liquidity based on the current cap
