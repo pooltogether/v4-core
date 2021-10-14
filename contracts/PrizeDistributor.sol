@@ -71,13 +71,13 @@ contract PrizeDistributor is IPrizeDistributor, Ownable {
             uint256 oldPayout = _getDrawPayoutBalanceOf(_user, drawId);
             uint256 payoutDiff = 0;
 
-            if (payout > oldPayout) {
-                payoutDiff = payout - oldPayout;
-                _setDrawPayoutBalanceOf(_user, drawId, payout);
-            }
-
             // helpfully short-circuit, in case the user screwed something up.
-            require(payoutDiff > 0, "PrizeDistributor/zero-payout");
+            require(payout > oldPayout, "PrizeDistributor/zero-payout");
+
+            unchecked {
+                payoutDiff = payout - oldPayout;
+            }
+            _setDrawPayoutBalanceOf(_user, drawId, payout);
 
             totalPayout += payoutDiff;
 

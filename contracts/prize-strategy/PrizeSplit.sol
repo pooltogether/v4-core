@@ -123,8 +123,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
         uint256 prizeSplitsLength = _prizeSplits.length;
 
         for (uint8 index = 0; index < prizeSplitsLength; index++) {
-            PrizeSplitConfig memory split = _prizeSplits[index];
-            _tempTotalPercentage = _tempTotalPercentage + split.percentage;
+            _tempTotalPercentage += _prizeSplits[index].percentage;
         }
 
         return _tempTotalPercentage;
