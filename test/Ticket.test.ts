@@ -405,16 +405,6 @@ describe('Ticket', () => {
             );
         });
 
-        it('should fail to burn tickets from user balance if burn amount exceeds total supply', async () => {
-            const insufficientMintAmount = toWei('250');
-
-            await ticket.mint(wallet1.address, insufficientMintAmount);
-
-            await expect(ticket.burn(wallet1.address, mintAmount)).to.be.revertedWith(
-                'Ticket/burn-amount-exceeds-total-supply-twab',
-            );
-        });
-
         it('should fail to burn tickets from user balance if burn amount exceeds user balance', async () => {
             const insufficientMintAmount = toWei('250');
 

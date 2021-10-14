@@ -14,7 +14,7 @@ import "./ControlledToken.sol";
   * @title  PoolTogether V4 Ticket
   * @author PoolTogether Inc Team
   * @notice The Ticket extends the standard ERC20 and ControlledToken interfaces with time-weighted average balance functionality.
-            The average balance held by a user between two timestamps can be calculated, as well as the historic balance.  The 
+            The average balance held by a user between two timestamps can be calculated, as well as the historic balance.  The
             historic total supply is available as well as the average total supply between two timestamps.
 
             A user may "delegate" their balance; increasing another user's historic balance while retaining their tokens.
@@ -295,20 +295,22 @@ contract Ticket is ControlledToken, ITicket {
     /// @param _to The user to transfer the balance to.  May be zero in the event of a burn.
     /// @param _amount The balance that is being transferred.
     function _transferTwab(address _from, address _to, uint256 _amount) internal {
-        // If we are transferring tokens from an undelegated account to a delegated account
-        if (_from == address(0) && _to != address(0)) {
-            _increaseTotalSupplyTwab(_amount);
-        } else // if we are transferring tokens from a delegated account to an undelegated account
-        if (_from != address(0) && _to == address(0)) {
-            _decreaseTotalSupplyTwab(_amount);
-        } // otherwise if the to delegate is set, then increase their twab
-
+        // If we are transferring tokens from a delegated account to an undelegated account
         if (_from != address(0)) {
             _decreaseUserTwab(_from, _amount);
+
+            if (_to == address(0)) {
+                _decreaseTotalSupplyTwab(_amount);
+            }
         }
-        
+
+        // If we are transferring tokens from an undelegated account to a delegated account
         if (_to != address(0)) {
             _increaseUserTwab(_to, _amount);
+
+            if (_from == address(0)) {
+                _increaseTotalSupplyTwab(_amount);
+            }
         }
     }
 
