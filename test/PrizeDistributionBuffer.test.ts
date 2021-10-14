@@ -25,9 +25,7 @@ describe('PrizeDistributionBuffer', () => {
         expiryDuration: BigNumber.from(100),
     };
 
-    prizeDistribution.tiers = fillPrizeTiersWithZeros(
-        prizeDistribution.tiers,
-    );
+    prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
     function newPrizeDistribution(cardinality: number = 5): any {
         return {
@@ -47,19 +45,16 @@ describe('PrizeDistributionBuffer', () => {
 
         prizeDistributionBuffer = await prizeDistributionBufferFactory.deploy(wallet1.address, 3);
 
-        prizeDistribution.tiers = fillPrizeTiersWithZeros(
-            prizeDistribution.tiers,
-        );
+        prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
         await prizeDistributionBuffer.setManager(wallet1.address);
     });
 
     describe('getBufferCardinality()', () => {
         it('should read buffer cardinality set in constructor', async () => {
-            expect(await prizeDistributionBuffer.getBufferCardinality())
-                .to.equal(3)
+            expect(await prizeDistributionBuffer.getBufferCardinality()).to.equal(3);
         });
-    })
+    });
 
     describe('getNewestPrizeDistribution()', () => {
         it('should error when no draw buffer', async () => {
@@ -159,17 +154,7 @@ describe('PrizeDistributionBuffer', () => {
                     expiryDuration: BigNumber.from(100),
                 };
 
-                prizeDistribution.tiers = fillPrizeTiersWithZeros(
-                    prizeDistribution.tiers,
-                );
-            });
-
-            it('should require a sane cardinality', async () => {
-                prizeDistribution.matchCardinality = BigNumber.from(3);
-
-                await expect(
-                    prizeDistributionBuffer.pushPrizeDistribution(1, prizeDistribution),
-                ).to.be.revertedWith('DrawCalc/matchCardinality-gte-tiers');
+                prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
             });
 
             it('should require a sane bit range', async () => {

@@ -32,7 +32,8 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
     event Deployed(uint8 cardinality);
 
     /// @notice PrizeDistribution ring buffer history.
-    IPrizeDistributionBuffer.PrizeDistribution[MAX_CARDINALITY] internal prizeDistributionRingBuffer;
+    IPrizeDistributionBuffer.PrizeDistribution[MAX_CARDINALITY]
+        internal prizeDistributionRingBuffer;
 
     /// @notice Ring buffer metadata (nextIndex, lastId, cardinality)
     DrawRingBufferLib.Buffer internal bufferMetadata;
@@ -75,9 +76,10 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
     {
         uint256 drawIdsLength = _drawIds.length;
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
-        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = new IPrizeDistributionBuffer.PrizeDistribution[](
-            drawIdsLength
-        );
+        IPrizeDistributionBuffer.PrizeDistribution[]
+            memory _prizeDistributions = new IPrizeDistributionBuffer.PrizeDistribution[](
+                drawIdsLength
+            );
 
         for (uint256 i = 0; i < drawIdsLength; i++) {
             _prizeDistributions[i] = _getPrizeDistribution(buffer, _drawIds[i]);
@@ -113,10 +115,7 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
     {
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
 
-        return (
-            prizeDistributionRingBuffer[buffer.getIndex(buffer.lastDrawId)],
-            buffer.lastDrawId
-        );
+        return (prizeDistributionRingBuffer[buffer.getIndex(buffer.lastDrawId)], buffer.lastDrawId);
     }
 
     /// @inheritdoc IPrizeDistributionBuffer
@@ -191,7 +190,6 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
         uint32 _drawId,
         IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution
     ) internal returns (bool) {
-
         require(_drawId > 0, "DrawCalc/draw-id-gt-0");
         require(_prizeDistribution.matchCardinality > 0, "DrawCalc/matchCardinality-gt-0");
         require(
@@ -203,27 +201,17 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
         require(_prizeDistribution.maxPicksPerUser > 0, "DrawCalc/maxPicksPerUser-gt-0");
         require(_prizeDistribution.expiryDuration > 0, "DrawCalc/expiryDuration-gt-0");
 
-        // ensure that the sum of the tiers are not gt 100% and record number of non-zero tiers entries
+        // ensure that the sum of the tiers are not gt 100%
         uint256 sumTotalTiers = 0;
-        uint256 nonZeroTiers = 0;
         uint256 tiersLength = _prizeDistribution.tiers.length;
 
         for (uint256 index = 0; index < tiersLength; index++) {
             uint256 tier = _prizeDistribution.tiers[index];
             sumTotalTiers += tier;
-
-            if (tier > 0) {
-                nonZeroTiers++;
-            }
         }
 
         // Each tier amount stored as uint32 - summed can't exceed 1e9
         require(sumTotalTiers <= TIERS_CEILING, "DrawCalc/tiers-gt-100%");
-
-        require(
-            _prizeDistribution.matchCardinality >= nonZeroTiers,
-            "DrawCalc/matchCardinality-gte-tiers"
-        );
 
         DrawRingBufferLib.Buffer memory buffer = bufferMetadata;
 
