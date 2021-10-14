@@ -55,23 +55,11 @@ describe('YieldSourcePrizePool', function () {
         yieldSource = await deployMockContract(wallet as Signer, IYieldSource.abi);
         await yieldSource.mock.depositToken.returns(depositToken.address);
 
-        if (!isConstructorTest) {
-            await deployYieldSourcePrizePool();
-        }
+        await deployYieldSourcePrizePool();
     });
 
     describe('constructor()', () => {
-        before(() => {
-            isConstructorTest = true;
-        });
-
-        after(() => {
-            isConstructorTest = false;
-        });
-
         it('should deploy correctly', async () => {
-            await deployYieldSourcePrizePool();
-
             await expect(prizePool.deployTransaction)
                 .to.emit(prizePool, 'Deployed')
                 .withArgs(yieldSource.address);
@@ -88,6 +76,13 @@ describe('YieldSourcePrizePool', function () {
         it('should require a valid yield source', async () => {
             await expect(
                 YieldSourcePrizePool.deploy(wallet.address, prizePool.address),
+            ).to.be.revertedWith('YieldSourcePrizePool/invalid-yield-source');
+        });
+
+        it('should require a valid yield source', async () => {
+            await yieldSource.mock.depositToken.returns(AddressZero);
+            await expect(
+                YieldSourcePrizePool.deploy(wallet.address, yieldSource.address),
             ).to.be.revertedWith('YieldSourcePrizePool/invalid-yield-source');
         });
     });
