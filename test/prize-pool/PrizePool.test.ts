@@ -526,7 +526,7 @@ describe('PrizePool', function () {
             });
         });
 
-        describe.only('awardExternalERC721()', () => {
+        describe('awardExternalERC721()', () => {
             beforeEach(async () => {
                 await prizePool.setPrizeStrategy(prizeStrategyManager.address);
             });
@@ -578,7 +578,7 @@ describe('PrizePool', function () {
                     .withArgs(erc721tokenMock.address)
                     .returns(true);
 
-                await erc721tokenMock.mock.transferFrom
+                await erc721tokenMock.mock['safeTransferFrom(address,address,uint256)']
                     .withArgs(prizePool.address, wallet1.address, NFT_TOKEN_ID)
                     .reverts();
 
@@ -591,18 +591,18 @@ describe('PrizePool', function () {
                 ).to.emit(prizePool, 'ErrorAwardingExternalERC721');
             });
 
-            it.only('should not emit faulty tokenIds', async () => {
+            it('should not emit faulty tokenIds', async () => {
                 // add faulty tokenId
                 await yieldSourceStub.mock.canAwardExternal
                     .withArgs(erc721tokenMock.address)
                     .returns(true);
 
-                await erc721tokenMock.mock.safeTransferFrom
+                await erc721tokenMock.mock['safeTransferFrom(address,address,uint256)']
                     .withArgs(prizePool.address, wallet1.address, 1)
                     .reverts();
 
                 // add non-faulty tokenId
-                await erc721tokenMock.mock.safeTransferFrom
+                await erc721tokenMock.mock['safeTransferFrom(address,address,uint256)']
                     .withArgs(prizePool.address, wallet1.address, 2)
                     .returns();
 

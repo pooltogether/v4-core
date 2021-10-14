@@ -14,8 +14,6 @@ import "../external/compound/ICompLike.sol";
 import "../interfaces/IPrizePool.sol";
 import "../interfaces/ITicket.sol";
 
-import "hardhat/console.sol";
-
 /**
   * @title  PoolTogether V4 PrizePool
   * @author PoolTogether Inc Team
@@ -263,21 +261,21 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
         }
 
         uint256[] memory _awardedTokenIds = new uint256[](_tokenIds.length); 
+        bool hasAwardedTokenIds;
 
         for (uint256 i = 0; i < _tokenIds.length; i++) {
-            console.log("trying to send ", _tokenIds[i]);
             try IERC721(_externalToken).safeTransferFrom(address(this), _to, _tokenIds[i]) {
-                console.log("pushing tokenId ", _tokenIds[i]);
+                hasAwardedTokenIds = true;
                 _awardedTokenIds[i] = _tokenIds[i];
             } catch (
                 bytes memory error
             ) {
-                console.log("errror");
                 emit ErrorAwardingExternalERC721(error);
             }
         }
-        
-        emit AwardedExternalERC721(_to, _externalToken, _awardedTokenIds);
+        if (hasAwardedTokenIds) { 
+            emit AwardedExternalERC721(_to, _externalToken, _awardedTokenIds);
+        }
     }
 
     /// @inheritdoc IPrizePool
