@@ -13,7 +13,7 @@ const { getContractFactory, getSigners, Wallet } = ethers;
 const { parseEther: toWei } = utils;
 
 const debug = require('debug')('ptv3:PrizePool.test');
-const NFT_TOKEN_ID = 1;
+let NFT_TOKEN_ID = 1;
 
 describe('PrizePool', function () {
     let wallet1: SignerWithAddress;
@@ -163,17 +163,19 @@ describe('PrizePool', function () {
 
         describe('depositToAndDelegate()', () => {
             it('should delegate after depositing', async () => {
-                const amount = toWei('100')
+                const amount = toWei('100');
                 await depositToken.approve(prizePool.address, amount);
                 await depositToken.mint(wallet1.address, amount);
 
-                await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, prizePool.address).returns()
+                await yieldSourceStub.mock.supplyTokenTo
+                    .withArgs(amount, prizePool.address)
+                    .returns();
 
-                await prizePool.depositToAndDelegate(wallet1.address, amount, wallet2.address)
+                await prizePool.depositToAndDelegate(wallet1.address, amount, wallet2.address);
 
-                expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address)
-            })
-        })
+                expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
+            });
+        });
 
         describe('depositTo()', () => {
             it('should revert when deposit exceeds liquidity cap', async () => {
@@ -524,7 +526,7 @@ describe('PrizePool', function () {
             });
         });
 
-        describe('awardExternalERC721()', () => {
+        describe.only('awardExternalERC721()', () => {
             beforeEach(async () => {
                 await prizePool.setPrizeStrategy(prizeStrategyManager.address);
             });
@@ -587,6 +589,30 @@ describe('PrizePool', function () {
                             NFT_TOKEN_ID,
                         ]),
                 ).to.emit(prizePool, 'ErrorAwardingExternalERC721');
+            });
+
+            it.only('should not emit faulty tokenIds', async () => {
+                // add faulty tokenId
+                await yieldSourceStub.mock.canAwardExternal
+                    .withArgs(erc721tokenMock.address)
+                    .returns(true);
+
+                await erc721tokenMock.mock.safeTransferFrom
+                    .withArgs(prizePool.address, wallet1.address, 1)
+                    .reverts();
+
+                // add non-faulty tokenId
+                await erc721tokenMock.mock.safeTransferFrom
+                    .withArgs(prizePool.address, wallet1.address, 2)
+                    .returns();
+
+                await expect(
+                    prizePool
+                        .connect(prizeStrategyManager)
+                        .awardExternalERC721(wallet1.address, erc721tokenMock.address, [1, 2]),
+                )
+                    .to.emit(prizePool, 'AwardedExternalERC721')
+                    .withArgs(wallet1.address, erc721tokenMock.address, [0, 2]);
             });
         });
 
