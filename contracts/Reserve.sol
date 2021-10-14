@@ -235,6 +235,8 @@ contract Reserve is IReserve, Manageable {
         }
     }
 
+    /// @notice Retrieves the oldest observation
+    /// @param _nextIndex The next index of the Reserve observations
     function _getOldestObservation(uint24 _nextIndex)
         internal
         view
@@ -251,6 +253,7 @@ contract Reserve is IReserve, Manageable {
     }
 
     /// @notice Retrieves the newest observation
+    /// @param _nextIndex The next index of the Reserve observations
     function _getNewestObservation(uint24 _nextIndex)
         internal
         view
