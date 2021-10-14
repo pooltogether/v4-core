@@ -25,7 +25,6 @@ import "../interfaces/ITicket.sol";
 abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
-    using SafeERC20 for IERC721;
     using ERC165Checker for address;
 
     /// @notice Semver Version
