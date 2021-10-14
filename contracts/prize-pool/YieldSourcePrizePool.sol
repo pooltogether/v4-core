@@ -42,11 +42,14 @@ contract YieldSourcePrizePool is PrizePool {
         yieldSource = _yieldSource;
 
         // A hack to determine whether it's an actual yield source
-        (bool succeeded, ) = address(_yieldSource).staticcall(
+        (bool succeeded, bytes memory data) = address(_yieldSource).staticcall(
             abi.encodePacked(_yieldSource.depositToken.selector)
         );
-
-        require(succeeded, "YieldSourcePrizePool/invalid-yield-source");
+        address resultingAddress;
+        if (data.length > 0) {
+            resultingAddress = abi.decode(data, (address));
+        }
+        require(succeeded && resultingAddress != address(0), "YieldSourcePrizePool/invalid-yield-source");
 
         emit Deployed(address(_yieldSource));
     }
