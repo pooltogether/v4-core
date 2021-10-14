@@ -427,14 +427,10 @@ contract DrawCalculator is IDrawCalculator, Ownable {
         pure
         returns (uint256)
     {
-        uint256 bitRangeDecimal = 2**uint256(_bitRangeSize);
-        uint256 numberOfPrizesForIndex = bitRangeDecimal**_prizeTierIndex;
-
-        while (_prizeTierIndex > 0) {
-            numberOfPrizesForIndex -= bitRangeDecimal**(_prizeTierIndex - 1);
-            _prizeTierIndex--;
+        if (_prizeTierIndex > 0) {
+            return ( 1 << _bitRangeSize * _prizeTierIndex ) - ( 1 << _bitRangeSize * (_prizeTierIndex - 1) );
+        } else {
+            return 1;
         }
-
-        return numberOfPrizesForIndex;
     }
 }
