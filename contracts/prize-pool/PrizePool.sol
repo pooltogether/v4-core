@@ -282,9 +282,7 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
     /// @inheritdoc IPrizePool
     function setTicket(ITicket _ticket) external override onlyOwner returns (bool) {
-        address _ticketAddress = address(_ticket);
-
-        require(_ticketAddress != address(0), "PrizePool/ticket-not-zero-address");
+        require(address(_ticket) != address(0), "PrizePool/ticket-not-zero-address");
         require(address(ticket) == address(0), "PrizePool/ticket-already-set");
 
         ticket = _ticket;
