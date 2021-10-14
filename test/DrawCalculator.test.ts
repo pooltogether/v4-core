@@ -1100,6 +1100,73 @@ describe('DrawCalculator', () => {
                 assertEmptyArrayOfBigNumbers(prizeCounts[0][0].slice(2));
             });
 
+            it('runner up matches but tier is 0 at index 1', async () => {
+                // cardinality 3
+                // matches = 2
+                // non zero tiers = 4
+                prizeDistribution = {
+                    ...prizeDistribution,
+                    bitRangeSize: BigNumber.from(2),
+                    matchCardinality: BigNumber.from(3),
+                    tiers: [
+                        ethers.utils.parseUnits('0.1', 9), 
+                        ethers.utils.parseUnits('0', 9), // NOTE ZERO here
+                        ethers.utils.parseUnits('0.1', 9),
+                        ethers.utils.parseUnits('0.1', 9)
+                    ],
+                };
+
+                prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
+
+                await prizeDistributionBuffer.mock.getPrizeDistributions
+                    .withArgs([1])
+                    .returns([prizeDistribution]);
+
+                const timestamps = [(await ethers.provider.getBlock('latest')).timestamp];
+                const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+                const ticketBalance = utils.parseEther('10');
+                const totalSupply = utils.parseEther('100');
+
+                const offsetStartTimestamps = modifyTimestampsWithOffset(
+                    timestamps,
+                    prizeDistribution.startTimestampOffset.toNumber(),
+                );
+
+                const offsetEndTimestamps = modifyTimestampsWithOffset(
+                    timestamps,
+                    prizeDistribution.startTimestampOffset.toNumber(),
+                );
+
+                await ticket.mock.getAverageBalancesBetween
+                    .withArgs(wallet1.address, offsetStartTimestamps, offsetEndTimestamps)
+                    .returns([ticketBalance]); // (user, timestamp): [balance]
+
+                await ticket.mock.getAverageTotalSuppliesBetween
+                    .withArgs(offsetStartTimestamps, offsetEndTimestamps)
+                    .returns([totalSupply]);
+
+                const draw: Draw = newDraw({
+                    drawId: BigNumber.from(1),
+                    winningRandomNumber: BigNumber.from(
+                        '25671298157762322557963155952891969742538148226988266342908289227085909174336',
+                    ),
+                    timestamp: BigNumber.from(timestamps[0]),
+                });
+
+                await drawBuffer.mock.getDraws.returns([draw]);
+
+                const prizesAwardable = await drawCalculator.calculate(
+                    wallet1.address,
+                    [draw.drawId],
+                    pickIndices,
+                );
+            
+                expect(prizesAwardable[0][0]).to.equal(utils.parseEther('0'));
+                const prizeCounts = encoder.decode(['uint256[][]'], prizesAwardable[1]);
+                expect(prizeCounts[0][0][1]).to.equal(BigNumber.from(1)); // has a prizeCount = 1 at runner up index
+                assertEmptyArrayOfBigNumbers(prizeCounts[0][0].slice(2));
+            });
+
             it('should calculate for multiple picks, first pick grand prize winner, second pick no winnings', async () => {
                 //function calculate(address user, uint256[] calldata randomNumbers, uint256[] calldata timestamps, uint256[] calldata prizes, bytes calldata data) external override view returns (uint256){
 
