@@ -142,4 +142,18 @@ describe('YieldSourcePrizePool', function () {
             expect(await prizePool.canAwardExternal(yieldSource.address)).to.equal(false);
         });
     });
+
+    describe('sweep()', () => {
+        it('should sweep stray tokens', async () => {
+            await depositToken.mint(prizePool.address, toWei('100'))
+            await yieldSource.mock.supplyTokenTo.withArgs(toWei('100'), prizePool.address).returns()
+            await expect(prizePool.sweep())
+                .to.emit(prizePool, 'Swept')
+                .withArgs(toWei('100'))
+        })
+
+        it('should not allow a non-owner to call it', async () => {
+            await expect(prizePool.connect(wallet2).sweep()).to.be.revertedWith('Ownable/caller-not-owner')
+        })
+    })
 });
