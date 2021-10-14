@@ -335,7 +335,11 @@ contract DrawCalculator is IDrawCalculator, Ownable {
 
             if ((_randomNumberThisPick & mask) != (_winningRandomNumber & mask)) {
                 // there are no more sequential matches since this comparison is not a match
-                return masksLength - numberOfMatches;
+                if (masksLength == numberOfMatches) {
+                    return 0;
+                } else {
+                    return masksLength - numberOfMatches;
+                }
             }
 
             // else there was a match
