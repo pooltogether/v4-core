@@ -6,7 +6,6 @@ import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
 import "./interfaces/IDrawBuffer.sol";
 import "./interfaces/IDrawBeacon.sol";
-import "./interfaces/IDrawBeacon.sol";
 import "./libraries/DrawRingBufferLib.sol";
 
 /**

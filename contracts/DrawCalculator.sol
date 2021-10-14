@@ -4,14 +4,11 @@ pragma solidity 0.8.6;
 
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
-import "./PrizeDistributor.sol";
-
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawBuffer.sol";
 import "./interfaces/IPrizeDistributionBuffer.sol";
 import "./interfaces/IDrawBeacon.sol";
-import "./libraries/DrawRingBufferLib.sol";
 
 /**
   * @title  PoolTogether V4 DrawCalculator
