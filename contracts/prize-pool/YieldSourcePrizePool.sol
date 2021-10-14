@@ -26,6 +26,10 @@ contract YieldSourcePrizePool is PrizePool {
     /// @param yieldSource Address of the yield source.
     event Deployed(address indexed yieldSource);
 
+    /// @notice Emitted when stray deposit token balance in this contract is swept
+    /// @param amount The amount that was swept
+    event Swept(uint256 amount);
+
     /// @notice Deploy the Prize Pool and Yield Service with the required contract connections
     /// @param _owner Address of the Yield Source Prize Pool owner
     /// @param _yieldSource Address of the yield source
@@ -47,13 +51,26 @@ contract YieldSourcePrizePool is PrizePool {
         emit Deployed(address(_yieldSource));
     }
 
+    /// @notice Sweeps any stray balance of deposit tokens into the yield source.
+    /// @dev This becomes prize money
+    function sweep() external nonReentrant onlyOwner {
+        uint256 balance = _token().balanceOf(address(this));
+        _supply(balance);
+
+        emit Swept(balance);
+    }
+
     /// @notice Determines whether the passed token can be transferred out as an external award.
     /// @dev Different yield sources will hold the deposits as another kind of token: such a Compound's cToken.  The
     /// prize strategy should not be allowed to move those tokens.
     /// @param _externalToken The address of the token to check
     /// @return True if the token may be awarded, false otherwise
     function _canAwardExternal(address _externalToken) internal view override returns (bool) {
-        return _externalToken != address(yieldSource);
+        IYieldSource _yieldSource = yieldSource;
+        return (
+            _externalToken != address(_yieldSource) &&
+            _externalToken != _yieldSource.depositToken()
+        );
     }
 
     /// @notice Returns the total balance (in asset tokens).  This includes the deposits and interest.

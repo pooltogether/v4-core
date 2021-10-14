@@ -176,9 +176,9 @@ abstract contract PrizePool is IPrizePool, Ownable, ReentrancyGuard, IERC721Rece
 
         ITicket _ticket = ticket;
 
-        _mint(_to, _amount, _ticket);
-
         _token().safeTransferFrom(_operator, address(this), _amount);
+
+        _mint(_to, _amount, _ticket);
         _supply(_amount);
 
         emit Deposited(_operator, _to, _ticket, _amount);
