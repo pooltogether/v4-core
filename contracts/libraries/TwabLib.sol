@@ -112,7 +112,7 @@ library TwabLib {
 
         (accountDetails, twab, isNew) = _nextTwab(_account.twabs, _accountDetails, _currentTime);
         unchecked {
-            accountDetails.balance = _accountDetails.balance - _amount;
+            accountDetails.balance -= _amount;
         }
     }
 
