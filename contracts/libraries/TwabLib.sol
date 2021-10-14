@@ -111,7 +111,9 @@ library TwabLib {
         require(_accountDetails.balance >= _amount, _revertMessage);
 
         (accountDetails, twab, isNew) = _nextTwab(_account.twabs, _accountDetails, _currentTime);
-        accountDetails.balance = _accountDetails.balance - _amount;
+        unchecked {
+            accountDetails.balance = _accountDetails.balance - _amount;
+        }
     }
 
     /** @notice Calculates the average balance held by a user for a given time frame.
