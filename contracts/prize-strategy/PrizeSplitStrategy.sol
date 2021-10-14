@@ -14,7 +14,7 @@ import "../interfaces/IPrizePool.sol";
             interest transfered to the PrizeReserve. Additional PrizeSplits can be added, depending on
             the deployers requirements (i.e. percentage to charity). In contrast to previous PoolTogether
             iterations, interest can be captured independent of a new Draw. Ideally (to save gas) interest
-            is only captured when also distributing the captured prize(s) to applicable ClaimbableDraw(s).
+            is only captured when also distributing the captured prize(s) to applicable Prize Distributor(s).
 */
 contract PrizeSplitStrategy is PrizeSplit, IStrategy {
     /**
