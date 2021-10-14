@@ -1,6 +1,6 @@
 {
   "name": "@pooltogether/v4-core",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0-beta.5",
   "description": "PoolTogether V4 Core Smart Contracts",
   "main": "index.js",
   "license": "GPL-3.0",
@@ -24,10 +24,11 @@
     "run-fork": "yarn impersonate-accounts && yarn distribute-ether && yarn create-prize-pool",
     "test": "HIDE_DEPLOY_LOG=true hardhat test",
     "gas": "REPORT_GAS=true HIDE_DEPLOY_LOG=true hardhat test",
-    "parallel-test": "mocha --require hardhat/register --recursive --parallel --exit --extension ts"
+    "parallel-test": "mocha --require hardhat/register --recursive --parallel --exit --extension ts",
+    "prepack": "yarn compile"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.3.1",
+    "@openzeppelin/contracts": "4.3.1",
     "@pooltogether/fixed-point": "1.0.0",
     "@pooltogether/owner-manager-contracts": "1.1.0",
     "@pooltogether/pooltogether-rng-contracts": "1.4.0",
