@@ -15,7 +15,7 @@ contract ControlledToken is ERC20Permit, IControlledToken {
     /* ============ Global Variables ============ */
 
     /// @notice Interface to the contract responsible for controlling mint/burn
-    address public override controller;
+    address public override immutable controller;
 
     /// @notice ERC20 controlled token decimals.
     uint8 private immutable _decimals;

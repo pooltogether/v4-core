@@ -20,7 +20,7 @@ contract PrizeSplitStrategy is PrizeSplit, IStrategy {
     /**
      * @notice PrizePool address
      */
-    IPrizePool internal prizePool;
+    IPrizePool internal immutable prizePool;
 
     /**
      * @notice Deployed Event
