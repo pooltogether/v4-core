@@ -114,20 +114,6 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
     /* ============ Internal Functions ============ */
 
     /**
-     * @notice Calculate single prize split distribution amount.
-     * @dev Calculate single prize split distribution amount using the total prize amount and prize split percentage.
-     * @param _amount Total prize award distribution amount
-     * @param _percentage Percentage with single decimal precision using 0-1000 ranges
-     */
-    function _getPrizeSplitAmount(uint256 _amount, uint16 _percentage)
-        internal
-        pure
-        returns (uint256)
-    {
-        return (_amount * _percentage) / ONE_AS_FIXED_POINT_3;
-    }
-
-    /**
      * @notice Calculates total prize split percentage amount.
      * @dev Calculates total PrizeSplitConfig percentage(s) amount. Used to check the total does not exceed 100% of award distribution.
      * @return Total prize split(s) percentage amount
@@ -156,7 +142,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
         uint256 prizeSplitsLength = _prizeSplits.length;
         for (uint256 index = 0; index < prizeSplitsLength; index++) {
             PrizeSplitConfig memory split = _prizeSplits[index];
-            uint256 _splitAmount = _getPrizeSplitAmount(_prize, split.percentage);
+            uint256 _splitAmount = (_prize * split.percentage) / 1000;
 
             // Award the prize split distribution amount.
             _awardPrizeSplitAmount(split.target, _splitAmount);
