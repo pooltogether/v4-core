@@ -17,8 +17,8 @@ import "./libraries/ObservationLib.sol";
               transfered IN new checkpoint *can* be created if checkpoint() is called after transfering tokens.
               By using the reserve and withdraw accumulators to create a new checkpoint, any contract or account
               can lookup the balance increase of the reserve for a target timerange.   
-    * @dev    By calculating the total held tokens in a speicific time range, contracts that require knowledge 
-              of captured interest during a draw period, can easily call into the Reserve and determininstially
+    * @dev    By calculating the total held tokens in a specific time range, contracts that require knowledge 
+              of captured interest during a draw period, can easily call into the Reserve and deterministically
               determine the newly aqcuired tokens for that time range. 
  */
 contract Reserve is IReserve, Manageable {
