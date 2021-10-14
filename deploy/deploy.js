@@ -175,7 +175,6 @@ module.exports = async (hardhat) => {
   const drawCalculatorResult = await deploy('DrawCalculator', {
     from: deployer,
     args: [
-      deployer,
       ticketResult.address,
       drawBufferResult.address,
       tsunamiDrawSettindsHistoryResult.address,

@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.6;
 
-import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
-
 import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawBuffer.sol";
@@ -19,7 +17,7 @@ import "./interfaces/IDrawBeacon.sol";
             A user with a higher average weighted balance (during each draw period) will be given a large number of
             picks to choose from, and thus a higher chance to match the winning numbers.
 */
-contract DrawCalculator is IDrawCalculator, Ownable {
+contract DrawCalculator is IDrawCalculator {
 
     /// @notice DrawBuffer address
     IDrawBuffer public immutable drawBuffer;
@@ -36,16 +34,14 @@ contract DrawCalculator is IDrawCalculator, Ownable {
     /* ============ Constructor ============ */
 
     /// @notice Constructor for DrawCalculator
-    /// @param _owner Address of the DrawCalculator owner
     /// @param _ticket Ticket associated with this DrawCalculator
     /// @param _drawBuffer The address of the draw buffer to push draws to
     /// @param _prizeDistributionBuffer PrizeDistributionBuffer address
     constructor(
-        address _owner,
         ITicket _ticket,
         IDrawBuffer _drawBuffer,
         IPrizeDistributionBuffer _prizeDistributionBuffer
-    ) Ownable(_owner) {
+    ) {
         require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
         require(address(_prizeDistributionBuffer) != address(0), "DrawCalc/pdb-not-zero");
         require(address(_drawBuffer) != address(0), "DrawCalc/dh-not-zero");

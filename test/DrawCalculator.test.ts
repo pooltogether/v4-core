@@ -34,7 +34,6 @@ export async function deployDrawCalculator(
 ): Promise<Contract> {
     const drawCalculatorFactory = await ethers.getContractFactory('DrawCalculatorHarness', signer);
     const drawCalculator: Contract = await drawCalculatorFactory.deploy(
-        signer.address,
         ticketAddress,
         drawBufferAddress,
         prizeDistributionsHistoryAddress,

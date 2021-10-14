@@ -6,11 +6,10 @@ import "../DrawCalculator.sol";
 
 contract DrawCalculatorHarness is DrawCalculator {
     constructor(
-        address _owner,
         ITicket _ticket,
         IDrawBuffer _drawBuffer,
         PrizeDistributionBuffer _prizeDistributionBuffer
-    ) DrawCalculator(_owner, _ticket, _drawBuffer, _prizeDistributionBuffer) {}
+    ) DrawCalculator(_ticket, _drawBuffer, _prizeDistributionBuffer) {}
 
     function calculateTierIndex(
         uint256 _randomNumberThisPick,
