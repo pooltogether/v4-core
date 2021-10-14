@@ -132,7 +132,7 @@ abstract contract PrizeSplit is IPrizeSplit, Ownable {
         uint256 prizeSplitsLength = _prizeSplits.length;
 
         for (uint8 index = 0; index < prizeSplitsLength; index++) {
-            _tempTotalPercentage = _tempTotalPercentage + _prizeSplits[index].percentage;
+            _tempTotalPercentage += _prizeSplits[index].percentage;
         }
 
         return _tempTotalPercentage;
