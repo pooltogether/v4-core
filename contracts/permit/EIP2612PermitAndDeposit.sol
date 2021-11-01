@@ -10,24 +10,12 @@ import "../interfaces/IPrizePool.sol";
 import "../interfaces/ITicket.sol";
 
 /**
- * @notice Permit signature to allow spending of ERC20 token by this contract.
+ * @notice Secp256k1 signature values.
  * @param v `v` portion of the signature
  * @param r `r` portion of the signature
  * @param s `s` portion of the signature
  */
-struct PermitSignature {
-    uint8 v;
-    bytes32 r;
-    bytes32 s;
-}
-
-/**
- * @notice Delegate signature to allow delegation of tickets to delegate.
- * @param v `v` portion of the signature
- * @param r `r` portion of the signature
- * @param s `s` portion of the signature
- */
-struct DelegateSignature {
+struct Signature {
     uint8 v;
     bytes32 r;
     bytes32 s;
@@ -56,8 +44,8 @@ contract EIP2612PermitAndDeposit {
         address _owner,
         uint256 _amount,
         uint256 _deadline,
-        PermitSignature calldata _permitSignature,
-        DelegateSignature calldata _delegateSignature,
+        Signature calldata _permitSignature,
+        Signature calldata _delegateSignature,
         address _prizePool,
         address _to,
         ITicket _ticket,
