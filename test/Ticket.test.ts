@@ -1,9 +1,7 @@
-import { Signer } from '@ethersproject/abstract-signer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, Contract, ContractFactory, BigNumber } from 'ethers';
-import hre, { ethers } from 'hardhat';
+import { ethers } from 'hardhat';
 import { delegateSignature } from './helpers/delegateSignature';
 import { increaseTime as increaseTimeHelper } from './helpers/increaseTime';
 
@@ -12,7 +10,7 @@ const newDebug = require('debug');
 const debug = newDebug('pt:Ticket.test.ts');
 
 const { constants, getSigners, provider } = ethers;
-const { AddressZero, MaxUint256 } = constants;
+const { AddressZero } = constants;
 const { getBlock } = provider;
 const { parseEther: toWei } = utils;
 
@@ -928,8 +926,7 @@ describe('Ticket', () => {
 
     describe('delegateWithSignature()', () => {
         it('should allow somone to delegate with a signature', async () => {
-            // @ts-ignore
-            const { user, delegate, nonce, deadline, v, r, s } = await delegateSignature({
+            const { user, delegate, deadline, v, r, s } = await delegateSignature({
                 ticket,
                 userWallet: wallet1,
                 delegate: wallet2.address,
