@@ -34,7 +34,6 @@ describe('EIP2612PermitAndDeposit', () => {
         fromWallet?: SignerWithAddress;
         to: string;
         amount: string;
-        ticketAddress: string;
         delegateAddress: string;
     };
 
@@ -43,8 +42,7 @@ describe('EIP2612PermitAndDeposit', () => {
         fromWallet,
         to,
         amount,
-        ticketAddress,
-        delegateAddress
+        delegateAddress,
     }: EIP2612PermitAndDepositToAndDelegate) {
         if (!fromWallet) {
             fromWallet = wallet;
@@ -77,19 +75,16 @@ describe('EIP2612PermitAndDeposit', () => {
 
         const permitSignature = splitSignature(permit.sig);
 
-        return permitAndDeposit
-            .permitAndDepositToAndDelegate(
-                usdc.address,
-                user,
-                amount,
-                deadline,
-                permitSignature,
-                delegateSign,
-                prizePool,
-                to,
-                ticketAddress,
-                delegate
-            );
+        return permitAndDeposit.permitAndDepositToAndDelegate(
+            user,
+            amount,
+            deadline,
+            permitSignature,
+            delegateSign,
+            prizePool,
+            to,
+            delegate,
+        );
     }
 
     beforeEach(async () => {
@@ -112,12 +107,7 @@ describe('EIP2612PermitAndDeposit', () => {
         permitAndDeposit = await EIP2612PermitAndDeposit.deploy();
 
         const Ticket = await getContractFactory('TicketHarness');
-        ticket = await Ticket.deploy(
-            'PoolTogether Usdc Ticket',
-            'PcUSDC',
-            18,
-            prizePool.address,
-        );
+        ticket = await Ticket.deploy('PoolTogether Usdc Ticket', 'PcUSDC', 18, prizePool.address);
 
         await prizePool.setTicket(ticket.address);
         await prizePool.setPrizeStrategy(prizeStrategyManager.address);
@@ -135,8 +125,7 @@ describe('EIP2612PermitAndDeposit', () => {
                 prizePool: prizePool.address,
                 to: wallet.address,
                 amount: '100000000000000000000',
-                ticketAddress: ticket.address,
-                delegateAddress: wallet.address
+                delegateAddress: wallet.address,
             });
 
             expect(await usdc.balanceOf(prizePool.address)).to.equal(amount);
@@ -156,8 +145,7 @@ describe('EIP2612PermitAndDeposit', () => {
                 prizePool: prizePool.address,
                 to: wallet.address,
                 amount: '100000000000000000000',
-                ticketAddress: ticket.address,
-                delegateAddress: wallet2.address
+                delegateAddress: wallet2.address,
             });
 
             expect(await usdc.balanceOf(prizePool.address)).to.equal(amount);
@@ -181,8 +169,7 @@ describe('EIP2612PermitAndDeposit', () => {
                     to: wallet2.address,
                     fromWallet: wallet2,
                     amount: '100000000000000000000',
-                    ticketAddress: ticket.address,
-                    delegateAddress: wallet2.address
+                    delegateAddress: wallet2.address,
                 }),
             ).to.be.revertedWith('EIP2612PermitAndDeposit/only-signer');
         });

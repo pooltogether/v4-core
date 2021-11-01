@@ -28,7 +28,6 @@ contract EIP2612PermitAndDeposit {
     /**
      * @notice Permits this contract to spend on a user's behalf, and deposits into the prize pool.
      * @dev The `spender` address required by the permit function is the address of this contract.
-     * @param _token Address of the EIP-2612 token to approve and deposit
      * @param _owner Token owner's address (Authorizer)
      * @param _amount Amount of tokens to deposit
      * @param _deadline Timestamp at which the signature expires
@@ -36,22 +35,22 @@ contract EIP2612PermitAndDeposit {
      * @param _delegateSignature Delegate signature
      * @param _prizePool Address of the prize pool to deposit into
      * @param _to Address that will receive the tickets
-     * @param _ticket Address of the prize pool ticket
      * @param _delegate The address to delegate the prize pool tickets to
      */
     function permitAndDepositToAndDelegate(
-        address _token,
         address _owner,
         uint256 _amount,
         uint256 _deadline,
         Signature calldata _permitSignature,
         Signature calldata _delegateSignature,
-        address _prizePool,
+        IPrizePool _prizePool,
         address _to,
-        ITicket _ticket,
         address _delegate
     ) external {
         require(msg.sender == _owner, "EIP2612PermitAndDeposit/only-signer");
+
+        ITicket _ticket = _prizePool.getTicket();
+        address _token = _prizePool.getToken();
 
         IERC20Permit(_token).permit(
             _owner,
@@ -63,7 +62,7 @@ contract EIP2612PermitAndDeposit {
             _permitSignature.s
         );
 
-        _depositTo(_token, _owner, _amount, _prizePool, _to);
+        _depositTo(_token, _owner, _amount, address(_prizePool), _to);
 
         _ticket.delegateWithSignature(
             _owner,
