@@ -32,12 +32,33 @@ describe('EIP2612PermitAndDeposit', () => {
     type EIP2612PermitAndDepositToAndDelegate = {
         prizePool: string;
         fromWallet?: SignerWithAddress;
+        toWallet?: SignerWithAddress;
         to: string;
         amount: string;
         delegateAddress: string;
     };
 
-    async function permitAndDepositToAndDelegate({
+    async function generateDelegateSignature(
+        fromWallet: SignerWithAddress,
+        delegateAddress: string,
+    ) {
+        const {
+            user,
+            delegate,
+            deadline: delegateDeadline,
+            v,
+            r,
+            s,
+        } = await delegateSignature({
+            ticket,
+            userWallet: fromWallet,
+            delegate: delegateAddress,
+        });
+
+        return { user, delegate, signature: { deadline: delegateDeadline, v, r, s } };
+    }
+
+    async function depositToAndDelegate({
         prizePool,
         fromWallet,
         to,
@@ -48,13 +69,32 @@ describe('EIP2612PermitAndDeposit', () => {
             fromWallet = wallet;
         }
 
-        const { user, delegate, deadline, v, r, s } = await delegateSignature({
-            ticket,
-            userWallet: fromWallet,
-            delegate: delegateAddress,
-        });
+        const { user, ...delegateSign } = await generateDelegateSignature(
+            fromWallet,
+            delegateAddress,
+        );
 
-        const delegateSign: SignatureLike = { v, r, s };
+        return permitAndDeposit.depositToAndDelegate(prizePool, amount, to, delegateSign);
+    }
+
+    async function permitAndDepositToAndDelegate({
+        prizePool,
+        fromWallet,
+        toWallet,
+        to,
+        amount,
+        delegateAddress,
+    }: EIP2612PermitAndDepositToAndDelegate) {
+        if (!fromWallet) {
+            fromWallet = wallet;
+        }
+
+        const { user, ...delegateSign } = await generateDelegateSignature(
+            toWallet ? toWallet : fromWallet,
+            delegateAddress,
+        );
+
+        const permitDeadline = (await provider.getBlock('latest')).timestamp + 50;
 
         const permit = await signPermit(
             fromWallet,
@@ -65,25 +105,22 @@ describe('EIP2612PermitAndDeposit', () => {
                 verifyingContract: usdc.address,
             },
             {
-                owner: user,
+                owner: toWallet ? fromWallet.address : user,
                 spender: permitAndDeposit.address,
                 value: amount,
                 nonce: 0,
-                deadline,
+                deadline: permitDeadline,
             },
         );
 
-        const permitSignature = splitSignature(permit.sig);
+        const permitSignature = { deadline: permitDeadline, ...splitSignature(permit.sig) };
 
         return permitAndDeposit.permitAndDepositToAndDelegate(
-            user,
+            prizePool,
             amount,
-            deadline,
+            to,
             permitSignature,
             delegateSign,
-            prizePool,
-            to,
-            delegate,
         );
     }
 
@@ -156,6 +193,29 @@ describe('EIP2612PermitAndDeposit', () => {
             expect(await ticket.delegateOf(wallet2.address)).to.equal(AddressZero);
         });
 
+        it('should deposit tickets to someone else and delegate on their behalf', async () => {
+            const amount = toWei('100');
+
+            await usdc.mint(wallet.address, toWei('1000'));
+
+            await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, prizePool.address).returns();
+
+            await permitAndDepositToAndDelegate({
+                prizePool: prizePool.address,
+                toWallet: wallet2,
+                to: wallet2.address,
+                amount: '100000000000000000000',
+                delegateAddress: wallet2.address,
+            });
+
+            expect(await usdc.balanceOf(prizePool.address)).to.equal(amount);
+            expect(await usdc.balanceOf(wallet.address)).to.equal(toWei('900'));
+            expect(await ticket.balanceOf(wallet.address)).to.equal(toWei('0'));
+            expect(await ticket.balanceOf(wallet2.address)).to.equal(amount);
+            expect(await ticket.delegateOf(wallet.address)).to.equal(AddressZero);
+            expect(await ticket.delegateOf(wallet2.address)).to.equal(wallet2.address);
+        });
+
         it('should not allow anyone else to use the signature', async () => {
             const amount = toWei('100');
 
@@ -171,7 +231,57 @@ describe('EIP2612PermitAndDeposit', () => {
                     amount: '100000000000000000000',
                     delegateAddress: wallet2.address,
                 }),
-            ).to.be.revertedWith('EIP2612PermitAndDeposit/only-signer');
+            ).to.be.revertedWith('ERC20Permit: invalid signature');
+        });
+    });
+
+    describe('permitAndDepositToAndDelegate()', () => {
+        it('should deposit and delegate to itself', async () => {
+            const amount = toWei('100');
+
+            await usdc.mint(wallet.address, toWei('1000'));
+            await usdc.approve(permitAndDeposit.address, amount);
+
+            expect(await usdc.allowance(wallet.address, permitAndDeposit.address)).to.equal(amount);
+
+            await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, prizePool.address).returns();
+
+            await depositToAndDelegate({
+                prizePool: prizePool.address,
+                to: wallet.address,
+                amount: '100000000000000000000',
+                delegateAddress: wallet.address,
+            });
+
+            expect(await usdc.balanceOf(prizePool.address)).to.equal(amount);
+            expect(await usdc.balanceOf(wallet.address)).to.equal(toWei('900'));
+            expect(await ticket.balanceOf(wallet.address)).to.equal(amount);
+            expect(await ticket.delegateOf(wallet.address)).to.equal(wallet.address);
+        });
+
+        it('should deposit and delegate to someone else', async () => {
+            const amount = toWei('100');
+
+            await usdc.mint(wallet.address, toWei('1000'));
+            await usdc.approve(permitAndDeposit.address, amount);
+
+            expect(await usdc.allowance(wallet.address, permitAndDeposit.address)).to.equal(amount);
+
+            await yieldSourceStub.mock.supplyTokenTo.withArgs(amount, prizePool.address).returns();
+
+            await depositToAndDelegate({
+                prizePool: prizePool.address,
+                to: wallet.address,
+                amount: '100000000000000000000',
+                delegateAddress: wallet2.address,
+            });
+
+            expect(await usdc.balanceOf(prizePool.address)).to.equal(amount);
+            expect(await usdc.balanceOf(wallet.address)).to.equal(toWei('900'));
+            expect(await ticket.balanceOf(wallet.address)).to.equal(amount);
+            expect(await ticket.balanceOf(wallet2.address)).to.equal(toWei('0'));
+            expect(await ticket.delegateOf(wallet.address)).to.equal(wallet2.address);
+            expect(await ticket.delegateOf(wallet2.address)).to.equal(AddressZero);
         });
     });
 });
