@@ -27,6 +27,7 @@ contract EIP2612PermitAndDeposit {
 
     /**
      * @notice Permits this contract to spend on a user's behalf, and deposits into the prize pool.
+     * @custom:experimental This function has not been audited yet.
      * @dev The `spender` address required by the permit function is the address of this contract.
      * @param _owner Token owner's address (Authorizer)
      * @param _amount Amount of tokens to deposit
