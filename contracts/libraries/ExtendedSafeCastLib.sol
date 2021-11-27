@@ -18,6 +18,22 @@ pragma solidity 0.8.6;
  * all math on `uint256` and `int256` and then downcasting.
  */
 library ExtendedSafeCastLib {
+
+    /**
+     * @dev Returns the downcasted uint104 from uint256, reverting on
+     * overflow (when the input is greater than largest uint104).
+     *
+     * Counterpart to Solidity's `uint104` operator.
+     *
+     * Requirements:
+     *
+     * - input must fit into 104 bits
+     */
+    function toUint104(uint256 _value) internal pure returns (uint104) {
+        require(_value <= type(uint104).max, "SafeCast: value doesn't fit in 104 bits");
+        return uint104(_value);
+    }
+
     /**
      * @dev Returns the downcasted uint208 from uint256, reverting on
      * overflow (when the input is greater than largest uint208).
