@@ -856,24 +856,12 @@ describe('Ticket', () => {
             await expect(ticket.delegate(wallet2.address)).to.not.emit(ticket, 'Delegated');
         });
 
-        it('should allow the delegate to be reset by passing zero', async () => {
+        it('should not allow the user to delegate to zero', async () => {
             await ticket.mint(wallet1.address, toWei('100'));
             await ticket.delegate(wallet2.address);
-
-            const beforeTimestamp = (await provider.getBlock('latest')).timestamp;
-
-            expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
-            expect(await ticket.getBalanceAt(wallet2.address, beforeTimestamp)).to.equal(
-                toWei('100'),
+            await expect(ticket.delegate(AddressZero)).to.be.revertedWith(
+                'Ticket/cannot-delegate-to-zero',
             );
-
-            await ticket.delegate(AddressZero);
-
-            const afterTimestamp = (await provider.getBlock('latest')).timestamp;
-
-            expect(await ticket.delegateOf(wallet1.address)).to.equal(AddressZero);
-            expect(await ticket.getBalanceAt(wallet2.address, afterTimestamp)).to.equal(toWei('0'));
-            expect(await ticket.getBalanceAt(wallet1.address, afterTimestamp)).to.equal(toWei('0'));
         });
 
         it('should clear old delegates if any', async () => {

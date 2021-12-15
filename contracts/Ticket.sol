@@ -203,7 +203,9 @@ contract Ticket is ControlledToken, ITicket {
     ) external virtual override {
         require(block.timestamp <= _deadline, "Ticket/delegate-expired-deadline");
 
-        bytes32 structHash = keccak256(abi.encode(_DELEGATE_TYPEHASH, _user, _newDelegate, _useNonce(_user), _deadline));
+        bytes32 structHash = keccak256(
+            abi.encode(_DELEGATE_TYPEHASH, _user, _newDelegate, _useNonce(_user), _deadline)
+        );
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
@@ -224,6 +226,8 @@ contract Ticket is ControlledToken, ITicket {
     function _delegate(address _user, address _to) internal {
         uint256 balance = balanceOf(_user);
         address currentDelegate = delegates[_user];
+
+        require(_to != address(0), "Ticket/cannot-delegate-to-zero");
 
         if (currentDelegate == _to) {
             return;
@@ -272,7 +276,11 @@ contract Ticket is ControlledToken, ITicket {
     }
 
     // @inheritdoc ERC20
-    function _beforeTokenTransfer(address _from, address _to, uint256 _amount) internal override {
+    function _beforeTokenTransfer(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal override {
         if (_from == _to) {
             return;
         }
@@ -294,7 +302,11 @@ contract Ticket is ControlledToken, ITicket {
     /// @param _from The user to transfer the balance from.  May be zero in the event of a mint.
     /// @param _to The user to transfer the balance to.  May be zero in the event of a burn.
     /// @param _amount The balance that is being transferred.
-    function _transferTwab(address _from, address _to, uint256 _amount) internal {
+    function _transferTwab(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal {
         // If we are transferring tokens from a delegated account to an undelegated account
         if (_from != address(0)) {
             _decreaseUserTwab(_from, _amount);
@@ -319,10 +331,7 @@ contract Ticket is ControlledToken, ITicket {
      * @param _to Address of the delegate.
      * @param _amount Amount of tokens to be added to `_to` TWAB balance.
      */
-    function _increaseUserTwab(
-        address _to,
-        uint256 _amount
-    ) internal {
+    function _increaseUserTwab(address _to, uint256 _amount) internal {
         if (_amount == 0) {
             return;
         }
@@ -347,10 +356,7 @@ contract Ticket is ControlledToken, ITicket {
      * @param _to Address of the delegate.
      * @param _amount Amount of tokens to be added to `_to` TWAB balance.
      */
-    function _decreaseUserTwab(
-        address _to,
-        uint256 _amount
-    ) internal {
+    function _decreaseUserTwab(address _to, uint256 _amount) internal {
         if (_amount == 0) {
             return;
         }
