@@ -10,6 +10,8 @@ import "./libraries/TwabLib.sol";
 import "./interfaces/ITicket.sol";
 import "./ControlledToken.sol";
 
+import "hardhat/console.sol";
+
 /**
   * @title  PoolTogether V4 Ticket
   * @author PoolTogether Inc Team
@@ -210,6 +212,8 @@ contract Ticket is ControlledToken, ITicket {
         bytes32 hash = _hashTypedDataV4(structHash);
 
         address signer = ECDSA.recover(hash, _v, _r, _s);
+        console.log("signer is ", signer);
+
         require(signer == _user, "Ticket/delegate-invalid-signature");
 
         _delegate(_user, _newDelegate);
@@ -227,7 +231,9 @@ contract Ticket is ControlledToken, ITicket {
         uint256 balance = balanceOf(_user);
         address currentDelegate = delegates[_user];
 
-        require(_to != address(0), "Ticket/cannot-delegate-to-zero");
+        console.log("_delegate _user: ", _user);
+
+        require(_user != address(0), "Ticket/cannot-delegate-to-zero");
 
         if (currentDelegate == _to) {
             return;

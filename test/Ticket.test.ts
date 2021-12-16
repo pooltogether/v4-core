@@ -856,12 +856,24 @@ describe('Ticket', () => {
             await expect(ticket.delegate(wallet2.address)).to.not.emit(ticket, 'Delegated');
         });
 
-        it('should not allow the user to delegate to zero', async () => {
+        it('should allow the delegate to be reset by passing zero', async () => {
             await ticket.mint(wallet1.address, toWei('100'));
             await ticket.delegate(wallet2.address);
-            await expect(ticket.delegate(AddressZero)).to.be.revertedWith(
-                'Ticket/cannot-delegate-to-zero',
+
+            const beforeTimestamp = (await provider.getBlock('latest')).timestamp;
+
+            expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
+            expect(await ticket.getBalanceAt(wallet2.address, beforeTimestamp)).to.equal(
+                toWei('100'),
             );
+
+            await ticket.delegate(AddressZero);
+
+            const afterTimestamp = (await provider.getBlock('latest')).timestamp;
+
+            expect(await ticket.delegateOf(wallet1.address)).to.equal(AddressZero);
+            expect(await ticket.getBalanceAt(wallet2.address, afterTimestamp)).to.equal(toWei('0'));
+            expect(await ticket.getBalanceAt(wallet1.address, afterTimestamp)).to.equal(toWei('0'));
         });
 
         it('should clear old delegates if any', async () => {
@@ -912,7 +924,7 @@ describe('Ticket', () => {
         });
     });
 
-    describe('delegateWithSignature()', () => {
+    describe.only('delegateWithSignature()', () => {
         it('should allow somone to delegate with a signature', async () => {
             const { user, delegate, deadline, v, r, s } = await delegateSignature({
                 ticket,
@@ -923,6 +935,23 @@ describe('Ticket', () => {
             await ticket.connect(wallet3).delegateWithSignature(user, delegate, deadline, v, r, s);
 
             expect(await ticket.delegateOf(wallet1.address)).to.equal(wallet2.address);
+        });
+
+        it.only('should not allow delegation from the zero address', async () => {
+            const { user, delegate, deadline, v, r, s } = await delegateSignature({
+                ticket,
+                userWallet: wallet1,
+                delegate: wallet2.address,
+            });
+            // console.log('s', s);
+            // const incorrectS = s.substring(0, s.length - 1) + '0';
+            // console.log('incorrectS', incorrectS);
+            // console.log('v: ', v);
+            await expect(
+                ticket
+                    .connect(wallet3)
+                    .delegateWithSignature(AddressZero, delegate, deadline, 28, r, s),
+            ).to.be.revertedWith('Ticket/cannot-delegate-to-zero');
         });
     });
 
