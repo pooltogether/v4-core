@@ -1,5 +1,25 @@
 {{{natspec.userdoc}}}
 {{{natspec.devdoc}}}
+
+{{#each ownStructs}}
+### `{{name}}`
+
+{{#each members}}
+- {{type}} {{name}}
+{{/each}}
+
+{{/each}}
+
+{{#each ownEnums}}
+### `{{name}}`
+
+All members: {{members}}
+
+{{#each members}}
+  - {{.}}
+{{/each}}
+
+{{/each}}
 {{#if functions}}
 ## Functions
 {{/if}}

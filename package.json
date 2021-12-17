@@ -6,7 +6,7 @@
   "license": "GPL-3.0",
   "scripts": {
     "clean": "rm -rf cache/ artifacts/",
-    "docs": "solidity-docgen --solc-module solc -i contracts -o docs -t templates",
+    "docs": "solidity-docgen --solc-module solc-0.8 -i contracts -o docs -t templates",
     "compile": "mkdir -p abis && hardhat --show-stack-traces --max-memory 8192 compile",
     "coverage": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage",
     "coverage:file": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage --testfiles",
@@ -64,6 +64,7 @@
     "prettier": "2.4.1",
     "prettier-plugin-solidity": "1.0.0-beta.18",
     "solc": "0.8.6",
+    "solc-0.8": "npm:solc@0.8.6",
     "solhint": "3.3.3",
     "solidity-coverage": "0.7.16",
     "solidity-docgen": "0.5.15",
