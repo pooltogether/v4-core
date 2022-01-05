@@ -1,25 +1,27 @@
 {{{natspec.userdoc}}}
 {{{natspec.devdoc}}}
 
-{{#each ownStructs}}
+{{#if structs}}
+## Structs
+{{/if}}
+{{#each structs}}
 ### `{{name}}`
-
 {{#each members}}
-- {{type}} {{name}}
+  - {{type}} {{name}}
+{{/each}}
 {{/each}}
 
-{{/each}}
-
-{{#each ownEnums}}
+{{#if enums}}
+## Enums
+{{/if}}
+{{#each enums}}
 ### `{{name}}`
-
 All members: {{members}}
-
 {{#each members}}
   - {{.}}
 {{/each}}
-
 {{/each}}
+
 {{#if functions}}
 ## Functions
 {{/if}}
@@ -43,10 +45,10 @@ All members: {{members}}
 |`{{param}}` | {{#lookup ../args.types @index}}{{/lookup}} | {{ description }}{{/natspec.params}}{{/if}}
 {{#if natspec.returns}}
 #### Return Values:
-| Name                           | Type          | Description                                                                  |
-| :----------------------------- | :------------ | :--------------------------------------------------------------------------- |
+| Type          | Description                                                                  |
+| :------------ | :--------------------------------------------------------------------------- |
 {{#natspec.returns}}
-|`{{param}}`| {{#lookup ../args.types @index}}{{/lookup}} | {{{description}}}{{/natspec.returns}}{{/if}}
+| {{#lookup ../outputs.types @index}}{{/lookup}} | {{param}} {{{description}}}{{/natspec.returns}}{{/if}}
 {{/unless}}
 {{/functions}}
 {{#if events}}
