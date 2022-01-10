@@ -242,7 +242,7 @@ contract DrawBeacon is IDrawBeacon, Ownable {
         beaconPeriodStartedAt = nextBeaconPeriodStartedAt;
         nextDrawId = _nextDrawId + 1;
 
-        // Reset the rngReqeust state so Beacon period can start again.
+        // Reset the rngRequest state so Beacon period can start again.
         delete rngRequest;
 
         emit DrawCompleted(randomNumber);
