@@ -83,20 +83,6 @@ To run coverage:
 $ yarn coverage
 ```
 
-# Fork Testing
-
-Ensure your environment variables are set up.  Make sure your Alchemy URL is set.  Now start a local fork:
-
-```sh
-$ yarn start-fork
-```
-
-Setup account impersonation and transfer eth:
-
-```sh
-$ ./scripts/setup.sh
-```
-
 # Deployment
 
 ## Testnets
