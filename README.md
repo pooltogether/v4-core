@@ -28,12 +28,18 @@ https://docs.pooltogether.com
 - [Matic](https://docs.pooltogether.com/resources/networks/matic)
 
 # Overview
+- [ControlledToken](/contracts/ControlledToken.sol)
 - [DrawBeacon](/contracts/DrawBeacon.sol)
-- [DrawCalculator](/contracts/DrawCalculator.sol)
 - [DrawBuffer](/contracts/DrawBuffer.sol)
+- [DrawCalculator](/contracts/DrawCalculator.sol)
+- [EIP2612PermitAndDeposit](/contracts/permit/EIP2612PermitAndDeposit.sol)
+- [PrizeDistributionBuffer](/contracts/PrizeDistributionBuffer.sol)
 - [PrizeDistributor](/contracts/PrizeDistributor.sol)
-- [PrizeSplitStrategy](/contracts/PrizeSplitStrategy.sol)
+- [PrizeSplitStrategy](/contracts/prize-strategy/PrizeSplitStrategy.sol)
 - [Reserve](/contracts/Reserve.sol)
+- [StakePrizePool](/contracts/prize-pool/StakePrizePool.sol)
+- [Ticket](/contracts/Ticket.sol)
+- [YieldSourcePrizePool](/contracts/prize-pool/YieldSourcePrizePool.sol)
 
 Periphery and supporting contracts:
 
@@ -62,7 +68,7 @@ $ yarn
 We use [direnv](https://direnv.net/) to manage environment variables.  You'll likely need to install it.
 
 ```sh
-cp .envrc.example .envrv
+cp .envrc.example .envrc
 ```
 
 To run fork scripts, deploy or perform any operation with a mainnet/testnet node you will need an Infura API key.
