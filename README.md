@@ -21,7 +21,7 @@
 [![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com/PoolTogether_)
 
 **Documention**<br>
-https://docs.pooltogether.com
+https://v4.docs.pooltogether.com
 
 **Deployments**<br>
 - [Ethereum](https://v4.docs.pooltogether.com/protocol/deployments/mainnet#mainnet)
