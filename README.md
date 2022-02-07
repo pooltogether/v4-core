@@ -20,7 +20,7 @@
 [![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/JFBPMxv5tr)
 [![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com/PoolTogether_)
 
-**Documention**<br>
+**Documentation**<br>
 https://v4.docs.pooltogether.com
 
 **Deployments**<br>
