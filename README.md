@@ -24,8 +24,9 @@
 https://docs.pooltogether.com
 
 **Deployments**<br>
-- [Ethereum](https://docs.pooltogether.com/resources/networks/ethereum)
-- [Matic](https://docs.pooltogether.com/resources/networks/matic)
+- [Ethereum](https://v4.docs.pooltogether.com/protocol/deployments/mainnet#mainnet)
+- [Polygon](https://v4.docs.pooltogether.com/protocol/deployments/mainnet#polygon)
+- [Avalanche](https://v4.docs.pooltogether.com/protocol/deployments/mainnet#avalanche)
 
 # Overview
 - [ControlledToken](/contracts/ControlledToken.sol)
