@@ -62,7 +62,7 @@ describe('DrawCalculator', () => {
     let drawCalculator: Contract;
     let ticket: MockContract;
     let drawBuffer: MockContract;
-    let prizeDistributionBuffer: MockContract;
+    let prizeDistributionSplitter: MockContract;
     let wallet1: any;
     let wallet2: any;
     let wallet3: any;
@@ -78,20 +78,20 @@ describe('DrawCalculator', () => {
         let drawBufferArtifact = await artifacts.readArtifact('DrawBuffer');
         drawBuffer = await deployMockContract(wallet1, drawBufferArtifact.abi);
 
-        let prizeDistributionBufferArtifact = await artifacts.readArtifact(
-            'PrizeDistributionBuffer',
+        let prizeDistributionSourceArtifact = await artifacts.readArtifact(
+            'PrizeDistributionSplitter',
         );
 
-        prizeDistributionBuffer = await deployMockContract(
+        prizeDistributionSplitter = await deployMockContract(
             wallet1,
-            prizeDistributionBufferArtifact.abi,
+            prizeDistributionSourceArtifact.abi,
         );
 
         drawCalculator = await deployDrawCalculator(
             wallet1,
             ticket.address,
             drawBuffer.address,
-            prizeDistributionBuffer.address,
+            prizeDistributionSplitter.address,
         );
     });
 
@@ -102,7 +102,7 @@ describe('DrawCalculator', () => {
                     wallet1,
                     ethers.constants.AddressZero,
                     drawBuffer.address,
-                    prizeDistributionBuffer.address,
+                    prizeDistributionSplitter.address,
                 ),
             ).to.be.revertedWith('DrawCalc/ticket-not-zero');
         });
@@ -124,22 +124,22 @@ describe('DrawCalculator', () => {
                     wallet1,
                     ticket.address,
                     ethers.constants.AddressZero,
-                    prizeDistributionBuffer.address,
+                    prizeDistributionSplitter.address,
                 ),
             ).to.be.revertedWith('DrawCalc/dh-not-zero');
         });
     });
 
     describe('getDrawBuffer()', () => {
-        it('should succesfully read draw buffer', async () => {
+        it('should successfully read draw buffer', async () => {
             expect(await drawCalculator.getDrawBuffer()).to.equal(drawBuffer.address);
         });
     });
 
-    describe('getPrizeDistributionBuffer()', () => {
-        it('should succesfully read draw buffer', async () => {
-            expect(await drawCalculator.getPrizeDistributionBuffer()).to.equal(
-                prizeDistributionBuffer.address,
+    describe('getPrizeDistributionSource()', () => {
+        it('should successfully return the PrizeDistributionSplitter contract', async () => {
+            expect(await drawCalculator.getPrizeDistributionSource()).to.equal(
+                prizeDistributionSplitter.address,
             );
         });
     });
@@ -167,7 +167,7 @@ describe('DrawCalculator', () => {
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([prizeDistribution]);
+            await prizeDistributionSplitter.mock.getPrizeDistributions.returns([prizeDistribution]);
         });
 
         it('grand prize gets the full fraction at index 0', async () => {
@@ -570,7 +570,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1, draw2]);
-            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([
+            await prizeDistributionSplitter.mock.getPrizeDistributions.returns([
                 prizeDistribution,
                 prizeDistribution,
             ]);
@@ -583,10 +583,11 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('100'), utils.parseEther('600')]);
 
-            const userNormalizedBalances = await drawCalculator.getNormalizedBalancesForDrawIds(
-                wallet1.address,
-                [1, 2],
-            );
+            const userNormalizedBalances =
+                await drawCalculator.callStatic.getNormalizedBalancesForDrawIds(
+                    wallet1.address,
+                    [1, 2],
+                );
 
             expect(userNormalizedBalances[0]).to.eq(utils.parseEther('0.2'));
             expect(userNormalizedBalances[1]).to.eq(utils.parseEther('0.05'));
@@ -637,7 +638,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1, draw2]);
-            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([
+            await prizeDistributionSplitter.mock.getPrizeDistributions.returns([
                 prizeDistribution,
                 prizeDistribution,
             ]);
@@ -650,7 +651,7 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('0'), utils.parseEther('600')]);
 
-            const balancesResult = await drawCalculator.getNormalizedBalancesForDrawIds(
+            const balancesResult = await drawCalculator.callStatic.getNormalizedBalancesForDrawIds(
                 wallet1.address,
                 [1, 2],
             );
@@ -681,7 +682,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1]);
-            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([prizeDistribution]);
+            await prizeDistributionSplitter.mock.getPrizeDistributions.returns([prizeDistribution]);
 
             const offsetStartTimestamps = modifyTimestampsWithOffset(
                 timestamps,
@@ -701,9 +702,10 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('1000')]);
 
-            const result = await drawCalculator.getNormalizedBalancesForDrawIds(wallet1.address, [
-                1,
-            ]);
+            const result = await drawCalculator.callStatic.getNormalizedBalancesForDrawIds(
+                wallet1.address,
+                [1],
+            );
 
             expect(result[0]).to.eq(BigNumber.from(0));
         });
@@ -730,7 +732,7 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionBuffer.mock.getPrizeDistributions
+                await prizeDistributionSplitter.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
             });
@@ -781,7 +783,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const result = await drawCalculator.calculate(
+                const result = await drawCalculator.callStatic.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
@@ -843,7 +845,7 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionBuffer.mock.getPrizeDistributions
+                await prizeDistributionSplitter.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -872,7 +874,11 @@ describe('DrawCalculator', () => {
                 await drawBuffer.mock.getDraws.returns([draw]);
 
                 await expect(
-                    drawCalculator.calculate(wallet1.address, [draw.drawId], pickIndices),
+                    drawCalculator.callStatic.calculate(
+                        wallet1.address,
+                        [draw.drawId],
+                        pickIndices,
+                    ),
                 ).to.revertedWith('DrawCalc/draw-expired');
             });
 
@@ -915,7 +921,11 @@ describe('DrawCalculator', () => {
                 await drawBuffer.mock.getDraws.returns([draw]);
 
                 await expect(
-                    drawCalculator.calculate(wallet1.address, [draw.drawId], pickIndices),
+                    drawCalculator.callStatic.calculate(
+                        wallet1.address,
+                        [draw.drawId],
+                        pickIndices,
+                    ),
                 ).to.revertedWith('DrawCalc/picks-ascending');
             });
 
@@ -992,7 +1002,7 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionBuffer.mock.getPrizeDistributions
+                await prizeDistributionSplitter.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -1027,7 +1037,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const prizesAwardable = await drawCalculator.calculate(
+                const prizesAwardable = await drawCalculator.callStatic.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
@@ -1050,7 +1060,7 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionBuffer.mock.getPrizeDistributions
+                await prizeDistributionSplitter.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -1087,7 +1097,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const prizesAwardable = await drawCalculator.calculate(
+                const prizesAwardable = await drawCalculator.callStatic.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
@@ -1108,16 +1118,16 @@ describe('DrawCalculator', () => {
                     bitRangeSize: BigNumber.from(2),
                     matchCardinality: BigNumber.from(3),
                     tiers: [
-                        ethers.utils.parseUnits('0.1', 9), 
+                        ethers.utils.parseUnits('0.1', 9),
                         ethers.utils.parseUnits('0', 9), // NOTE ZERO here
                         ethers.utils.parseUnits('0.1', 9),
-                        ethers.utils.parseUnits('0.1', 9)
+                        ethers.utils.parseUnits('0.1', 9),
                     ],
                 };
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionBuffer.mock.getPrizeDistributions
+                await prizeDistributionSplitter.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -1154,12 +1164,12 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const prizesAwardable = await drawCalculator.calculate(
+                const prizesAwardable = await drawCalculator.callStatic.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
                 );
-            
+
                 expect(prizesAwardable[0][0]).to.equal(utils.parseEther('0'));
                 const prizeCounts = encoder.decode(['uint256[][]'], prizesAwardable[1]);
                 expect(prizeCounts[0][0][1]).to.equal(BigNumber.from(1)); // has a prizeCount = 1 at runner up index
@@ -1234,11 +1244,11 @@ describe('DrawCalculator', () => {
 
                 debug(`pushing settings for draw 2...`);
 
-                await prizeDistributionBuffer.mock.getPrizeDistributions
+                await prizeDistributionSplitter.mock.getPrizeDistributions
                     .withArgs([1, 2])
                     .returns([prizeDistribution, prizeDistribution2]);
 
-                const result = await drawCalculator.calculate(
+                const result = await drawCalculator.callStatic.calculate(
                     wallet1.address,
                     [draw1.drawId, draw2.drawId],
                     pickIndices,
@@ -1328,12 +1338,12 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw1, draw2]);
 
-                await prizeDistributionBuffer.mock.getPrizeDistributions
+                await prizeDistributionSplitter.mock.getPrizeDistributions
                     .withArgs([1, 2])
                     .returns([prizeDistribution, prizeDistribution]);
 
                 await expect(
-                    drawCalculator.calculate(
+                    drawCalculator.callStatic.calculate(
                         wallet1.address,
                         [draw1.drawId, draw2.drawId],
                         pickIndices,
@@ -1394,12 +1404,16 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw1]);
 
-                await prizeDistributionBuffer.mock.getPrizeDistributions
+                await prizeDistributionSplitter.mock.getPrizeDistributions
                     .withArgs([2])
                     .returns([prizeDistribution]);
 
                 await expect(
-                    drawCalculator.calculate(wallet1.address, [draw1.drawId], pickIndices),
+                    drawCalculator.callStatic.calculate(
+                        wallet1.address,
+                        [draw1.drawId],
+                        pickIndices,
+                    ),
                 ).to.revertedWith('DrawCalc/exceeds-max-user-picks');
             });
 
@@ -1442,7 +1456,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw1]);
 
-                const prizesAwardable = await drawCalculator.calculate(
+                const prizesAwardable = await drawCalculator.callStatic.calculate(
                     wallet1.address,
                     [draw1.drawId],
                     pickIndices,
