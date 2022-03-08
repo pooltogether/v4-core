@@ -6,7 +6,7 @@ import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
 import "./libraries/DrawRingBufferLib.sol";
 import "./interfaces/IPrizeDistributionBuffer.sol";
-import "./interfaces/IPrizeDistributionSplitter.sol";
+import "./interfaces/IPrizeDistributionSource.sol";
 
 /**
   * @title  PoolTogether V4 PrizeDistributionBuffer
@@ -17,7 +17,7 @@ import "./interfaces/IPrizeDistributionSplitter.sol";
             parameters can only be updated the owner. When adding a new PrizeDistribution basic sanity checks will be used to
             validate the incoming parameters.
 */
-contract PrizeDistributionBuffer is IPrizeDistributionBuffer, IPrizeDistributionSplitter, Manageable {
+contract PrizeDistributionBuffer is IPrizeDistributionBuffer, IPrizeDistributionSource, Manageable {
     using DrawRingBufferLib for DrawRingBufferLib.Buffer;
 
     /// @notice The maximum cardinality of the prize distribution ring buffer.
@@ -68,7 +68,7 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, IPrizeDistribution
         return _getPrizeDistribution(bufferMetadata, _drawId);
     }
 
-    /// @inheritdoc IPrizeDistributionSplitter
+    /// @inheritdoc IPrizeDistributionSource
     function getPrizeDistributions(uint32[] calldata _drawIds)
         external
         view

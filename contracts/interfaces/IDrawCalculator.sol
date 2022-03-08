@@ -4,7 +4,7 @@ pragma solidity 0.8.6;
 
 import "./ITicket.sol";
 import "./IDrawBuffer.sol";
-import "./IPrizeDistributionSplitter.sol";
+import "./IPrizeDistributionSource.sol";
 import "../PrizeDistributionBuffer.sol";
 import "../PrizeDistributor.sol";
 
@@ -23,7 +23,7 @@ interface IDrawCalculator {
     event Deployed(
         ITicket indexed ticket,
         IDrawBuffer indexed drawBuffer,
-        IPrizeDistributionSplitter indexed prizeDistributionSource
+        IPrizeDistributionSource indexed prizeDistributionSource
     );
 
     ///@notice Emitted when the prizeDistributor is set/updated
@@ -52,7 +52,7 @@ interface IDrawCalculator {
      * @notice Read global DrawBuffer variable.
      * @return IDrawBuffer
      */
-    function getPrizeDistributionSource() external view returns (IPrizeDistributionSplitter);
+    function getPrizeDistributionBuffer() external view returns (IPrizeDistributionSource);
 
     /**
      * @notice Returns a users balances expressed as a fraction of the total supply over time.

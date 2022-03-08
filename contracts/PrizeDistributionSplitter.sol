@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.6;
 
-import "./interfaces/IPrizeDistributionSplitter.sol";
+import "./interfaces/IPrizeDistributionSource.sol";
 
 /**
  * @title  PoolTogether V4 PrizeDistributionSplitter
@@ -14,15 +14,15 @@ import "./interfaces/IPrizeDistributionSplitter.sol";
             when calling the `getPrizeDistributions` function with a `drawId` greater than or equal to the one set,
             we query the second PrizeDistributionBuffer contract, otherwise we query the first.
  */
-contract PrizeDistributionSplitter is IPrizeDistributionSplitter {
+contract PrizeDistributionSplitter is IPrizeDistributionSource {
     /// @notice DrawId at which the split occured
     uint32 public immutable drawId;
 
     /// @notice First PrizeDistributionBuffer source address
-    IPrizeDistributionSplitter public immutable prizeDistributionSourceBefore;
+    IPrizeDistributionSource public immutable prizeDistributionSourceBefore;
 
     /// @notice Second PrizeDistributionBuffer source address
-    IPrizeDistributionSplitter public immutable prizeDistributionSourceAtOrAfter;
+    IPrizeDistributionSource public immutable prizeDistributionSourceAtOrAfter;
 
     /* ============ Events ============ */
 
@@ -38,8 +38,8 @@ contract PrizeDistributionSplitter is IPrizeDistributionSplitter {
      * @param prizeDistributionSourceAtOrAfter Second PrizeDistributionBuffer contract address
      */
     event PrizeDistributionSourcesSet(
-        IPrizeDistributionSplitter prizeDistributionSourceBefore,
-        IPrizeDistributionSplitter prizeDistributionSourceAtOrAfter
+        IPrizeDistributionSource prizeDistributionSourceBefore,
+        IPrizeDistributionSource prizeDistributionSourceAtOrAfter
     );
 
     /* ============ Constructor ============ */
@@ -52,8 +52,8 @@ contract PrizeDistributionSplitter is IPrizeDistributionSplitter {
      */
     constructor(
         uint32 _drawId,
-        IPrizeDistributionSplitter _prizeDistributionSourceBefore,
-        IPrizeDistributionSplitter _prizeDistributionSourceAtOrAfter
+        IPrizeDistributionSource _prizeDistributionSourceBefore,
+        IPrizeDistributionSource _prizeDistributionSourceAtOrAfter
     ) {
         require(_drawId > 0, "PrizeDistSplitter/drawId-gt-zero");
         _requirePrizeDistNotZeroAddress(address(_prizeDistributionSourceBefore));
@@ -72,7 +72,7 @@ contract PrizeDistributionSplitter is IPrizeDistributionSplitter {
 
     /* ============ External Functions ============ */
 
-    /// @inheritdoc IPrizeDistributionSplitter
+    /// @inheritdoc IPrizeDistributionSource
     function getPrizeDistributions(uint32[] calldata _drawIds)
         external
         view

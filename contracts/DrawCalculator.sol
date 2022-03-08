@@ -6,7 +6,7 @@ import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawBuffer.sol";
 import "./interfaces/IPrizeDistributionBuffer.sol";
-import "./interfaces/IPrizeDistributionSplitter.sol";
+import "./interfaces/IPrizeDistributionSource.sol";
 import "./interfaces/IDrawBeacon.sol";
 
 /**
@@ -27,7 +27,7 @@ contract DrawCalculator is IDrawCalculator {
     ITicket public immutable ticket;
 
     /// @notice The stored history of draw settings.  Stored as ring buffer.
-    IPrizeDistributionSplitter public immutable prizeDistributionSplitter;
+    IPrizeDistributionSource public immutable prizeDistributionSource;
 
     /// @notice The tiers array length
     uint8 public constant TIERS_LENGTH = 16;
@@ -37,21 +37,21 @@ contract DrawCalculator is IDrawCalculator {
     /// @notice Constructor for DrawCalculator
     /// @param _ticket Ticket associated with this DrawCalculator
     /// @param _drawBuffer The address of the draw buffer to push draws to
-    /// @param _prizeDistributionSplitter PrizeDistributionSplitter address
+    /// @param _prizeDistributionSource PrizeDistributionSource address
     constructor(
         ITicket _ticket,
         IDrawBuffer _drawBuffer,
-        IPrizeDistributionSplitter _prizeDistributionSplitter
+        IPrizeDistributionSource _prizeDistributionSource
     ) {
         require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
-        require(address(_prizeDistributionSplitter) != address(0), "DrawCalc/pdb-not-zero");
+        require(address(_prizeDistributionSource) != address(0), "DrawCalc/pdb-not-zero");
         require(address(_drawBuffer) != address(0), "DrawCalc/dh-not-zero");
 
         ticket = _ticket;
         drawBuffer = _drawBuffer;
-        prizeDistributionSplitter = _prizeDistributionSplitter;
+        prizeDistributionSource = _prizeDistributionSource;
 
-        emit Deployed(_ticket, _drawBuffer, _prizeDistributionSplitter);
+        emit Deployed(_ticket, _drawBuffer, _prizeDistributionSource);
     }
 
     /* ============ External Functions ============ */
@@ -69,7 +69,7 @@ contract DrawCalculator is IDrawCalculator {
         IDrawBeacon.Draw[] memory draws = drawBuffer.getDraws(_drawIds);
 
         // READ list of IPrizeDistributionBuffer.PrizeDistribution using the drawIds
-        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = prizeDistributionSplitter
+        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = prizeDistributionSource
             .getPrizeDistributions(_drawIds);
 
         // The userBalances are fractions representing their portion of the liquidity for a draw.
@@ -93,13 +93,13 @@ contract DrawCalculator is IDrawCalculator {
     }
 
     /// @inheritdoc IDrawCalculator
-    function getPrizeDistributionSource()
+    function getPrizeDistributionBuffer()
         external
         view
         override
-        returns (IPrizeDistributionSplitter)
+        returns (IPrizeDistributionSource)
     {
-        return prizeDistributionSplitter;
+        return prizeDistributionSource;
     }
 
     /// @inheritdoc IDrawCalculator
@@ -110,7 +110,7 @@ contract DrawCalculator is IDrawCalculator {
         returns (uint256[] memory)
     {
         IDrawBeacon.Draw[] memory _draws = drawBuffer.getDraws(_drawIds);
-        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = prizeDistributionSplitter
+        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = prizeDistributionSource
             .getPrizeDistributions(_drawIds);
 
         return _getNormalizedBalancesAt(_user, _draws, _prizeDistributions);

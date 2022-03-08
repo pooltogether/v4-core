@@ -78,13 +78,13 @@ describe('DrawCalculator', () => {
         let drawBufferArtifact = await artifacts.readArtifact('DrawBuffer');
         drawBuffer = await deployMockContract(wallet1, drawBufferArtifact.abi);
 
-        let prizeDistributionSourceArtifact = await artifacts.readArtifact(
+        let prizeDistributionSplitterArtifact = await artifacts.readArtifact(
             'PrizeDistributionSplitter',
         );
 
         prizeDistributionSplitter = await deployMockContract(
             wallet1,
-            prizeDistributionSourceArtifact.abi,
+            prizeDistributionSplitterArtifact.abi,
         );
 
         drawCalculator = await deployDrawCalculator(
@@ -136,9 +136,9 @@ describe('DrawCalculator', () => {
         });
     });
 
-    describe('getPrizeDistributionSource()', () => {
-        it('should successfully return the PrizeDistributionSplitter contract', async () => {
-            expect(await drawCalculator.getPrizeDistributionSource()).to.equal(
+    describe('getPrizeDistributionBuffer()', () => {
+        it('should succesfully read draw buffer', async () => {
+            expect(await drawCalculator.getPrizeDistributionBuffer()).to.equal(
                 prizeDistributionSplitter.address,
             );
         });
@@ -583,11 +583,10 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('100'), utils.parseEther('600')]);
 
-            const userNormalizedBalances =
-                await drawCalculator.callStatic.getNormalizedBalancesForDrawIds(
-                    wallet1.address,
-                    [1, 2],
-                );
+            const userNormalizedBalances = await drawCalculator.getNormalizedBalancesForDrawIds(
+                wallet1.address,
+                [1, 2],
+            );
 
             expect(userNormalizedBalances[0]).to.eq(utils.parseEther('0.2'));
             expect(userNormalizedBalances[1]).to.eq(utils.parseEther('0.05'));
@@ -651,7 +650,7 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('0'), utils.parseEther('600')]);
 
-            const balancesResult = await drawCalculator.callStatic.getNormalizedBalancesForDrawIds(
+            const balancesResult = await drawCalculator.getNormalizedBalancesForDrawIds(
                 wallet1.address,
                 [1, 2],
             );
@@ -702,10 +701,9 @@ describe('DrawCalculator', () => {
                 .withArgs(offsetStartTimestamps, offsetEndTimestamps)
                 .returns([utils.parseEther('1000')]);
 
-            const result = await drawCalculator.callStatic.getNormalizedBalancesForDrawIds(
-                wallet1.address,
-                [1],
-            );
+            const result = await drawCalculator.getNormalizedBalancesForDrawIds(wallet1.address, [
+                1,
+            ]);
 
             expect(result[0]).to.eq(BigNumber.from(0));
         });
@@ -783,7 +781,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const result = await drawCalculator.callStatic.calculate(
+                const result = await drawCalculator.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
@@ -874,11 +872,7 @@ describe('DrawCalculator', () => {
                 await drawBuffer.mock.getDraws.returns([draw]);
 
                 await expect(
-                    drawCalculator.callStatic.calculate(
-                        wallet1.address,
-                        [draw.drawId],
-                        pickIndices,
-                    ),
+                    drawCalculator.calculate(wallet1.address, [draw.drawId], pickIndices),
                 ).to.revertedWith('DrawCalc/draw-expired');
             });
 
@@ -921,11 +915,7 @@ describe('DrawCalculator', () => {
                 await drawBuffer.mock.getDraws.returns([draw]);
 
                 await expect(
-                    drawCalculator.callStatic.calculate(
-                        wallet1.address,
-                        [draw.drawId],
-                        pickIndices,
-                    ),
+                    drawCalculator.calculate(wallet1.address, [draw.drawId], pickIndices),
                 ).to.revertedWith('DrawCalc/picks-ascending');
             });
 
@@ -1037,7 +1027,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const prizesAwardable = await drawCalculator.callStatic.calculate(
+                const prizesAwardable = await drawCalculator.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
@@ -1097,7 +1087,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const prizesAwardable = await drawCalculator.callStatic.calculate(
+                const prizesAwardable = await drawCalculator.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
@@ -1164,7 +1154,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                const prizesAwardable = await drawCalculator.callStatic.calculate(
+                const prizesAwardable = await drawCalculator.calculate(
                     wallet1.address,
                     [draw.drawId],
                     pickIndices,
@@ -1248,7 +1238,7 @@ describe('DrawCalculator', () => {
                     .withArgs([1, 2])
                     .returns([prizeDistribution, prizeDistribution2]);
 
-                const result = await drawCalculator.callStatic.calculate(
+                const result = await drawCalculator.calculate(
                     wallet1.address,
                     [draw1.drawId, draw2.drawId],
                     pickIndices,
@@ -1343,7 +1333,7 @@ describe('DrawCalculator', () => {
                     .returns([prizeDistribution, prizeDistribution]);
 
                 await expect(
-                    drawCalculator.callStatic.calculate(
+                    drawCalculator.calculate(
                         wallet1.address,
                         [draw1.drawId, draw2.drawId],
                         pickIndices,
@@ -1409,11 +1399,7 @@ describe('DrawCalculator', () => {
                     .returns([prizeDistribution]);
 
                 await expect(
-                    drawCalculator.callStatic.calculate(
-                        wallet1.address,
-                        [draw1.drawId],
-                        pickIndices,
-                    ),
+                    drawCalculator.calculate(wallet1.address, [draw1.drawId], pickIndices),
                 ).to.revertedWith('DrawCalc/exceeds-max-user-picks');
             });
 
@@ -1456,7 +1442,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw1]);
 
-                const prizesAwardable = await drawCalculator.callStatic.calculate(
+                const prizesAwardable = await drawCalculator.calculate(
                     wallet1.address,
                     [draw1.drawId],
                     pickIndices,

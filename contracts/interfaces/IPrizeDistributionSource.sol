@@ -4,11 +4,11 @@ pragma solidity 0.8.6;
 
 import "./IPrizeDistributionBuffer.sol";
 
-/** @title IPrizeDistributionSplitter
+/** @title IPrizeDistributionSource
  * @author PoolTogether Inc Team
- * @notice The PrizeDistributionSplitter interface.
+ * @notice The PrizeDistributionSource interface.
  */
-interface IPrizeDistributionSplitter {
+interface IPrizeDistributionSource {
     /**
      * @notice Gets PrizeDistribution list from array of drawIds
      * @param drawIds drawIds to get PrizeDistribution for
