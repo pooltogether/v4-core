@@ -27,7 +27,7 @@ contract DrawCalculator is IDrawCalculator {
     ITicket public immutable ticket;
 
     /// @notice The stored history of draw settings.  Stored as ring buffer.
-    IPrizeDistributionSource public immutable prizeDistributionSource;
+    IPrizeDistributionSource private immutable prizeDistributionSource;
 
     /// @notice The tiers array length
     uint8 public constant TIERS_LENGTH = 16;
