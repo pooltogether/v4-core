@@ -79,7 +79,7 @@ describe('DrawCalculator', () => {
         drawBuffer = await deployMockContract(wallet1, drawBufferArtifact.abi);
 
         let prizeDistributionSplitterArtifact = await artifacts.readArtifact(
-            'PrizeDistributionSplitter',
+            'IPrizeDistributionSource',
         );
 
         prizeDistributionSplitter = await deployMockContract(
