@@ -62,7 +62,7 @@ describe('DrawCalculator', () => {
     let drawCalculator: Contract;
     let ticket: MockContract;
     let drawBuffer: MockContract;
-    let prizeDistributionSplitter: MockContract;
+    let prizeDistributionBuffer: MockContract;
     let wallet1: any;
     let wallet2: any;
     let wallet3: any;
@@ -78,20 +78,20 @@ describe('DrawCalculator', () => {
         let drawBufferArtifact = await artifacts.readArtifact('DrawBuffer');
         drawBuffer = await deployMockContract(wallet1, drawBufferArtifact.abi);
 
-        let prizeDistributionSplitterArtifact = await artifacts.readArtifact(
-            'IPrizeDistributionSource',
+        let prizeDistributionBufferArtifact = await artifacts.readArtifact(
+            'PrizeDistributionBuffer',
         );
 
-        prizeDistributionSplitter = await deployMockContract(
+        prizeDistributionBuffer = await deployMockContract(
             wallet1,
-            prizeDistributionSplitterArtifact.abi,
+            prizeDistributionBufferArtifact.abi,
         );
 
         drawCalculator = await deployDrawCalculator(
             wallet1,
             ticket.address,
             drawBuffer.address,
-            prizeDistributionSplitter.address,
+            prizeDistributionBuffer.address,
         );
     });
 
@@ -102,7 +102,7 @@ describe('DrawCalculator', () => {
                     wallet1,
                     ethers.constants.AddressZero,
                     drawBuffer.address,
-                    prizeDistributionSplitter.address,
+                    prizeDistributionBuffer.address,
                 ),
             ).to.be.revertedWith('DrawCalc/ticket-not-zero');
         });
@@ -124,14 +124,14 @@ describe('DrawCalculator', () => {
                     wallet1,
                     ticket.address,
                     ethers.constants.AddressZero,
-                    prizeDistributionSplitter.address,
+                    prizeDistributionBuffer.address,
                 ),
             ).to.be.revertedWith('DrawCalc/dh-not-zero');
         });
     });
 
     describe('getDrawBuffer()', () => {
-        it('should successfully read draw buffer', async () => {
+        it('should succesfully read draw buffer', async () => {
             expect(await drawCalculator.getDrawBuffer()).to.equal(drawBuffer.address);
         });
     });
@@ -139,7 +139,7 @@ describe('DrawCalculator', () => {
     describe('getPrizeDistributionBuffer()', () => {
         it('should succesfully read draw buffer', async () => {
             expect(await drawCalculator.getPrizeDistributionBuffer()).to.equal(
-                prizeDistributionSplitter.address,
+                prizeDistributionBuffer.address,
             );
         });
     });
@@ -167,7 +167,7 @@ describe('DrawCalculator', () => {
 
             prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-            await prizeDistributionSplitter.mock.getPrizeDistributions.returns([prizeDistribution]);
+            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([prizeDistribution]);
         });
 
         it('grand prize gets the full fraction at index 0', async () => {
@@ -570,7 +570,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1, draw2]);
-            await prizeDistributionSplitter.mock.getPrizeDistributions.returns([
+            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([
                 prizeDistribution,
                 prizeDistribution,
             ]);
@@ -637,7 +637,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1, draw2]);
-            await prizeDistributionSplitter.mock.getPrizeDistributions.returns([
+            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([
                 prizeDistribution,
                 prizeDistribution,
             ]);
@@ -681,7 +681,7 @@ describe('DrawCalculator', () => {
             });
 
             await drawBuffer.mock.getDraws.returns([draw1]);
-            await prizeDistributionSplitter.mock.getPrizeDistributions.returns([prizeDistribution]);
+            await prizeDistributionBuffer.mock.getPrizeDistributions.returns([prizeDistribution]);
 
             const offsetStartTimestamps = modifyTimestampsWithOffset(
                 timestamps,
@@ -730,7 +730,7 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionSplitter.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
             });
@@ -843,7 +843,7 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionSplitter.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -992,7 +992,7 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionSplitter.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -1050,7 +1050,7 @@ describe('DrawCalculator', () => {
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionSplitter.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -1111,13 +1111,13 @@ describe('DrawCalculator', () => {
                         ethers.utils.parseUnits('0.1', 9),
                         ethers.utils.parseUnits('0', 9), // NOTE ZERO here
                         ethers.utils.parseUnits('0.1', 9),
-                        ethers.utils.parseUnits('0.1', 9),
+                        ethers.utils.parseUnits('0.1', 9)
                     ],
                 };
 
                 prizeDistribution.tiers = fillPrizeTiersWithZeros(prizeDistribution.tiers);
 
-                await prizeDistributionSplitter.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1])
                     .returns([prizeDistribution]);
 
@@ -1234,7 +1234,7 @@ describe('DrawCalculator', () => {
 
                 debug(`pushing settings for draw 2...`);
 
-                await prizeDistributionSplitter.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1, 2])
                     .returns([prizeDistribution, prizeDistribution2]);
 
@@ -1328,7 +1328,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw1, draw2]);
 
-                await prizeDistributionSplitter.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([1, 2])
                     .returns([prizeDistribution, prizeDistribution]);
 
@@ -1394,7 +1394,7 @@ describe('DrawCalculator', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw1]);
 
-                await prizeDistributionSplitter.mock.getPrizeDistributions
+                await prizeDistributionBuffer.mock.getPrizeDistributions
                     .withArgs([2])
                     .returns([prizeDistribution]);
 
