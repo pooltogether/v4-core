@@ -7,7 +7,6 @@ pragma solidity 0.8.6;
  * @notice The PrizeDistributionSource interface.
  */
 interface IPrizeDistributionSource {
-
     ///@notice PrizeDistribution struct created every draw
     ///@param bitRangeSize Decimal representation of bitRangeSize
     ///@param matchCardinality The number of numbers to consider in the 256 bit random number. Must be > 1 and < 256/bitRangeSize.

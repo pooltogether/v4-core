@@ -2,14 +2,14 @@
 
 pragma solidity 0.8.6;
 
-import "../DrawCalculator.sol";
+import "../DrawCalculatorV2.sol";
 
-contract DrawCalculatorHarness is DrawCalculator {
+contract DrawCalculatorV2Harness is DrawCalculatorV2 {
     constructor(
         ITicket _ticket,
         IDrawBuffer _drawBuffer,
-        IPrizeDistributionBuffer _prizeDistributionBuffer
-    ) DrawCalculator(_ticket, _drawBuffer, _prizeDistributionBuffer) {}
+        IPrizeDistributionSource _prizeDistributionSource
+    ) DrawCalculatorV2(_ticket, _drawBuffer, _prizeDistributionSource) {}
 
     function calculateTierIndex(
         uint256 _randomNumberThisPick,
@@ -19,7 +19,7 @@ contract DrawCalculatorHarness is DrawCalculator {
         return _calculateTierIndex(_randomNumberThisPick, _winningRandomNumber, _masks);
     }
 
-    function createBitMasks(IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution)
+    function createBitMasks(IPrizeDistributionSource.PrizeDistribution calldata _prizeDistribution)
         public
         pure
         returns (uint256[] memory)
@@ -32,7 +32,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     ///@param _prizeTierIndex Index of the prize tiers array to calculate
     ///@return returns the fraction of the total prize
     function calculatePrizeTierFraction(
-        IPrizeDistributionBuffer.PrizeDistribution calldata _prizeDistribution,
+        IPrizeDistributionSource.PrizeDistribution calldata _prizeDistribution,
         uint256 _prizeTierIndex
     ) external pure returns (uint256) {
         return _calculatePrizeTierFraction(_prizeDistribution, _prizeTierIndex);
@@ -47,7 +47,7 @@ contract DrawCalculatorHarness is DrawCalculator {
     }
 
     function calculateNumberOfUserPicks(
-        IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionSource.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
     ) external pure returns (uint64) {
         return _calculateNumberOfUserPicks(_prizeDistribution, _normalizedUserBalance);

@@ -2,14 +2,15 @@
 
 pragma solidity 0.8.6;
 
-import "./interfaces/IDrawCalculator.sol";
 import "./interfaces/ITicket.sol";
 import "./interfaces/IDrawBuffer.sol";
-import "./interfaces/IPrizeDistributionBuffer.sol";
+import "./interfaces/IPrizeDistributionSource.sol";
 import "./interfaces/IDrawBeacon.sol";
 
+import "./PrizeDistributor.sol";
+
 /**
-  * @title  PoolTogether V4 DrawCalculator
+  * @title  PoolTogether V4 DrawCalculatorV2
   * @author PoolTogether Inc Team
   * @notice The DrawCalculator calculates a user's prize by matching a winning random number against
             their picks. A users picks are generated deterministically based on their address and balance
@@ -17,7 +18,8 @@ import "./interfaces/IDrawBeacon.sol";
             A user with a higher average weighted balance (during each draw period) will be given a large number of
             picks to choose from, and thus a higher chance to match the winning numbers.
 */
-contract DrawCalculator is IDrawCalculator {
+contract DrawCalculatorV2 {
+    /* ============ Variables ============ */
 
     /// @notice DrawBuffer address
     IDrawBuffer public immutable drawBuffer;
@@ -25,50 +27,70 @@ contract DrawCalculator is IDrawCalculator {
     /// @notice Ticket associated with DrawCalculator
     ITicket public immutable ticket;
 
-    /// @notice The stored history of draw settings.  Stored as ring buffer.
-    IPrizeDistributionBuffer public immutable prizeDistributionBuffer;
+    /// @notice The source in which the history of draw settings are stored as ring buffer.
+    IPrizeDistributionSource public immutable prizeDistributionSource;
 
     /// @notice The tiers array length
     uint8 public constant TIERS_LENGTH = 16;
 
+    /* ============ Events ============ */
+
+    ///@notice Emitted when the contract is initialized
+    event Deployed(
+        ITicket indexed ticket,
+        IDrawBuffer indexed drawBuffer,
+        IPrizeDistributionSource indexed prizeDistributionSource
+    );
+
+    ///@notice Emitted when the prizeDistributor is set/updated
+    event PrizeDistributorSet(PrizeDistributor indexed prizeDistributor);
+
     /* ============ Constructor ============ */
 
-    /// @notice Constructor for DrawCalculator
-    /// @param _ticket Ticket associated with this DrawCalculator
-    /// @param _drawBuffer The address of the draw buffer to push draws to
-    /// @param _prizeDistributionBuffer PrizeDistributionBuffer address
+    /**
+     * @notice Constructor for DrawCalculator
+     * @param _ticket Ticket associated with this DrawCalculator
+     * @param _drawBuffer The address of the draw buffer to push draws to
+     * @param _prizeDistributionSource PrizeDistributionSource address
+    */
     constructor(
         ITicket _ticket,
         IDrawBuffer _drawBuffer,
-        IPrizeDistributionBuffer _prizeDistributionBuffer
+        IPrizeDistributionSource _prizeDistributionSource
     ) {
         require(address(_ticket) != address(0), "DrawCalc/ticket-not-zero");
-        require(address(_prizeDistributionBuffer) != address(0), "DrawCalc/pdb-not-zero");
+        require(address(_prizeDistributionSource) != address(0), "DrawCalc/pdb-not-zero");
         require(address(_drawBuffer) != address(0), "DrawCalc/dh-not-zero");
 
         ticket = _ticket;
         drawBuffer = _drawBuffer;
-        prizeDistributionBuffer = _prizeDistributionBuffer;
+        prizeDistributionSource = _prizeDistributionSource;
 
-        emit Deployed(_ticket, _drawBuffer, _prizeDistributionBuffer);
+        emit Deployed(_ticket, _drawBuffer, _prizeDistributionSource);
     }
 
     /* ============ External Functions ============ */
 
-    /// @inheritdoc IDrawCalculator
+    /**
+     * @notice Calculates the prize amount for a user for Multiple Draws. Typically called by a PrizeDistributor.
+     * @param _user User for which to calculate prize amount.
+     * @param _drawIds drawId array for which to calculate prize amounts for.
+     * @param _pickIndicesForDraws The ABI encoded pick indices for all Draws. Expected to be winning picks. Pick indices must be less than the totalUserPicks.
+     * @return List of awardable prize amounts ordered by drawId.
+    */
     function calculate(
         address _user,
         uint32[] calldata _drawIds,
         bytes calldata _pickIndicesForDraws
-    ) external view override returns (uint256[] memory, bytes memory) {
+    ) external view returns (uint256[] memory, bytes memory) {
         uint64[][] memory pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
         require(pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices-length");
 
         // READ list of IDrawBeacon.Draw using the drawIds from drawBuffer
         IDrawBeacon.Draw[] memory draws = drawBuffer.getDraws(_drawIds);
 
-        // READ list of IPrizeDistributionBuffer.PrizeDistribution using the drawIds
-        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = prizeDistributionBuffer
+        // READ list of IPrizeDistributionSource.PrizeDistribution using the drawIds
+        IPrizeDistributionSource.PrizeDistribution[] memory _prizeDistributions = prizeDistributionSource
             .getPrizeDistributions(_drawIds);
 
         // The userBalances are fractions representing their portion of the liquidity for a draw.
@@ -86,30 +108,39 @@ contract DrawCalculator is IDrawCalculator {
             );
     }
 
-    /// @inheritdoc IDrawCalculator
-    function getDrawBuffer() external view override returns (IDrawBuffer) {
+    /**
+     * @notice Read global DrawBuffer variable.
+     * @return IDrawBuffer
+    */
+    function getDrawBuffer() external view returns (IDrawBuffer) {
         return drawBuffer;
     }
 
-    /// @inheritdoc IDrawCalculator
-    function getPrizeDistributionBuffer()
+    /**
+     * @notice Read global prizeDistributionSource variable.
+     * @return IPrizeDistributionSource
+    */
+    function getPrizeDistributionSource()
         external
         view
-        override
-        returns (IPrizeDistributionBuffer)
+        returns (IPrizeDistributionSource)
     {
-        return prizeDistributionBuffer;
+        return prizeDistributionSource;
     }
 
-    /// @inheritdoc IDrawCalculator
+    /**
+     * @notice Returns a users balances expressed as a fraction of the total supply over time.
+     * @param _user The users address
+     * @param _drawIds The drawIds to consider
+     * @return Array of balances
+    */
     function getNormalizedBalancesForDrawIds(address _user, uint32[] calldata _drawIds)
         external
         view
-        override
         returns (uint256[] memory)
     {
         IDrawBeacon.Draw[] memory _draws = drawBuffer.getDraws(_drawIds);
-        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions = prizeDistributionBuffer
+        IPrizeDistributionSource.PrizeDistribution[] memory _prizeDistributions = prizeDistributionSource
             .getPrizeDistributions(_drawIds);
 
         return _getNormalizedBalancesAt(_user, _draws, _prizeDistributions);
@@ -131,7 +162,7 @@ contract DrawCalculator is IDrawCalculator {
         bytes32 _userRandomNumber,
         IDrawBeacon.Draw[] memory _draws,
         uint64[][] memory _pickIndicesForDraws,
-        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions
+        IPrizeDistributionSource.PrizeDistribution[] memory _prizeDistributions
     ) internal view returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
 
         uint256[] memory _prizesAwardable = new uint256[](_normalizedUserBalances.length);
@@ -169,7 +200,7 @@ contract DrawCalculator is IDrawCalculator {
      * @return The number of picks a user gets for a Draw
      */
     function _calculateNumberOfUserPicks(
-        IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionSource.PrizeDistribution memory _prizeDistribution,
         uint256 _normalizedUserBalance
     ) internal pure returns (uint64) {
         return uint64((_normalizedUserBalance * _prizeDistribution.numberOfPicks) / 1 ether);
@@ -185,7 +216,7 @@ contract DrawCalculator is IDrawCalculator {
     function _getNormalizedBalancesAt(
         address _user,
         IDrawBeacon.Draw[] memory _draws,
-        IPrizeDistributionBuffer.PrizeDistribution[] memory _prizeDistributions
+        IPrizeDistributionSource.PrizeDistribution[] memory _prizeDistributions
     ) internal view returns (uint256[] memory) {
         uint256 drawsLength = _draws.length;
         uint64[] memory _timestampsWithStartCutoffTimes = new uint64[](drawsLength);
@@ -241,7 +272,7 @@ contract DrawCalculator is IDrawCalculator {
         uint256 _totalUserPicks,
         bytes32 _userRandomNumber,
         uint64[] memory _picks,
-        IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution
+        IPrizeDistributionSource.PrizeDistribution memory _prizeDistribution
     ) internal pure returns (uint256 prize, uint256[] memory prizeCounts) {
 
         // create bitmasks for the PrizeDistribution
@@ -348,7 +379,7 @@ contract DrawCalculator is IDrawCalculator {
      * @param _prizeDistribution The PrizeDistribution to use to calculate the masks
      * @return An array of bitmasks
      */
-    function _createBitMasks(IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution)
+    function _createBitMasks(IPrizeDistributionSource.PrizeDistribution memory _prizeDistribution)
         internal
         pure
         returns (uint256[] memory)
@@ -371,7 +402,7 @@ contract DrawCalculator is IDrawCalculator {
      * @return returns the fraction of the total prize (fixed point 9 number)
      */
     function _calculatePrizeTierFraction(
-        IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionSource.PrizeDistribution memory _prizeDistribution,
         uint256 _prizeTierIndex
     ) internal pure returns (uint256) {
          // get the prize fraction at that index
@@ -393,7 +424,7 @@ contract DrawCalculator is IDrawCalculator {
      * @return returns an array of prize tiers fractions
      */
     function _calculatePrizeTierFractions(
-        IPrizeDistributionBuffer.PrizeDistribution memory _prizeDistribution,
+        IPrizeDistributionSource.PrizeDistribution memory _prizeDistribution,
         uint8 maxWinningTierIndex
     ) internal pure returns (uint256[] memory) {
         uint256[] memory prizeDistributionFractions = new uint256[](
