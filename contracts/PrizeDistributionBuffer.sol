@@ -67,7 +67,7 @@ contract PrizeDistributionBuffer is IPrizeDistributionBuffer, Manageable {
         return _getPrizeDistribution(bufferMetadata, _drawId);
     }
 
-    /// @inheritdoc IPrizeDistributionBuffer
+    /// @inheritdoc IPrizeDistributionSource
     function getPrizeDistributions(uint32[] calldata _drawIds)
         external
         view

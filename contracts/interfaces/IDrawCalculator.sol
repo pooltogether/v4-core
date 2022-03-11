@@ -48,15 +48,15 @@ interface IDrawCalculator {
     function getDrawBuffer() external view returns (IDrawBuffer);
 
     /**
-     * @notice Read global DrawBuffer variable.
-     * @return IDrawBuffer
+     * @notice Read global prizeDistributionBuffer variable.
+     * @return IPrizeDistributionBuffer
      */
     function getPrizeDistributionBuffer() external view returns (IPrizeDistributionBuffer);
 
     /**
      * @notice Returns a users balances expressed as a fraction of the total supply over time.
      * @param user The users address
-     * @param drawIds The drawsId to consider
+     * @param drawIds The drawIds to consider
      * @return Array of balances
      */
     function getNormalizedBalancesForDrawIds(address user, uint32[] calldata drawIds)
