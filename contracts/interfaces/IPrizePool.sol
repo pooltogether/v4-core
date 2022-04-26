@@ -67,7 +67,7 @@ interface IPrizePool {
     /// @param delegate The address to delegate to for the caller
     function depositToAndDelegate(address to, uint256 amount, address delegate) external;
 
-    /// @notice Withdraw assets from the Prize Pool instantly.  A fairness fee may be charged for an early exit.
+    /// @notice Withdraw assets from the Prize Pool instantly.
     /// @param from The address to redeem tokens from.
     /// @param amount The amount of tokens to redeem for assets.
     /// @return The actual amount withdrawn
