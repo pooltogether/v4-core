@@ -12,10 +12,10 @@ import "./ObservationLib.sol";
   * @author PoolTogether Inc Team
   * @dev    Time-Weighted Average Balance Library for ERC20 tokens.
   * @notice This TwabLib adds on-chain historical lookups to a user(s) time-weighted average balance.
-            Each user is mapped to an Account struct containing the TWAB history (ring bufffer) and
+            Each user is mapped to an Account struct containing the TWAB history (ring buffer) and
             ring buffer parameters. Every token.transfer() creates a new TWAB checkpoint. The new TWAB
             checkpoint is stored in the circular ring buffer, as either a new checkpoint or rewriting
-            a previous checkpoint with new parameters. The TwabLib (using existing blocktimes 1block/15sec)
+            a previous checkpoint with new parameters. The TwabLib (using existing blocktimes of 1block/15sec)
             guarantees minimum 7.4 years of search history.
  */
 library TwabLib {
@@ -25,9 +25,9 @@ library TwabLib {
     /**
       * @notice Sets max ring buffer length in the Account.twabs Observation list.
                 As users transfer/mint/burn tickets new Observation checkpoints are
-                recorded. The current max cardinality guarantees a six month minimum,
-                of historical accurate lookups with current estimates of 1 new block
-                every 15 seconds - the of course contain a transfer to trigger an
+                recorded. The current max cardinality guarantees a seven year minimum,
+                of accurate historical lookups with current estimates of 1 new block
+                every 15 seconds - assuming each block contains a transfer to trigger an
                 observation write to storage.
       * @dev    The user Account.AccountDetails.cardinality parameter can NOT exceed
                 the max cardinality variable. Preventing "corrupted" ring buffer lookup
