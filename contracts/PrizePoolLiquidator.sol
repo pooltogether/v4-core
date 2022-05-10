@@ -121,7 +121,10 @@ contract PrizePoolLiquidator {
     _prizePool.award(msg.sender, amountOut);
     target.want.transferFrom(msg.sender, target.target, amountIn);
 
-    listener.afterSwap(_prizePool, _prizePool.getTicket(), amountOut, target.want, amountIn);
+    IPrizePoolLiquidatorListener _listener = listener;
+    if (address(_listener) != address(0)) {
+      _listener.afterSwap(_prizePool, _prizePool.getTicket(), amountOut, target.want, amountIn);
+    }
 
     return amountOut;
   }
