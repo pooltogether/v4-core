@@ -42,6 +42,7 @@
     "@openzeppelin/hardhat-upgrades": "1.6.0",
     "@pooltogether/pooltogether-proxy-factory-package": "1.0.1",
     "@pooltogether/uniform-random-number": "1.0.0-beta.2",
+    "@prb/math": "^2.5.0",
     "@types/chai": "4.2.15",
     "@types/debug": "4.1.5",
     "@types/mocha": "8.2.1",
