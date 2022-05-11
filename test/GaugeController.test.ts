@@ -75,18 +75,18 @@ describe('GaugeController', () => {
      */
      describe('increaseGauge(address _gauge, uint256 _amount)', () => {
         it('should SUCCEED to increase gaugeBalance by decreasing staked balance.', async () => {
-            await GaugeController.addGauge("0x0000000000000000000000000000000000000000");
-            expect(await GaugeController.getGauge("0x0000000000000000000000000000000000000000")).to.eq("0")
+            await GaugeController.addGauge("0x0000000000000000000000000000000000000001");
+            expect(await GaugeController.getGauge("0x0000000000000000000000000000000000000001")).to.eq("0")
             await Token.mint(wallet1.address, utils.parseEther('100'));
             await Token.approve(GaugeController.address, utils.parseEther('100'));
             await GaugeController.deposit(wallet1.address, utils.parseEther('100'))
-            const tx = await GaugeController.increaseGauge("0x0000000000000000000000000000000000000000", utils.parseEther('100'))
+            const tx = await GaugeController.increaseGauge("0x0000000000000000000000000000000000000001", utils.parseEther('100'))
             expect(tx.confirmations).to.be.equal(1);
-            expect(await GaugeController.getGauge("0x0000000000000000000000000000000000000000")).to.eq("100000000000000000000")
+            expect(await GaugeController.getGauge("0x0000000000000000000000000000000000000001")).to.eq("100000000000000000000")
         });
         it('should FAIL to increase gaugeBalance BECAUSE of insufficient balance', async () => {
-            await GaugeController.addGauge("0x0000000000000000000000000000000000000000");
-            expect(GaugeController.increaseGauge("0x0000000000000000000000000000000000000000", utils.parseEther('100'))).to.be.reverted
+            await GaugeController.addGauge("0x0000000000000000000000000000000000000001");
+            expect(GaugeController.increaseGauge("0x0000000000000000000000000000000000000001", utils.parseEther('100'))).to.be.reverted
         });
     })
 
@@ -101,19 +101,19 @@ describe('GaugeController', () => {
      */
      describe('decreaseGauge(address _gauge, uint256 _amount)', () => {
         it('should SUCCEED to increase staked balance by decreasing gaugeBalance .', async () => {
-            await GaugeController.addGauge("0x0000000000000000000000000000000000000000");
-            expect(await GaugeController.getGauge("0x0000000000000000000000000000000000000000")).to.eq("0")
+            await GaugeController.addGauge("0x0000000000000000000000000000000000000001");
+            expect(await GaugeController.getGauge("0x0000000000000000000000000000000000000001")).to.eq("0")
             await Token.mint(wallet1.address, utils.parseEther('200'));
             await Token.approve(GaugeController.address, utils.parseEther('200'));
             await GaugeController.deposit(wallet1.address, utils.parseEther('200'))
-            await GaugeController.increaseGauge("0x0000000000000000000000000000000000000000", utils.parseEther('200'))
-            const tx = await GaugeController.decreaseGauge("0x0000000000000000000000000000000000000000", utils.parseEther('100'))
+            await GaugeController.increaseGauge("0x0000000000000000000000000000000000000001", utils.parseEther('200'))
+            const tx = await GaugeController.decreaseGauge("0x0000000000000000000000000000000000000001", utils.parseEther('100'))
             expect(tx.confirmations).to.be.equal(1);
-            expect(await GaugeController.getGauge("0x0000000000000000000000000000000000000000")).to.eq("100000000000000000000")
+            expect(await GaugeController.getGauge("0x0000000000000000000000000000000000000001")).to.eq("100000000000000000000")
         });
         it('should FAIL to increase staked balance BECAUSE of insufficient gaugeBalance.', async () => {
-            await GaugeController.addGauge("0x0000000000000000000000000000000000000000");
-            expect(GaugeController.decreaseGauge("0x0000000000000000000000000000000000000000", utils.parseEther('100'))).to.be.reverted
+            await GaugeController.addGauge("0x0000000000000000000000000000000000000001");
+            expect(GaugeController.decreaseGauge("0x0000000000000000000000000000000000000001", utils.parseEther('100'))).to.be.reverted
         });
     })
 
@@ -128,11 +128,8 @@ describe('GaugeController', () => {
      */
      describe('addGaugeWithScale(address _to, uint256 _scale)', () => {
         it('should SUCCEED to add gauge to the gaugeScaleTwabs mapping', async () => {
-            await GaugeController.addGaugeWithScale("0x0000000000000000000000000000000000000000", utils.parseEther('1'))
-            expect(await GaugeController.getGaugeScale("0x0000000000000000000000000000000000000000")).to.eq("1000000000000000000")
-        });
-        it('should FAIL to add gauge to the gaugeScaleTwabs mapping', async () => {
-
+            await GaugeController.addGaugeWithScale("0x0000000000000000000000000000000000000001", utils.parseEther('1'))
+            expect(await GaugeController.getGaugeScale("0x0000000000000000000000000000000000000001")).to.eq("1000000000000000000")
         });
     })
 
@@ -147,11 +144,8 @@ describe('GaugeController', () => {
      */
      describe('removeGauge(address _gauge)', () => {
         it('should SUCCEED to remove gauge from the gaugeScaleTwabs mapping', async () => {
-            await GaugeController.removeGauge("0x0000000000000000000000000000000000000000")
-            expect(await GaugeController.getGaugeScale("0x0000000000000000000000000000000000000000")).to.eq("0")
-        });
-        it('should FAIL to remove gauge from the gaugeScaleTwabs mapping', async () => {
-
+            await GaugeController.removeGauge("0x0000000000000000000000000000000000000001")
+            expect(await GaugeController.getGaugeScale("0x0000000000000000000000000000000000000001")).to.eq("0")
         });
     })
 
@@ -166,12 +160,16 @@ describe('GaugeController', () => {
      * 4. emit a RemoveGauge event
      */
      describe('setGaugeScale(address _gauge, uint256 _scale', () => {
-        it('should SUCCEED to SET the scale on EXISTING gauge', async () => {
-            await GaugeController.setGaugeScale("0x0000000000000000000000000000000000000000", utils.parseEther('1'))
-            expect(await GaugeController.getGaugeScale("0x0000000000000000000000000000000000000000")).to.eq("1000000000000000000")
+        it('should SUCCEED to INCREASE the scale on EXISTING gauge', async () => {
+            await GaugeController.addGauge("0x0000000000000000000000000000000000000001");
+            await GaugeController.setGaugeScale("0x0000000000000000000000000000000000000001", utils.parseEther('2'))
+            expect(await GaugeController.getGaugeScale("0x0000000000000000000000000000000000000001")).to.eq("2000000000000000000")
         });
-        it('should FAIL to SET the scale on EXISTING gauge', async () => {
-
+        
+        it('should SUCCEED to DECREASE the scale on EXISTING gauge', async () => {
+            await GaugeController.addGauge("0x0000000000000000000000000000000000000001");
+            await GaugeController.setGaugeScale("0x0000000000000000000000000000000000000001", utils.parseEther('0.5'))
+            expect(await GaugeController.getGaugeScale("0x0000000000000000000000000000000000000001")).to.eq("500000000000000000")
         });
     })
 
@@ -216,7 +214,6 @@ describe('GaugeController', () => {
      */
      describe('getScaledAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime)', () => {
         it('should SUCCEED to READ the scaled average of', async () => {
-
             // Add Gauge with Scale TWAB
             await GaugeController.addGaugeWithScale("0x0000000000000000000000000000000000000001", utils.parseEther('1'));
 
@@ -235,7 +232,6 @@ describe('GaugeController', () => {
             // READ Scaled Gauge TWAB
             const read =  await GaugeController.getScaledAverageGaugeBetween("0x0000000000000000000000000000000000000001", startTime, endTime)
             expect(read).to.eq("100000000000000000000")
-
         });
     })
 
@@ -246,7 +242,6 @@ describe('GaugeController', () => {
      */
      describe('getAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime)', () => {
         it('should SUCCEED to READ the balance average of the gauge', async () => {
-
             // Add Gauge with Scale TWAB
             await GaugeController.addGaugeWithScale("0x0000000000000000000000000000000000000001", utils.parseEther('1'));
 
@@ -275,7 +270,6 @@ describe('GaugeController', () => {
      */
      describe('getAverageGaugeScaleBetween(address _gauge, uint256 _startTime, uint256 _endTime)', () => {
         it('should SUCCEED to READ the scale TWAB of the gauge', async () => {
-
             // Add Gauge with Scale TWAB
             await GaugeController.addGaugeWithScale("0x0000000000000000000000000000000000000001", utils.parseEther('1'));
             
