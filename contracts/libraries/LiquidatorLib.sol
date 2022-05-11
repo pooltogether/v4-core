@@ -111,6 +111,35 @@ library LiquidatorLib {
     return amountOut;
   }
 
+  function swapExactAmountOutAtTime(
+    State storage liquidationState,
+    uint256 availableBalance,
+    uint256 amountOut,
+    uint256 currentTime
+  ) internal returns (uint256) {
+    PRBMath.SD59x18 memory newExchangeRate = _increaseExchangeRateByDeltaTime(
+        liquidationState.exchangeRate,
+        liquidationState.deltaRatePerSecond,
+        liquidationState.lastSaleTime,
+        currentTime
+    );
+    require(availableBalance > 0, "Whoops! no funds available");
+    VirtualCpmmLib.Cpmm memory cpmm = VirtualCpmmLib.newCpmm(
+      liquidationState.maxSlippage, newExchangeRate, PRBMathSD59x18Typed.fromInt(availableBalance.toInt256())
+    );
+
+    uint256 amountIn = VirtualCpmmLib.getAmountIn(amountOut, cpmm.want, cpmm.have);
+    cpmm.want += amountIn;
+    cpmm.have -= amountOut;
+
+    require(amountOut <= availableBalance, "Whoops! have exceeds available");
+
+    liquidationState.lastSaleTime = currentTime;
+    liquidationState.exchangeRate = _cpmmToExchangeRate(cpmm);
+
+    return amountIn;
+  }
+
   function _cpmmToExchangeRate(VirtualCpmmLib.Cpmm memory cpmm) internal pure returns (PRBMath.SD59x18 memory) {
     return PRBMathSD59x18Typed.fromInt(int256(cpmm.have)).div(PRBMathSD59x18Typed.fromInt(int256(cpmm.want)));
   }

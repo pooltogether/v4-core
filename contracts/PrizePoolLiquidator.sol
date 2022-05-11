@@ -104,29 +104,56 @@ contract PrizePoolLiquidator {
     return poolLiquidatorStates[_prizePool].computeExactAmountOutAtTime(_availableStreamHaveBalance(_prizePool), amountIn, currentTime);
   }
 
-  function swapExactAmountIn(IPrizePool _prizePool, uint256 amountIn) public returns (uint256) {
-    return swapExactAmountInAtTime(_prizePool, amountIn, block.timestamp);
+  function swapExactAmountIn(IPrizePool _prizePool, uint256 amountIn, uint256 amountOutMin) external returns (uint256) {
+    return _swapExactAmountInAtTime(_prizePool, amountIn, amountOutMin, block.timestamp);
   }
 
-  function swapExactAmountInAtTime(IPrizePool _prizePool, uint256 amountIn, uint256 currentTime) public returns (uint256) {
+  function _swapExactAmountInAtTime(IPrizePool _prizePool, uint256 amountIn, uint256 amountOutMin, uint256 currentTime) internal returns (uint256) {
     uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
     uint256 amountOut = poolLiquidatorStates[_prizePool].swapExactAmountInAtTime(
       availableBalance, amountIn, currentTime
     );
 
-    Target storage target = poolTargets[_prizePool];
-
     require(amountOut <= availableBalance, "Whoops! have exceeds available");
+    require(amountOut >= amountOutMin, "trade does not meet min");
 
-    _prizePool.award(msg.sender, amountOut);
-    target.want.transferFrom(msg.sender, target.target, amountIn);
-
-    IPrizePoolLiquidatorListener _listener = listener;
-    if (address(_listener) != address(0)) {
-      _listener.afterSwap(_prizePool, _prizePool.getTicket(), amountOut, target.want, amountIn);
-    }
+    _swap(_prizePool, msg.sender, amountOut, amountIn);
 
     return amountOut;
+  }
+
+  function swapExactAmountOut(IPrizePool _prizePool, uint256 amountOut, uint256 amountInMax) external returns (uint256) {
+    return _swapExactAmountOutAtTime(_prizePool, amountOut, amountInMax, block.timestamp);
+  }
+
+  function _swapExactAmountOutAtTime(
+    IPrizePool _prizePool,
+    uint256 amountOut,
+    uint256 amountInMax,
+    uint256 currentTime
+  ) internal returns (uint256) {
+    uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
+    uint256 amountIn = poolLiquidatorStates[_prizePool].swapExactAmountOutAtTime(
+      availableBalance, amountOut, currentTime
+    );
+
+    require(amountIn <= amountInMax, "trade does not meet min");
+    require(amountOut <= availableBalance, "Whoops! have exceeds available");
+
+    _swap(_prizePool, msg.sender, amountOut, amountIn);
+
+    return amountIn;
+  }
+
+  function _swap(IPrizePool _prizePool, address _account, uint256 _amountOut, uint256 _amountIn) internal {
+    Target storage target = poolTargets[_prizePool];
+    IERC20 want = target.want;
+    _prizePool.award(_account, _amountOut);
+    want.transferFrom(_account, target.target, _amountIn);
+    IPrizePoolLiquidatorListener _listener = listener;
+    if (address(_listener) != address(0)) {
+      _listener.afterSwap(_prizePool, _prizePool.getTicket(), _amountOut, want, _amountIn);
+    }
   }
 
   function getLiquidationState(IPrizePool _prizePool) external view returns (
