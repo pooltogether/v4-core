@@ -35,7 +35,7 @@ contract GaugeController is IGaugeController {
 
     function deposit(address _to, uint256 _amount) public {
         balances[_to] += _amount;
-        token.transferFrom(_to, address(this), _amount);
+        token.transferFrom(msg.sender, address(this), _amount);
     }
 
     function withdraw(uint256 _amount) public {
