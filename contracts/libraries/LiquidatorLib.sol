@@ -47,25 +47,23 @@ library LiquidatorLib {
     );
   }
 
-  function computeExactAmountInAtTime(State storage _liquidationState, uint256 availableBalance, uint256 amountOut, uint256 currentTime) internal pure returns (uint256) {
-    State memory liquidationState = _liquidationState;
-    PRBMath.SD59x18 memory newExchangeRate = _increaseExchangeRateByDeltaTime(
-        liquidationState.exchangeRate,
-        liquidationState.deltaRatePerSecond,
-        liquidationState.lastSaleTime,
-        currentTime
-    );
+  function computeExactAmountInAtTime(State storage _liquidationState, uint256 availableBalance, uint256 amountOut, uint256 currentTime) internal view returns (uint256) {
     if (availableBalance == 0) {
       return 0;
     }
-    // console2.log("availableBalance", availableBalance);
-    VirtualCpmmLib.Cpmm memory cpmm = VirtualCpmmLib.newCpmm(
-      liquidationState.maxSlippage, newExchangeRate, PRBMathSD59x18Typed.fromInt(availableBalance.toInt256())
-    );
+    VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(_liquidationState, availableBalance, currentTime);
     return VirtualCpmmLib.getAmountIn(amountOut, cpmm.want, cpmm.have);
   }
 
-  function computeExactAmountOutAtTime(State storage _liquidationState, uint256 availableBalance, uint256 amountIn, uint256 currentTime) internal pure returns (uint256) {
+  function computeExactAmountOutAtTime(State storage _liquidationState, uint256 availableBalance, uint256 amountIn, uint256 currentTime) internal view returns (uint256) {
+    if (availableBalance == 0) {
+      return 0;
+    }
+    VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(_liquidationState, availableBalance, currentTime);
+    return VirtualCpmmLib.getAmountOut(amountIn, cpmm.want, cpmm.have);
+  }
+
+  function _computeCpmm(State storage _liquidationState, uint256 availableBalance, uint256 currentTime) internal pure returns (VirtualCpmmLib.Cpmm memory) {
     State memory liquidationState = _liquidationState;
     PRBMath.SD59x18 memory newExchangeRate = _increaseExchangeRateByDeltaTime(
         liquidationState.exchangeRate,
@@ -73,13 +71,9 @@ library LiquidatorLib {
         liquidationState.lastSaleTime,
         currentTime
     );
-    if (availableBalance == 0) {
-      return 0;
-    }
-    VirtualCpmmLib.Cpmm memory cpmm = VirtualCpmmLib.newCpmm(
+    return VirtualCpmmLib.newCpmm(
       liquidationState.maxSlippage, newExchangeRate, PRBMathSD59x18Typed.fromInt(availableBalance.toInt256())
     );
-    return VirtualCpmmLib.getAmountOut(amountIn, cpmm.want, cpmm.have);
   }
 
   function swapExactAmountInAtTime(
@@ -88,16 +82,8 @@ library LiquidatorLib {
     uint256 amountIn,
     uint256 currentTime
   ) internal returns (uint256) {
-    PRBMath.SD59x18 memory newExchangeRate = _increaseExchangeRateByDeltaTime(
-        liquidationState.exchangeRate,
-        liquidationState.deltaRatePerSecond,
-        liquidationState.lastSaleTime,
-        currentTime
-    );
     require(availableBalance > 0, "Whoops! no funds available");
-    VirtualCpmmLib.Cpmm memory cpmm = VirtualCpmmLib.newCpmm(
-      liquidationState.maxSlippage, newExchangeRate, PRBMathSD59x18Typed.fromInt(availableBalance.toInt256())
-    );
+    VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(liquidationState, availableBalance, currentTime);
 
     uint256 amountOut = VirtualCpmmLib.getAmountOut(amountIn, cpmm.want, cpmm.have);
     cpmm.want += amountIn;
@@ -117,16 +103,9 @@ library LiquidatorLib {
     uint256 amountOut,
     uint256 currentTime
   ) internal returns (uint256) {
-    PRBMath.SD59x18 memory newExchangeRate = _increaseExchangeRateByDeltaTime(
-        liquidationState.exchangeRate,
-        liquidationState.deltaRatePerSecond,
-        liquidationState.lastSaleTime,
-        currentTime
-    );
+
     require(availableBalance > 0, "Whoops! no funds available");
-    VirtualCpmmLib.Cpmm memory cpmm = VirtualCpmmLib.newCpmm(
-      liquidationState.maxSlippage, newExchangeRate, PRBMathSD59x18Typed.fromInt(availableBalance.toInt256())
-    );
+    VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(liquidationState, availableBalance, currentTime);
 
     uint256 amountIn = VirtualCpmmLib.getAmountIn(amountOut, cpmm.want, cpmm.have);
     cpmm.want += amountIn;

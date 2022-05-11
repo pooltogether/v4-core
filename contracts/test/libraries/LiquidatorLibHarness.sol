@@ -10,7 +10,11 @@ contract LiquidatorLibHarness {
   using SafeCast for uint256;
   using PRBMathSD59x18Typed for PRBMath.SD59x18;
 
-  LiquidatorLib.State state;
+  LiquidatorLib.State public state;
+
+  event SwapResult(
+    uint256 amount
+  );
 
   function setState(
     int256 exchangeRate,
@@ -43,6 +47,18 @@ contract LiquidatorLibHarness {
     uint256 amountIn,
     uint256 currentTime
   ) external returns (uint256) {
-    return state.swapExactAmountInAtTime(availableBalance, amountIn, currentTime);
+    uint256 result = state.swapExactAmountInAtTime(availableBalance, amountIn, currentTime);
+    emit SwapResult(result);
+    return result;
+  }
+
+  function swapExactAmountOutAtTime(
+    uint256 availableBalance,
+    uint256 amountOut,
+    uint256 currentTime
+  ) external returns (uint256) {
+    uint256 result = state.swapExactAmountOutAtTime(availableBalance, amountOut, currentTime);
+    emit SwapResult(result);
+    return result;
   }
 }

@@ -12,7 +12,9 @@ describe('LiquidatorLibHarness', () => {
     before(async () => {
         LiquidatorLibHarnessFactory = await ethers.getContractFactory('LiquidatorLibHarness');
         liquidatorLibHarness = await LiquidatorLibHarnessFactory.deploy();
+    })
 
+    beforeEach(async () => {
         const exchangeRate = toWei('2') // want:have
         const lastSaleTime = '10'
         const deltaRatePerSecond = toWei('0.01') // increases by 1% each second
@@ -60,12 +62,32 @@ describe('LiquidatorLibHarness', () => {
 
     describe('swapExactAmountInAtTime()', () => {
         it('should swap correctly', async () => {
-            await liquidatorLibHarness.swapExactAmountInAtTime(toWei('1000'), toWei('100'), '10')
-            expect(await liquidatorLibHarness.computeExchangeRate('10')).to.equal('1992023936159616893')
+            await expect(liquidatorLibHarness.swapExactAmountInAtTime(toWei('1000'), toWei('50'), '10'))
+                .to.emit(liquidatorLibHarness, 'SwapResult').withArgs('99900099900099900099')
+            expect(await liquidatorLibHarness.computeExchangeRate('10')).to.equal('1996005992009988013')
         })
 
         it('should revert if there is insufficient balance', async () => {
             await expect(liquidatorLibHarness.swapExactAmountInAtTime(toWei('50'), toWei('100'), '10')).to.be.revertedWith('Whoops! have exceeds available')
+        })
+    })
+
+    describe('swapExactAmountOutAtTime()', () => {
+        it('should update the exchange rate', async () => {
+            await expect(liquidatorLibHarness.swapExactAmountOutAtTime(toWei('1000'), toWei('1000'), '10'))
+                .to.emit(liquidatorLibHarness, 'SwapResult').withArgs('505050505050505050499')
+            expect(await liquidatorLibHarness.computeExchangeRate('10')).to.equal(toWei('1.9602'))
+        })
+
+        it('should update the last sale timestamp', async () => {
+            await liquidatorLibHarness.swapExactAmountOutAtTime(toWei('1000'), toWei('1000'), '20')
+            const state = await liquidatorLibHarness.state()
+            expect(state.lastSaleTime.toString()).to.equal('20')
+        })
+
+        it('should revert if there is insufficient balance', async () => {
+            await expect(liquidatorLibHarness.swapExactAmountOutAtTime(toWei('50'), toWei('100'), '10'))
+                .to.be.revertedWith('Whoops! have exceeds available')
         })
     })
 
