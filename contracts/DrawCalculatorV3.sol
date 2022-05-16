@@ -32,7 +32,10 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
 
     /// @notice DrawBuffer address
     IDrawBuffer public immutable drawBuffer;
-    
+
+    IPrizeConfigHistory public immutable prizeConfigHistory;
+
+    /// @notice PrizeConfigHistory address
     IPrizeConfigHistory public immutable prizeConfigHistory;
 
     /// @notice The tiers array length
@@ -44,10 +47,12 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     * @notice Emitted when the contract is initialized
     * @param gaugeController Address of the GaugeController
     * @param drawBuffer Address of the DrawBuffer
+    * @param prizeConfigHistory Address of the PrizeConfigHistory
     */
     event Deployed(
         IGaugeController indexed gaugeController,
-        IDrawBuffer indexed drawBuffer
+        IDrawBuffer indexed drawBuffer,
+        IPrizeConfigHistory indexed prizeConfigHistory
     );
 
     /* ============ Constructor ============ */
@@ -55,9 +60,10 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     /**
      * @notice DrawCalculator constructor
      * @param _gaugeController Address of the GaugeController
-     * @param _drawBuffer Address of the draw buffer to push draws to
+     * @param _drawBuffer Address of the DrawBuffer to push draws to
+     * @param _prizeConfigHistory Address of the PrizeConfigHistory
      * @param _owner Address of the owner
-    */
+     */
     constructor(
         IGaugeController _gaugeController,
         IDrawBuffer _drawBuffer,
@@ -66,13 +72,14 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     ) Ownable(_owner) {
         require(address(_gaugeController) != address(0), "DrawCalc/GC-not-zero-address");
         require(address(_drawBuffer) != address(0), "DrawCalc/DB-not-zero-address");
+        require(address(_prizeConfigHistory) != address(0), "DrawCalc/PCH-not-zero-address");
         require(_owner != address(0), "DrawCalc/owner-not-zero-address");
 
         gaugeController = _gaugeController;
         drawBuffer = _drawBuffer;
         prizeConfigHistory = _prizeConfigHistory;
 
-        emit Deployed(_gaugeController, _drawBuffer);
+        emit Deployed(_gaugeController, _drawBuffer, _prizeConfigHistory);
     }
 
     /* ============ External Functions ============ */
@@ -92,7 +99,6 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
 
         return _calculatePrizesAwardable(
             _ticket,
-            prizeConfigHistory,
             _user,
             _userRandomNumber,
             _drawIds,
@@ -103,7 +109,6 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     /// @inheritdoc IDrawCalculatorV3
     function calculateUserPicks(
         ITicket _ticket,
-        IPrizeConfigHistory _prizeConfigHistory,
         address _user,
         uint32[] calldata _drawIds
     ) external view override returns (uint64[] memory picks) {
@@ -113,7 +118,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
 
         for (uint32 _drawIndex = 0; _drawIndex < _drawsLength; _drawIndex++) {
             IDrawBeacon.Draw memory _draw = _draws[_drawIndex];
-            IPrizeConfigHistory.PrizeConfig memory _prizeConfig = _prizeConfigHistory.getPrizeConfig(_draw.drawId);
+            IPrizeConfigHistory.PrizeConfig memory _prizeConfig = prizeConfigHistory.getPrizeConfig(_draw.drawId);
 
             _requireDrawUnexpired(_draw, _prizeConfig);
 
@@ -142,6 +147,11 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     }
 
     /// @inheritdoc IDrawCalculatorV3
+    function getPrizeConfigHistory() external override view returns (IPrizeConfigHistory) {
+        return prizeConfigHistory;
+    }
+
+    /// @inheritdoc IDrawCalculatorV3
     function getTotalPicks(
         ITicket _ticket,
         uint256 _startTime,
@@ -158,7 +168,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     /**
      * @notice Ensure that the draw is not expired.
      * @param _draw Draw
-     * @param _prizeConfig Prize tier
+     * @param _prizeConfig PrizeConfig
      */
     function _requireDrawUnexpired(
         IDrawBeacon.Draw memory _draw,
@@ -170,7 +180,6 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     /**
      * @notice Calculates the prizes awardable for each DrawIds passed.
      * @param _ticket Address of the ticket to calculate awardable prizes for
-     * @param _prizeConfigHistory Address of the prizeConfigHistory associated with the ticket
      * @param _user Address of the user for which to calculate awardable prizes for
      * @param _userRandomNumber Random number of the user to consider over draws
      * @param _drawIds Array of DrawIds for which to calculate awardable prizes for
@@ -178,7 +187,6 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
      */
     function _calculatePrizesAwardable(
         ITicket _ticket,
-        IPrizeConfigHistory _prizeConfigHistory,
         address _user,
         bytes32 _userRandomNumber,
         uint32[] memory _drawIds,
@@ -193,7 +201,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
         // Calculate prizes awardable for each Draw passed
         for (uint32 _drawIndex = 0; _drawIndex < _draws.length; _drawIndex++) {
             IDrawBeacon.Draw memory _draw = _draws[_drawIndex];
-            IPrizeConfigHistory.PrizeConfig memory _prizeConfig = _prizeConfigHistory.getPrizeConfig(_draw.drawId);
+            IPrizeConfigHistory.PrizeConfig memory _prizeConfig = prizeConfigHistory.getPrizeConfig(_draw.drawId);
 
             _requireDrawUnexpired(_draw, _prizeConfig);
 
@@ -221,15 +229,15 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     }
 
     /**
-     * @notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the PrizeDistribution.
-    * @dev Divided by 1e18 since the normalized user balance is stored as a fixed point 18 number.
-    * @param _ticket Address of the ticket to get total picks for
-    * @param _startTimestamp Timestamp at which the prize starts
-    * @param _endTimestamp Timestamp at which the prize ends
-    * @param _poolStakeCeiling Globally configured pool stake ceiling
-    * @param _bitRange Number of bits allocated to each division
-    * @param _cardinality Number of sub-divisions of a random number
-    * @return Number of picks a user gets for a Draw
+     * @notice Calculates the number of picks a user gets for a Draw, considering the normalized user balance and the PrizeConfig.
+     * @dev Divided by 1e18 since the normalized user balance is stored as a fixed point 18 number.
+     * @param _ticket Address of the ticket to get total picks for
+     * @param _startTimestamp Timestamp at which the prize starts
+     * @param _endTimestamp Timestamp at which the prize ends
+     * @param _poolStakeCeiling Globally configured pool stake ceiling
+     * @param _bitRange Number of bits allocated to each division
+     * @param _cardinality Number of sub-divisions of a random number
+     * @return Number of picks a user gets for a Draw
      */
     function _calculateUserPicks(
         ITicket _ticket,
@@ -242,7 +250,6 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     ) internal view returns (uint64) {
         uint256 _numberOfPicks = _getTotalPicks(_ticket, _startTimestamp, _endTimestamp, _poolStakeCeiling, _bitRange, _cardinality);
         uint256 _normalizedBalance = _getNormalizedBalanceAt(_ticket, _user, _startTimestamp, _endTimestamp);
-
         return uint64((_normalizedBalance * _numberOfPicks) / 1 ether);
     }
 
@@ -310,12 +317,12 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     }
 
     /**
-     * @notice Calculates the prize amount for a PrizeDistribution over given picks
-     * @param _winningRandomNumber Draw's winningRandomNumber
-     * @param _totalUserPicks      number of picks the user gets for the Draw
-     * @param _userRandomNumber    users randomNumber for that draw
-     * @param _picks               users picks for that draw
-     * @param _prizeConfig           PrizeConfig for that draw
+     * @notice Calculates the prize amount for a PrizeConfig over given picks
+     * @param _winningRandomNumber  Draw's winningRandomNumber
+     * @param _totalUserPicks       Number of picks the user gets for the Draw
+     * @param _userRandomNumber     User randomNumber for that draw
+     * @param _picks                User picks for that draw
+     * @param _prizeConfig          PrizeConfig for that draw
      * @return prize (if any), prizeCounts (if any)
      */
     function _calculate(
@@ -325,7 +332,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
         uint64[] memory _picks,
         IPrizeConfigHistory.PrizeConfig memory _prizeConfig
     ) internal pure returns (uint256 prize, uint256[] memory prizeCounts) {
-        // Create bitmasks for the PrizeDistribution
+        // Create bitmasks for the PrizeConfig
         uint256[] memory masks = _createBitMasks(_prizeConfig.matchCardinality, _prizeConfig.bitRangeSize);
         uint32 picksLength = uint32(_picks.length);
         uint256[] memory _prizeCounts = new uint256[](_prizeConfig.tiers.length);
@@ -337,7 +344,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
             "DrawCalc/exceeds-max-user-picks"
         );
 
-        // for each pick, find number of matching numbers and calculate prize distributions index
+        // for each pick, find number of matching numbers and calculate prize configs index
         for (uint32 index = 0; index < picksLength; index++) {
             require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
 
@@ -399,11 +406,11 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     }
 
     /**
-    * @notice Calculates the tier index given the random numbers and masks
-    * @param _randomNumberThisPick User random number for this Pick
-    * @param _winningRandomNumber The winning number for this draw
-    * @param _masks The pre-calculated bitmasks for the prizeDistributions
-    * @return The position within the prize tier array (0 = top prize, 1 = runner-up prize, etc)
+     * @notice Calculates the tier index given the random numbers and masks
+     * @param _randomNumberThisPick User random number for this Pick
+     * @param _winningRandomNumber The winning number for this draw
+     * @param _masks The pre-calculated bitmasks for the PrizeConfig
+     * @return The position within the prize tier array (0 = top prize, 1 = runner-up prize, etc)
      */
     function _calculateTierIndex(
         uint256 _randomNumberThisPick,
@@ -434,7 +441,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     }
 
     /**
-     * @notice Creates an array of bitmasks equal to the PrizeDistribution.matchCardinality length
+     * @notice Creates an array of bitmasks equal to the PrizeConfig.matchCardinality length
      * @param _matchCardinality Match cardinality for Draw
      * @param _bitRangeSize Bit range size for Draw
      * @return Array of bitmasks
@@ -456,8 +463,8 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     }
 
     /**
-     * @notice Calculates the expected prize fraction per PrizeDistributions and distributionIndex
-     * @param _prizeFraction Prize fraction for this PrizeDistribution
+     * @notice Calculates the expected prize fraction per PrizeConfig and prize tiers index
+     * @param _prizeFraction Prize fraction for this PrizeConfig
      * @param _bitRangeSize Bit range size for Draw
      * @param _prizeConfigIndex Index of the prize tiers array to calculate
      * @return returns the fraction of the total prize (fixed point 9 number)
@@ -477,9 +484,9 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     }
 
     /**
-     * @notice Calculates the number of prizes for a given prizeDistributionIndex
+     * @notice Calculates the number of prizes for a given PrizeConfigIndex
      * @param _bitRangeSize Bit range size for Draw
-     * @param _prizeConfigIndex Index of the prize config array to calculate
+     * @param _prizeConfigIndex Index of the PrizeConfig array to calculate
      * @return returns the fraction of the total prize (base 1e18)
      */
     function _numberOfPrizesForIndex(uint8 _bitRangeSize, uint256 _prizeConfigIndex)
