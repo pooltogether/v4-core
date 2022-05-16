@@ -33,8 +33,6 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     /// @notice DrawBuffer address
     IDrawBuffer public immutable drawBuffer;
 
-    IPrizeConfigHistory public immutable prizeConfigHistory;
-
     /// @notice PrizeConfigHistory address
     IPrizeConfigHistory public immutable prizeConfigHistory;
 
