@@ -32,6 +32,8 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
 
     /// @notice DrawBuffer address
     IDrawBuffer public immutable drawBuffer;
+    
+    IPrizeConfigHistory public immutable prizeConfigHistory;
 
     /// @notice The tiers array length
     uint8 public constant TIERS_LENGTH = 16;
@@ -59,6 +61,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     constructor(
         IGaugeController _gaugeController,
         IDrawBuffer _drawBuffer,
+        IPrizeConfigHistory _prizeConfigHistory,
         address _owner
     ) Ownable(_owner) {
         require(address(_gaugeController) != address(0), "DrawCalc/GC-not-zero-address");
@@ -67,6 +70,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
 
         gaugeController = _gaugeController;
         drawBuffer = _drawBuffer;
+        prizeConfigHistory = _prizeConfigHistory;
 
         emit Deployed(_gaugeController, _drawBuffer);
     }
@@ -76,7 +80,6 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
     /// @inheritdoc IDrawCalculatorV3
     function calculate(
         ITicket _ticket,
-        IPrizeConfigHistory _prizeConfigHistory,
         address _user,
         uint32[] calldata _drawIds,
         bytes calldata _pickIndicesForDraws
@@ -89,7 +92,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
 
         return _calculatePrizesAwardable(
             _ticket,
-            _prizeConfigHistory,
+            prizeConfigHistory,
             _user,
             _userRandomNumber,
             _drawIds,
