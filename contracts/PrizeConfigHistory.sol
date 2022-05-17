@@ -147,17 +147,16 @@ contract PrizeConfigHistory is IPrizeConfigHistory, Manageable {
      * @param _prizeConfig New PrizeConfig struct to push onto history array
      */
     function _push(PrizeConfig memory _prizeConfig) internal {
-        uint32 _historyLength = uint32(history.length);
+        uint256 _historyLength = history.length;
 
         if (_historyLength > 0) {
-            // TODO: Check if cheaper in gas to only cast to uint32 below
-            uint32 _id = history[_historyLength - 1];
+            uint256 _id = history[uint32(_historyLength - 1)];
 
-            require(_prizeConfig.drawId > _id, "PrizeConfHistory/nonsequentialId");
+            require(_prizeConfig.drawId > uint32(_id), "PrizeConfHistory/nonsequentialId");
         }
 
         history.push(_prizeConfig.drawId);
-        prizeConfigs[_historyLength] = _prizeConfig;
+        prizeConfigs[uint32(_historyLength)] = _prizeConfig;
 
         emit PrizeConfigPushed(_prizeConfig.drawId, _prizeConfig);
     }
