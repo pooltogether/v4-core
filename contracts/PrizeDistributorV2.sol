@@ -58,6 +58,9 @@ contract PrizeDistributorV2 is Manageable {
     /// @notice Maps users => drawId => paid out balance
     mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
 
+    /// @notice The vault that stores the prize tokens
+    address public vault;
+
     /* ============ Initialize ============ */
 
     /**
@@ -69,11 +72,13 @@ contract PrizeDistributorV2 is Manageable {
     constructor(
         address _owner,
         IERC20 _token,
-        IDrawCalculatorV3 _drawCalculator
+        IDrawCalculatorV3 _drawCalculator,
+        address _vault
     ) Ownable(_owner) {
         _setDrawCalculator(_drawCalculator);
         require(address(_token) != address(0), "PrizeDistributorV2/token-not-zero-address");
         token = _token;
+        vault = _vault;
         emit TokenSet(_token);
     }
 
@@ -191,7 +196,7 @@ contract PrizeDistributorV2 is Manageable {
      * @param _amount  Transfer amount
      */
     function _awardPayout(address _to, uint256 _amount) internal {
-        token.safeTransfer(_to, _amount);
+        token.safeTransferFrom(vault, _to, _amount);
     }
 
 }
