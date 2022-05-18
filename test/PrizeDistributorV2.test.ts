@@ -10,13 +10,14 @@ const { AddressZero } = constants;
 describe('PrizeDistributorV2', () => {
     let wallet1: any;
     let wallet2: any;
+    let vault: any;
     let token: Contract;
     let ticket: Contract;
-    let PrizeDistributorV2: Contract;
+    let prizeDistributorV2: Contract;
     let drawCalculator: MockContract;
 
     before(async () => {
-        [wallet1, wallet2] = await getSigners();
+        [wallet1, wallet2, vault] = await getSigners();
     });
 
     beforeEach(async () => {
@@ -32,13 +33,15 @@ describe('PrizeDistributorV2', () => {
 
         const PrizeDistributorV2Factory: ContractFactory = await ethers.getContractFactory('PrizeDistributorV2');
 
-        PrizeDistributorV2 = await PrizeDistributorV2Factory.deploy(
+        prizeDistributorV2 = await PrizeDistributorV2Factory.deploy(
             wallet1.address,
             ticket.address,
             drawCalculator.address,
+            vault.address
         );
 
-        await ticket.mint(PrizeDistributorV2.address, toWei('1000'));
+        await ticket.mint(vault.address, toWei('1000'));
+        await ticket.connect(vault).approve(prizeDistributorV2.address, toWei('10000000'))
     });
 
     /**
@@ -57,8 +60,8 @@ describe('PrizeDistributorV2', () => {
             await drawCalculator.mock.calculate
                 .withArgs(ticket.address, wallet1.address, [1], '0x')
                 .returns([toWei('10')], "0x");
-            await expect(PrizeDistributorV2.claim(ticket.address, wallet1.address, [1], '0x'))
-                .to.emit(PrizeDistributorV2, 'ClaimedDraw')
+            await expect(prizeDistributorV2.claim(ticket.address, wallet1.address, [1], '0x'))
+                .to.emit(prizeDistributorV2, 'ClaimedDraw')
                 .withArgs(wallet1.address, 1, toWei('10'));
         });
 
@@ -66,12 +69,12 @@ describe('PrizeDistributorV2', () => {
             await drawCalculator.mock.calculate
                 .withArgs(ticket.address, wallet1.address, [1], '0x')
                 .returns([toWei('10')], "0x");
-            await PrizeDistributorV2.claim(ticket.address, wallet1.address, [1], '0x');
+            await prizeDistributorV2.claim(ticket.address, wallet1.address, [1], '0x');
             await drawCalculator.mock.calculate
                 .withArgs(ticket.address, wallet1.address, [1], '0x')
                 .returns([toWei('20')], "0x");
-            await PrizeDistributorV2.claim(ticket.address, wallet1.address, [1], '0x')
-            expect(await PrizeDistributorV2.getDrawPayoutBalanceOf(wallet1.address, 1)).to.equal(
+            await prizeDistributorV2.claim(ticket.address, wallet1.address, [1], '0x')
+            expect(await prizeDistributorV2.getDrawPayoutBalanceOf(wallet1.address, 1)).to.equal(
                 toWei('20'),
             );
         });
@@ -80,8 +83,8 @@ describe('PrizeDistributorV2', () => {
             await drawCalculator.mock.calculate
                 .withArgs(ticket.address, wallet1.address, [0], '0x')
                 .returns([toWei('10')], "0x");
-            await PrizeDistributorV2.claim(ticket.address,wallet1.address, [0], '0x');
-            await expect(PrizeDistributorV2.claim(ticket.address, wallet1.address, [0], '0x')).to.be.revertedWith(
+            await prizeDistributorV2.claim(ticket.address,wallet1.address, [0], '0x');
+            await expect(prizeDistributorV2.claim(ticket.address, wallet1.address, [0], '0x')).to.be.revertedWith(
                 'PrizeDistributorV2/zero-payout',
             );
         });
@@ -97,20 +100,20 @@ describe('PrizeDistributorV2', () => {
      describe('setDrawCalculator(DrawCalculatorInterface _newCalculator)', () => {
     
         it('should SUCCEED updating the drawCalculator global variable', async () => {
-            expect(await PrizeDistributorV2.setDrawCalculator(wallet2.address))
-                .to.emit(PrizeDistributorV2, 'DrawCalculatorSet')
+            expect(await prizeDistributorV2.setDrawCalculator(wallet2.address))
+                .to.emit(prizeDistributorV2, 'DrawCalculatorSet')
                 .withArgs(wallet2.address);
         });
 
         it('should REVERT on 1.authorized because wallet is NOT an OWNER or MANAGER', async () => {
-            const PrizeDistributorV2Unauthorized = PrizeDistributorV2.connect(wallet2);
+            const PrizeDistributorV2Unauthorized = prizeDistributorV2.connect(wallet2);
             await expect(
                 PrizeDistributorV2Unauthorized.setDrawCalculator(AddressZero),
             ).to.be.revertedWith('Manageable/caller-not-manager-or-owner');
         });
 
         it('should REVERT on 2.update because the drawCalculator address is NULL', async () => {
-            await expect(PrizeDistributorV2.setDrawCalculator(AddressZero)).to.be.revertedWith(
+            await expect(prizeDistributorV2.setDrawCalculator(AddressZero)).to.be.revertedWith(
                 'PrizeDistributorV2/calc-not-zero',
             );
         });
@@ -132,18 +135,18 @@ describe('PrizeDistributorV2', () => {
         let withdrawAmount: BigNumber = toWei('100');
 
         beforeEach(async () => {
-            await token.mint(PrizeDistributorV2.address, toWei('1000'));
+            await token.mint(prizeDistributorV2.address, toWei('1000'));
         });
 
         it('should SUCCEED to withdraw ERC20 tokens as owner', async () => {
-            await expect(PrizeDistributorV2.withdrawERC20(token.address, wallet1.address, withdrawAmount))
-                .to.emit(PrizeDistributorV2, 'ERC20Withdrawn')
+            await expect(prizeDistributorV2.withdrawERC20(token.address, wallet1.address, withdrawAmount))
+                .to.emit(prizeDistributorV2, 'ERC20Withdrawn')
                 .withArgs(token.address, wallet1.address, withdrawAmount);
         });
 
         it('should REVERT on 1.authorize because from address is not an OWNER or MANAGER', async () => {
             expect(
-                PrizeDistributorV2
+                prizeDistributorV2
                     .connect(wallet2)
                     .withdrawERC20(token.address, wallet1.address, withdrawAmount),
             ).to.be.revertedWith('Manageable/caller-not-manager-or-owner');
@@ -151,13 +154,13 @@ describe('PrizeDistributorV2', () => {
 
         it('should REVERT on 2.require because the recipient address is NULL', async () => {
             await expect(
-                PrizeDistributorV2.withdrawERC20(token.address, AddressZero, withdrawAmount),
+                prizeDistributorV2.withdrawERC20(token.address, AddressZero, withdrawAmount),
             ).to.be.revertedWith('PrizeDistributorV2/recipient-not-zero-address');
         });
 
         it('should REVERT on 3.require because the ERC20 address is NULL', async () => {
             await expect(
-                PrizeDistributorV2.withdrawERC20(AddressZero, wallet1.address, withdrawAmount),
+                prizeDistributorV2.withdrawERC20(AddressZero, wallet1.address, withdrawAmount),
             ).to.be.revertedWith('PrizeDistributorV2/ERC20-not-zero-address');
         });
 
@@ -165,19 +168,19 @@ describe('PrizeDistributorV2', () => {
 
     describe('getDrawCalculator()', () => {
         it('should SUCCEED to read an empty Draw ID => DrawCalculator mapping', async () => {
-            expect(await PrizeDistributorV2.getDrawCalculator()).to.equal(drawCalculator.address);
+            expect(await prizeDistributorV2.getDrawCalculator()).to.equal(drawCalculator.address);
         });
     });
 
     describe('getDrawPayoutBalanceOf()', () => {
         it('should return the user payout for draw before claiming a payout', async () => {
-            expect(await PrizeDistributorV2.getDrawPayoutBalanceOf(wallet1.address, 0)).to.equal('0');
+            expect(await prizeDistributorV2.getDrawPayoutBalanceOf(wallet1.address, 0)).to.equal('0');
         });
     });
 
     describe('getToken()', () => {
         it('should succesfully read global token variable', async () => {
-            expect(await PrizeDistributorV2.getToken()).to.equal(ticket.address);
+            expect(await prizeDistributorV2.getToken()).to.equal(ticket.address);
         });
     });
 });
