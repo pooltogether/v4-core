@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
+
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -28,15 +29,18 @@ contract GaugeController is IGaugeController {
      * @notice Tracks user balance per gauge
      * @dev user => gauge => balance
      */
-    mapping(address => mapping(address => uint256)) public gaugeBalances;
+    mapping(address => mapping(address => uint256)) public userGaugeBalance;
 
     /**
-     * @notice Tracks user gauge stake balance
+     * @notice Tracks gauge total voting power
+     * @dev gauge => voting power
      */
-    // records total voting power in a gauge
     mapping(address => TwabLib.Account) internal gaugeTwabs;
 
-    // records scales for gauges.
+    /**
+     * @notice Tracks gauge scale total voting power
+     * @dev gauge => scale voting power
+     */
     mapping(address => TwabLib.Account) internal gaugeScaleTwabs;
 
     constructor(IERC20 _token, IGaugeReward _gaugeReward) {
@@ -56,7 +60,7 @@ contract GaugeController is IGaugeController {
 
     function increaseGauge(address _gauge, uint256 _amount) public requireGauge(_gauge) {
         balances[msg.sender] -= _amount;
-        gaugeBalances[msg.sender][_gauge] += _amount;
+        userGaugeBalance[msg.sender][_gauge] += _amount;
 
         TwabLib.Account storage gaugeTwab = gaugeTwabs[_gauge];
         (TwabLib.AccountDetails memory twabDetails, , ) = TwabLib.increaseBalance(
@@ -72,7 +76,7 @@ contract GaugeController is IGaugeController {
 
     function decreaseGauge(address _gauge, uint256 _amount) public requireGauge(_gauge) {
         balances[msg.sender] += _amount;
-        gaugeBalances[msg.sender][_gauge] -= _amount;
+        userGaugeBalance[msg.sender][_gauge] -= _amount;
 
         TwabLib.Account storage gaugeTwab = gaugeTwabs[_gauge];
         (TwabLib.AccountDetails memory twabDetails, , ) = TwabLib.decreaseBalance(
@@ -133,14 +137,17 @@ contract GaugeController is IGaugeController {
         gaugeScaleTwab.details = twabDetails;
     }
 
-    function getGaugeBalance(address _gauge) public view returns (uint256) {
+    /// @inheritdoc IGaugeController
+    function getGaugeBalance(address _gauge) external view override returns (uint256) {
         return gaugeTwabs[_gauge].details.balance;
     }
 
-    function getGaugeScaleBalance(address _gauge) public view returns (uint256) {
+    /// @inheritdoc IGaugeController
+    function getGaugeScaleBalance(address _gauge) external view override returns (uint256) {
         return gaugeScaleTwabs[_gauge].details.balance;
     }
 
+    /// @inheritdoc IGaugeController
     function getScaledAverageGaugeBetween(
         address _gauge,
         uint256 _startTime,
@@ -165,6 +172,16 @@ contract GaugeController is IGaugeController {
         uint256 _endTime
     ) external view returns (uint256) {
         return _getAverageGaugeScaleBetween(_gauge, _startTime, _endTime);
+    }
+
+    /// @inheritdoc IGaugeController
+    function getUserGaugeBalance(address _gauge, address _user)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return userGaugeBalance[_user][_gauge];
     }
 
     function _getAverageGaugeBetween(
