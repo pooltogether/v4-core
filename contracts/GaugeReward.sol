@@ -4,10 +4,11 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
 
 import "./interfaces/IGaugeReward.sol";
 import "./interfaces/IGaugeController.sol";
-import "./interfaces/IVault.sol";
+import "./interfaces/IPrizePoolLiquidatorListener.sol";
 
 /**
   * @title  PoolTogether V4 GaugeReward
@@ -15,16 +16,15 @@ import "./interfaces/IVault.sol";
   * @notice The GaugeReward contract handles the rewards for users
             who staked in one or several gauges on the GaugeController contract.
 */
-contract GaugeReward is IGaugeReward {
+contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
     using SafeERC20 for IERC20;
 
     /* ============ Variables ============ */
 
     /**
-     * @notice Tracks rewards tokens per user
-     * @dev user => token => rewards
+     * @notice Tracks user token reward balances
      */
-    mapping(address => mapping(IERC20 => uint256)) public userTokenRewards;
+    mapping(address => mapping(IERC20 => uint256)) public userTokenRewardBalances;
 
     /**
      * @notice Tracks user token gauge exchange rate
@@ -65,29 +65,38 @@ contract GaugeReward is IGaugeReward {
     IGaugeController public gaugeController;
 
     /// @notice Vault contract address
-    IVault public vault;
+    address public vault;
+
+    /// @notice Address of the liquidator that this contract is listening to
+    address public liquidator;
+
+    /// @notice Percentage of rewards that goes to stakers. Fixed point 9 number this is less than 1.
+    uint32 public stakerCut;
 
     /* ============ Events ============ */
 
     /**
-     * @notice Emitted when the contract is initialized
+     * @notice Emitted when the contract is deployed
      * @param gaugeController Address of the GaugeController
      * @param vault Address of the Vault
      */
-    event Deployed(IGaugeController indexed gaugeController, IVault indexed vault);
+    event Deployed(
+        IGaugeController indexed gaugeController,
+        address indexed vault,
+        address indexed liquidator,
+        uint32 stakerCut
+    );
 
     /**
      * @notice Emitted when rewards token are added to a gauge
      * @param gauge Address of the gauge for which the rewards are added
      * @param token Address of the token being added
-     * @param vault Address of the vault in which rewards are being sent
      * @param amount Amount of tokens added to the gauge
      * @param exchangeRate New exchange rate for this `token` in this `gauge`
      */
     event RewardsAdded(
         address indexed gauge,
         IERC20 indexed token,
-        address indexed vault,
         uint256 amount,
         uint256 exchangeRate
     );
@@ -123,14 +132,28 @@ contract GaugeReward is IGaugeReward {
      * @param _gaugeController Address of the GaugeController
      * @param _vault Address of the Vault
      */
-    constructor(IGaugeController _gaugeController, IVault _vault) {
+    constructor(
+        IGaugeController _gaugeController,
+        address _vault,
+        address _liquidator,
+        uint32 _stakerCut
+    ) {
         require(address(_gaugeController) != address(0), "GReward/GC-not-zero-address");
         require(address(_vault) != address(0), "GReward/Vault-not-zero-address");
+        require(_stakerCut < 1e9, "GReward/staker-cut-lt-1e9");
+        require(_liquidator != address(0), "GReward/liq-not-zero-address");
 
         gaugeController = _gaugeController;
         vault = _vault;
+        stakerCut = _stakerCut;
+        liquidator = _liquidator;
 
-        emit Deployed(_gaugeController, _vault);
+        emit Deployed(
+            _gaugeController,
+            _vault,
+            _liquidator,
+            _stakerCut
+        );
     }
 
     /* ============ External Functions ============ */
@@ -148,35 +171,26 @@ contract GaugeReward is IGaugeReward {
      * @notice Add rewards denominated in `token` for the given `gauge`.
      * @dev Called by the liquidation contract anytime tokens are liquidated.
      * @dev Will push token to the `gaugeRewardTokens` mapping if different from the current one.
-     * @param _gauge Address of the gauge to add rewards for
-     * @param _token Address of the token to add rewards for
-     * @param _amount Amount of rewards to add
+     * @param ticket The address of the tickets that were sold
+     * @param token The address of the token that the tickets were sold for
+     * @param tokenAmount The amount of tokens that the tickets were sold for
      */
-    function addRewards(
-        address _gauge,
-        IERC20 _token,
-        uint256 _amount
-    ) external {
-        address _vaultAddress = address(vault);
+    function afterSwap(IPrizePool, ITicket ticket, uint256, IERC20 token, uint256 tokenAmount) external override {
+        require(msg.sender == liquidator, "GReward/only-liquidator");
 
-        if (_token != _currentRewardToken(_gauge).token) {
-            vault.increaseERC20Allowance(
-                _token,
-                address(this),
-                type(uint256).max - _token.allowance(_vaultAddress, address(this))
-            );
-
-            _pushRewardToken(_gauge, _token);
+        address gauge = address(ticket);
+        if (token != _currentRewardToken(gauge).token) {
+            _pushRewardToken(gauge, token);
         }
 
-        _token.safeTransferFrom(msg.sender, _vaultAddress, _amount);
+        uint256 stakerRewards = (tokenAmount * stakerCut) / 1e9;
 
         // Exchange rate = amount / current staked amount on gauge
-        uint256 _exchangeRate = (_amount * 1e18) / gaugeController.getGaugeBalance(_gauge);
+        uint256 _exchangeRate = (stakerRewards * 1e18) / gaugeController.getGaugeBalance(gauge);
 
-        tokenGaugeExchangeRates[_token][_gauge] += _exchangeRate;
+        tokenGaugeExchangeRates[token][gauge] += _exchangeRate;
 
-        emit RewardsAdded(_gauge, _token, _vaultAddress, _amount, _exchangeRate);
+        emit RewardsAdded(gauge, token, stakerRewards, _exchangeRate);
     }
 
     /// @inheritdoc IGaugeReward
@@ -184,10 +198,13 @@ contract GaugeReward is IGaugeReward {
         address _gauge,
         address _user,
         uint256 _oldStakeBalance
-    ) external override {
+    ) external override onlyGaugeController {
         RewardToken memory _rewardToken = _claimPastRewards(_gauge, _user, _oldStakeBalance);
 
-        _claim(_gauge, _rewardToken.token, _user, _oldStakeBalance, false);
+        if (address(_rewardToken.token) != address(0)) {
+            _claim(_gauge, _rewardToken.token, _user, _oldStakeBalance, false);
+        }
+
         userLastClaimedTimestamp[_user] = block.timestamp;
     }
 
@@ -196,10 +213,11 @@ contract GaugeReward is IGaugeReward {
         address _gauge,
         address _user,
         uint256 _oldStakeBalance
-    ) external override {
+    ) external override onlyGaugeController {
         RewardToken memory _rewardToken = _claimPastRewards(_gauge, _user, _oldStakeBalance);
-
-        _claim(_gauge, _rewardToken.token, _user, _oldStakeBalance, false);
+        if (_rewardToken.token != IERC20(address(0))) {
+            _claim(_gauge, _rewardToken.token, _user, _oldStakeBalance, false);
+        }
         userLastClaimedTimestamp[_user] = block.timestamp;
     }
 
@@ -217,6 +235,7 @@ contract GaugeReward is IGaugeReward {
         uint256 _stakeBalance = gaugeController.getUserGaugeBalance(_gauge, _user);
 
         _claimPastRewards(_gauge, _user, _stakeBalance);
+
         _claim(_gauge, _token, _user, _stakeBalance, false);
 
         userLastClaimedTimestamp[_user] = block.timestamp;
@@ -257,35 +276,40 @@ contract GaugeReward is IGaugeReward {
      * @param _token Address of the token to claim rewards for
      * @param _user Address of the user to claim rewards for
      * @param _stakeBalance User stake balance
-     * @param _claimPastRewards Whether this function is called in `_claimPastRewards` or not
+     * @param _eligibleForPastRewards Whether this function is called in `_eligibleForPastRewards` or not
      */
     function _claim(
         address _gauge,
         IERC20 _token,
         address _user,
         uint256 _stakeBalance,
-        bool _claimPastRewards
+        bool _eligibleForPastRewards
     ) internal returns (uint256) {
         uint256 _previousExchangeRate = userTokenGaugeExchangeRates[_user][_token][_gauge];
         uint256 _currentExchangeRate = tokenGaugeExchangeRates[_token][_gauge];
 
-        if (!_claimPastRewards && _previousExchangeRate == 0) {
+        if (!_eligibleForPastRewards && _previousExchangeRate == 0) {
             _previousExchangeRate = _currentExchangeRate;
         }
 
         // Rewards = deltaExchangeRate * stakeBalance
-        uint256 _rewards = (_currentExchangeRate - _previousExchangeRate) * _stakeBalance;
-
-        userTokenRewards[_user][_token] += _rewards;
+        uint256 _rewards = ((_currentExchangeRate - _previousExchangeRate) * _stakeBalance) / 1e18;
 
         // Record current exchange rate
         userTokenGaugeExchangeRates[_user][_token][_gauge] = _currentExchangeRate;
 
-        _token.safeTransferFrom(address(vault), _user, _rewards);
+        userTokenRewardBalances[_user][_token] += _rewards;
 
         emit RewardsClaimed(_gauge, _token, _user, _rewards, _currentExchangeRate);
 
         return _rewards;
+    }
+
+    function redeem(address _user, IERC20 _token) external returns (uint256) {
+        uint256 rewards = userTokenRewardBalances[_user][_token];
+        userTokenRewardBalances[_user][_token] = 0;
+        _token.safeTransferFrom(address(vault), _user, rewards);
+        return rewards;
     }
 
     /**
@@ -300,20 +324,23 @@ contract GaugeReward is IGaugeReward {
         uint256 _stakeBalance
     ) internal returns (RewardToken memory) {
         uint256 _userLastClaimedTimestamp = userLastClaimedTimestamp[_user];
-        uint256 _gaugeRewardTokenslength = gaugeRewardTokens[_gauge].length;
+        uint256 _gaugeRewardTokensLength = gaugeRewardTokens[_gauge].length;
 
         RewardToken memory _rewardToken;
         RewardToken memory _latestRewardToken;
 
-        if (_gaugeRewardTokenslength > 1) {
-            for (uint256 i = _gaugeRewardTokenslength - 1; i >= 0; i--) {
+        if (_gaugeRewardTokensLength > 0) {
+            uint256 i = _gaugeRewardTokensLength;
+
+            while (i > 0) {
+                i = i - 1;
                 _rewardToken = gaugeRewardTokens[_gauge][i];
 
-                if (i == _gaugeRewardTokenslength - 1) {
+                if (i == _gaugeRewardTokensLength - 1) {
                     _latestRewardToken = _rewardToken;
                 }
 
-                if (_rewardToken.timestamp > _userLastClaimedTimestamp) {
+                if (_userLastClaimedTimestamp > 0 && _rewardToken.timestamp > _userLastClaimedTimestamp) {
                     _claim(_gauge, _rewardToken.token, _user, _stakeBalance, true);
                 } else {
                     break;
@@ -337,5 +364,10 @@ contract GaugeReward is IGaugeReward {
         );
 
         emit RewardTokenPushed(_gauge, _token, _currentTimestamp);
+    }
+
+    modifier onlyGaugeController() {
+        require(msg.sender == address(gaugeController), "GReward/only-gc");
+        _;
     }
 }
