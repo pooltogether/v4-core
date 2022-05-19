@@ -36,10 +36,10 @@ contract PrizePoolLiquidator {
     address target,
     IERC20 want,
     int256 exchangeRate,
-    int256 deltaRatePerSecond,
-    int256 maxSlippage
+    int256 maxSlippage,
+    uint256 haveArbTarget
   ) external returns (bool) {
-    return setPrizePoolAtTime(pool, target, want, exchangeRate, deltaRatePerSecond, maxSlippage, block.timestamp);
+    return setPrizePoolAtTime(pool, target, want, exchangeRate, maxSlippage, haveArbTarget);
   }
 
   function setPrizePoolAtTime(
@@ -47,9 +47,8 @@ contract PrizePoolLiquidator {
     address target,
     IERC20 want,
     int256 exchangeRate,
-    int256 deltaRatePerSecond,
     int256 maxSlippage,
-    uint256 currentTime
+    uint256 haveArbTarget
   ) public returns (bool) {
     poolTargets[pool] = Target({
         target: target,
@@ -57,18 +56,13 @@ contract PrizePoolLiquidator {
     });
     poolLiquidatorStates[pool] = LiquidatorLib.State({
       exchangeRate: PRBMath.SD59x18(exchangeRate),
-      lastSaleTime: currentTime,
-      // positive price range change per second.
-      deltaRatePerSecond: PRBMath.SD59x18(deltaRatePerSecond),
-      // Price impact for purchase of accrued funds
-      // low slippage => higher frequency arbs, but it tracks the market rate slower (slower to change)
-      maxSlippage: PRBMath.SD59x18(maxSlippage)
+      maxSlippage: PRBMath.SD59x18(maxSlippage),
+      haveArbTarget: haveArbTarget
     });
     return true;
   }
 
-  function setPrizePoolLiquidationState(IPrizePool _prizePool, int256 deltaRatePerSecond, int256 maxSlippage) external {
-    poolLiquidatorStates[_prizePool].deltaRatePerSecond = PRBMath.SD59x18(deltaRatePerSecond);
+  function setPrizePoolLiquidationState(IPrizePool _prizePool, int256 maxSlippage) external {
     poolLiquidatorStates[_prizePool].maxSlippage = PRBMath.SD59x18(maxSlippage);
   }
 
@@ -84,34 +78,26 @@ contract PrizePoolLiquidator {
     time = _time;
   }
 
-  function currentExchangeRate(IPrizePool _prizePool) external view returns (int256) {
-    return poolLiquidatorStates[_prizePool].computeExchangeRate(block.timestamp).toInt();
+  function currentExchangeRate(IPrizePool _prizePool) external returns (int256) {
+    return poolLiquidatorStates[_prizePool].computeExchangeRate(_availableStreamHaveBalance(_prizePool)).toInt();
   }
 
   function computeExactAmountIn(IPrizePool _prizePool, uint256 amountOut) external returns (uint256) {
-    return poolLiquidatorStates[_prizePool].computeExactAmountInAtTime(_availableStreamHaveBalance(_prizePool), amountOut, block.timestamp);
-  }
-
-  function computeExactAmountInAtTime(IPrizePool _prizePool, uint256 amountOut, uint256 currentTime) external returns (uint256) {
-    return poolLiquidatorStates[_prizePool].computeExactAmountInAtTime(_availableStreamHaveBalance(_prizePool), amountOut, currentTime);
+    return poolLiquidatorStates[_prizePool].computeExactAmountIn(_availableStreamHaveBalance(_prizePool), amountOut);
   }
 
   function computeExactAmountOut(IPrizePool _prizePool, uint256 amountIn) external returns (uint256) {
-    return poolLiquidatorStates[_prizePool].computeExactAmountOutAtTime(_availableStreamHaveBalance(_prizePool), amountIn, block.timestamp);
-  }
-
-  function computeExactAmountOutAtTime(IPrizePool _prizePool, uint256 amountIn, uint256 currentTime) external returns (uint256) {
-    return poolLiquidatorStates[_prizePool].computeExactAmountOutAtTime(_availableStreamHaveBalance(_prizePool), amountIn, currentTime);
+    return poolLiquidatorStates[_prizePool].computeExactAmountOut(_availableStreamHaveBalance(_prizePool), amountIn);
   }
 
   function swapExactAmountIn(IPrizePool _prizePool, uint256 amountIn, uint256 amountOutMin) external returns (uint256) {
-    return _swapExactAmountInAtTime(_prizePool, amountIn, amountOutMin, block.timestamp);
+    return _swapExactAmountIn(_prizePool, amountIn, amountOutMin);
   }
 
-  function _swapExactAmountInAtTime(IPrizePool _prizePool, uint256 amountIn, uint256 amountOutMin, uint256 currentTime) internal returns (uint256) {
+  function _swapExactAmountIn(IPrizePool _prizePool, uint256 amountIn, uint256 amountOutMin) internal returns (uint256) {
     uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
-    uint256 amountOut = poolLiquidatorStates[_prizePool].swapExactAmountInAtTime(
-      availableBalance, amountIn, currentTime
+    uint256 amountOut = poolLiquidatorStates[_prizePool].swapExactAmountIn(
+      availableBalance, amountIn
     );
 
     require(amountOut <= availableBalance, "Whoops! have exceeds available");
@@ -123,18 +109,17 @@ contract PrizePoolLiquidator {
   }
 
   function swapExactAmountOut(IPrizePool _prizePool, uint256 amountOut, uint256 amountInMax) external returns (uint256) {
-    return _swapExactAmountOutAtTime(_prizePool, amountOut, amountInMax, block.timestamp);
+    return _swapExactAmountOut(_prizePool, amountOut, amountInMax);
   }
 
-  function _swapExactAmountOutAtTime(
+  function _swapExactAmountOut(
     IPrizePool _prizePool,
     uint256 amountOut,
-    uint256 amountInMax,
-    uint256 currentTime
+    uint256 amountInMax
   ) internal returns (uint256) {
     uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
-    uint256 amountIn = poolLiquidatorStates[_prizePool].swapExactAmountOutAtTime(
-      availableBalance, amountOut, currentTime
+    uint256 amountIn = poolLiquidatorStates[_prizePool].swapExactAmountOut(
+      availableBalance, amountOut
     );
 
     require(amountIn <= amountInMax, "trade does not meet min");
@@ -157,11 +142,9 @@ contract PrizePoolLiquidator {
   }
 
   function getLiquidationState(IPrizePool _prizePool) external view returns (
-    int exchangeRate,
-    uint256 lastSaleTime
+    int exchangeRate
   ) {
     LiquidatorLib.State memory state = poolLiquidatorStates[_prizePool];
     exchangeRate = state.exchangeRate.value;
-    lastSaleTime = state.lastSaleTime;
   }
 }

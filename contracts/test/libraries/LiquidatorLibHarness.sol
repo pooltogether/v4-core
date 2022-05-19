@@ -18,46 +18,42 @@ contract LiquidatorLibHarness {
 
   function setState(
     int256 exchangeRate,
-    uint256 lastSaleTime,
-    int256 deltaRatePerSecond,
-    int256 maxSlippage
+    int256 maxSlippage,
+    uint256 haveArbTarget
   ) external {
     state = LiquidatorLib.State({
       exchangeRate: PRBMath.SD59x18(exchangeRate),
-      lastSaleTime: lastSaleTime,
-      deltaRatePerSecond: PRBMath.SD59x18(deltaRatePerSecond),
-      maxSlippage: PRBMath.SD59x18(maxSlippage)
+      maxSlippage: PRBMath.SD59x18(maxSlippage),
+      haveArbTarget: haveArbTarget
     });
   }
 
-  function computeExchangeRate(uint256 _currentTime) external view returns (int256) {
-    return state.computeExchangeRate(_currentTime).value;
+  function computeExchangeRate(uint256 availableBalance) external view returns (int256) {
+    return state.computeExchangeRate(availableBalance).value;
   }
 
-  function computeExactAmountInAtTime(uint256 availableBalance, uint256 amountOut, uint256 currentTime) external view returns (uint256) {
-    return state.computeExactAmountInAtTime(availableBalance, amountOut, currentTime);
+  function computeExactAmountIn(uint256 availableBalance, uint256 amountOut) external view returns (uint256) {
+    return state.computeExactAmountIn(availableBalance, amountOut);
   }
 
-  function computeExactAmountOutAtTime(uint256 availableBalance, uint256 amountIn, uint256 currentTime) external view returns (uint256) {
-    return state.computeExactAmountOutAtTime(availableBalance, amountIn, currentTime);
+  function computeExactAmountOut(uint256 availableBalance, uint256 amountIn) external view returns (uint256) {
+    return state.computeExactAmountOut(availableBalance, amountIn);
   }
 
-  function swapExactAmountInAtTime(
+  function swapExactAmountIn(
     uint256 availableBalance,
-    uint256 amountIn,
-    uint256 currentTime
+    uint256 amountIn
   ) external returns (uint256) {
-    uint256 result = state.swapExactAmountInAtTime(availableBalance, amountIn, currentTime);
+    uint256 result = state.swapExactAmountIn(availableBalance, amountIn);
     emit SwapResult(result);
     return result;
   }
 
-  function swapExactAmountOutAtTime(
+  function swapExactAmountOut(
     uint256 availableBalance,
-    uint256 amountOut,
-    uint256 currentTime
+    uint256 amountOut
   ) external returns (uint256) {
-    uint256 result = state.swapExactAmountOutAtTime(availableBalance, amountOut, currentTime);
+    uint256 result = state.swapExactAmountOut(availableBalance, amountOut);
     emit SwapResult(result);
     return result;
   }

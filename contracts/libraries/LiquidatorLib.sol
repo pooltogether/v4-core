@@ -16,107 +16,77 @@ library LiquidatorLib {
     using PRBMathSD59x18Typed for PRBMath.SD59x18;
 
     struct State {
-        PRBMath.SD59x18 exchangeRate;
-        uint256 lastSaleTime;
-        // positive price range change per second.
-        PRBMath.SD59x18 deltaRatePerSecond;
-        // Price impact for purchase of accrued funds
-        // low slippage => higher frequency arbs, but it tracks the market rate slower (slower to change)
         PRBMath.SD59x18 maxSlippage;
+        PRBMath.SD59x18 exchangeRate;
+        uint256 haveArbTarget;
     }
 
-    function _increaseExchangeRateByDeltaTime(
-        PRBMath.SD59x18 memory exchangeRate,
-        PRBMath.SD59x18 memory deltaRatePerSecond,
-        uint256 lastSaleTime,
-        uint256 currentTime
-    ) internal pure returns (PRBMath.SD59x18 memory) {
-        // over time, buying power of POOL goes up.
-        PRBMath.SD59x18 memory dt = PRBMathSD59x18Typed.fromInt(
-            (currentTime - lastSaleTime).toInt256()
-        );
-        return exchangeRate.add(exchangeRate.mul(dt.mul(deltaRatePerSecond)));
-    }
-
-    function computeExchangeRate(State storage _liquidationState, uint256 _currentTime)
+    function computeExchangeRate(State storage _liquidationState, uint256 availableBalance)
         internal
         view
         returns (PRBMath.SD59x18 memory)
     {
-        return
-            _increaseExchangeRateByDeltaTime(
-                _liquidationState.exchangeRate,
-                _liquidationState.deltaRatePerSecond,
-                _liquidationState.lastSaleTime,
-                _currentTime
-            );
+        VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(_liquidationState, availableBalance);
+        return _cpmmToExchangeRate(cpmm);
     }
 
-    function computeExactAmountInAtTime(
+    function computeExactAmountIn(
         State storage _liquidationState,
         uint256 availableBalance,
-        uint256 amountOut,
-        uint256 currentTime
+        uint256 amountOut
     ) internal pure returns (uint256) {
-        if (availableBalance == 0) {
-            return 0;
-        }
+        require(amountOut <= availableBalance, "insuff balance");
         VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(
             _liquidationState,
-            availableBalance,
-            currentTime
+            availableBalance
         );
         return VirtualCpmmLib.getAmountIn(amountOut, cpmm.want, cpmm.have);
     }
 
-    function computeExactAmountOutAtTime(
+    function computeExactAmountOut(
         State storage _liquidationState,
         uint256 availableBalance,
-        uint256 amountIn,
-        uint256 currentTime
+        uint256 amountIn
     ) internal pure returns (uint256) {
-        if (availableBalance == 0) {
-            return 0;
-        }
         VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(
             _liquidationState,
-            availableBalance,
-            currentTime
+            availableBalance
         );
-        return VirtualCpmmLib.getAmountOut(amountIn, cpmm.want, cpmm.have);
+        uint256 amountOut = VirtualCpmmLib.getAmountOut(amountIn, cpmm.want, cpmm.have);
+        require(amountOut <= availableBalance, "insuff balance");
+        return amountOut;
     }
 
     function _computeCpmm(
         State storage _liquidationState,
-        uint256 availableBalance,
-        uint256 currentTime
+        uint256 availableBalance
     ) internal pure returns (VirtualCpmmLib.Cpmm memory) {
         State memory liquidationState = _liquidationState;
-        PRBMath.SD59x18 memory newExchangeRate = _increaseExchangeRateByDeltaTime(
+        VirtualCpmmLib.Cpmm memory cpmm = VirtualCpmmLib.newCpmm(
+            liquidationState.maxSlippage,
             liquidationState.exchangeRate,
-            liquidationState.deltaRatePerSecond,
-            liquidationState.lastSaleTime,
-            currentTime
+            PRBMathSD59x18Typed.fromInt(liquidationState.haveArbTarget.toInt256())
         );
-        return
-            VirtualCpmmLib.newCpmm(
-                liquidationState.maxSlippage,
-                newExchangeRate,
-                PRBMathSD59x18Typed.fromInt(availableBalance.toInt256())
-            );
+
+        // Now we swap available balance for POOL
+
+        uint256 wantAmount = VirtualCpmmLib.getAmountOut(availableBalance, cpmm.have, cpmm.want);
+
+        cpmm.want -= wantAmount;
+        cpmm.have += availableBalance;
+
+        return cpmm;
     }
 
-    function swapExactAmountInAtTime(
+    function swapExactAmountIn(
         State storage liquidationState,
         uint256 availableBalance,
-        uint256 amountIn,
-        uint256 currentTime
+        uint256 amountIn
     ) internal returns (uint256) {
         require(availableBalance > 0, "Whoops! no funds available");
         VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(
             liquidationState,
-            availableBalance,
-            currentTime
+            availableBalance
         );
 
         uint256 amountOut = VirtualCpmmLib.getAmountOut(amountIn, cpmm.want, cpmm.have);
@@ -125,23 +95,20 @@ library LiquidatorLib {
 
         require(amountOut <= availableBalance, "Whoops! have exceeds available");
 
-        liquidationState.lastSaleTime = currentTime;
         liquidationState.exchangeRate = _cpmmToExchangeRate(cpmm);
 
         return amountOut;
     }
 
-    function swapExactAmountOutAtTime(
+    function swapExactAmountOut(
         State storage liquidationState,
         uint256 availableBalance,
-        uint256 amountOut,
-        uint256 currentTime
+        uint256 amountOut
     ) internal returns (uint256) {
         require(availableBalance > 0, "Whoops! no funds available");
         VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(
             liquidationState,
-            availableBalance,
-            currentTime
+            availableBalance
         );
 
         uint256 amountIn = VirtualCpmmLib.getAmountIn(amountOut, cpmm.want, cpmm.have);
@@ -150,7 +117,6 @@ library LiquidatorLib {
 
         require(amountOut <= availableBalance, "Whoops! have exceeds available");
 
-        liquidationState.lastSaleTime = currentTime;
         liquidationState.exchangeRate = _cpmmToExchangeRate(cpmm);
 
         return amountIn;
