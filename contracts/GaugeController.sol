@@ -3,13 +3,14 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
 
 import "./interfaces/IGaugeController.sol";
 import "./interfaces/IGaugeReward.sol";
 import "./libraries/TwabLib.sol";
 import "./libraries/ExtendedSafeCastLib.sol";
 
-contract GaugeController is IGaugeController {
+contract GaugeController is IGaugeController, Ownable {
     using ExtendedSafeCastLib for uint256;
 
     struct GaugeInfo {
@@ -43,10 +44,36 @@ contract GaugeController is IGaugeController {
      */
     mapping(address => TwabLib.Account) internal gaugeScaleTwabs;
 
-    constructor(IERC20 _token, IGaugeReward _gaugeReward) {
+    /* ============ Events ============ */
+
+    /**
+     * @notice Event emitted when the GaugeReward contract address is set
+     * @param gaugeReward Address of the newly set GaugeReward contract
+     */
+    event GaugeRewardSet(IGaugeReward gaugeReward);
+
+    /**
+     * @notice Event emitted when the contract is deployed
+     * @param token Address of the token being staked in the gauge
+     */
+    event Deployed(IERC20 token);
+
+    /* ============ Constructor ============ */
+
+    /**
+     * @notice GaugeController constructor
+     * @param _token Address of the token being staked in the gauge
+     * @param _owner Address of the contract owner
+     */
+    constructor(IERC20 _token, address _owner) Ownable(_owner)  {
+        require(_owner != address(0), "GC/owner-not-zero-address");
+        require(address(_token) != address(0), "GC/token-not-zero-address");
         token = _token;
-        gaugeReward = _gaugeReward;
+
+        emit Deployed(_token);
     }
+
+    /* ============ External Functions ============ */
 
     function deposit(address _to, uint256 _amount) public {
         balances[_to] += _amount;
@@ -92,17 +119,11 @@ contract GaugeController is IGaugeController {
     }
 
     function addGauge(address _gauge) public {
-        addGaugeWithScale(_gauge, 1 ether);
+        _addGaugeWithScale(_gauge, 1 ether);
     }
 
     function addGaugeWithScale(address _gauge, uint256 _scale) public {
-        TwabLib.Account storage gaugeScaleTwab = gaugeScaleTwabs[_gauge];
-        (TwabLib.AccountDetails memory twabDetails, , ) = TwabLib.increaseBalance(
-            gaugeScaleTwab,
-            _scale.toUint208(),
-            uint32(block.timestamp)
-        );
-        gaugeScaleTwab.details = twabDetails;
+        _addGaugeWithScale(_gauge, _scale);
     }
 
     function removeGauge(address _gauge) public {
@@ -115,6 +136,17 @@ contract GaugeController is IGaugeController {
             uint32(block.timestamp)
         );
         gaugeScaleTwab.details = twabDetails;
+    }
+
+    /**
+     * @notice Set GaugeReward contract
+     * @param _gaugeReward Address of the GaugeReward contract
+     */
+    function setGaugeReward(IGaugeReward _gaugeReward) external onlyOwner {
+        require(address(_gaugeReward) != address(0), "GC/GaugeReward-not-zero-address");
+        gaugeReward = _gaugeReward;
+
+        emit GaugeRewardSet(_gaugeReward);
     }
 
     function setGaugeScale(address _gauge, uint256 _scale) public {
@@ -182,6 +214,18 @@ contract GaugeController is IGaugeController {
         returns (uint256)
     {
         return userGaugeBalance[_user][_gauge];
+    }
+
+    /* ============ Internal Functions ============ */
+
+    function _addGaugeWithScale(address _gauge, uint256 _scale) internal {
+        TwabLib.Account storage gaugeScaleTwab = gaugeScaleTwabs[_gauge];
+        (TwabLib.AccountDetails memory twabDetails, , ) = TwabLib.increaseBalance(
+            gaugeScaleTwab,
+            _scale.toUint208(),
+            uint32(block.timestamp)
+        );
+        gaugeScaleTwab.details = twabDetails;
     }
 
     function _getAverageGaugeBetween(
