@@ -26,7 +26,7 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
     /**
      * @notice Tracks user token reward balances
      */
-    mapping(address => mapping(IERC20 => uint256)) userTokenRewardBalances;
+    mapping(address => mapping(IERC20 => uint256)) public userTokenRewardBalances;
 
     /**
      * @notice Tracks user token gauge exchange rate
