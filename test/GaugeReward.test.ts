@@ -79,7 +79,12 @@ describe('GaugeReward', () => {
 
             await expect(gaugeReward.deployTransaction)
                 .to.emit(gaugeReward, 'Deployed')
-                .withArgs(gaugeController.address, vault.address);
+                .withArgs(
+                    gaugeController.address,
+                    vault.address,
+                    liquidator.address,
+                    ethers.utils.parseUnits('0.1', 9)
+                );
         });
 
         it('should fail if GaugeController is address zero', async () => {

@@ -82,7 +82,12 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
      * @param gaugeController Address of the GaugeController
      * @param vault Address of the Vault
      */
-    event Deployed(IGaugeController indexed gaugeController, address indexed vault);
+    event Deployed(
+        IGaugeController indexed gaugeController,
+        address indexed vault,
+        address indexed liquidator,
+        uint32 stakerCut
+    );
 
     /**
      * @notice Emitted when rewards token are added to a gauge
@@ -138,13 +143,19 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
         require(address(_gaugeController) != address(0), "GReward/GC-not-zero-address");
         require(address(_vault) != address(0), "GReward/Vault-not-zero-address");
         require(_stakerCut < 1e9, "GReward/staker-cut-lt-1e9");
+        require(_liquidator != address(0), "GReward/liq-not-zero-address");
 
         gaugeController = _gaugeController;
         vault = _vault;
         stakerCut = _stakerCut;
         liquidator = _liquidator;
 
-        emit Deployed(_gaugeController, _vault);
+        emit Deployed(
+            _gaugeController,
+            _vault,
+            _liquidator,
+            _stakerCut
+        );
     }
 
     /* ============ External Functions ============ */
@@ -162,13 +173,11 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
      * @notice Add rewards denominated in `token` for the given `gauge`.
      * @dev Called by the liquidation contract anytime tokens are liquidated.
      * @dev Will push token to the `gaugeRewardTokens` mapping if different from the current one.
-     * @param prizePool The prize pool whose tickets are being sold
      * @param ticket The address of the tickets that were sold
-     * @param ticketAmount The amount of tickets that were sold
      * @param token The address of the token that the tickets were sold for
      * @param tokenAmount The amount of tokens that the tickets were sold for
      */
-    function afterSwap(IPrizePool prizePool, ITicket ticket, uint256 ticketAmount, IERC20 token, uint256 tokenAmount) external override {
+    function afterSwap(IPrizePool, ITicket ticket, uint256, IERC20 token, uint256 tokenAmount) external override {
         require(msg.sender == liquidator, "GReward/only-liquidator");
 
         address gauge = address(ticket);
@@ -193,7 +202,7 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
         uint256 _oldStakeBalance
     ) external override onlyGaugeController {
         RewardToken memory _rewardToken = _claimPastRewards(_gauge, _user, _oldStakeBalance);
-        if (_rewardToken.token != IERC20(address(0))) {
+        if (address(_rewardToken.token) != address(0)) {
             _claim(_gauge, _rewardToken.token, _user, _oldStakeBalance, false);
         }
         userLastClaimedTimestamp[_user] = block.timestamp;
@@ -330,7 +339,7 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
                     _latestRewardToken = _rewardToken;
                 }
 
-                if (_rewardToken.timestamp > _userLastClaimedTimestamp && _userLastClaimedTimestamp > 0) {
+                if (_userLastClaimedTimestamp > 0 && _rewardToken.timestamp > _userLastClaimedTimestamp) {
                     _claim(_gauge, _rewardToken.token, _user, _stakeBalance, true);
                 } else {
                     break;
