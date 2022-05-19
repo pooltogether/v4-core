@@ -10,8 +10,6 @@ import "./interfaces/IGaugeReward.sol";
 import "./interfaces/IGaugeController.sol";
 import "./interfaces/IPrizePoolLiquidatorListener.sol";
 
-import "hardhat/console.sol";
-
 /**
   * @title  PoolTogether V4 GaugeReward
   * @author PoolTogether Inc Team
@@ -78,7 +76,7 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
     /* ============ Events ============ */
 
     /**
-     * @notice Emitted when the contract is initialized
+     * @notice Emitted when the contract is deployed
      * @param gaugeController Address of the GaugeController
      * @param vault Address of the Vault
      */
@@ -202,9 +200,11 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
         uint256 _oldStakeBalance
     ) external override onlyGaugeController {
         RewardToken memory _rewardToken = _claimPastRewards(_gauge, _user, _oldStakeBalance);
+
         if (address(_rewardToken.token) != address(0)) {
             _claim(_gauge, _rewardToken.token, _user, _oldStakeBalance, false);
         }
+
         userLastClaimedTimestamp[_user] = block.timestamp;
     }
 
@@ -331,6 +331,7 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
 
         if (_gaugeRewardTokensLength > 0) {
             uint256 i = _gaugeRewardTokensLength;
+
             while (i > 0) {
                 i = i - 1;
                 _rewardToken = gaugeRewardTokens[_gauge][i];
