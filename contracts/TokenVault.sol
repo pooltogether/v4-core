@@ -7,16 +7,16 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
-    * @title  PoolTogether Vault
+    * @title  PoolTogether TokenVault
     * @author PoolTogether Inc Team
  */
-contract Vault is Manageable {
+contract TokenVault is Manageable {
     using SafeERC20 for IERC20;
 
     mapping(address => bool) public approved;
 
     /**
-     * @notice Constructs Vault
+     * @notice Constructs TokenVault
      * @param _owner Owner address
      */
     constructor(address _owner) Ownable(_owner) {}

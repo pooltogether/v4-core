@@ -19,7 +19,6 @@ describe('GaugeController', () => {
     let GaugeControllerFactory: ContractFactory;
     let GaugeRewardArtifact: Artifact;
     let TokenFactory: ContractFactory;
-    let VaultFactory: ContractFactory;
 
     const gaugeAddress = '0x0000000000000000000000000000000000000001';
 
@@ -28,7 +27,6 @@ describe('GaugeController', () => {
         GaugeControllerFactory = await ethers.getContractFactory('GaugeController');
         GaugeRewardArtifact = await artifacts.readArtifact('GaugeReward');
         TokenFactory = await ethers.getContractFactory('ERC20Mintable');
-        VaultFactory = await ethers.getContractFactory('Vault');
     });
 
     beforeEach(async () => {
