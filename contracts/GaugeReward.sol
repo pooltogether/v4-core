@@ -25,28 +25,30 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
 
     /**
      * @notice Tracks user token reward balances
-     * @dev user => token => balance
+     * @dev user => reward token address => balance
      */
-    mapping(address => mapping(IERC20 => uint256)) public userTokenRewardBalances;
+    mapping(address => mapping(IERC20 => uint256)) public userRewardTokenBalances;
 
     /**
-     * @notice Tracks user token gauge exchange rate
-     * @dev user => token => gauge => exchange rate
+     * @notice Tracks reward token exchange rate per user and gauge
+     * @dev user => gauge => reward token address => reward token timestamp => exchange rate
      */
-    mapping(address => mapping(IERC20 => mapping(address => uint256)))
-        public userTokenGaugeExchangeRates;
+    mapping(address => mapping(address => mapping(IERC20 => mapping(uint64 => uint256))))
+        public userGaugeRewardTokenExchangeRates;
 
     /**
-     * @notice Tracks user last claimed timestamp
-     * @dev user => timestamp
+     * @notice Tracks user last claimed timestamp per gauge and reward token
+     * @dev user => gauge => reward token address => timestamp
      */
-    mapping(address => uint256) public userLastClaimedTimestamp;
+    mapping(address => mapping(address => mapping(address => uint256)))
+        public userGaugeRewardTokenLastClaimedTimestamp;
 
     /**
-     * @notice Tracks token gauge exchange rates
-     * @dev token => gauge => exchange rate
+     * @notice Tracks reward token exchange rates per gauge
+     * @dev gauge => reward token address => reward token timestamp => exchange rate
      */
-    mapping(IERC20 => mapping(address => uint256)) public tokenGaugeExchangeRates;
+    mapping(address => mapping(IERC20 => mapping(uint64 => uint256)))
+        public gaugeRewardTokenExchangeRates;
 
     /**
      * @notice RewardToken struct
@@ -186,6 +188,24 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
     }
 
     /**
+     * @notice Get user rewards for a given gauge and token.
+     * @param _gauge Address of the gauge to get rewards for
+     * @param _rewardToken Reward token to get rewards for
+     * @param _user Address of the user to get rewards for
+     * @return Amount of rewards for the given gauge and token
+     */
+    function getRewards(
+        address _gauge,
+        RewardToken memory _rewardToken,
+        address _user
+    ) external view returns (uint256) {
+        uint256 _stakeBalance = gaugeController.getUserGaugeBalance(_gauge, _user);
+        (uint256 _rewards, ) = _getRewards(_gauge, _rewardToken, _user, _stakeBalance);
+
+        return _rewards;
+    }
+
+    /**
      * @notice Records exchange rate after swapping an amount of `ticket` for `token`.
      * @dev Called by the liquidator contract anytime tokens are liquidated.
      * @dev Will push `token` to the `gaugeRewardTokens` mapping if different from the current one.
@@ -204,8 +224,18 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
 
         address _gauge = address(_ticket);
 
-        if (_token != _currentRewardToken(_gauge).token) {
-            _pushRewardToken(_gauge, _token);
+        RewardToken memory _rewardToken = _currentRewardToken(_gauge);
+
+        if (_token != _rewardToken.token) {
+            uint256 _currentTimestamp = block.timestamp;
+
+            gaugeRewardTokens[_gauge].push(
+                RewardToken({ token: _token, timestamp: uint64(_currentTimestamp) })
+            );
+
+            emit RewardTokenPushed(_gauge, _token, _currentTimestamp);
+
+            _rewardToken = _currentRewardToken(_gauge);
         }
 
         uint256 _gaugeRewards = (_tokenAmount * stakerCut) / 1e9;
@@ -213,7 +243,9 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
         // Exchange rate = amount / current staked amount on gauge
         uint256 _exchangeRate = (_gaugeRewards * 1e18) / gaugeController.getGaugeBalance(_gauge);
 
-        tokenGaugeExchangeRates[_token][_gauge] += _exchangeRate;
+        gaugeRewardTokenExchangeRates[_gauge][_rewardToken.token][
+            _rewardToken.timestamp
+        ] += _exchangeRate;
 
         emit RewardsAdded(_gauge, _token, _tokenAmount, _gaugeRewards, _exchangeRate);
     }
@@ -224,7 +256,7 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
         address _user,
         uint256 _oldStakeBalance
     ) external override onlyGaugeController {
-        _claim(_gauge, _user, _oldStakeBalance);
+        _claimAll(_gauge, _user, _oldStakeBalance);
     }
 
     /// @inheritdoc IGaugeReward
@@ -233,20 +265,32 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
         address _user,
         uint256 _oldStakeBalance
     ) external override onlyGaugeController {
-        _claim(_gauge, _user, _oldStakeBalance);
+        _claimAll(_gauge, _user, _oldStakeBalance);
     }
 
     /**
-     * @notice Claim user rewards for a given gauge.
+     * @notice Claim user rewards for a given gauge and reward token.
      * @param _gauge Address of the gauge to claim rewards for
+     * @param _rewardToken Reward token to claim rewards for
      * @param _user Address of the user to claim rewards for
      */
     function claim(
         address _gauge,
+        RewardToken memory _rewardToken,
         address _user
     ) external {
         uint256 _stakeBalance = gaugeController.getUserGaugeBalance(_gauge, _user);
-        _claim(_gauge, _user, _stakeBalance);
+        _claim(_gauge, _rewardToken, _user, _stakeBalance);
+    }
+
+    /**
+     * @notice Claim all user rewards for a given gauge.
+     * @param _gauge Address of the gauge to claim rewards for
+     * @param _user Address of the user to claim rewards for
+     */
+    function claimAll(address _gauge, address _user) external {
+        uint256 _stakeBalance = gaugeController.getUserGaugeBalance(_gauge, _user);
+        _claimAll(_gauge, _user, _stakeBalance);
     }
 
     /**
@@ -257,9 +301,9 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
      * @return Amount of rewards redeemed
      */
     function redeem(address _user, IERC20 _token) external returns (uint256) {
-        uint256 _rewards = userTokenRewardBalances[_user][_token];
+        uint256 _rewards = userRewardTokenBalances[_user][_token];
 
-        userTokenRewardBalances[_user][_token] = 0;
+        userRewardTokenBalances[_user][_token] = 0;
         _token.safeTransferFrom(vault, _user, _rewards);
 
         emit RewardsRedeemed(msg.sender, _user, _token, _rewards);
@@ -286,60 +330,171 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
     }
 
     /**
+     * @notice Get user last claimed timestamp for a given gauge and reward token
+     * @param _user Address of the user to set last claimed timestamp for
+     * @param _gauge Address of the gauge to set last claimed timestamp for
+     * @param _rewardTokenAddress Address of the reward token to set last claimed timestamp for
+     * @return Last claimed timestamp for the given gauge and reward token
+     */
+    function _getUserGaugeRewardTokenLastClaimedTimestamp(
+        address _user,
+        address _gauge,
+        address _rewardTokenAddress
+    ) internal view returns (uint256) {
+        return userGaugeRewardTokenLastClaimedTimestamp[_user][_gauge][_rewardTokenAddress];
+    }
+
+    /**
+     * @notice Set user last claimed timestamp for a given gauge and reward token
+     * @param _user Address of the user to set last claimed timestamp for
+     * @param _gauge Address of the gauge to set last claimed timestamp for
+     * @param _rewardTokenAddress Address of the reward token to set last claimed timestamp for
+     */
+    function _setUserGaugeRewardTokenLastClaimedTimestamp(
+        address _user,
+        address _gauge,
+        address _rewardTokenAddress
+    ) internal {
+        userGaugeRewardTokenLastClaimedTimestamp[_user][_gauge][_rewardTokenAddress] = uint64(
+            block.timestamp
+        );
+    }
+
+    /**
+     * @notice Get user rewards for a given gauge and token.
+     * @param _gauge Address of the gauge to get rewards for
+     * @param _rewardToken Reward token to get rewards for
+     * @param _user Address of the user to get rewards for
+     * @param _stakeBalance User stake balance
+     * @return _rewards Amount of rewards for the given gauge and token
+     * @return _exchangeRate Current exchange rate for the given gauge and token
+     */
+    function _getRewards(
+        address _gauge,
+        RewardToken memory _rewardToken,
+        address _user,
+        uint256 _stakeBalance
+    ) internal view returns (uint256 _rewards, uint256 _exchangeRate) {
+        uint256 _previousExchangeRate = userGaugeRewardTokenExchangeRates[_user][_gauge][
+            _rewardToken.token
+        ][_rewardToken.timestamp];
+
+        uint256 _currentExchangeRate = gaugeRewardTokenExchangeRates[_gauge][_rewardToken.token][
+            _rewardToken.timestamp
+        ];
+
+        uint256 _userLastClaimedTimestamp = _getUserGaugeRewardTokenLastClaimedTimestamp(
+            _user,
+            _gauge,
+            address(_rewardToken.token)
+        );
+
+        if (_userLastClaimedTimestamp == 0) {
+            RewardToken[] memory _gaugeRewardTokens = gaugeRewardTokens[_gauge];
+            uint256 _gaugeRewardTokensLength = _gaugeRewardTokens.length;
+
+            if (_gaugeRewardTokensLength > 1) {
+                RewardToken memory _previousRewardToken = _gaugeRewardTokens[
+                    _gaugeRewardTokensLength - 1
+                ];
+
+                // User may have claimed rewards for the previous reward token
+                _userLastClaimedTimestamp = _getUserGaugeRewardTokenLastClaimedTimestamp(
+                    _user,
+                    _gauge,
+                    address(_previousRewardToken.token)
+                );
+            }
+
+            if (_userLastClaimedTimestamp == 0) {
+                // User may have claimed rewards before any tokens were set for the gauge
+                _userLastClaimedTimestamp = _getUserGaugeRewardTokenLastClaimedTimestamp(
+                    _user,
+                    _gauge,
+                    address(0)
+                );
+            }
+        }
+
+        bool _isEligibleForPastRewards = _userLastClaimedTimestamp > 0 &&
+            _rewardToken.timestamp > _userLastClaimedTimestamp;
+
+        // User is not eligible for any rewards, we return early
+        if (!_isEligibleForPastRewards && _previousExchangeRate == 0) {
+            return (0, _currentExchangeRate);
+        }
+
+        return (
+            // Rewards = deltaExchangeRate * stakeBalance
+            ((_currentExchangeRate - _previousExchangeRate) * _stakeBalance) / 1e18,
+            _currentExchangeRate
+        );
+    }
+
+    /**
      * @notice Claim user rewards for a given gauge and token.
      * @param _gauge Address of the gauge to claim rewards for
-     * @param _token Address of the token to claim rewards for
+     * @param _rewardToken Reward token to get rewards for
      * @param _user Address of the user to claim rewards for
      * @param _stakeBalance User stake balance
-     * @param _eligibleForPastRewards Whether user is eligible for past rewards or not
      */
     function _claimRewards(
         address _gauge,
-        IERC20 _token,
+        RewardToken memory _rewardToken,
         address _user,
-        uint256 _stakeBalance,
-        bool _eligibleForPastRewards
+        uint256 _stakeBalance
     ) internal returns (uint256) {
-        uint256 _previousExchangeRate = userTokenGaugeExchangeRates[_user][_token][_gauge];
-        uint256 _currentExchangeRate = tokenGaugeExchangeRates[_token][_gauge];
+        (uint256 _rewards, uint256 _exchangeRate) = _getRewards(
+            _gauge,
+            _rewardToken,
+            _user,
+            _stakeBalance
+        );
 
-        if (!_eligibleForPastRewards && _previousExchangeRate == 0) {
-            _previousExchangeRate = _currentExchangeRate;
-        }
+        userGaugeRewardTokenExchangeRates[_user][_gauge][_rewardToken.token][
+            _rewardToken.timestamp
+        ] = _exchangeRate;
 
-        // Rewards = deltaExchangeRate * stakeBalance
-        uint256 _rewards = ((_currentExchangeRate - _previousExchangeRate) * _stakeBalance) / 1e18;
-
-        // Record current exchange rate
-        userTokenGaugeExchangeRates[_user][_token][_gauge] = _currentExchangeRate;
-
-        // Skip event and rewards accrual if rewards are equal to zero
         if (_rewards > 0) {
-            userTokenRewardBalances[_user][_token] += _rewards;
-
-            emit RewardsClaimed(_gauge, _token, _user, _rewards, _currentExchangeRate);
+            userRewardTokenBalances[_user][_rewardToken.token] += _rewards;
+            emit RewardsClaimed(_gauge, _rewardToken.token, _user, _rewards, _exchangeRate);
         }
 
         return _rewards;
     }
 
     /**
-     * @notice Claim user past rewards for a given gauge.
-     * @dev Go through all the past reward tokens for the given gauge and claim rewards.
+     * @notice Claim user rewards for a given gauge and token.
+     * @param _gauge Address of the gauge to claim rewards for
+     * @param _rewardToken Reward token to claim rewards for
+     * @param _user Address of the user to claim rewards for
+     * @param _stakeBalance User stake balance
+     */
+    function _claim(
+        address _gauge,
+        RewardToken memory _rewardToken,
+        address _user,
+        uint256 _stakeBalance
+    ) internal {
+        _claimRewards(_gauge, _rewardToken, _user, _stakeBalance);
+        _setUserGaugeRewardTokenLastClaimedTimestamp(_user, _gauge, address(_rewardToken.token));
+    }
+
+    /**
+     * @notice Claim all user rewards for a given gauge.
+     * @dev Go through all the reward tokens for the given gauge and claim rewards.
      * @param _gauge Address of the gauge to claim rewards for
      * @param _user Address of the user to claim rewards for
      * @param _stakeBalance User stake balance
      */
-    function _claimPastRewards(
+    function _claimAll(
         address _gauge,
         address _user,
         uint256 _stakeBalance
-    ) internal returns (RewardToken memory) {
-        uint256 _userLastClaimedTimestamp = userLastClaimedTimestamp[_user];
+    ) internal {
         uint256 _gaugeRewardTokensLength = gaugeRewardTokens[_gauge].length;
 
         RewardToken memory _rewardToken;
-        RewardToken memory _latestRewardToken;
 
         if (_gaugeRewardTokensLength > 0) {
             uint256 i = _gaugeRewardTokensLength;
@@ -347,58 +502,17 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
             while (i > 0) {
                 i = i - 1;
                 _rewardToken = gaugeRewardTokens[_gauge][i];
-
-                if (i == _gaugeRewardTokensLength - 1) {
-                    _latestRewardToken = _rewardToken;
-                }
-
-                if (
-                    _userLastClaimedTimestamp > 0 &&
-                    _rewardToken.timestamp > _userLastClaimedTimestamp
-                ) {
-                    _claimRewards(_gauge, _rewardToken.token, _user, _stakeBalance, true);
-                } else {
-                    break;
-                }
+                _claimRewards(_gauge, _rewardToken, _user, _stakeBalance);
+                _setUserGaugeRewardTokenLastClaimedTimestamp(
+                    _user,
+                    _gauge,
+                    address(_rewardToken.token)
+                );
             }
+        } else {
+            // If no reward token has been added yet, set claimed timestamp for reward token 0
+            _setUserGaugeRewardTokenLastClaimedTimestamp(_user, _gauge, address(0));
         }
-
-        return _latestRewardToken;
-    }
-
-    /**
-     * @notice Claim user rewards for a given gauge.
-     * @param _gauge Address of the gauge to claim rewards for
-     * @param _user Address of the user to claim rewards for
-     * @param _stakeBalance User stake balance
-     */
-    function _claim(
-        address _gauge,
-        address _user,
-        uint256 _stakeBalance
-    ) internal {
-        RewardToken memory _rewardToken = _claimPastRewards(_gauge, _user, _stakeBalance);
-
-        if (address(_rewardToken.token) != address(0)) {
-            _claimRewards(_gauge, _rewardToken.token, _user, _stakeBalance, false);
-        }
-
-        userLastClaimedTimestamp[_user] = block.timestamp;
-    }
-
-    /**
-     * @notice Push a new reward token into the `gaugeRewardTokens` array
-     * @param _gauge Address of the gauge to push reward token for
-     * @param _token Address of the reward token to push
-     */
-    function _pushRewardToken(address _gauge, IERC20 _token) internal {
-        uint256 _currentTimestamp = block.timestamp;
-
-        gaugeRewardTokens[_gauge].push(
-            RewardToken({ token: _token, timestamp: uint64(_currentTimestamp) })
-        );
-
-        emit RewardTokenPushed(_gauge, _token, _currentTimestamp);
     }
 
     /* ============ Modifiers ============ */

@@ -238,7 +238,7 @@ describe('GaugeReward', () => {
             expect(rewardToken.timestamp).to.equal(currentTimestamp);
         });
 
-        it('should add rewards twice and return the first reward token', async () => {
+        it('should add rewards twice and return the only reward token', async () => {
             await afterSwap(poolToken, rewardsAmount, gaugeBalance);
 
             const firstSwapTimestamp = (await provider.getBlock('latest')).timestamp;
@@ -274,21 +274,27 @@ describe('GaugeReward', () => {
 
             const currentTimestamp = (await provider.getBlock('latest')).timestamp;
 
-            expect(await gaugeReward.userLastClaimedTimestamp(owner.address)).to.equal(
-                currentTimestamp,
-            );
+            expect(
+                await gaugeReward.userGaugeRewardTokenLastClaimedTimestamp(
+                    owner.address,
+                    gaugeAddress,
+                    AddressZero,
+                ),
+            ).to.equal(currentTimestamp);
 
             const rewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
-            const exchangeRate = await gaugeReward.tokenGaugeExchangeRates(
-                rewardToken.token,
+            const exchangeRate = await gaugeReward.gaugeRewardTokenExchangeRates(
                 gaugeAddress,
+                rewardToken.token,
+                rewardToken.timestamp,
             );
 
             expect(
-                await gaugeReward.userTokenGaugeExchangeRates(
+                await gaugeReward.userGaugeRewardTokenExchangeRates(
                     owner.address,
-                    rewardToken.token,
                     gaugeAddress,
+                    rewardToken.token,
+                    rewardToken.timestamp,
                 ),
             ).to.equal(exchangeRate);
         });
@@ -356,21 +362,27 @@ describe('GaugeReward', () => {
 
             const currentTimestamp = (await provider.getBlock('latest')).timestamp;
 
-            expect(await gaugeReward.userLastClaimedTimestamp(owner.address)).to.equal(
-                currentTimestamp,
-            );
+            expect(
+                await await gaugeReward.userGaugeRewardTokenLastClaimedTimestamp(
+                    owner.address,
+                    gaugeAddress,
+                    AddressZero,
+                ),
+            ).to.equal(currentTimestamp);
 
             const rewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
-            const exchangeRate = await gaugeReward.tokenGaugeExchangeRates(
-                rewardToken.token,
+            const exchangeRate = await gaugeReward.gaugeRewardTokenExchangeRates(
                 gaugeAddress,
+                rewardToken.token,
+                rewardToken.timestamp,
             );
 
             expect(
-                await gaugeReward.userTokenGaugeExchangeRates(
+                await gaugeReward.userGaugeRewardTokenExchangeRates(
                     owner.address,
-                    rewardToken.token,
                     gaugeAddress,
+                    rewardToken.token,
+                    rewardToken.timestamp,
                 ),
             ).to.equal(exchangeRate);
         });
@@ -416,6 +428,175 @@ describe('GaugeReward', () => {
         });
     });
 
+    describe('getRewards()', () => {
+        let swapAmount: BigNumber;
+        let userStakeBalance: BigNumber;
+        let gaugeBalance: BigNumber;
+
+        beforeEach(() => {
+            swapAmount = toWei('1000');
+            userStakeBalance = toWei('100');
+            gaugeBalance = toWei('100000');
+        });
+
+        it('should return 0 if user has no stake', async () => {
+            await afterSwap(poolToken, swapAmount, gaugeBalance);
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(Zero);
+
+            const rewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            expect(await gaugeReward.getRewards(gaugeAddress, rewardToken, owner.address)).to.equal(
+                Zero,
+            );
+        });
+
+        it('should return 0 if no reward token has been added', async () => {
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(userStakeBalance);
+
+            const rewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            expect(await gaugeReward.getRewards(gaugeAddress, rewardToken, owner.address)).to.equal(
+                Zero,
+            );
+        });
+
+        it('should return rewards for current and past reward token', async () => {
+            await gaugeController.call(
+                gaugeReward,
+                'afterIncreaseGauge',
+                gaugeAddress,
+                owner.address,
+                userStakeBalance,
+            );
+
+            await afterSwap(poolToken, swapAmount, gaugeBalance);
+            await afterSwap(usdcToken, swapAmount, gaugeBalance);
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(userStakeBalance);
+
+            const previousRewardToken = await gaugeReward.gaugeRewardTokens(gaugeAddress, 0);
+            const currentRewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            expect(
+                await gaugeReward.getRewards(gaugeAddress, previousRewardToken, owner.address),
+            ).to.equal(userRewardAmount(swapAmount, gaugeBalance, userStakeBalance));
+
+            expect(
+                await gaugeReward.getRewards(gaugeAddress, currentRewardToken, owner.address),
+            ).to.equal(userRewardAmount(swapAmount, gaugeBalance, userStakeBalance));
+        });
+
+        it('should return 0 if not eligible to past rewards', async () => {
+            await afterSwap(poolToken, swapAmount, gaugeBalance);
+
+            await gaugeController.call(
+                gaugeReward,
+                'afterIncreaseGauge',
+                gaugeAddress,
+                owner.address,
+                userStakeBalance,
+            );
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(userStakeBalance);
+
+            const rewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            expect(await gaugeReward.getRewards(gaugeAddress, rewardToken, owner.address)).to.equal(
+                Zero,
+            );
+        });
+
+        it('should return 0 if trying to claim for a reward token that does not exist', async () => {
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(Zero);
+
+            const claimTimestamp = (await provider.getBlock('latest')).timestamp;
+
+            await gaugeReward.claim(
+                gaugeAddress,
+                { token: poolToken.address, timestamp: claimTimestamp },
+                owner.address,
+            );
+
+            await afterSwap(poolToken, swapAmount, gaugeBalance);
+
+            await gaugeController.call(
+                gaugeReward,
+                'afterIncreaseGauge',
+                gaugeAddress,
+                owner.address,
+                userStakeBalance,
+            );
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(userStakeBalance);
+
+            expect(
+                await gaugeReward.getRewards(
+                    gaugeAddress,
+                    {
+                        token: poolToken.address,
+                        timestamp: claimTimestamp,
+                    },
+                    owner.address,
+                ),
+            ).to.equal(Zero);
+        });
+
+        it('should return 0 if trying to claim for a previous reward token when at the time user did not have any stake', async () => {
+            await afterSwap(poolToken, swapAmount, gaugeBalance);
+
+            const firstPoolRewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            await gaugeController.call(
+                gaugeReward,
+                'afterIncreaseGauge',
+                gaugeAddress,
+                owner.address,
+                userStakeBalance,
+            );
+
+            await afterSwap(usdcToken, swapAmount, gaugeBalance);
+
+            const usdcRewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            await afterSwap(poolToken, swapAmount, gaugeBalance);
+
+            const lastPoolRewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(Zero);
+
+            expect(
+                await gaugeReward.getRewards(gaugeAddress, firstPoolRewardToken, owner.address),
+            ).to.equal(Zero);
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(userStakeBalance);
+
+            expect(
+                await gaugeReward.getRewards(gaugeAddress, usdcRewardToken, owner.address),
+            ).to.equal(userRewardAmount(swapAmount, gaugeBalance, userStakeBalance));
+
+            expect(
+                await gaugeReward.getRewards(gaugeAddress, lastPoolRewardToken, owner.address),
+            ).to.equal(userRewardAmount(swapAmount, gaugeBalance, userStakeBalance));
+        });
+    });
+
     describe('claim()', () => {
         let swapAmount: BigNumber;
         let userStakeBalance: BigNumber;
@@ -444,12 +625,14 @@ describe('GaugeReward', () => {
                 .withArgs(gaugeAddress, owner.address)
                 .returns(userStakeBalance);
 
+            const rewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
             // Alice claims her share of rewards earned from the swap
-            expect(await gaugeReward.claim(gaugeAddress, owner.address))
+            expect(await gaugeReward.claim(gaugeAddress, rewardToken, owner.address))
                 .to.emit(gaugeReward, 'RewardsClaimed')
                 .withArgs(
                     gaugeAddress,
-                    poolToken.address,
+                    rewardToken.token,
                     owner.address,
                     userRewardAmount(swapAmount, gaugeBalance, userStakeBalance),
                     exchangeRate(swapAmount, gaugeBalance),
@@ -466,29 +649,32 @@ describe('GaugeReward', () => {
             );
 
             await afterSwap(poolToken, swapAmount, gaugeBalance);
+
+            const previousRewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
             await afterSwap(usdcToken, swapAmount, gaugeBalance);
+
+            const currentRewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
 
             await gaugeController.mock.getUserGaugeBalance
                 .withArgs(gaugeAddress, owner.address)
                 .returns(userStakeBalance);
 
-            const claimTx = await gaugeReward.claim(gaugeAddress, owner.address);
-
-            expect(claimTx)
+            await expect(gaugeReward.claim(gaugeAddress, previousRewardToken, owner.address))
                 .to.emit(gaugeReward, 'RewardsClaimed')
                 .withArgs(
                     gaugeAddress,
-                    poolToken.address,
+                    previousRewardToken.token,
                     owner.address,
                     userRewardAmount(swapAmount, gaugeBalance, userStakeBalance),
                     exchangeRate(swapAmount, gaugeBalance),
                 );
 
-            expect(claimTx)
+            await expect(gaugeReward.claim(gaugeAddress, currentRewardToken, owner.address))
                 .to.emit(gaugeReward, 'RewardsClaimed')
                 .withArgs(
                     gaugeAddress,
-                    usdcToken.address,
+                    currentRewardToken.token,
                     owner.address,
                     userRewardAmount(swapAmount, gaugeBalance, userStakeBalance),
                     exchangeRate(swapAmount, gaugeBalance),
@@ -510,7 +696,7 @@ describe('GaugeReward', () => {
                 .withArgs(gaugeAddress, owner.address)
                 .returns(userStakeBalance);
 
-            expect(await gaugeReward.claim(gaugeAddress, owner.address))
+            expect(await gaugeReward.claimAll(gaugeAddress, owner.address))
                 .to.not.emit(gaugeReward, 'RewardsClaimed')
                 .withArgs(
                     gaugeAddress,
@@ -548,17 +734,18 @@ describe('GaugeReward', () => {
                 .withArgs(gaugeAddress, owner.address)
                 .returns(userStakeBalance);
 
-            await gaugeReward.claim(gaugeAddress, owner.address);
+            const rewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
 
-            const rewardToken = (await gaugeReward.currentRewardToken(gaugeAddress)).token;
-            const gaugeRewardAmount = await gaugeReward.userTokenRewardBalances(
+            await gaugeReward.claim(gaugeAddress, rewardToken, owner.address);
+
+            const gaugeRewardAmount = await gaugeReward.userRewardTokenBalances(
                 owner.address,
-                rewardToken,
+                rewardToken.token,
             );
 
-            expect(await gaugeReward.redeem(owner.address, rewardToken))
+            expect(await gaugeReward.redeem(owner.address, rewardToken.token))
                 .to.emit(gaugeReward, 'RewardsRedeemed')
-                .withArgs(owner.address, owner.address, rewardToken, gaugeRewardAmount);
+                .withArgs(owner.address, owner.address, rewardToken.token, gaugeRewardAmount);
         });
     });
 });
