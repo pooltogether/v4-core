@@ -88,14 +88,20 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
         address _user,
         uint32[] calldata _drawIds,
         bytes calldata _pickIndicesForDraws
-    ) external view override returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
+    ) external view override returns (
+        uint256[] memory prizesAwardable,
+        bytes memory prizeCounts,
+        uint64[][] memory drawPickIndices
+    ) {
         uint64[][] memory _pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
         require(_pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices");
 
         // User address is hashed once.
         bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user));
 
-        return _calculatePrizesAwardable(
+        drawPickIndices = _pickIndices;
+
+        (prizesAwardable, prizeCounts) = _calculatePrizesAwardable(
             _ticket,
             _user,
             _userRandomNumber,
@@ -189,15 +195,19 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
         bytes32 _userRandomNumber,
         uint32[] memory _drawIds,
         uint64[][] memory _pickIndicesForDraws
-    ) internal view returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
+    ) internal view returns (
+        uint256[] memory prizesAwardable,
+        bytes memory prizeCounts
+    ) {
         // READ list of IDrawBeacon.Draw using the drawIds from drawBuffer
         IDrawBeacon.Draw[] memory _draws = drawBuffer.getDraws(_drawIds);
+        uint256 _drawsLength = _draws.length;
 
         uint256[] memory _prizesAwardable = new uint256[](_drawIds.length);
         uint256[][] memory _prizeCounts = new uint256[][](_drawIds.length);
 
         // Calculate prizes awardable for each Draw passed
-        for (uint32 _drawIndex = 0; _drawIndex < _draws.length; _drawIndex++) {
+        for (uint32 _drawIndex = 0; _drawIndex < _drawsLength; _drawIndex++) {
             IDrawBeacon.Draw memory _draw = _draws[_drawIndex];
             IPrizeConfigHistory.PrizeConfig memory _prizeConfig = prizeConfigHistory.getPrizeConfig(_draw.drawId);
 
