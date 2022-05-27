@@ -48,7 +48,7 @@ function swap(yieldAmountOut, accruedYield, cpmm) {
     dim(`\t\t\tremaining ${remainingYield}, ${accruedYield}, ${yieldAmountOut}, purchasePortion: ${purchasePortion}`)
 
     // Apply downward pressure to drive price down.
-    let fraction = 0.5
+    let fraction = 0.3
 
     const additionalDownwardPressureYieldOut = yieldAmountOut*fraction
     const additionalDownwardPressurePoolIn = getAmountIn(additionalDownwardPressureYieldOut, poolVirtualReserve, yieldVirtualReserve)
@@ -60,7 +60,7 @@ function swap(yieldAmountOut, accruedYield, cpmm) {
     const accruedYieldMovingAverage = (cpmm.accruedYieldMovingAverage*alpha) + accruedYield * (1 - alpha)
 
     // now, we want to ensure that the accrued yield is always a small fraction of virtual LP position.
-    const multiplier = accruedYieldMovingAverage / (yieldVirtualReserveWithDownwardPressure*0.02)
+    const multiplier = accruedYieldMovingAverage / (yieldVirtualReserveWithDownwardPressure*0.05)
     dim(`multiplier: ${multiplier}`)
 
     const resultCpmm = {
@@ -83,8 +83,8 @@ function findOptimalAmountOut(accruedYield, cpmm, marketRate) {
     let bestPoolAmountIn = 0
     let bestProfit = 0
     // steps of 1%
-    let stepSize = 0.01 * accruedYield
-    for (let yieldAmountOut = stepSize; yieldAmountOut < accruedYield; yieldAmountOut += stepSize) {
+    let stepSize = 0.1 * accruedYield
+    for (let yieldAmountOut = stepSize; yieldAmountOut <= accruedYield; yieldAmountOut += stepSize) {
         const poolAmountIn = computeExactAmountIn(yieldAmountOut, accruedYield, cpmm)
         const profit = computeTradeProfit(poolAmountIn, yieldAmountOut, marketRate)
         // dim(`Trading ${poolAmountIn} for ${yieldAmountOut} with profit of ${profit}`)
@@ -120,7 +120,7 @@ async function run() {
         450: 22,
         500: 16,
         600: 10,
-        700: 6
+        700: 8
     }
 
     let accrualRates = {
@@ -143,12 +143,15 @@ async function run() {
         accruedYieldMovingAverage: 0
     }
 
-    const DURATION = 720
+    const DURATION = 750
     const MIN_PROFIT = 1
 
     let marketRate = marketRates[0]
     let accrualRate = accrualRates[0]
     let accruedYield = 0
+
+    let poolIncome = 0
+    let arbCount = 0
 
     for (let time = 0; time < DURATION; time++) {
         if (marketRates[time] > 0) {
@@ -166,8 +169,10 @@ async function run() {
         } = findOptimalAmountOut(accruedYield, cpmm, marketRate)
         
         if (profit >= MIN_PROFIT) {
+            arbCount++;
             cpmm = swap(yieldAmountOut, accruedYield, cpmm)
             let swapExchangeRate = yieldAmountOut / poolAmountIn
+            poolIncome += poolAmountIn
             let efficiency = marketRate / swapExchangeRate
             accruedYield -= yieldAmountOut
 
@@ -186,6 +191,8 @@ async function run() {
             console.log(chalk.green(details.join('\n\t')))
         }
     }
+
+    console.log(chalk.cyan(`\n${arbCount} arbs brough in ${poolIncome} POOL`))
 }
 
 run()
