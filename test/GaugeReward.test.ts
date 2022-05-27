@@ -52,7 +52,6 @@ describe('GaugeReward', () => {
     let usdcToken: Contract;
 
     let owner: SignerWithAddress;
-    let wallet2: SignerWithAddress;
     let liquidator: SignerWithAddress;
 
     let constructorTest = false;
@@ -65,7 +64,7 @@ describe('GaugeReward', () => {
     ) => {
         await token.mint(tokenVault.address, rewardsAmount);
 
-        await tokenVault.setApproved(gaugeReward.address, true);
+        await tokenVault.setApproval(gaugeReward.address, true);
 
         const currentAllowance = await token.allowance(tokenVault.address, gaugeReward.address);
 
@@ -81,7 +80,7 @@ describe('GaugeReward', () => {
     };
 
     beforeEach(async () => {
-        [owner, wallet2, liquidator] = await getSigners();
+        [owner, liquidator] = await getSigners();
 
         gaugeAddress = '0xDe3825B1309E823D52C677E4981a1c67fF0d03E5';
 
