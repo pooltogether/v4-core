@@ -2,11 +2,13 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
+import "./interfaces/IGaugeReward.sol";
 import "./interfaces/IGaugeController.sol";
 import "./libraries/TwabLib.sol";
 import "./libraries/ExtendedSafeCastLib.sol";
 
-contract GaugeController is IGaugeController {
+contract GaugeController is IGaugeController, Ownable {
     using ExtendedSafeCastLib for uint256;
 
     struct GaugeInfo {
@@ -16,8 +18,8 @@ contract GaugeController is IGaugeController {
     /// @notice ERC20 token contract address (used to weight gauges)
     IERC20 public token;
 
-    /// @notice TokenVault for stakers rewards/incentives
-    address public rewardVault;
+    /// @notice GaugeReward for stakers rewards/incentives
+    IGaugeReward public gaugeReward;
 
     /**
       * @notice Tracks user balance. Balance is used to update target gauge weight balances.
@@ -42,7 +44,7 @@ contract GaugeController is IGaugeController {
     | 0x111...111 	| 0x999...999 	| 0x50000  	|
     ----------------------------------------------
     */
-    mapping(address => mapping(address => uint256)) public gaugeBalances;
+    mapping(address => mapping(address => uint256)) public userGaugeBalance;
     
     /**
       * @notice Tracks user rewards for staking.
@@ -62,21 +64,38 @@ contract GaugeController is IGaugeController {
     /// @notice Governance scale set for existing Gauge.
     mapping(address => TwabLib.Account) internal gaugeScaleTwabs;
 
+    /**
+     * @notice Emitted when GaugeReward address is set/updated
+     * @param gaugeReward Address of the newly set GaugeReward contract
+     */
+    event GaugeRewardSet(IGaugeReward gaugeReward);
+
+    /**
+     * @notice Event emitted when the contract is deployed
+     * @param token Address of the token being staked in the gauge
+     */
+     event Deployed(IERC20 token, IGaugeReward gaugeReward, address owner);
+
     /* ================================================================================ */
     /* Constructor & Modifiers                                                          */
     /* ================================================================================ */
-
+    
     /**
      * @notice GaugeController Construction
      * @param _token ERC20 contract address (used to weight gauges)
-     * @param _tokenVault  TokenVault to store ERC20 balances for stakers
+     * @param _gaugeReward  GaugeReward to store ERC20 balances for stakers
     */
     constructor (
         IERC20 _token,
-        address _tokenVault
-    ) {
+        IGaugeReward _gaugeReward,
+        address _owner
+    ) Ownable(_owner){
+        require(address(_token) != address(0), "GC/token-not-zero-address");
+
         token = _token;
-        rewardVault = _tokenVault;
+        gaugeReward = _gaugeReward;
+
+        emit Deployed(_token, _gaugeReward, _owner);
     }
 
     /**
@@ -131,7 +150,7 @@ contract GaugeController is IGaugeController {
     */
     function increaseGauge(address _gauge, uint256 _amount) public requireGauge(_gauge) {
         balances[msg.sender] -= _amount;
-        gaugeBalances[msg.sender][_gauge] += _amount;
+        userGaugeBalance[msg.sender][_gauge] += _amount;
         TwabLib.Account storage gaugeTwab = gaugeTwabs[_gauge];
         (
             TwabLib.AccountDetails memory twabDetails,,
@@ -146,7 +165,7 @@ contract GaugeController is IGaugeController {
     */
     function decreaseGauge(address _gauge, uint256 _amount) public requireGauge(_gauge) {
         balances[msg.sender] += _amount;
-        gaugeBalances[msg.sender][_gauge] -= _amount;
+        userGaugeBalance[msg.sender][_gauge] -= _amount;
         TwabLib.Account storage gaugeTwab = gaugeTwabs[_gauge];
         (
             TwabLib.AccountDetails memory twabDetails,,
@@ -160,7 +179,7 @@ contract GaugeController is IGaugeController {
      * @param _gauge Address of the Gauge
      */
     function addGauge(address _gauge) public {
-        addGaugeWithScale(_gauge, 1 ether);
+        _addGaugeWithScale(_gauge, 1 ether);
     }
 
     /// @TODO: Add Governance/Executive authorization modifier/function.
@@ -170,11 +189,7 @@ contract GaugeController is IGaugeController {
      * @param _scale Amount to scale new Gauge by
     */
     function addGaugeWithScale(address _gauge, uint256 _scale) public {
-        TwabLib.Account storage gaugeScaleTwab = gaugeScaleTwabs[_gauge];
-        (
-            TwabLib.AccountDetails memory twabDetails,,
-        ) = TwabLib.increaseBalance(gaugeScaleTwab, _scale.toUint208(), uint32(block.timestamp));
-        gaugeScaleTwab.details = twabDetails;
+        _addGaugeWithScale(_gauge, _scale);
     }
 
     /// @TODO: Add Governance/Executive authorization modifier/function.
@@ -189,6 +204,17 @@ contract GaugeController is IGaugeController {
             twabDetails,,
         ) = TwabLib.decreaseBalance(gaugeScaleTwab, twabDetails.balance, "insuff", uint32(block.timestamp));
         gaugeScaleTwab.details = twabDetails;
+    }
+
+    /**
+     * @notice Set GaugeReward contract
+     * @param _gaugeReward Address of the GaugeReward contract
+     */
+     function setGaugeReward(IGaugeReward _gaugeReward) external onlyOwner {
+        require(address(_gaugeReward) != address(0), "GC/GaugeReward-not-zero-address");
+        gaugeReward = _gaugeReward;
+
+        emit GaugeRewardSet(_gaugeReward);
     }
 
     /// @TODO: Add Governance/Executive authorization modifier/function.
@@ -212,22 +238,23 @@ contract GaugeController is IGaugeController {
         gaugeScaleTwab.details = twabDetails;
     }
 
-    /**
-     * @notice Read Gauge balance.
-     * @param _gauge Address of existing Gauge
-     * @return uint256 GaugeTWAB.details.balance
-    */
-    function getGauge(address _gauge) public view returns (uint256) {
+     /// @inheritdoc IGaugeController
+     function getGaugeBalance(address _gauge) external view override returns (uint256) {
         return gaugeTwabs[_gauge].details.balance;
     }
 
-    /**
-     * @notice Read Gauge scaled balance.
-     * @param _gauge Address of existing Gauge
-     * @return uint256 GaugeScaleTWAB.details.balance
-    */
-    function getGaugeScale(address _gauge) public view returns (uint256) {
+    /// @inheritdoc IGaugeController
+    function getGaugeScaleBalance(address _gauge) external view override returns (uint256) {
         return gaugeScaleTwabs[_gauge].details.balance;
+    }
+    
+     /// @inheritdoc IGaugeController
+     function getUserGaugeBalance(address _gauge, address _user)
+     external
+     view
+     override
+     returns (uint256) {
+        return userGaugeBalance[_user][_gauge];
     }
 
     /**
@@ -268,6 +295,16 @@ contract GaugeController is IGaugeController {
     /* ================================================================================ */
     /* Internal Functions                                                               */
     /* ================================================================================ */
+
+    function _addGaugeWithScale(address _gauge, uint256 _scale) internal {
+        TwabLib.Account storage gaugeScaleTwab = gaugeScaleTwabs[_gauge];
+        (TwabLib.AccountDetails memory twabDetails, , ) = TwabLib.increaseBalance(
+            gaugeScaleTwab,
+            _scale.toUint208(),
+            uint32(block.timestamp)
+        );
+        gaugeScaleTwab.details = twabDetails;
+    }
 
     function _getAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime) internal view returns (uint256) {
         TwabLib.AccountDetails memory gaugeDetails = gaugeTwabs[_gauge].details;
