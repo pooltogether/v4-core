@@ -237,7 +237,7 @@ contract GaugeController is IGaugeController {
      * @param _endTime Unix timestamp to signal END of the Binary search
      * @return uint256 Gauge average staked balance between two timestamps.
     */
-    function getAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime) external view returns (uint256) {
+    function getAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime) external view returns (uint256) {
         return _getAverageGaugeBetween(_gauge, _startTime, _endTime);
     }
 
