@@ -256,7 +256,7 @@ contract GaugeController is IGaugeController {
     /* Internal Functions                                                               */
     /* ================================================================================ */
 
-    function _getAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime) internal view returns (uint256) {
+    function _getAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime) internal view returns (uint256) {
         TwabLib.AccountDetails memory gaugeDetails = gaugeTwabs[_gauge].details;
         return TwabLib.getAverageBalanceBetween(
             gaugeTwabs[_gauge].twabs,
