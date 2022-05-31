@@ -79,6 +79,12 @@ contract GaugeController is IGaugeController {
         rewardVault = _tokenVault;
     }
 
+    /**
+     * @notice Modifier to check Gauge status.
+     * @dev Gauge boolean status is checked before inheriting function is executed.
+     * @dev True if gauge is active. False otherwise.
+     * @param _gauge Gauge address to check.
+    */
     modifier requireGauge(address _gauge) {
         require(isGauge(_gauge), "GaugeController:invalid-address");
         _;
@@ -88,6 +94,13 @@ contract GaugeController is IGaugeController {
     /* External Functions                                                               */
     /* ================================================================================ */
 
+    /**
+     * @notice Checks gauge status by reading the TWAB balance
+     * @dev Only reliable to check if a Gauge has been created AND also staked on.
+     * @dev Uses the TWAB balance to determine "isGauge" status.
+     * @param _gauge Gauge address to check.
+     * @return True if gauge is active. False otherwise.
+    */
     function isGauge(address _gauge) public view returns (bool) {
         return gaugeScaleTwabs[_gauge].details.balance > 0;
     }
@@ -225,7 +238,7 @@ contract GaugeController is IGaugeController {
      * @return uint256 Weighted(Staked * Scaled) Gauge Balance
     */
     function getScaledAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
-        uint256 gauge = _getAverageGaugeBetween(_gauge, _startTime, _endTime);
+        uint256 gauge = _getAverageGaugeBalanceBetween(_gauge, _startTime, _endTime);
         uint256 gaugeScale = _getAverageGaugeScaleBetween(_gauge, _startTime, _endTime);
         return (gauge*gaugeScale) / 1 ether;
     }
@@ -238,7 +251,7 @@ contract GaugeController is IGaugeController {
      * @return uint256 Gauge average staked balance between two timestamps.
     */
     function getAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime) external view returns (uint256) {
-        return _getAverageGaugeBetween(_gauge, _startTime, _endTime);
+        return _getAverageGaugeBalanceBetween(_gauge, _startTime, _endTime);
     }
 
      /**
