@@ -522,4 +522,8 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
         require(msg.sender == address(gaugeController), "GReward/only-GaugeController");
         _;
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 010b0617114ef7bb07be26f0d054600991a9f7c7

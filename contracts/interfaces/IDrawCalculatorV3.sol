@@ -16,7 +16,6 @@ interface IDrawCalculatorV3 {
     /**
      * @notice Calculates the awardable prizes for a user for Multiple Draws. Typically called by a PrizeDistributor.
      * @param ticket Address of the ticket to calculate awardable prizes for
-     * @param prizeConfigHistory Address of the prizeConfigHistory associated with the ticket
      * @param user Address of the user for which to calculate awardable prizes for
      * @param drawIds Array of DrawIds for which to calculate awardable prizes for
      * @param data ABI encoded pick indices for all Draws. Expected to be winning picks. Pick indices must be less than the totalUserPicks.
@@ -25,7 +24,6 @@ interface IDrawCalculatorV3 {
      */
     function calculate(
         ITicket ticket,
-        IPrizeConfigHistory prizeConfigHistory,
         address user,
         uint32[] calldata drawIds,
         bytes calldata data
@@ -34,13 +32,11 @@ interface IDrawCalculatorV3 {
     /**
      * @notice Calculates picks for a user for Multiple Draws.
      * @param ticket Address of the ticket to calculate picks for
-     * @param prizeConfigHistory Address of the prizeConfigHistory associated with the ticket
      * @param user Address of the user for which to calculate picks for
      * @param drawIds Array of DrawIds for which to calculate picks for
      */
     function calculateUserPicks(
         ITicket ticket,
-        IPrizeConfigHistory prizeConfigHistory,
         address user,
         uint32[] calldata drawIds
     ) external view returns (uint64[] memory);
@@ -56,6 +52,12 @@ interface IDrawCalculatorV3 {
      * @return The GaugeController address
      */
     function getGaugeController() external view returns (IGaugeController);
+
+    /**
+     * @notice Returns PrizeConfigHistory address.
+     * @return The PrizeConfigHistory address
+     */
+    function getPrizeConfigHistory() external view returns (IPrizeConfigHistory);
 
     /**
      * @notice Returns the total number of picks for a prize pool / ticket.

@@ -32,11 +32,15 @@ describe('GaugeController', () => {
     beforeEach(async () => {
         Token = await TokenFactory.deploy('GaugeToken', 'GaugeToken');
 
+<<<<<<< HEAD
         GaugeController = await GaugeControllerFactory.deploy(
             Token.address,
             '0x0000000000000000000000000000000000000000',
             owner.address
         );
+=======
+        GaugeController = await GaugeControllerFactory.deploy(Token.address, owner.address);
+>>>>>>> 010b0617114ef7bb07be26f0d054600991a9f7c7
 
         GaugeReward = await deployMockContract(owner, GaugeRewardArtifact.abi);
 
