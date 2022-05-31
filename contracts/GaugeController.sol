@@ -69,14 +69,14 @@ contract GaugeController is IGaugeController {
     /**
      * @notice GaugeController Construction
      * @param _token ERC20 contract address (used to weight gauges)
-     * @param _rewardVault  TokenVault to store ERC20 balances for stakers
+     * @param _tokenVault  TokenVault to store ERC20 balances for stakers
     */
     constructor (
         IERC20 _token,
-        address _rewardVault
+        address _tokenVault
     ) {
         token = _token;
-        rewardVault = _rewardVault;
+        rewardVault = _tokenVault;
     }
 
     modifier requireGauge(address _gauge) {
