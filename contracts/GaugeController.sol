@@ -3,8 +3,9 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
-import "./interfaces/IGaugeReward.sol";
+
 import "./interfaces/IGaugeController.sol";
+import "./interfaces/IGaugeReward.sol";
 import "./libraries/TwabLib.sol";
 import "./libraries/ExtendedSafeCastLib.sol";
 
@@ -91,7 +92,6 @@ contract GaugeController is IGaugeController, Ownable {
         address _owner
     ) Ownable(_owner){
         require(address(_token) != address(0), "GC/token-not-zero-address");
-
         token = _token;
         gaugeReward = _gaugeReward;
 
@@ -156,6 +156,7 @@ contract GaugeController is IGaugeController, Ownable {
             TwabLib.AccountDetails memory twabDetails,,
         ) = TwabLib.increaseBalance(gaugeTwab, _amount.toUint208(), uint32(block.timestamp));
         gaugeTwab.details = twabDetails;
+        gaugeReward.afterIncreaseGauge(_gauge, msg.sender, uint256(twabDetails.balance) - _amount);
     }
 
     /**
@@ -171,6 +172,7 @@ contract GaugeController is IGaugeController, Ownable {
             TwabLib.AccountDetails memory twabDetails,,
         ) = TwabLib.decreaseBalance(gaugeTwab, _amount.toUint208(), "insuff", uint32(block.timestamp));
         gaugeTwab.details = twabDetails;
+        gaugeReward.afterDecreaseGauge(_gauge, msg.sender, uint256(twabDetails.balance) + _amount);
     }
 
     /// @TODO: Add Governance/Executive authorization modifier/function.
