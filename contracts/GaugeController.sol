@@ -3,8 +3,9 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
-import "./interfaces/IGaugeReward.sol";
+
 import "./interfaces/IGaugeController.sol";
+import "./interfaces/IGaugeReward.sol";
 import "./libraries/TwabLib.sol";
 import "./libraries/ExtendedSafeCastLib.sol";
 
