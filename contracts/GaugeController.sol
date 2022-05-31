@@ -180,7 +180,7 @@ contract GaugeController is IGaugeController {
 
     /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
-     * @notice Remove gauge from the GaugeController.
+     * @notice Set Gauge target scale.
      * @param _gauge Address of existing Gauge
      * @param _scale Amount to scale existing Gauge by
     */
