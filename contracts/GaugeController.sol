@@ -9,10 +9,6 @@ import "./libraries/ExtendedSafeCastLib.sol";
 contract GaugeController is IGaugeController {
     using ExtendedSafeCastLib for uint256;
 
-    /* ================================================================================ */
-    /* Initialization                                                                   */
-    /* ================================================================================ */
-
     struct GaugeInfo {
         uint256 weight;
     }
@@ -66,6 +62,10 @@ contract GaugeController is IGaugeController {
     /// @notice Governance scale set for existing Gauge.
     mapping(address => TwabLib.Account) internal gaugeScaleTwabs;
 
+    /* ================================================================================ */
+    /* Constructor & Modifiers                                                          */
+    /* ================================================================================ */
+
     /**
      * @notice GaugeController Construction
      * @param _token ERC20 contract address (used to weight gauges)
@@ -81,8 +81,8 @@ contract GaugeController is IGaugeController {
 
     /**
      * @notice Modifier to check Gauge status.
-     * @dev Gauge boolean status is checked before inheriting function is executed.
      * @dev True if gauge is active. False otherwise.
+     * @dev Modifier is RUN before the inheriting function is executed.
      * @param _gauge Gauge address to check.
     */
     modifier requireGauge(address _gauge) {
@@ -237,7 +237,7 @@ contract GaugeController is IGaugeController {
      * @param _endTime Unix timestamp to signal END of the Binary search
      * @return uint256 Weighted(Staked * Scaled) Gauge Balance
     */
-    function getScaledAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
+    function getScaledAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime) external override view returns (uint256) {
         uint256 gauge = _getAverageGaugeBalanceBetween(_gauge, _startTime, _endTime);
         uint256 gaugeScale = _getAverageGaugeScaleBetween(_gauge, _startTime, _endTime);
         return (gauge*gaugeScale) / 1 ether;
