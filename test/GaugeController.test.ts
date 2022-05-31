@@ -32,7 +32,11 @@ describe('GaugeController', () => {
     beforeEach(async () => {
         Token = await TokenFactory.deploy('GaugeToken', 'GaugeToken');
 
-        GaugeController = await GaugeControllerFactory.deploy(Token.address, owner.address);
+        GaugeController = await GaugeControllerFactory.deploy(
+            Token.address,
+            '0x0000000000000000000000000000000000000000',
+            owner.address
+        );
 
         GaugeReward = await deployMockContract(owner, GaugeRewardArtifact.abi);
 
@@ -257,13 +261,13 @@ describe('GaugeController', () => {
     });
 
     /**
-     * @description Test getScaledAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime) function
+     * @description Test getScaledAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime) function
      * -= Expected Behavior =-
      * 1. read `Gauge` average balance between `_startTime` and `_endTime`
      * 2. read `GaugeScale` average balance between `_startTime` and `_endTime`
      * 3. compute average of `Gauge` and `GaugeScale`
      */
-    describe('getScaledAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime)', () => {
+    describe('getScaledAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime)', () => {
         it('should SUCCEED to READ the scaled average of', async () => {
             // Add Gauge with Scale TWAB
             await GaugeController.addGaugeWithScale(gaugeAddress, toWei('1'));
@@ -287,7 +291,7 @@ describe('GaugeController', () => {
             const endTime = timestamp;
 
             // READ Scaled Gauge TWAB
-            const read = await GaugeController.getScaledAverageGaugeBetween(
+            const read = await GaugeController.getScaledAverageGaugeBalanceBetween(
                 gaugeAddress,
                 startTime,
                 endTime,
@@ -298,11 +302,11 @@ describe('GaugeController', () => {
     });
 
     /**
-     * @description Test getAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime) function
+     * @description Test getAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime) function
      * -= Expected Behavior =-
      * 1. read `Gauge` average balance between `_startTime` and `_endTime`
      */
-    describe('getAverageGaugeBetween(address _gauge, uint256 _startTime, uint256 _endTime)', () => {
+    describe('getAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime)', () => {
         it('should SUCCEED to READ the balance average of the gauge', async () => {
             // Add Gauge with Scale TWAB
             await GaugeController.addGaugeWithScale(gaugeAddress, toWei('1'));
@@ -326,7 +330,7 @@ describe('GaugeController', () => {
             const endTime = timestamp;
 
             // READ Gauge TWAB
-            const read = await GaugeController.getAverageGaugeBetween(
+            const read = await GaugeController.getAverageGaugeBalanceBetween(
                 gaugeAddress,
                 startTime,
                 endTime,

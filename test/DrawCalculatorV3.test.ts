@@ -574,7 +574,7 @@ describe('DrawCalculatorV3', () => {
                 prizeConfig.endTimestampOffset.toNumber(),
             );
 
-            await gaugeController.mock.getScaledAverageGaugeBetween
+            await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                 .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                 .returns(BigNumber.from(100));
         });
@@ -687,7 +687,7 @@ describe('DrawCalculatorV3', () => {
                     timestamp: BigNumber.from(timestamps[0]),
                 });
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(100));
 
@@ -773,7 +773,7 @@ describe('DrawCalculatorV3', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(100));
 
@@ -867,7 +867,7 @@ describe('DrawCalculatorV3', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(100));
 
@@ -919,7 +919,7 @@ describe('DrawCalculatorV3', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(100));
 
@@ -976,7 +976,7 @@ describe('DrawCalculatorV3', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(100));
 
@@ -1043,7 +1043,7 @@ describe('DrawCalculatorV3', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(100));
 
@@ -1106,7 +1106,7 @@ describe('DrawCalculatorV3', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(1000));
 
@@ -1176,7 +1176,7 @@ describe('DrawCalculatorV3', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(1000));
 
@@ -1255,7 +1255,7 @@ describe('DrawCalculatorV3', () => {
 
                 await prizeConfigHistory.mock.getPrizeConfig.withArgs(2).returns(prizeConfig2);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw1.timestamp.sub(1), draw1.timestamp.sub(1))
                     .returns(BigNumber.from(1000));
 
@@ -1267,7 +1267,7 @@ describe('DrawCalculatorV3', () => {
                     .withArgs([offsetStartTimestamps[0]], [offsetEndTimestamps[0]])
                     .returns([totalSupply1]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw2.timestamp.sub(1), draw2.timestamp.sub(1))
                     .returns(BigNumber.from(1000));
 
@@ -1375,7 +1375,7 @@ describe('DrawCalculatorV3', () => {
 
                 await prizeConfigHistory.mock.getPrizeConfig.withArgs(2).returns(prizeConfig);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw1.timestamp.sub(1), draw1.timestamp.sub(1))
                     .returns(BigNumber.from(1000));
 
@@ -1387,7 +1387,7 @@ describe('DrawCalculatorV3', () => {
                     .withArgs([offsetStartTimestamps[0]], [offsetEndTimestamps[0]])
                     .returns([totalSupply1]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw2.timestamp.sub(1), draw2.timestamp.sub(1))
                     .returns(BigNumber.from(1000));
 
@@ -1464,7 +1464,7 @@ describe('DrawCalculatorV3', () => {
 
                 await prizeConfigHistory.mock.getPrizeConfig.withArgs(2).returns(prizeConfig);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(1000));
 
@@ -1517,7 +1517,7 @@ describe('DrawCalculatorV3', () => {
 
                 await drawBuffer.mock.getDraws.returns([draw]);
 
-                await gaugeController.mock.getScaledAverageGaugeBetween
+                await gaugeController.mock.getScaledAverageGaugeBalanceBetween
                     .withArgs(ticket.address, draw.timestamp.sub(1), draw.timestamp.sub(1))
                     .returns(BigNumber.from(1000));
 

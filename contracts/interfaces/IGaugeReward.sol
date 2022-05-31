@@ -9,6 +9,7 @@ pragma solidity 0.8.6;
  */
 interface IGaugeReward {
     /**
+     * @notice Fallback function to call in GaugeController after a user has increased their gauge stake.
      * @notice Callback function to call in GaugeController after a user has increased their gauge stake.
      * @param gauge Address of the gauge to increase stake for
      * @param user Address of the user to increase stake for

@@ -310,7 +310,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
         uint8 _cardinality
     ) internal view returns (uint256) {
         uint256 _totalChances = (2**_bitRange)**_cardinality;
-        uint256 _gaugeScaledAverage = gaugeController.getScaledAverageGaugeBetween(address(_ticket), _startTime, _endTime);
+        uint256 _gaugeScaledAverage = gaugeController.getScaledAverageGaugeBalanceBetween(address(_ticket), _startTime, _endTime);
         return (_gaugeScaledAverage * _totalChances) / _poolStakeCeiling;
     }
 
