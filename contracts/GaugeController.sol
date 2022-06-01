@@ -132,7 +132,7 @@ contract GaugeController is IGaugeController, Ownable {
      * @param gaugeReward New GaugeReward address
      * @param oldGaugeReward Old GaugeReward address
     */
-    event AuthoritySetGaugeReward(address gaugeReward, address oldGaugeReward);
+    event GaugeRewardSet(address indexed user, address indexed gaugeReward, address indexed oldGaugeReward);
 
     /* ================================================================================ */
     /* Constructor & Modifiers                                                          */
