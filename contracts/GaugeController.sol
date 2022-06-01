@@ -121,7 +121,7 @@ contract GaugeController is IGaugeController, Ownable {
 
     /**
      * @notice Emitted when an Authorized User sets an existing Gauge 'scale' weight.
-     * @param gauge New Gauge address
+     * @param gauge Gauge address
      * @param scale New Gauge scale
      * @param oldScale Old Gauge scale
     */
