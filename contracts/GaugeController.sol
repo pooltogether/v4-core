@@ -66,16 +66,25 @@ contract GaugeController is IGaugeController, Ownable {
     mapping(address => TwabLib.Account) internal gaugeScaleTwabs;
 
     /**
+     * @notice Event emitted when the contract is deployed
+     * @param token Address of the token being staked in the gauge
+     */
+     event Deployed(IERC20 token, IGaugeReward gaugeReward, address owner);
+
+     /**
      * @notice Emitted when GaugeReward address is set/updated
      * @param gaugeReward Address of the newly set GaugeReward contract
      */
     event GaugeRewardSet(IGaugeReward gaugeReward);
 
-    /**
-     * @notice Event emitted when the contract is deployed
-     * @param token Address of the token being staked in the gauge
-     */
-     event Deployed(IERC20 token, IGaugeReward gaugeReward, address owner);
+    event UserDeposit(address user, uint256 amount);
+    event UserWithdraw(address user, uint256 amount);
+    event UserGaugeIncrease(address user, address gauge, uint256 amount);
+    event UserGaugeDecrease(address user, address gauge, uint256 amount);
+    event AuthorityAddGauge(address gauge);
+    event AuthorityRemoveGauge(address gauge);
+    event AuthoritySetGaugeScale(address gauge, uint256 scale);
+    event AuthoritySetGaugeReward(address gauge, uint256 reward);
 
     /* ================================================================================ */
     /* Constructor & Modifiers                                                          */
