@@ -89,7 +89,7 @@ contract GaugeController is IGaugeController, Ownable {
       * @param user Address of the user who withdrew 'token' from the GaugeController
       * @param amount Amount of 'token' withdrawn from the GaugeController
     */
-    event UserWithdraw(address user, uint256 amount);
+    event TokenWithdrawn(address indexed user, IERC20 indexed token, uint256 amount);
     
     /**
       * @notice Emitted when User increases a Gauge weight.
