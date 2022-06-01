@@ -125,7 +125,7 @@ contract GaugeController is IGaugeController, Ownable {
      * @param scale New Gauge scale
      * @param oldScale Old Gauge scale
     */
-    event AuthoritySetGaugeScale(address gauge, uint256 scale, uint256 oldScale);
+    event GaugeScaleSet(address indexed user, address indexed gauge, uint256 scale, uint256 oldScale);
 
     /**
      * @notice Emitted when an Authorized User sets an existing Gauge 'reward' weight.
