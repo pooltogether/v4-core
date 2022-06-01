@@ -12,6 +12,7 @@ const { parseEther: toWei } = utils;
 
 describe('GaugeController', () => {
     let owner: SignerWithAddress;
+    let wallet2: SignerWithAddress;
     let GaugeController: Contract;
     let GaugeReward: MockContract;
     let Token: Contract;
@@ -23,7 +24,7 @@ describe('GaugeController', () => {
     const gaugeAddress = '0x0000000000000000000000000000000000000001';
 
     before(async () => {
-        [owner] = await getSigners();
+        [owner, wallet2] = await getSigners();
         GaugeControllerFactory = await ethers.getContractFactory('GaugeController');
         GaugeRewardArtifact = await artifacts.readArtifact('GaugeReward');
         TokenFactory = await ethers.getContractFactory('ERC20Mintable');
@@ -176,6 +177,11 @@ describe('GaugeController', () => {
                 '1000000000000000000',
             );
         });
+
+        it('should FAIL to execute BECAUSE of unauthorized access', async () => {
+            const unauthorized = GaugeController.connect(wallet2);
+            expect(unauthorized.addGaugeWithScale(gaugeAddress, toWei('1'))).to.be.revertedWith('Ownable/caller-not-owner');
+        });
     });
 
     /**
@@ -191,6 +197,11 @@ describe('GaugeController', () => {
         it('should SUCCEED to remove gauge from the gaugeScaleTwabs mapping', async () => {
             await GaugeController.removeGauge(gaugeAddress);
             expect(await GaugeController.getGaugeScaleBalance(gaugeAddress)).to.eq('0');
+        });
+
+        it('should FAIL to execute BECAUSE of unauthorized access', async () => {
+            const unauthorized = GaugeController.connect(wallet2);
+            expect(unauthorized.removeGauge(gaugeAddress)).to.be.revertedWith('Ownable/caller-not-owner');
         });
     });
 
@@ -220,7 +231,28 @@ describe('GaugeController', () => {
                 '500000000000000000',
             );
         });
+
+        it('should FAIL to execute BECAUSE of unauthorized access', async () => {
+            await GaugeController.addGauge(gaugeAddress);
+            const unauthorized = GaugeController.connect(wallet2);
+            expect(unauthorized.setGaugeScale(gaugeAddress, toWei('2'))).to.be.revertedWith('Manageable/caller-not-manager-or-owner');
+        });
     });
+
+     describe('setGaugeReward(IGaugeReward _gaugeReward)', () => {
+        it('should SUCCEED to SET a new GaugeReward address', async () => {
+            await GaugeController.addGauge(gaugeAddress);
+            await GaugeController.setGaugeReward('0x0000000000000000000000000000000000000001');
+            expect(await GaugeController.gaugeReward()).to.eq(
+                '0x0000000000000000000000000000000000000001',
+            );
+        });
+
+        it('should FAIL to execute BECAUSE of unauthorized access', async () => {
+            const unauthorized = GaugeController.connect(wallet2);
+            expect(unauthorized.setGaugeReward('0x0000000000000000000000000000000000000001')).to.be.revertedWith('Manageable/caller-not-manager-or-owner');
+        });
+     })
 
     /**
      * @description Test getGaugeBalance(address _gauge) function
