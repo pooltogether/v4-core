@@ -1,3 +1,4 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { deployMockContract, MockContract } from 'ethereum-waffle';
 import { utils, constants, Contract, ContractFactory, BigNumber } from 'ethers';
@@ -8,16 +9,18 @@ const { defaultAbiCoder: encoder, parseEther: toWei } = utils;
 const { AddressZero } = constants;
 
 describe('PrizeDistributorV2', () => {
-    let wallet1: any;
-    let wallet2: any;
-    let vault: any;
+    let wallet1: SignerWithAddress;
+    let wallet2: SignerWithAddress;
+    let wallet3: SignerWithAddress;
+    let vault: SignerWithAddress;
+
     let token: Contract;
     let ticket: Contract;
     let prizeDistributorV2: Contract;
     let drawCalculator: MockContract;
 
     before(async () => {
-        [wallet1, wallet2, vault] = await getSigners();
+        [wallet1, wallet2, wallet3, vault] = await getSigners();
     });
 
     beforeEach(async () => {
@@ -117,22 +120,65 @@ describe('PrizeDistributorV2', () => {
      * 3. emit DrawCalculatorSet event
      */
     describe('setDrawCalculator(DrawCalculatorInterface _newCalculator)', () => {
-        it('should SUCCEED updating the drawCalculator global variable', async () => {
-            expect(await prizeDistributorV2.setDrawCalculator(wallet2.address))
+        it('should SUCCEED to update the drawCalculator global variable if owner', async () => {
+            expect(await prizeDistributorV2.setDrawCalculator(wallet3.address))
                 .to.emit(prizeDistributorV2, 'DrawCalculatorSet')
-                .withArgs(wallet1.address, wallet2.address);
+                .withArgs(wallet1.address, wallet3.address);
+        });
+
+        it('should SUCCEED to update the drawCalculator global variable if manager', async () => {
+            await prizeDistributorV2.setManager(wallet2.address);
+
+            expect(await prizeDistributorV2.connect(wallet2).setDrawCalculator(wallet3.address))
+                .to.emit(prizeDistributorV2, 'DrawCalculatorSet')
+                .withArgs(wallet2.address, wallet3.address);
         });
 
         it('should REVERT on 1.authorized because wallet is NOT an OWNER or MANAGER', async () => {
-            const PrizeDistributorV2Unauthorized = prizeDistributorV2.connect(wallet2);
+            const PrizeDistributorV2Unauthorized = prizeDistributorV2.connect(wallet3);
             await expect(
                 PrizeDistributorV2Unauthorized.setDrawCalculator(AddressZero),
             ).to.be.revertedWith('Manageable/caller-not-manager-or-owner');
         });
 
-        it('should REVERT on 2.update because the drawCalculator address is NULL', async () => {
+        it('should REVERT on 2.update because the drawCalculator address is address zero', async () => {
             await expect(prizeDistributorV2.setDrawCalculator(AddressZero)).to.be.revertedWith(
                 'PDistV2/calc-not-zero-address',
+            );
+        });
+    });
+
+    /**
+     * @description Test setTokenVault(address _tokenVault) function
+     * -= Expected Behavior =-
+     * 1. authorize the `msg.sender` has OWNER or MANAGER role
+     * 2. update global tokenVault variable
+     * 3. emit TokenVaultSet event
+     */
+    describe('setTokenVault(address _tokenVault)', () => {
+        it('should SUCCEED to update the tokenVault global variable if owner', async () => {
+            expect(await prizeDistributorV2.setTokenVault(wallet3.address))
+                .to.emit(prizeDistributorV2, 'TokenVaultSet')
+                .withArgs(wallet1.address, wallet3.address);
+        });
+
+        it('should SUCCEED to update the tokenVault global variable if manager', async () => {
+            await prizeDistributorV2.setManager(wallet2.address);
+
+            expect(await prizeDistributorV2.connect(wallet2).setTokenVault(wallet3.address))
+                .to.emit(prizeDistributorV2, 'TokenVaultSet')
+                .withArgs(wallet2.address, wallet3.address);
+        });
+
+        it('should REVERT on 1.authorized because wallet is NOT an OWNER or MANAGER', async () => {
+            await expect(
+                prizeDistributorV2.connect(wallet2).setTokenVault(wallet3.address),
+            ).to.be.revertedWith('Manageable/caller-not-manager-or-owner');
+        });
+
+        it('should REVERT on 2.update because the tokenVault address is address zero', async () => {
+            await expect(prizeDistributorV2.setTokenVault(AddressZero)).to.be.revertedWith(
+                'PDistV2/vault-not-zero-address',
             );
         });
     });
@@ -199,8 +245,14 @@ describe('PrizeDistributorV2', () => {
     });
 
     describe('getToken()', () => {
-        it('should succesfully read global token variable', async () => {
+        it('should successfully read global token variable', async () => {
             expect(await prizeDistributorV2.getToken()).to.equal(ticket.address);
+        });
+    });
+
+    describe('getTokenVault()', () => {
+        it('should successfully read global tokenVault variable', async () => {
+            expect(await prizeDistributorV2.getTokenVault()).to.equal(vault.address);
         });
     });
 });

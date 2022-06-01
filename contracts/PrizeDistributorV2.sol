@@ -21,7 +21,7 @@ contract PrizeDistributorV2 is Manageable {
     using SafeERC20 for IERC20;
 
     /**
-     * @notice Emit when user has claimed token from the PrizeDistributorV2.
+     * @notice Emitted when user has claimed token from the PrizeDistributorV2.
      * @param user   User address receiving draw claim payouts
      * @param drawId Draw id that was paid out
      * @param payout Payout for draw
@@ -35,20 +35,27 @@ contract PrizeDistributorV2 is Manageable {
     );
 
     /**
-     * @notice Emit when IDrawCalculatorV3 is set.
+     * @notice Emitted when IDrawCalculatorV3 is set.
      * @param caller Address who has set the new DrawCalculator
      * @param calculator IDrawCalculatorV3 address
      */
     event DrawCalculatorSet(address indexed caller, IDrawCalculatorV3 indexed calculator);
 
     /**
-     * @notice Emit when Token is set.
+     * @notice Emitted when Token is set.
      * @param token Token address
      */
     event TokenSet(IERC20 indexed token);
 
     /**
-     * @notice Emit when ERC20 tokens are withdrawn.
+     * @notice Emitted when tokenVault is set.
+     * @param caller Address who has set the new tokenVault
+     * @param tokenVault Address of the tokenVault that was set
+     */
+    event TokenVaultSet(address indexed caller, address indexed tokenVault);
+
+    /**
+     * @notice Emitted when ERC20 tokens are withdrawn.
      * @param token  ERC20 token transferred
      * @param to     Address that received funds
      * @param amount Amount of tokens transferred
@@ -63,11 +70,11 @@ contract PrizeDistributorV2 is Manageable {
     /// @notice Token address
     IERC20 internal immutable token;
 
+    /// @notice The tokenVault that stores the prize tokens
+    address internal tokenVault;
+
     /// @notice Maps users => drawId => paid out balance
     mapping(address => mapping(uint256 => uint256)) internal userDrawPayouts;
-
-    /// @notice The tokenVault that stores the prize tokens
-    address public tokenVault;
 
     /* ============ Constructor ============ */
 
@@ -88,9 +95,9 @@ contract PrizeDistributorV2 is Manageable {
         require(address(_token) != address(0), "PDistV2/token-not-zero-address");
 
         _setDrawCalculator(_drawCalculator);
+        _setTokenVault(_tokenVault);
 
         token = _token;
-        tokenVault = _tokenVault;
 
         emit TokenSet(_token);
     }
@@ -198,6 +205,14 @@ contract PrizeDistributorV2 is Manageable {
     }
 
     /**
+     * @notice Read global tokenVault address.
+     * @return Address of the tokenVault
+     */
+    function getTokenVault() external view returns (address) {
+        return tokenVault;
+    }
+
+    /**
      * @notice Sets DrawCalculator reference contract.
      * @param _newCalculator DrawCalculator address
      * @return New DrawCalculator address
@@ -209,6 +224,16 @@ contract PrizeDistributorV2 is Manageable {
     {
         _setDrawCalculator(_newCalculator);
         return _newCalculator;
+    }
+
+    /**
+     * @notice Sets TokenVault address.
+     * @param _tokenVault Address of the new TokenVault
+     * @return New TokenVault address
+     */
+    function setTokenVault(address _tokenVault) external onlyManagerOrOwner returns (address) {
+        _setTokenVault(_tokenVault);
+        return _tokenVault;
     }
 
     /* ============ Internal Functions ============ */
@@ -250,6 +275,17 @@ contract PrizeDistributorV2 is Manageable {
         drawCalculator = _newCalculator;
 
         emit DrawCalculatorSet(msg.sender, _newCalculator);
+    }
+
+    /**
+     * @notice Sets TokenVault address.
+     * @param _tokenVault Address of the new TokenVault
+     */
+    function _setTokenVault(address _tokenVault) internal {
+        require(_tokenVault != address(0), "PDistV2/vault-not-zero-address");
+        tokenVault = _tokenVault;
+
+        emit TokenVaultSet(msg.sender, _tokenVault);
     }
 
     /**
