@@ -137,6 +137,7 @@ contract GaugeController is IGaugeController, Ownable {
      * @notice GaugeController Construction
      * @param _token ERC20 contract address (used to weight gauges)
      * @param _gaugeReward  GaugeReward to store ERC20 balances for stakers
+     * @param _owner Address of authorized owner
     */
     constructor (
         IERC20 _token,
