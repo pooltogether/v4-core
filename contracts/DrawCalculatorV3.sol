@@ -87,26 +87,22 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
         ITicket _ticket,
         address _user,
         uint32[] calldata _drawIds,
-        bytes calldata _pickIndicesForDraws
+        uint64 [][] calldata _drawPickIndices
     ) external view override returns (
         uint256[] memory prizesAwardable,
-        bytes memory prizeCounts,
-        uint64[][] memory drawPickIndices
+        bytes memory prizeCounts
     ) {
-        uint64[][] memory _pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
-        require(_pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices");
+        require(_drawPickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices");
 
         // User address is hashed once.
         bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user));
-
-        drawPickIndices = _pickIndices;
 
         (prizesAwardable, prizeCounts) = _calculatePrizesAwardable(
             _ticket,
             _user,
             _userRandomNumber,
             _drawIds,
-            _pickIndices
+            _drawPickIndices
         );
     }
 
@@ -187,14 +183,14 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
      * @param _user Address of the user for which to calculate awardable prizes for
      * @param _userRandomNumber Random number of the user to consider over draws
      * @param _drawIds Array of DrawIds for which to calculate awardable prizes for
-     * @param _pickIndicesForDraws Pick indices for each Draw
+     * @param _drawPickIndices Pick indices for each Draw
      */
     function _calculatePrizesAwardable(
         ITicket _ticket,
         address _user,
         bytes32 _userRandomNumber,
         uint32[] memory _drawIds,
-        uint64[][] memory _pickIndicesForDraws
+        uint64[][] memory _drawPickIndices
     ) internal view returns (
         uint256[] memory prizesAwardable,
         bytes memory prizeCounts
@@ -227,7 +223,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
                 _draw.winningRandomNumber,
                 _totalUserPicks,
                 _userRandomNumber,
-                _pickIndicesForDraws[_drawIndex],
+                _drawPickIndices[_drawIndex],
                 _prizeConfig
             );
         }

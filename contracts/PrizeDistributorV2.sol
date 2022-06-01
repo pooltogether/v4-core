@@ -108,19 +108,23 @@ contract PrizeDistributorV2 is Manageable {
      * @param _ticket Address of the Ticket to claim prizes for
      * @param _user Address of the user to claim rewards for. Does NOT need to be msg.sender
      * @param _drawIds Draw IDs from global DrawBuffer reference
-     * @param _data Draws pick indices
+     * @param _drawPickIndices Pick indices for each drawId
      * @return Total claim payout. May include calculations from multiple draws.
      */
     function claim(
         ITicket _ticket,
         address _user,
         uint32[] calldata _drawIds,
-        bytes calldata _data
+        uint64[][] calldata _drawPickIndices
     ) external returns (uint256) {
         uint256 totalPayout;
 
-        (uint256[] memory drawPayouts, , uint64[][] memory drawPickIndices) = drawCalculator
-            .calculate(_ticket, _user, _drawIds, _data);
+        (uint256[] memory drawPayouts, ) = drawCalculator.calculate(
+            _ticket,
+            _user,
+            _drawIds,
+            _drawPickIndices
+        );
 
         uint256 drawPayoutsLength = drawPayouts.length;
 
@@ -141,7 +145,7 @@ contract PrizeDistributorV2 is Manageable {
 
             totalPayout += payoutDiff;
 
-            emit ClaimedDraw(_user, drawId, payoutDiff, drawPickIndices[payoutIndex]);
+            emit ClaimedDraw(_user, drawId, payoutDiff, _drawPickIndices[payoutIndex]);
         }
 
         _awardPayout(_user, totalPayout);

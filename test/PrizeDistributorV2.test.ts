@@ -58,38 +58,44 @@ describe('PrizeDistributorV2', () => {
      * 5. return totalPayout
      */
     describe('claim(ITicket _ticket,address _user,uint32[] calldata _drawIds,bytes calldata _data))', () => {
-        let pickIndices: string;
-        let pickIndicesDecoded: utils.Result;
+        let pickIndices: string[][];
 
         beforeEach(() => {
-            pickIndices = encoder.encode(['uint64[][]'], [[['1']]]);
-            pickIndicesDecoded = encoder.decode(['uint64[][]'], pickIndices);
+            pickIndices = [['1']];
         });
 
         it('should SUCCEED to claim and emit ClaimedDraw event', async () => {
             await drawCalculator.mock.calculate
                 .withArgs(ticket.address, wallet1.address, [1], pickIndices)
-                .returns([toWei('10')], '0x', pickIndicesDecoded[0]);
+                .returns([toWei('10')], '0x');
 
             await expect(
                 prizeDistributorV2.claim(ticket.address, wallet1.address, [1], pickIndices),
             )
                 .to.emit(prizeDistributorV2, 'ClaimedDraw')
-                .withArgs(wallet1.address, 1, toWei('10'), pickIndicesDecoded[0][0]);
+                .withArgs(wallet1.address, 1, toWei('10'), pickIndices[0]);
         });
 
         it('should SUCCEED to payout the difference if user claims more', async () => {
             await drawCalculator.mock.calculate
                 .withArgs(ticket.address, wallet1.address, [1], pickIndices)
-                .returns([toWei('10')], '0x', pickIndicesDecoded[0]);
+                .returns([toWei('10')], '0x');
 
-            await prizeDistributorV2.claim(ticket.address, wallet1.address, [1], pickIndices);
+            await expect(
+                prizeDistributorV2.claim(ticket.address, wallet1.address, [1], pickIndices),
+            )
+                .to.emit(prizeDistributorV2, 'ClaimedDraw')
+                .withArgs(wallet1.address, 1, toWei('10'), pickIndices[0]);
 
             await drawCalculator.mock.calculate
                 .withArgs(ticket.address, wallet1.address, [1], pickIndices)
-                .returns([toWei('20')], '0x', pickIndicesDecoded[0]);
+                .returns([toWei('20')], '0x');
 
-            await prizeDistributorV2.claim(ticket.address, wallet1.address, [1], pickIndices);
+            await expect(
+                prizeDistributorV2.claim(ticket.address, wallet1.address, [1], pickIndices),
+            )
+                .to.emit(prizeDistributorV2, 'ClaimedDraw')
+                .withArgs(wallet1.address, 1, toWei('10'), pickIndices[0]);
 
             expect(await prizeDistributorV2.getDrawPayoutBalanceOf(wallet1.address, 1)).to.equal(
                 toWei('20'),
@@ -99,7 +105,7 @@ describe('PrizeDistributorV2', () => {
         it('should REVERT on 2.update because the prize was previously claimed', async () => {
             await drawCalculator.mock.calculate
                 .withArgs(ticket.address, wallet1.address, [0], pickIndices)
-                .returns([toWei('10')], '0x', pickIndicesDecoded[0]);
+                .returns([toWei('10')], '0x');
 
             await prizeDistributorV2.claim(ticket.address, wallet1.address, [0], pickIndices);
 

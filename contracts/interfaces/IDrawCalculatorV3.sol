@@ -18,23 +18,21 @@ interface IDrawCalculatorV3 {
      * @param ticket Address of the ticket to calculate awardable prizes for
      * @param user Address of the user for which to calculate awardable prizes for
      * @param drawIds Array of DrawIds for which to calculate awardable prizes for
-     * @param data ABI encoded pick indices for all Draws. Expected to be winning picks. Pick indices must be less than the totalUserPicks.
+     * @param drawPickIndices Pick indices for each drawId
      * @return List of awardable prize amounts ordered by drawId.
      * @return List of prize counts ordered by tiers.
-     * @return Pick indices for each drawId.
      */
     function calculate(
         ITicket ticket,
         address user,
         uint32[] calldata drawIds,
-        bytes calldata data
+        uint64 [][] calldata drawPickIndices
     )
         external
         view
         returns (
             uint256[] memory,
-            bytes memory,
-            uint64[][] memory
+            bytes memory
         );
 
     /**

@@ -735,7 +735,7 @@ describe('DrawCalculatorV3', () => {
                 );
 
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+                const pickIndices = [['1']];
                 const ticketBalance = toWei('10');
                 const totalSupply = toWei('100');
 
@@ -813,7 +813,7 @@ describe('DrawCalculatorV3', () => {
                 );
 
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+                const pickIndices = [['1']];
                 const ticketBalance = toWei('10');
                 const totalSupply = toWei('100');
 
@@ -889,7 +889,7 @@ describe('DrawCalculatorV3', () => {
                 );
 
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1', '1']]]); // this isn't valid
+                const pickIndices = [['1', '1']]; // this isn't valid
                 const ticketBalance = toWei('10');
                 const totalSupply = toWei('100');
 
@@ -942,10 +942,7 @@ describe('DrawCalculatorV3', () => {
 
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
 
-                const pickIndices = encoder.encode(
-                    ['uint256[][]'],
-                    [[[...new Array<number>(1000).keys()]]],
-                );
+                const pickIndices = [[...new Array<number>(1000).keys()]];
 
                 const totalSupply = toWei('10000');
                 const ticketBalance = toWei('1000'); // 10 percent of total supply
@@ -1013,7 +1010,7 @@ describe('DrawCalculatorV3', () => {
                 await prizeConfigHistory.mock.getPrizeConfig.withArgs(1).returns(prizeConfig);
 
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+                const pickIndices = [['1']];
                 const ticketBalance = toWei('10');
                 const totalSupply = toWei('100');
 
@@ -1074,7 +1071,7 @@ describe('DrawCalculatorV3', () => {
                 await prizeConfigHistory.mock.getPrizeConfig.withArgs(1).returns(prizeConfig);
 
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+                const pickIndices = [['1']];
                 const ticketBalance = toWei('10');
                 const totalSupply = toWei('100');
 
@@ -1144,7 +1141,7 @@ describe('DrawCalculatorV3', () => {
                 await prizeConfigHistory.mock.getPrizeConfig.withArgs(1).returns(prizeConfig);
 
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+                const pickIndices = [['1']];
                 const ticketBalance = toWei('10');
                 const totalSupply = toWei('100');
 
@@ -1205,7 +1202,7 @@ describe('DrawCalculatorV3', () => {
                     (await provider.getBlock('latest')).timestamp - 5,
                 ];
 
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
+                const pickIndices = [['1'], ['2']];
                 const ticketBalance = toWei('10');
                 const ticketBalance2 = toWei('10');
                 const totalSupply1 = toWei('100');
@@ -1321,7 +1318,7 @@ describe('DrawCalculatorV3', () => {
                 const totalSupply1 = toWei('100');
                 const totalSupply2 = toWei('100');
 
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1'], ['2']]]);
+                const pickIndices = [['1'], ['2']];
                 const ticketBalance = toWei('6'); // they had 6pc of all tickets
 
                 const prizeConfig: PrizeConfig = {
@@ -1419,7 +1416,7 @@ describe('DrawCalculatorV3', () => {
 
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
                 const totalSupply = toWei('100');
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1', '2', '3']]]);
+                const pickIndices = [['1', '2', '3']];
                 const ticketBalance = toWei('6');
 
                 const prizeConfig: PrizeConfig = {
@@ -1488,7 +1485,7 @@ describe('DrawCalculatorV3', () => {
                 const timestamps = [(await provider.getBlock('latest')).timestamp];
                 const totalSupply = toWei('100');
 
-                const pickIndices = encoder.encode(['uint256[][]'], [[['1']]]);
+                const pickIndices = [['1']];
                 const ticketBalance = toWei('10');
 
                 const offsetStartTimestamps = modifyTimestampsWithOffset(
