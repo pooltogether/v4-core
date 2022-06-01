@@ -27,14 +27,14 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
 
     /* ============ Variables ============ */
 
-    /// @notice GaugeController address
-    IGaugeController public gaugeController;
-
     /// @notice DrawBuffer address
-    IDrawBuffer public immutable drawBuffer;
+    IDrawBuffer internal immutable drawBuffer;
+
+    /// @notice GaugeController address
+    IGaugeController internal immutable gaugeController;
 
     /// @notice PrizeConfigHistory address
-    IPrizeConfigHistory public immutable prizeConfigHistory;
+    IPrizeConfigHistory internal immutable prizeConfigHistory;
 
     /// @notice The tiers array length
     uint8 public constant TIERS_LENGTH = 16;
