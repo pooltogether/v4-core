@@ -82,7 +82,7 @@ contract GaugeController is IGaugeController, Ownable {
       * @param user Address of the user who deposited 'token' into the GaugeController
       * @param amount Amount of 'token' deposited into the GaugeController
      */
-     event UserDeposit(address user, uint256 amount);
+     event TokenDeposited(address indexed user, IERC20 indexed token, uint256 amount);
      
      /**
       * @notice Emitted when User withdraws 'token' from the gauge. 
