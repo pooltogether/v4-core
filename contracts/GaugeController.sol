@@ -68,23 +68,71 @@ contract GaugeController is IGaugeController, Ownable {
     /**
      * @notice Event emitted when the contract is deployed
      * @param token Address of the token being staked in the gauge
-     */
+    */
      event Deployed(IERC20 token, IGaugeReward gaugeReward, address owner);
 
-     /**
+    /**
      * @notice Emitted when GaugeReward address is set/updated
      * @param gaugeReward Address of the newly set GaugeReward contract
-     */
+    */
     event GaugeRewardSet(IGaugeReward gaugeReward);
 
-    event UserDeposit(address user, uint256 amount);
+    /**
+      * @notice Emitted when User deposits 'token' into the gauge. 
+      * @param user Address of the user who deposited 'token' into the GaugeController
+      * @param amount Amount of 'token' deposited into the GaugeController
+     */
+     event UserDeposit(address user, uint256 amount);
+     
+     /**
+      * @notice Emitted when User withdraws 'token' from the gauge. 
+      * @param user Address of the user who withdrew 'token' from the GaugeController
+      * @param amount Amount of 'token' withdrawn from the GaugeController
+    */
     event UserWithdraw(address user, uint256 amount);
-    event UserGaugeIncrease(address user, address gauge, uint256 amount);
+    
+    /**
+      * @notice Emitted when User increases a Gauge weight.
+      * @param user User address
+      * @param gauge Existing Gauge address
+      * @param amount Amount of 'balance' debited from the User and credited to the Gauge
+    */
+      event UserGaugeIncrease(address user, address gauge, uint256 amount);
+    
+    /**
+      * @notice Emitted when User decrease a Gauge weight.
+      * @param user User address
+      * @param gauge Existing Gauge address
+      * @param amount Amount of 'balance' debited from the Gauge and credited to the User
+    */
     event UserGaugeDecrease(address user, address gauge, uint256 amount);
+
+    /**
+     * @notice Emitted when an Authorized User adds a new Gauge to the GaugeController
+     * @param gauge New Gauge address
+    */
     event AuthorityAddGauge(address gauge);
+    
+    /**
+     * @notice Emitted when an Authorized User removes an existing Gauge from the GaugeController
+     * @param gauge New Gauge address
+    */
     event AuthorityRemoveGauge(address gauge);
-    event AuthoritySetGaugeScale(address gauge, uint256 scale);
-    event AuthoritySetGaugeReward(address gauge, uint256 reward);
+
+    /**
+     * @notice Emitted when an Authorized User sets an existing Gauge 'scale' weight.
+     * @param gauge New Gauge address
+     * @param scale New Gauge scale
+     * @param oldScale Old Gauge scale
+    */
+    event AuthoritySetGaugeScale(address gauge, uint256 scale, uint256 oldScale);
+
+    /**
+     * @notice Emitted when an Authorized User sets an existing Gauge 'reward' weight.
+     * @param gaugeReward New GaugeReward address
+     * @param oldGaugeReward Old GaugeReward address
+    */
+    event AuthoritySetGaugeReward(address gaugeReward, address oldGaugeReward);
 
     /* ================================================================================ */
     /* Constructor & Modifiers                                                          */
