@@ -97,7 +97,7 @@ contract GaugeController is IGaugeController, Ownable {
       * @param gauge Existing Gauge address
       * @param amount Amount of 'balance' debited from the User and credited to the Gauge
     */
-      event UserGaugeIncrease(address user, address gauge, uint256 amount);
+      event GaugeIncreased(address indexed user, address indexed gauge, uint256 amount);
     
     /**
       * @notice Emitted when User decrease a Gauge weight.
