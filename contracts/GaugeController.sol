@@ -71,10 +71,10 @@ contract GaugeController is IGaugeController, Ownable {
     */
      event Deployed(IERC20 token, IGaugeReward gaugeReward, address owner);
 
-    // /**
-    //  * @notice Emitted when GaugeReward address is set/updated
-    //  * @param gaugeReward Address of the newly set GaugeReward contract
-    // */
+    /**
+     * @notice Emitted when GaugeReward address is set/updated
+     * @param gaugeReward Address of the newly set GaugeReward contract
+    */
     event GaugeRewardSet(IGaugeReward gaugeReward);
 
     /**
