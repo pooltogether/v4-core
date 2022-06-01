@@ -71,10 +71,10 @@ contract GaugeController is IGaugeController, Ownable {
     */
      event Deployed(IERC20 token, IGaugeReward gaugeReward, address owner);
 
-    /**
-     * @notice Emitted when GaugeReward address is set/updated
-     * @param gaugeReward Address of the newly set GaugeReward contract
-    */
+    // /**
+    //  * @notice Emitted when GaugeReward address is set/updated
+    //  * @param gaugeReward Address of the newly set GaugeReward contract
+    // */
     event GaugeRewardSet(IGaugeReward gaugeReward);
 
     /**
@@ -115,24 +115,19 @@ contract GaugeController is IGaugeController, Ownable {
     
     /**
      * @notice Emitted when an Authorized User removes an existing Gauge from the GaugeController
+     * @param user Authorized address
      * @param gauge Gauge address
     */
     event GaugeRemoved(address indexed user, address indexed gauge);
 
     /**
      * @notice Emitted when an Authorized User sets an existing Gauge 'scale' weight.
+     * @param user Authorized address
      * @param gauge Gauge address
      * @param scale New Gauge scale
      * @param oldScale Old Gauge scale
     */
     event GaugeScaleSet(address indexed user, address indexed gauge, uint256 scale, uint256 oldScale);
-
-    /**
-     * @notice Emitted when an Authorized User sets an existing Gauge 'reward' weight.
-     * @param gaugeReward New GaugeReward address
-     * @param oldGaugeReward Old GaugeReward address
-    */
-    event GaugeRewardSet(address indexed user, address indexed gaugeReward, address indexed oldGaugeReward);
 
     /* ================================================================================ */
     /* Constructor & Modifiers                                                          */
@@ -189,6 +184,7 @@ contract GaugeController is IGaugeController, Ownable {
     function deposit(address _to, uint256 _amount) public {
         balances[_to] += _amount;
         token.transferFrom(msg.sender, address(this), _amount);
+        emit TokenDeposited(msg.sender, token, _amount);
     }
 
     /**
@@ -198,6 +194,7 @@ contract GaugeController is IGaugeController, Ownable {
     function withdraw(uint256 _amount) public {
         balances[msg.sender] -= _amount;
         token.transfer(msg.sender, _amount);
+        emit TokenWithdrawn(msg.sender, token, _amount);
     }
 
     /**
@@ -214,6 +211,7 @@ contract GaugeController is IGaugeController, Ownable {
         ) = TwabLib.increaseBalance(gaugeTwab, _amount.toUint208(), uint32(block.timestamp));
         gaugeTwab.details = twabDetails;
         gaugeReward.afterIncreaseGauge(_gauge, msg.sender, uint256(twabDetails.balance) - _amount);
+        emit GaugeIncreased(msg.sender, _gauge, _amount);
     }
 
     /**
@@ -230,6 +228,7 @@ contract GaugeController is IGaugeController, Ownable {
         ) = TwabLib.decreaseBalance(gaugeTwab, _amount.toUint208(), "insuff", uint32(block.timestamp));
         gaugeTwab.details = twabDetails;
         gaugeReward.afterDecreaseGauge(_gauge, msg.sender, uint256(twabDetails.balance) + _amount);
+        emit GaugeDecreased(msg.sender, _gauge, _amount);
     }
 
     /// @TODO: Add Governance/Executive authorization modifier/function.
@@ -263,6 +262,7 @@ contract GaugeController is IGaugeController, Ownable {
             twabDetails,,
         ) = TwabLib.decreaseBalance(gaugeScaleTwab, twabDetails.balance, "insuff", uint32(block.timestamp));
         gaugeScaleTwab.details = twabDetails;
+        emit GaugeRemoved(msg.sender, _gauge);
     }
 
     /**
@@ -272,7 +272,6 @@ contract GaugeController is IGaugeController, Ownable {
      function setGaugeReward(IGaugeReward _gaugeReward) external onlyOwner {
         require(address(_gaugeReward) != address(0), "GC/GaugeReward-not-zero-address");
         gaugeReward = _gaugeReward;
-
         emit GaugeRewardSet(_gaugeReward);
     }
 
@@ -295,6 +294,7 @@ contract GaugeController is IGaugeController, Ownable {
             ) = TwabLib.increaseBalance(gaugeScaleTwab, _scale.toUint208() - twabDetails.balance, uint32(block.timestamp));
         }
         gaugeScaleTwab.details = twabDetails;
+        emit GaugeScaleSet(msg.sender, _gauge, _scale, twabDetails.balance);
     }
 
      /// @inheritdoc IGaugeController
