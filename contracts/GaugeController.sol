@@ -82,14 +82,14 @@ contract GaugeController is IGaugeController, Ownable {
       * @param user Address of the user who deposited 'token' into the GaugeController
       * @param amount Amount of 'token' deposited into the GaugeController
      */
-     event TokenDeposited(address indexed user, IERC20 indexed token, uint256 amount);
+     event TokenDeposited(address indexed user, uint256 amount);
      
      /**
       * @notice Emitted when User withdraws 'token' from the gauge. 
       * @param user Address of the user who withdrew 'token' from the GaugeController
       * @param amount Amount of 'token' withdrawn from the GaugeController
     */
-    event TokenWithdrawn(address indexed user, IERC20 indexed token, uint256 amount);
+    event TokenWithdrawn(address indexed user, uint256 amount);
     
     /**
       * @notice Emitted when User increases a Gauge weight.
@@ -109,9 +109,10 @@ contract GaugeController is IGaugeController, Ownable {
 
     /**
      * @notice Emitted when an Authorized User adds a new Gauge to the GaugeController
+     * @param user Authorized address
      * @param gauge New Gauge address
     */
-    event AuthorityAddGauge(address gauge);
+    event GaugeAdded(address indexed user, address gauge);
     
     /**
      * @notice Emitted when an Authorized User removes an existing Gauge from the GaugeController
@@ -185,7 +186,7 @@ contract GaugeController is IGaugeController, Ownable {
     function deposit(address _to, uint256 _amount) public {
         balances[_to] += _amount;
         token.transferFrom(msg.sender, address(this), _amount);
-        emit TokenDeposited(msg.sender, token, _amount);
+        emit TokenDeposited(msg.sender, _amount);
     }
 
     /**
@@ -195,7 +196,7 @@ contract GaugeController is IGaugeController, Ownable {
     function withdraw(uint256 _amount) public {
         balances[msg.sender] -= _amount;
         token.transfer(msg.sender, _amount);
-        emit TokenWithdrawn(msg.sender, token, _amount);
+        emit TokenWithdrawn(msg.sender, _amount);
     }
 
     /**
@@ -364,6 +365,7 @@ contract GaugeController is IGaugeController, Ownable {
             uint32(block.timestamp)
         );
         gaugeScaleTwab.details = twabDetails;
+        emit GaugeAdded(msg.sender, _gauge);
     }
 
     function _getAverageGaugeBalanceBetween(address _gauge, uint256 _startTime, uint256 _endTime) internal view returns (uint256) {
