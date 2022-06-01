@@ -117,7 +117,7 @@ contract GaugeController is IGaugeController, Ownable {
      * @notice Emitted when an Authorized User removes an existing Gauge from the GaugeController
      * @param gauge Gauge address
     */
-    event AuthorityRemoveGauge(address gauge);
+    event GaugeRemoved(address indexed user, address indexed gauge);
 
     /**
      * @notice Emitted when an Authorized User sets an existing Gauge 'scale' weight.
