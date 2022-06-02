@@ -233,7 +233,6 @@ contract GaugeController is IGaugeController, Manageable {
         emit GaugeDecreased(msg.sender, _gauge, _amount);
     }
 
-    /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
      * @notice Add new gauge with "1e18" scale to the GaugeController.
      * @param _gauge Address of the Gauge
@@ -242,7 +241,6 @@ contract GaugeController is IGaugeController, Manageable {
         _addGaugeWithScale(_gauge, 1 ether);
     }
 
-    /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
      * @notice Add new gauge and target scale to the GaugeController.
      * @param _gauge Address of new Gauge
@@ -252,7 +250,6 @@ contract GaugeController is IGaugeController, Manageable {
         _addGaugeWithScale(_gauge, _scale);
     }
 
-    /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
      * @notice Remove gauge from the GaugeController.
      * @param _gauge Address of existing Gauge
@@ -277,7 +274,6 @@ contract GaugeController is IGaugeController, Manageable {
         emit GaugeRewardSet(_gaugeReward);
     }
 
-    /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
      * @notice Set Gauge target scale.
      * @param _gauge Address of existing Gauge
