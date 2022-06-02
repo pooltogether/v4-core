@@ -2,14 +2,14 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@pooltogether/owner-manager-contracts/contracts/Ownable.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
 import "./interfaces/IGaugeController.sol";
 import "./interfaces/IGaugeReward.sol";
 import "./libraries/TwabLib.sol";
 import "./libraries/ExtendedSafeCastLib.sol";
 
-contract GaugeController is IGaugeController, Ownable {
+contract GaugeController is IGaugeController, Manageable {
     using ExtendedSafeCastLib for uint256;
 
     struct GaugeInfo {
@@ -183,7 +183,7 @@ contract GaugeController is IGaugeController, Ownable {
      * @param _to  Receivzer of the deposited tokens
      * @param _amount  Amount of tokens to be deposited
     */
-    function deposit(address _to, uint256 _amount) public {
+    function deposit(address _to, uint256 _amount) external {
         balances[_to] += _amount;
         token.transferFrom(msg.sender, address(this), _amount);
         emit TokenDeposited(msg.sender, _amount);
@@ -193,7 +193,7 @@ contract GaugeController is IGaugeController, Ownable {
      * @notice Withdraw tokens in GaugeController and increase User balance.
      * @param _amount  Amount of tokens to be withdrawn
     */
-    function withdraw(uint256 _amount) public {
+    function withdraw(uint256 _amount) external {
         balances[msg.sender] -= _amount;
         token.transfer(msg.sender, _amount);
         emit TokenWithdrawn(msg.sender, _amount);
@@ -204,7 +204,7 @@ contract GaugeController is IGaugeController, Ownable {
      * @param _gauge  Address of the Gauge
      * @param _amount Amount of tokens to be debited from the User balance and credited to the Gauge balance
     */
-    function increaseGauge(address _gauge, uint256 _amount) public requireGauge(_gauge) {
+    function increaseGauge(address _gauge, uint256 _amount) external requireGauge(_gauge) {
         balances[msg.sender] -= _amount;
         userGaugeBalance[msg.sender][_gauge] += _amount;
         TwabLib.Account storage gaugeTwab = gaugeTwabs[_gauge];
@@ -221,7 +221,7 @@ contract GaugeController is IGaugeController, Ownable {
      * @param _gauge  Address of the Gauge
      * @param _amount Amount of tokens to be debited from the Gauge balance and credited to the Gauge balance
     */
-    function decreaseGauge(address _gauge, uint256 _amount) public requireGauge(_gauge) {
+    function decreaseGauge(address _gauge, uint256 _amount) external requireGauge(_gauge) {
         balances[msg.sender] += _amount;
         userGaugeBalance[msg.sender][_gauge] -= _amount;
         TwabLib.Account storage gaugeTwab = gaugeTwabs[_gauge];
@@ -233,31 +233,28 @@ contract GaugeController is IGaugeController, Ownable {
         emit GaugeDecreased(msg.sender, _gauge, _amount);
     }
 
-    /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
      * @notice Add new gauge with "1e18" scale to the GaugeController.
      * @param _gauge Address of the Gauge
      */
-    function addGauge(address _gauge) public {
+    function addGauge(address _gauge) external onlyOwner {
         _addGaugeWithScale(_gauge, 1 ether);
     }
 
-    /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
      * @notice Add new gauge and target scale to the GaugeController.
      * @param _gauge Address of new Gauge
      * @param _scale Amount to scale new Gauge by
     */
-    function addGaugeWithScale(address _gauge, uint256 _scale) public {
+    function addGaugeWithScale(address _gauge, uint256 _scale) external onlyOwner {
         _addGaugeWithScale(_gauge, _scale);
     }
 
-    /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
      * @notice Remove gauge from the GaugeController.
      * @param _gauge Address of existing Gauge
     */
-    function removeGauge(address _gauge) public {
+    function removeGauge(address _gauge) external onlyOwner {
         TwabLib.Account storage gaugeScaleTwab = gaugeScaleTwabs[_gauge];
         TwabLib.AccountDetails memory twabDetails = gaugeScaleTwab.details;
         (
@@ -271,19 +268,18 @@ contract GaugeController is IGaugeController, Ownable {
      * @notice Set GaugeReward contract
      * @param _gaugeReward Address of the GaugeReward contract
      */
-     function setGaugeReward(IGaugeReward _gaugeReward) external onlyOwner {
+     function setGaugeReward(IGaugeReward _gaugeReward) external onlyManagerOrOwner {
         require(address(_gaugeReward) != address(0), "GC/GaugeReward-not-zero-address");
         gaugeReward = _gaugeReward;
         emit GaugeRewardSet(_gaugeReward);
     }
 
-    /// @TODO: Add Governance/Executive authorization modifier/function.
     /**
      * @notice Set Gauge target scale.
      * @param _gauge Address of existing Gauge
      * @param _scale Amount to scale existing Gauge by
     */
-    function setGaugeScale(address _gauge, uint256 _scale) public {
+    function setGaugeScale(address _gauge, uint256 _scale) external onlyManagerOrOwner {
         TwabLib.Account storage gaugeScaleTwab = gaugeScaleTwabs[_gauge];
         TwabLib.AccountDetails memory twabDetails = gaugeScaleTwab.details;
         if (twabDetails.balance > _scale) {
