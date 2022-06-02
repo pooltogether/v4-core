@@ -164,11 +164,11 @@ describe('GaugeController', () => {
     });
 
     /**
-     * @description Test addGaugeWithScale(address _to) function
+     * @description Test addGauge(address _to) function
      * -= Expected Behavior =-
      * 1. require the `msg.sender` to be authorized to add a gauge
      * 2. require the `gauge` DOES NOT exist
-     * 3. increase `gaugeTwab` TWAB with `_scale`
+     * 3. increase `gaugeTwab` TWAB with `1e18`
      * 4. update the `gaugeTwab.details` with the updated `twabDetails` object
      * 5. emit a AddGaugeWithScale event
      */
