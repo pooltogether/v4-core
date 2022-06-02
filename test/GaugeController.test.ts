@@ -12,6 +12,7 @@ const { parseEther: toWei } = utils;
 
 describe('GaugeController', () => {
     let owner: SignerWithAddress;
+    let manager: SignerWithAddress;
     let wallet2: SignerWithAddress;
     let GaugeController: Contract;
     let GaugeReward: MockContract;
@@ -24,7 +25,7 @@ describe('GaugeController', () => {
     const gaugeAddress = '0x0000000000000000000000000000000000000001';
 
     before(async () => {
-        [owner, wallet2] = await getSigners();
+        [owner, manager, wallet2] = await getSigners();
         GaugeControllerFactory = await ethers.getContractFactory('GaugeController');
         GaugeRewardArtifact = await artifacts.readArtifact('GaugeReward');
         TokenFactory = await ethers.getContractFactory('ERC20Mintable');
@@ -42,6 +43,7 @@ describe('GaugeController', () => {
         GaugeReward = await deployMockContract(owner, GaugeRewardArtifact.abi);
 
         await GaugeController.setGaugeReward(GaugeReward.address);
+        await GaugeController.setManager(manager.address);
     });
 
     /**
@@ -162,6 +164,29 @@ describe('GaugeController', () => {
     });
 
     /**
+     * @description Test addGaugeWithScale(address _to) function
+     * -= Expected Behavior =-
+     * 1. require the `msg.sender` to be authorized to add a gauge
+     * 2. require the `gauge` DOES NOT exist
+     * 3. increase `gaugeTwab` TWAB with `_scale`
+     * 4. update the `gaugeTwab.details` with the updated `twabDetails` object
+     * 5. emit a AddGaugeWithScale event
+     */
+     describe('addGauge(address _to)', () => {
+        it('should SUCCEED to add gauge to the gaugeScaleTwabs mapping', async () => {
+            await GaugeController.addGauge(gaugeAddress);
+            expect(await GaugeController.getGaugeScaleBalance(gaugeAddress)).to.eq(
+                '1000000000000000000',
+            );
+        });
+
+        it('should FAIL to execute BECAUSE of unauthorized access', async () => {
+            const unauthorized = GaugeController.connect(wallet2);
+            expect(unauthorized.addGauge(gaugeAddress)).to.be.revertedWith('Ownable/caller-not-owner');
+        });
+    });
+
+    /**
      * @description Test addGaugeWithScale(address _to, uint256 _scale) function
      * -= Expected Behavior =-
      * 1. require the `msg.sender` to be authorized to add a gauge
@@ -232,6 +257,15 @@ describe('GaugeController', () => {
             );
         });
 
+        it('should SUCCEED to DECREASE the scale on EXISTING gauge from MANAGER role', async () => {
+            await GaugeController.addGauge(gaugeAddress);
+            const gauge = GaugeController.connect(manager);
+            await gauge.setGaugeScale(gaugeAddress, toWei('0.5'));
+            expect(await GaugeController.getGaugeScaleBalance(gaugeAddress)).to.eq(
+                '500000000000000000',
+            );
+        });
+
         it('should FAIL to execute BECAUSE of unauthorized access', async () => {
             await GaugeController.addGauge(gaugeAddress);
             const unauthorized = GaugeController.connect(wallet2);
@@ -243,6 +277,15 @@ describe('GaugeController', () => {
         it('should SUCCEED to SET a new GaugeReward address', async () => {
             await GaugeController.addGauge(gaugeAddress);
             await GaugeController.setGaugeReward('0x0000000000000000000000000000000000000001');
+            expect(await GaugeController.gaugeReward()).to.eq(
+                '0x0000000000000000000000000000000000000001',
+            );
+        });
+        
+        it('should SUCCEED to SET a new GaugeReward address from MANAGER role', async () => {
+            await GaugeController.addGauge(gaugeAddress);
+            const gauge = GaugeController.connect(manager);
+            await gauge.setGaugeReward('0x0000000000000000000000000000000000000001');
             expect(await GaugeController.gaugeReward()).to.eq(
                 '0x0000000000000000000000000000000000000001',
             );
