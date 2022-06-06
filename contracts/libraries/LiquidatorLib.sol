@@ -44,13 +44,13 @@ library LiquidatorLib {
     function prepareSwap(
         uint256 _reserveA,
         uint256 _reserveB,
-        uint256 availableBalance
+        uint256 _availableBalance
     ) internal pure returns (uint256 reserveA, uint256 reserveB) {
 
         // swap back yield
-        uint256 wantAmount = CpmmLib.getAmountOut(availableBalance, _reserveA, _reserveB);
+        uint256 wantAmount = CpmmLib.getAmountOut(_availableBalance, _reserveA, _reserveB);
         reserveB = _reserveB.sub(wantAmount);
-        reserveA = _reserveA.add(availableBalance);
+        reserveA = _reserveA.add(_availableBalance);
     }
 
     function _finishSwap(
@@ -77,22 +77,22 @@ library LiquidatorLib {
     function swapExactAmountIn(
         uint256 _reserveA,
         uint256 _reserveB,
-        uint256 availableBalance,
-        uint256 amountIn,
+        uint256 _availableBalance,
+        uint256 _amountIn,
         uint32 _swapMultiplier,
         uint32 _liquidityFraction
     ) internal view returns (uint256 reserveA, uint256 reserveB, uint256 amountOut) {
-        require(availableBalance > 0, "Whoops! no funds available");
+        require(_availableBalance > 0, "Whoops! no funds available");
 
-        (reserveA, reserveB) = prepareSwap(_reserveA, _reserveB, availableBalance);
+        (reserveA, reserveB) = prepareSwap(_reserveA, _reserveB, _availableBalance);
 
         // do swap
-        amountOut = CpmmLib.getAmountOut(amountIn, reserveB, reserveA);
-        require(amountOut <= availableBalance, "Whoops! have exceeds available");
-        reserveB = reserveB.add(amountIn);
+        amountOut = CpmmLib.getAmountOut(_amountIn, reserveB, reserveA);
+        require(amountOut <= _availableBalance, "Whoops! have exceeds available");
+        reserveB = reserveB.add(_amountIn);
         reserveA = reserveA.sub(amountOut);
 
-        (reserveA, reserveB) = _finishSwap(reserveA, reserveB, availableBalance, amountOut, _swapMultiplier, _liquidityFraction);
+        (reserveA, reserveB) = _finishSwap(reserveA, reserveB, _availableBalance, amountOut, _swapMultiplier, _liquidityFraction);
     }
 
     function swapExactAmountOut(

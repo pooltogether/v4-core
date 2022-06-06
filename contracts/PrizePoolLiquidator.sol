@@ -34,21 +34,21 @@ contract PrizePoolLiquidator {
   IPrizePoolLiquidatorListener public listener;
 
   function setPrizePool(
-    IPrizePool pool,
-    address target,
-    IERC20 want,
+    IPrizePool _pool,
+    address _target,
+    IERC20 _want,
     uint32 _swapMultiplier,
     uint32 _liquidityFraction,
     uint192 _reserveA,
     uint192 _reserveB
   ) external returns (bool) {
-    poolLiquidatorConfigs[pool] = LiquidatorConfig({
-      target: target,
-      want: want,
+    poolLiquidatorConfigs[_pool] = LiquidatorConfig({
+      target: _target,
+      want: _want,
       swapMultiplier: _swapMultiplier,
       liquidityFraction: _liquidityFraction
     });
-    poolLiquidatorStates[pool] = LiquidatorState({
+    poolLiquidatorStates[_pool] = LiquidatorState({
       reserveA: _reserveA,
       reserveB: _reserveB
     });
@@ -73,19 +73,19 @@ contract PrizePoolLiquidator {
     return (reserveA*1e18) / reserveB;
   }
 
-  function computeExactAmountIn(IPrizePool _prizePool, uint256 amountOut) external returns (uint256) {
+  function computeExactAmountIn(IPrizePool _prizePool, uint256 _amountOut) external returns (uint256) {
     LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
     return LiquidatorLib.computeExactAmountIn(
-      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), amountOut, config.swapMultiplier, config.liquidityFraction
+      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), _amountOut, config.swapMultiplier, config.liquidityFraction
     );
   }
 
-  function computeExactAmountOut(IPrizePool _prizePool, uint256 amountIn) external returns (uint256) {
+  function computeExactAmountOut(IPrizePool _prizePool, uint256 _amountIn) external returns (uint256) {
     LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
     return LiquidatorLib.computeExactAmountOut(
-      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), amountIn, config.swapMultiplier, config.liquidityFraction
+      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), _amountIn, config.swapMultiplier, config.liquidityFraction
     );
   }
 
