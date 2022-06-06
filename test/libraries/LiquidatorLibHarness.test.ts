@@ -14,17 +14,9 @@ describe('LiquidatorLibHarness', () => {
         liquidatorLibHarness = await LiquidatorLibHarnessFactory.deploy();
     })
 
-    beforeEach(async () => {
-        const exchangeRate = toWei('2') // want:have
-        const maxSlippage = toWei('0.01') // 1 percent slippage
-        const arbTarget = toWei('100')
-
-        await liquidatorLibHarness.setState(
-            exchangeRate,
-            maxSlippage,
-            arbTarget
-        )
-    })
+    const exchangeRate = toWei('2') // want:have
+    const maxSlippage = toWei('0.01') // 1 percent slippage
+    const arbTarget = toWei('100')
 
     describe('computeExchangeRate()', () => {
         it('should have the current exchange rate when no available balance', async () => {

@@ -5,9 +5,8 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@prb/math/contracts/PRBMath.sol";
-import "@prb/math/contracts/PRBMathSD59x18Typed.sol";
 
+import "./libraries/ExtendedSafeCastLib.sol";
 import "./libraries/LiquidatorLib.sol";
 import "./interfaces/IPrizePool.sol";
 import "./interfaces/IPrizePoolLiquidatorListener.sol";
@@ -15,19 +14,22 @@ import "./interfaces/IPrizePoolLiquidatorListener.sol";
 contract PrizePoolLiquidator {
   using SafeMath for uint256;
   using SafeCast for uint256;
-  using PRBMathSD59x18Typed for PRBMath.SD59x18;
-  using LiquidatorLib for LiquidatorLib.State;
+  using ExtendedSafeCastLib for uint256;
 
-  uint256 time;
-
-  struct Target {
+  struct LiquidatorConfig {
     address target;
     IERC20 want;
+    uint32 swapMultiplier;
+    uint32 liquidityFraction;
   }
 
-  // mapping from prize pool to tokens.
-  mapping(IPrizePool => Target) poolTargets;
-  mapping(IPrizePool => LiquidatorLib.State) poolLiquidatorStates;
+  struct LiquidatorState {
+    uint256 reserveA;
+    uint256 reserveB;
+  }
+
+  mapping(IPrizePool => LiquidatorConfig) poolLiquidatorConfigs;
+  mapping(IPrizePool => LiquidatorState) poolLiquidatorStates;
 
   IPrizePoolLiquidatorListener public listener;
 
@@ -35,35 +37,22 @@ contract PrizePoolLiquidator {
     IPrizePool pool,
     address target,
     IERC20 want,
-    int256 exchangeRate,
-    int256 maxSlippage,
-    uint256 haveArbTarget
+    uint32 _swapMultiplier,
+    uint32 _liquidityFraction,
+    uint192 _reserveA,
+    uint192 _reserveB
   ) external returns (bool) {
-    return setPrizePoolAtTime(pool, target, want, exchangeRate, maxSlippage, haveArbTarget);
-  }
-
-  function setPrizePoolAtTime(
-    IPrizePool pool,
-    address target,
-    IERC20 want,
-    int256 exchangeRate,
-    int256 maxSlippage,
-    uint256 haveArbTarget
-  ) public returns (bool) {
-    poolTargets[pool] = Target({
-        target: target,
-        want: want
+    poolLiquidatorConfigs[pool] = LiquidatorConfig({
+      target: target,
+      want: want,
+      swapMultiplier: _swapMultiplier,
+      liquidityFraction: _liquidityFraction
     });
-    poolLiquidatorStates[pool] = LiquidatorLib.State({
-      exchangeRate: PRBMath.SD59x18(exchangeRate),
-      maxSlippage: PRBMath.SD59x18(maxSlippage),
-      haveArbTarget: haveArbTarget
+    poolLiquidatorStates[pool] = LiquidatorState({
+      reserveA: _reserveA,
+      reserveB: _reserveB
     });
     return true;
-  }
-
-  function setPrizePoolLiquidationState(IPrizePool _prizePool, int256 maxSlippage) external {
-    poolLiquidatorStates[_prizePool].maxSlippage = PRBMath.SD59x18(maxSlippage);
   }
 
   function availableBalanceOf(IPrizePool _prizePool) external returns (uint256) {
@@ -74,77 +63,76 @@ contract PrizePoolLiquidator {
     return _prizePool.captureAwardBalance();
   }
 
-  function setTime(uint256 _time) external {
-    time = _time;
-  }
-
-  function currentExchangeRate(IPrizePool _prizePool) external returns (int256) {
-    return poolLiquidatorStates[_prizePool].computeExchangeRate(_availableStreamHaveBalance(_prizePool)).toInt();
+  function currentExchangeRate(IPrizePool _prizePool) external returns (uint256) {
+    LiquidatorState memory state = poolLiquidatorStates[_prizePool];
+    (uint256 reserveA, uint256 reserveB) = LiquidatorLib.prepareSwap(
+      state.reserveA,
+      state.reserveB,
+      _availableStreamHaveBalance(_prizePool)
+    );
+    return (reserveA*1e18) / reserveB;
   }
 
   function computeExactAmountIn(IPrizePool _prizePool, uint256 amountOut) external returns (uint256) {
-    return poolLiquidatorStates[_prizePool].computeExactAmountIn(_availableStreamHaveBalance(_prizePool), amountOut);
+    LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
+    LiquidatorState memory state = poolLiquidatorStates[_prizePool];
+    return LiquidatorLib.computeExactAmountIn(
+      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), amountOut, config.swapMultiplier, config.liquidityFraction
+    );
   }
 
   function computeExactAmountOut(IPrizePool _prizePool, uint256 amountIn) external returns (uint256) {
-    return poolLiquidatorStates[_prizePool].computeExactAmountOut(_availableStreamHaveBalance(_prizePool), amountIn);
-  }
-
-  function swapExactAmountIn(IPrizePool _prizePool, uint256 amountIn, uint256 amountOutMin) external returns (uint256) {
-    return _swapExactAmountIn(_prizePool, amountIn, amountOutMin);
-  }
-
-  function _swapExactAmountIn(IPrizePool _prizePool, uint256 amountIn, uint256 amountOutMin) internal returns (uint256) {
-    uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
-    uint256 amountOut = poolLiquidatorStates[_prizePool].swapExactAmountIn(
-      availableBalance, amountIn
+    LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
+    LiquidatorState memory state = poolLiquidatorStates[_prizePool];
+    return LiquidatorLib.computeExactAmountOut(
+      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), amountIn, config.swapMultiplier, config.liquidityFraction
     );
+  }
 
+  function swapExactAmountIn(IPrizePool _prizePool, uint256 _amountIn, uint256 _amountOutMin) external returns (uint256) {
+    LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
+    LiquidatorState memory state = poolLiquidatorStates[_prizePool];
+    uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
+    (uint256 reserveA, uint256 reserveB, uint256 amountOut) = LiquidatorLib.swapExactAmountIn(
+      state.reserveA, state.reserveB,
+      availableBalance, _amountIn, config.swapMultiplier, config.liquidityFraction
+    );
+    state.reserveA = reserveA;
+    state.reserveB = reserveB;
     require(amountOut <= availableBalance, "Whoops! have exceeds available");
-    require(amountOut >= amountOutMin, "trade does not meet min");
-
-    _swap(_prizePool, msg.sender, amountOut, amountIn);
-
+    require(amountOut >= _amountOutMin, "trade does not meet min");
+    poolLiquidatorStates[_prizePool] = state;
+    _swap(_prizePool, config.want, config.target, msg.sender, amountOut, _amountIn);
     return amountOut;
   }
 
-  function swapExactAmountOut(IPrizePool _prizePool, uint256 amountOut, uint256 amountInMax) external returns (uint256) {
-    return _swapExactAmountOut(_prizePool, amountOut, amountInMax);
-  }
-
-  function _swapExactAmountOut(
-    IPrizePool _prizePool,
-    uint256 amountOut,
-    uint256 amountInMax
-  ) internal returns (uint256) {
+  function swapExactAmountOut(IPrizePool _prizePool, uint256 _amountOut, uint256 _amountInMax) external returns (uint256) {
+    LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
+    LiquidatorState memory state = poolLiquidatorStates[_prizePool];
     uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
-    uint256 amountIn = poolLiquidatorStates[_prizePool].swapExactAmountOut(
-      availableBalance, amountOut
+    (uint256 reserveA, uint256 reserveB, uint256 amountIn) = LiquidatorLib.swapExactAmountOut(
+      state.reserveA, state.reserveB,
+      availableBalance, _amountOut, config.swapMultiplier, config.liquidityFraction
     );
-
-    require(amountIn <= amountInMax, "trade does not meet min");
-    require(amountOut <= availableBalance, "Whoops! have exceeds available");
-
-    _swap(_prizePool, msg.sender, amountOut, amountIn);
-
+    state.reserveA = reserveA;
+    state.reserveB = reserveB;
+    require(amountIn <= _amountInMax, "trade does not meet min");
+    require(_amountOut <= availableBalance, "Whoops! have exceeds available");
+    poolLiquidatorStates[_prizePool] = state;
+    _swap(_prizePool, config.want, config.target, msg.sender, _amountOut, amountIn);
     return amountIn;
   }
 
-  function _swap(IPrizePool _prizePool, address _account, uint256 _amountOut, uint256 _amountIn) internal {
-    Target storage target = poolTargets[_prizePool];
-    IERC20 want = target.want;
+  function _swap(IPrizePool _prizePool, IERC20 _want, address _target, address _account, uint256 _amountOut, uint256 _amountIn) internal {
     _prizePool.award(_account, _amountOut);
-    want.transferFrom(_account, target.target, _amountIn);
+    _want.transferFrom(_account, _target, _amountIn);
     IPrizePoolLiquidatorListener _listener = listener;
     if (address(_listener) != address(0)) {
-      _listener.afterSwap(_prizePool, _prizePool.getTicket(), _amountOut, want, _amountIn);
+      _listener.afterSwap(_prizePool, _prizePool.getTicket(), _amountOut, _want, _amountIn);
     }
   }
 
-  function getLiquidationState(IPrizePool _prizePool) external view returns (
-    int exchangeRate
-  ) {
-    LiquidatorLib.State memory state = poolLiquidatorStates[_prizePool];
-    exchangeRate = state.exchangeRate.value;
+  function getLiquidationState(IPrizePool _prizePool) external view returns (LiquidatorState memory state) {
+    return poolLiquidatorStates[_prizePool];
   }
 }
