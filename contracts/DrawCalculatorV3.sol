@@ -27,14 +27,14 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
 
     /* ============ Variables ============ */
 
-    /// @notice GaugeController address
-    IGaugeController public gaugeController;
-
     /// @notice DrawBuffer address
-    IDrawBuffer public immutable drawBuffer;
+    IDrawBuffer internal immutable drawBuffer;
+
+    /// @notice GaugeController address
+    IGaugeController internal immutable gaugeController;
 
     /// @notice PrizeConfigHistory address
-    IPrizeConfigHistory public immutable prizeConfigHistory;
+    IPrizeConfigHistory internal immutable prizeConfigHistory;
 
     /// @notice The tiers array length
     uint8 public constant TIERS_LENGTH = 16;
@@ -87,20 +87,22 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
         ITicket _ticket,
         address _user,
         uint32[] calldata _drawIds,
-        bytes calldata _pickIndicesForDraws
-    ) external view override returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
-        uint64[][] memory _pickIndices = abi.decode(_pickIndicesForDraws, (uint64 [][]));
-        require(_pickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices");
+        uint64 [][] calldata _drawPickIndices
+    ) external view override returns (
+        uint256[] memory prizesAwardable,
+        bytes memory prizeCounts
+    ) {
+        require(_drawPickIndices.length == _drawIds.length, "DrawCalc/invalid-pick-indices");
 
         // User address is hashed once.
         bytes32 _userRandomNumber = keccak256(abi.encodePacked(_user));
 
-        return _calculatePrizesAwardable(
+        (prizesAwardable, prizeCounts) = _calculatePrizesAwardable(
             _ticket,
             _user,
             _userRandomNumber,
             _drawIds,
-            _pickIndices
+            _drawPickIndices
         );
     }
 
@@ -181,23 +183,27 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
      * @param _user Address of the user for which to calculate awardable prizes for
      * @param _userRandomNumber Random number of the user to consider over draws
      * @param _drawIds Array of DrawIds for which to calculate awardable prizes for
-     * @param _pickIndicesForDraws Pick indices for each Draw
+     * @param _drawPickIndices Pick indices for each Draw
      */
     function _calculatePrizesAwardable(
         ITicket _ticket,
         address _user,
         bytes32 _userRandomNumber,
         uint32[] memory _drawIds,
-        uint64[][] memory _pickIndicesForDraws
-    ) internal view returns (uint256[] memory prizesAwardable, bytes memory prizeCounts) {
+        uint64[][] memory _drawPickIndices
+    ) internal view returns (
+        uint256[] memory prizesAwardable,
+        bytes memory prizeCounts
+    ) {
         // READ list of IDrawBeacon.Draw using the drawIds from drawBuffer
         IDrawBeacon.Draw[] memory _draws = drawBuffer.getDraws(_drawIds);
+        uint256 _drawsLength = _draws.length;
 
         uint256[] memory _prizesAwardable = new uint256[](_drawIds.length);
         uint256[][] memory _prizeCounts = new uint256[][](_drawIds.length);
 
         // Calculate prizes awardable for each Draw passed
-        for (uint32 _drawIndex = 0; _drawIndex < _draws.length; _drawIndex++) {
+        for (uint32 _drawIndex = 0; _drawIndex < _drawsLength; _drawIndex++) {
             IDrawBeacon.Draw memory _draw = _draws[_drawIndex];
             IPrizeConfigHistory.PrizeConfig memory _prizeConfig = prizeConfigHistory.getPrizeConfig(_draw.drawId);
 
@@ -217,7 +223,7 @@ contract DrawCalculatorV3 is IDrawCalculatorV3, Manageable {
                 _draw.winningRandomNumber,
                 _totalUserPicks,
                 _userRandomNumber,
-                _pickIndicesForDraws[_drawIndex],
+                _drawPickIndices[_drawIndex],
                 _prizeConfig
             );
         }
