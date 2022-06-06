@@ -5,165 +5,114 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@prb/math/contracts/PRBMath.sol";
-import "@prb/math/contracts/PRBMathSD59x18Typed.sol";
 
-import "./VirtualCpmmLib.sol";
+import "./ExtendedSafeCastLib.sol";
+import "./CpmmLib.sol";
 
 library LiquidatorLib {
     using SafeMath for uint256;
     using SafeCast for uint256;
-    using PRBMathSD59x18Typed for PRBMath.SD59x18;
+    using ExtendedSafeCastLib for uint256;
 
-    struct State {
-        PRBMath.SD59x18 exchangeRate;
-        uint256 lastSaleTime;
-        // positive price range change per second.
-        PRBMath.SD59x18 deltaRatePerSecond;
-        // Price impact for purchase of accrued funds
-        // low slippage => higher frequency arbs, but it tracks the market rate slower (slower to change)
-        PRBMath.SD59x18 maxSlippage;
-    }
-
-    function _increaseExchangeRateByDeltaTime(
-        PRBMath.SD59x18 memory exchangeRate,
-        PRBMath.SD59x18 memory deltaRatePerSecond,
-        uint256 lastSaleTime,
-        uint256 currentTime
-    ) internal pure returns (PRBMath.SD59x18 memory) {
-        // over time, buying power of POOL goes up.
-        PRBMath.SD59x18 memory dt = PRBMathSD59x18Typed.fromInt(
-            (currentTime - lastSaleTime).toInt256()
-        );
-        return exchangeRate.add(exchangeRate.mul(dt.mul(deltaRatePerSecond)));
-    }
-
-    function computeExchangeRate(State storage _liquidationState, uint256 _currentTime)
-        internal
-        view
-        returns (PRBMath.SD59x18 memory)
-    {
-        return
-            _increaseExchangeRateByDeltaTime(
-                _liquidationState.exchangeRate,
-                _liquidationState.deltaRatePerSecond,
-                _liquidationState.lastSaleTime,
-                _currentTime
-            );
-    }
-
-    function computeExactAmountInAtTime(
-        State storage _liquidationState,
-        uint256 availableBalance,
-        uint256 amountOut,
-        uint256 currentTime
+    function computeExactAmountIn(
+        uint256 _reserveA,
+        uint256 _reserveB,
+        uint256 _availableBalance,
+        uint256 _amountOut,
+        uint32 _swapMultiplier,
+        uint32 _liquidityFraction
     ) internal pure returns (uint256) {
-        if (availableBalance == 0) {
-            return 0;
-        }
-        VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(
-            _liquidationState,
-            availableBalance,
-            currentTime
-        );
-        return VirtualCpmmLib.getAmountIn(amountOut, cpmm.want, cpmm.have);
+        require(_amountOut <= _availableBalance, "insuff balance");
+        (uint256 reserveA, uint256 reserveB) = prepareSwap(_reserveA, _reserveB, _availableBalance);
+        return CpmmLib.getAmountIn(_amountOut, reserveA, reserveB);
     }
 
-    function computeExactAmountOutAtTime(
-        State storage _liquidationState,
+    function computeExactAmountOut(
+        uint256 _reserveA,
+        uint256 _reserveB,
         uint256 availableBalance,
         uint256 amountIn,
-        uint256 currentTime
+        uint32 _swapMultiplier,
+        uint32 _liquidityFraction
     ) internal pure returns (uint256) {
-        if (availableBalance == 0) {
-            return 0;
-        }
-        VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(
-            _liquidationState,
-            availableBalance,
-            currentTime
-        );
-        return VirtualCpmmLib.getAmountOut(amountIn, cpmm.want, cpmm.have);
-    }
-
-    function _computeCpmm(
-        State storage _liquidationState,
-        uint256 availableBalance,
-        uint256 currentTime
-    ) internal pure returns (VirtualCpmmLib.Cpmm memory) {
-        State memory liquidationState = _liquidationState;
-        PRBMath.SD59x18 memory newExchangeRate = _increaseExchangeRateByDeltaTime(
-            liquidationState.exchangeRate,
-            liquidationState.deltaRatePerSecond,
-            liquidationState.lastSaleTime,
-            currentTime
-        );
-        return
-            VirtualCpmmLib.newCpmm(
-                liquidationState.maxSlippage,
-                newExchangeRate,
-                PRBMathSD59x18Typed.fromInt(availableBalance.toInt256())
-            );
-    }
-
-    function swapExactAmountInAtTime(
-        State storage liquidationState,
-        uint256 availableBalance,
-        uint256 amountIn,
-        uint256 currentTime
-    ) internal returns (uint256) {
-        require(availableBalance > 0, "Whoops! no funds available");
-        VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(
-            liquidationState,
-            availableBalance,
-            currentTime
-        );
-
-        uint256 amountOut = VirtualCpmmLib.getAmountOut(amountIn, cpmm.want, cpmm.have);
-        cpmm.want += amountIn;
-        cpmm.have -= amountOut;
-
-        require(amountOut <= availableBalance, "Whoops! have exceeds available");
-
-        liquidationState.lastSaleTime = currentTime;
-        liquidationState.exchangeRate = _cpmmToExchangeRate(cpmm);
-
+        (uint256 reserveA, uint256 reserveB) = prepareSwap(_reserveA, _reserveB, availableBalance);
+        uint256 amountOut = CpmmLib.getAmountOut(amountIn, reserveA, reserveB);
+        require(amountOut <= availableBalance, "insuff balance");
         return amountOut;
     }
 
-    function swapExactAmountOutAtTime(
-        State storage liquidationState,
-        uint256 availableBalance,
-        uint256 amountOut,
-        uint256 currentTime
-    ) internal returns (uint256) {
-        require(availableBalance > 0, "Whoops! no funds available");
-        VirtualCpmmLib.Cpmm memory cpmm = _computeCpmm(
-            liquidationState,
-            availableBalance,
-            currentTime
-        );
+    function prepareSwap(
+        uint256 _reserveA,
+        uint256 _reserveB,
+        uint256 _availableBalance
+    ) internal pure returns (uint256 reserveA, uint256 reserveB) {
 
-        uint256 amountIn = VirtualCpmmLib.getAmountIn(amountOut, cpmm.want, cpmm.have);
-        cpmm.want += amountIn;
-        cpmm.have -= amountOut;
-
-        require(amountOut <= availableBalance, "Whoops! have exceeds available");
-
-        liquidationState.lastSaleTime = currentTime;
-        liquidationState.exchangeRate = _cpmmToExchangeRate(cpmm);
-
-        return amountIn;
+        // swap back yield
+        uint256 wantAmount = CpmmLib.getAmountOut(_availableBalance, _reserveA, _reserveB);
+        reserveB = _reserveB.sub(wantAmount);
+        reserveA = _reserveA.add(_availableBalance);
     }
 
-    function _cpmmToExchangeRate(VirtualCpmmLib.Cpmm memory cpmm)
-        internal
-        pure
-        returns (PRBMath.SD59x18 memory)
-    {
-        return
-            PRBMathSD59x18Typed.fromInt(int256(cpmm.have)).div(
-                PRBMathSD59x18Typed.fromInt(int256(cpmm.want))
-            );
+    function _finishSwap(
+        uint256 _reserveA,
+        uint256 _reserveB,
+        uint256 _availableBalance,
+        uint256 _reserveBOut,
+        uint32 _swapMultiplier,
+        uint32 _liquidityFraction
+    ) internal view returns (uint256 reserveA, uint256 reserveB) {
+
+        // apply the additional swap
+        uint256 extraReserveBOut = (_reserveBOut*_swapMultiplier) / 1e9;
+        uint256 extraReserveAIn = CpmmLib.getAmountIn(extraReserveBOut, _reserveA, _reserveB);
+        reserveA = _reserveA.add(extraReserveAIn);
+        reserveB = _reserveB.sub(extraReserveBOut);
+
+        // now, we want to ensure that the accrued yield is always a small fraction of virtual LP position.
+        uint256 multiplier = _availableBalance / (reserveB*_liquidityFraction);
+        reserveA = (reserveA*multiplier) / 1e9;
+        reserveB = (reserveB*multiplier) / 1e9;
+    }
+
+    function swapExactAmountIn(
+        uint256 _reserveA,
+        uint256 _reserveB,
+        uint256 _availableBalance,
+        uint256 _amountIn,
+        uint32 _swapMultiplier,
+        uint32 _liquidityFraction
+    ) internal view returns (uint256 reserveA, uint256 reserveB, uint256 amountOut) {
+        require(_availableBalance > 0, "Whoops! no funds available");
+
+        (reserveA, reserveB) = prepareSwap(_reserveA, _reserveB, _availableBalance);
+
+        // do swap
+        amountOut = CpmmLib.getAmountOut(_amountIn, reserveB, reserveA);
+        require(amountOut <= _availableBalance, "Whoops! have exceeds available");
+        reserveB = reserveB.add(_amountIn);
+        reserveA = reserveA.sub(amountOut);
+
+        (reserveA, reserveB) = _finishSwap(reserveA, reserveB, _availableBalance, amountOut, _swapMultiplier, _liquidityFraction);
+    }
+
+    function swapExactAmountOut(
+        uint256 _reserveA,
+        uint256 _reserveB,
+        uint256 _availableBalance,
+        uint256 _amountOut,
+        uint32 _swapMultiplier,
+        uint32 _liquidityFraction
+    ) internal view returns (uint256 reserveA, uint256 reserveB, uint256 amountIn) {
+        require(_availableBalance > 0, "Whoops! no funds available");
+        require(_amountOut <= _availableBalance, "Whoops! have exceeds available");
+
+        (reserveA, reserveB) = prepareSwap(_reserveA, _reserveB, _availableBalance);
+
+        // do swap
+        amountIn = CpmmLib.getAmountIn(_amountOut, reserveA, reserveB);
+        reserveB = reserveB.add(amountIn);
+        reserveA = reserveA.sub(_amountOut);
+
+        (reserveA, reserveB) = _finishSwap(reserveA, reserveB, _availableBalance, _amountOut, _swapMultiplier, _liquidityFraction);
     }
 }
