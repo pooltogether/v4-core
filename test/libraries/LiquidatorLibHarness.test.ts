@@ -5,7 +5,7 @@ import { ethers } from 'hardhat';
 const { utils } = ethers;
 const { parseEther: toWei } = utils;
 
-describe('LiquidatorLibHarness', () => {
+describe.skip('LiquidatorLibHarness', () => {
     let liquidatorLibHarness: Contract;
     let LiquidatorLibHarnessFactory: ContractFactory;
 
