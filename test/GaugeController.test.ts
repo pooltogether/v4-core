@@ -36,7 +36,6 @@ describe('GaugeController', () => {
 
         GaugeController = await GaugeControllerFactory.deploy(
             Token.address,
-            '0x0000000000000000000000000000000000000000',
             owner.address
         );
 
@@ -281,7 +280,7 @@ describe('GaugeController', () => {
                 '0x0000000000000000000000000000000000000001',
             );
         });
-        
+
         it('should SUCCEED to SET a new GaugeReward address from MANAGER role', async () => {
             await GaugeController.addGauge(gaugeAddress);
             const gauge = GaugeController.connect(manager);
