@@ -77,7 +77,7 @@ contract PrizePoolLiquidator {
     LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
     return LiquidatorLib.computeExactAmountIn(
-      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), _amountOut, config.swapMultiplier, config.liquidityFraction
+      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), _amountOut
     );
   }
 
@@ -85,7 +85,7 @@ contract PrizePoolLiquidator {
     LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
     return LiquidatorLib.computeExactAmountOut(
-      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), _amountIn, config.swapMultiplier, config.liquidityFraction
+      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), _amountIn
     );
   }
 
