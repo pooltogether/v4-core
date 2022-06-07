@@ -5,13 +5,14 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@pooltogether/owner-manager-contracts/contracts/Manageable.sol";
 
 import "./libraries/ExtendedSafeCastLib.sol";
 import "./libraries/LiquidatorLib.sol";
 import "./interfaces/IPrizePool.sol";
 import "./interfaces/IPrizePoolLiquidatorListener.sol";
 
-contract PrizePoolLiquidator {
+contract PrizePoolLiquidator is Manageable {
   using SafeMath for uint256;
   using SafeCast for uint256;
   using ExtendedSafeCastLib for uint256;
@@ -28,10 +29,36 @@ contract PrizePoolLiquidator {
     uint256 reserveB;
   }
 
-  mapping(IPrizePool => LiquidatorConfig) poolLiquidatorConfigs;
-  mapping(IPrizePool => LiquidatorState) poolLiquidatorStates;
+  event Swapped(
+    IPrizePool indexed prizePool,
+    IERC20 want,
+    address target,
+    address indexed account,
+    uint256 amountIn,
+    uint256 amountOut
+  );
 
-  IPrizePoolLiquidatorListener public listener;
+  event ListenerSet(
+    IPrizePoolLiquidatorListener indexed listener
+  );
+
+  mapping(IPrizePool => LiquidatorConfig) internal poolLiquidatorConfigs;
+  mapping(IPrizePool => LiquidatorState) internal poolLiquidatorStates;
+
+  IPrizePoolLiquidatorListener internal listener;
+
+  constructor(address _owner) Ownable(_owner) {
+  }
+
+  function setListener(IPrizePoolLiquidatorListener _listener) external onlyManagerOrOwner {
+    listener = _listener;
+
+    emit ListenerSet(_listener);
+  }
+
+  function getListener() external view returns (IPrizePoolLiquidatorListener) {
+    return listener;
+  }
 
   function setPrizePool(
     IPrizePool _pool,
@@ -63,14 +90,17 @@ contract PrizePoolLiquidator {
     return _prizePool.captureAwardBalance();
   }
 
-  function currentExchangeRate(IPrizePool _prizePool) external returns (uint256) {
+  function nextLiquidationState(IPrizePool _prizePool) external returns (LiquidatorState memory state) {
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
     (uint256 reserveA, uint256 reserveB) = LiquidatorLib.prepareSwap(
       state.reserveA,
       state.reserveB,
       _availableStreamHaveBalance(_prizePool)
     );
-    return (reserveA*1e18) / reserveB;
+    return LiquidatorState({
+      reserveA: reserveA,
+      reserveB: reserveB
+    });
   }
 
   function computeExactAmountIn(IPrizePool _prizePool, uint256 _amountOut) external returns (uint256) {
@@ -99,10 +129,12 @@ contract PrizePoolLiquidator {
     );
     state.reserveA = reserveA;
     state.reserveB = reserveB;
-    require(amountOut <= availableBalance, "Whoops! have exceeds available");
     require(amountOut >= _amountOutMin, "trade does not meet min");
     poolLiquidatorStates[_prizePool] = state;
     _swap(_prizePool, config.want, config.target, msg.sender, amountOut, _amountIn);
+
+    emit Swapped(_prizePool, config.want, config.target, msg.sender, _amountIn, amountOut);
+
     return amountOut;
   }
 
@@ -116,10 +148,12 @@ contract PrizePoolLiquidator {
     );
     state.reserveA = reserveA;
     state.reserveB = reserveB;
-    require(amountIn <= _amountInMax, "trade does not meet min");
-    require(_amountOut <= availableBalance, "Whoops! have exceeds available");
+    require(amountIn <= _amountInMax, "trade does not meet max");
     poolLiquidatorStates[_prizePool] = state;
     _swap(_prizePool, config.want, config.target, msg.sender, _amountOut, amountIn);
+
+    emit Swapped(_prizePool, config.want, config.target, msg.sender, amountIn, _amountOut);
+
     return amountIn;
   }
 
@@ -130,6 +164,10 @@ contract PrizePoolLiquidator {
     if (address(_listener) != address(0)) {
       _listener.afterSwap(_prizePool, _prizePool.getTicket(), _amountOut, _want, _amountIn);
     }
+  }
+
+  function getLiquidationConfig(IPrizePool _prizePool) external view returns (LiquidatorConfig memory state) {
+    return poolLiquidatorConfigs[_prizePool];
   }
 
   function getLiquidationState(IPrizePool _prizePool) external view returns (LiquidatorState memory state) {

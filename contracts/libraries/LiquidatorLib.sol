@@ -11,6 +11,11 @@ import "./CpmmLib.sol";
 
 import "hardhat/console.sol";
 
+/**
+ * @title PoolTogether Liquidator Library
+ * @author PoolTogether Inc. Team
+ * @notice 
+ */
 library LiquidatorLib {
     using SafeMath for uint256;
     using SafeCast for uint256;
