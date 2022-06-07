@@ -29,9 +29,11 @@ function PoolEnv() {
   this.token = async function (wallet) {
     const yieldSource = await this.yieldSource();
     const tokenAddress = await yieldSource.depositToken();
-    return (
-        await ethers.getContractAt('contracts/test/ERC20Mintable.sol:ERC20Mintable', tokenAddress)
-    ).connect(wallet);
+    const token = await ethers.getContractAt('contracts/test/ERC20Mintable.sol:ERC20Mintable', tokenAddress);
+
+    await token.grantRole(token.MINTER_ROLE(), yieldSource.address);
+
+    return token.connect(wallet);
   };
 
   this.ticket = async (wallet) => (await ethers.getContract('Ticket')).connect(wallet);
@@ -66,7 +68,7 @@ function PoolEnv() {
     let balance = await token.balanceOf(wallet.address);
 
     if (balance.lt(amount)) {
-      await token.mint(wallet.address, amount, this.overrides);
+      await token.connect(owner).mint(wallet.address, amount, this.overrides);
     }
 
     await token.approve(prizePool.address, amount, this.overrides);
@@ -80,7 +82,6 @@ function PoolEnv() {
 
   this.buyTicketsForPrizeDistributor = async function ({ user, tickets, prizeDistributor }) {
     debug(`Buying tickets...`);
-    const owner = await this.wallet(0);
     let wallet = await this.wallet(user);
 
     debug('wallet is ', wallet.address);
@@ -153,7 +154,16 @@ function PoolEnv() {
 
   this.poolAccrues = async function ({ tickets }) {
     debug(`poolAccrues(${tickets})...`);
+    const owner = await this.wallet(0);
     const yieldSource = await this.yieldSource();
+    const tokenAddress = await yieldSource.depositToken();
+    const token = await ethers.getContractAt(
+        "contracts/test/ERC20Mintable.sol:ERC20Mintable",
+        tokenAddress
+    );
+
+    await token.connect(owner).grantRole(token.MINTER_ROLE(), yieldSource.address);
+
     await yieldSource.yield(toWei(tickets));
   };
 
@@ -191,7 +201,7 @@ function PoolEnv() {
     const prizeDistributions = {
       bitRangeSize,
       matchCardinality,
-      expiryDuration, 
+      expiryDuration,
       startTimestampOffset,
       endTimestampOffset,
       numberOfPicks,
