@@ -1,6 +1,6 @@
 {
   "name": "@pooltogether/v4-core",
-  "version": "1.4.0-beta.2",
+  "version": "1.4.0-beta.4",
   "description": "PoolTogether V4 Core Smart Contracts",
   "main": "index.js",
   "license": "GPL-3.0",
@@ -28,12 +28,12 @@
     "prepack": "yarn compile"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.3.1",
+    "@openzeppelin/contracts": "4.6.0",
     "@pooltogether/fixed-point": "1.0.0",
     "@pooltogether/owner-manager-contracts": "1.1.0",
     "@pooltogether/pooltogether-rng-contracts": "1.4.0",
     "@pooltogether/v4-periphery": "1.2.3",
-    "@pooltogether/yield-source-interface": "1.3.0",
+    "@pooltogether/yield-source-interface": "1.5.0-beta.1",
     "deploy-eip-1820": "1.0.0"
   },
   "devDependencies": {

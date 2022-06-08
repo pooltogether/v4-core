@@ -9,6 +9,7 @@
 /.pnp.*
 
 .envrc
+.vscode
 
 abis
 artifacts
