@@ -79,14 +79,17 @@ contract PrizePoolLiquidator is Manageable {
       reserveA: _reserveA,
       reserveB: _reserveB
     });
+
+    // NOTE: need event here
+
     return true;
   }
 
   function availableBalanceOf(IPrizePool _prizePool) external returns (uint256) {
-    return _availableStreamHaveBalance(_prizePool);
+    return _availableReserveB(_prizePool);
   }
 
-  function _availableStreamHaveBalance(IPrizePool _prizePool) internal returns (uint256) {
+  function _availableReserveB(IPrizePool _prizePool) internal returns (uint256) {
     return _prizePool.captureAwardBalance();
   }
 
@@ -95,7 +98,7 @@ contract PrizePoolLiquidator is Manageable {
     (uint256 reserveA, uint256 reserveB) = LiquidatorLib.prepareSwap(
       state.reserveA,
       state.reserveB,
-      _availableStreamHaveBalance(_prizePool)
+      _availableReserveB(_prizePool)
     );
     return LiquidatorState({
       reserveA: reserveA,
@@ -107,7 +110,7 @@ contract PrizePoolLiquidator is Manageable {
     LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
     return LiquidatorLib.computeExactAmountIn(
-      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), _amountOut
+      state.reserveA, state.reserveB, _availableReserveB(_prizePool), _amountOut
     );
   }
 
@@ -115,14 +118,14 @@ contract PrizePoolLiquidator is Manageable {
     LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
     return LiquidatorLib.computeExactAmountOut(
-      state.reserveA, state.reserveB, _availableStreamHaveBalance(_prizePool), _amountIn
+      state.reserveA, state.reserveB, _availableReserveB(_prizePool), _amountIn
     );
   }
 
   function swapExactAmountIn(IPrizePool _prizePool, uint256 _amountIn, uint256 _amountOutMin) external returns (uint256) {
     LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
-    uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
+    uint256 availableBalance = _availableReserveB(_prizePool);
     (uint256 reserveA, uint256 reserveB, uint256 amountOut) = LiquidatorLib.swapExactAmountIn(
       state.reserveA, state.reserveB,
       availableBalance, _amountIn, config.swapMultiplier, config.liquidityFraction
@@ -141,7 +144,7 @@ contract PrizePoolLiquidator is Manageable {
   function swapExactAmountOut(IPrizePool _prizePool, uint256 _amountOut, uint256 _amountInMax) external returns (uint256) {
     LiquidatorConfig memory config = poolLiquidatorConfigs[_prizePool];
     LiquidatorState memory state = poolLiquidatorStates[_prizePool];
-    uint256 availableBalance = _availableStreamHaveBalance(_prizePool);
+    uint256 availableBalance = _availableReserveB(_prizePool);
     (uint256 reserveA, uint256 reserveB, uint256 amountIn) = LiquidatorLib.swapExactAmountOut(
       state.reserveA, state.reserveB,
       availableBalance, _amountOut, config.swapMultiplier, config.liquidityFraction
