@@ -1,6 +1,6 @@
 {
   "name": "@pooltogether/v4-core",
-  "version": "1.4.0-beta.3",
+  "version": "1.4.0-beta.4",
   "description": "PoolTogether V4 Core Smart Contracts",
   "main": "index.js",
   "license": "GPL-3.0",
