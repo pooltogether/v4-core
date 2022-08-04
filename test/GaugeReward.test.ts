@@ -186,6 +186,18 @@ describe('GaugeReward', () => {
                 );
         });
 
+        it('exchangeRate should be 0 if gaugeBalance is equal to 0', async () => {
+            expect(await afterSwap(poolToken, swapAmount, Zero))
+                .to.emit(gaugeReward, 'RewardsAdded')
+                .withArgs(
+                    gaugeAddress,
+                    poolToken.address,
+                    swapAmount,
+                    gaugeRewardAmount(swapAmount),
+                    Zero,
+                );
+        });
+
         it('should fail if not liquidator', async () => {
             await expect(afterSwap(poolToken, swapAmount, gaugeBalance, owner)).to.be.revertedWith(
                 'GReward/only-liquidator',
@@ -594,6 +606,28 @@ describe('GaugeReward', () => {
                 await gaugeReward.getRewards(gaugeAddress, lastPoolRewardToken, owner.address),
             ).to.equal(userRewardAmount(swapAmount, gaugeBalance, userStakeBalance));
         });
+
+        it('should return 0 if gaugeBalance is equal to 0', async () => {
+            await gaugeController.call(
+                gaugeReward,
+                'afterIncreaseGauge',
+                gaugeAddress,
+                owner.address,
+                userStakeBalance,
+            );
+
+            await afterSwap(usdcToken, swapAmount, Zero);
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(userStakeBalance);
+
+            const currentRewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            expect(
+                await gaugeReward.getRewards(gaugeAddress, currentRewardToken, owner.address),
+            ).to.equal(Zero);
+        });
     });
 
     describe('claim()', () => {
@@ -705,6 +739,32 @@ describe('GaugeReward', () => {
                     exchangeRate(swapAmount, gaugeBalance),
                 );
         });
+
+        it('should not claim any rewards if gaugeBalance is equal to 0', async () => {
+            await afterSwap(poolToken, swapAmount, Zero);
+
+            await gaugeController.call(
+                gaugeReward,
+                'afterIncreaseGauge',
+                gaugeAddress,
+                owner.address,
+                userStakeBalance,
+            );
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(userStakeBalance);
+
+            expect(await gaugeReward.claimAll(gaugeAddress, owner.address))
+                .to.not.emit(gaugeReward, 'RewardsClaimed')
+                .withArgs(
+                    gaugeAddress,
+                    poolToken.address,
+                    owner.address,
+                    Zero,
+                    Zero,
+                );
+        });
     });
 
     describe('redeem()', () => {
@@ -745,6 +805,30 @@ describe('GaugeReward', () => {
             expect(await gaugeReward.redeem(owner.address, rewardToken.token))
                 .to.emit(gaugeReward, 'RewardsRedeemed')
                 .withArgs(owner.address, owner.address, rewardToken.token, gaugeRewardAmount);
+        });
+
+        it('should not redeem any rewards if gauge balance is equal to 0', async () => {
+            await gaugeController.call(
+                gaugeReward,
+                'afterIncreaseGauge',
+                gaugeAddress,
+                owner.address,
+                userStakeBalance,
+            );
+
+            await afterSwap(poolToken, swapAmount, Zero);
+
+            await gaugeController.mock.getUserGaugeBalance
+                .withArgs(gaugeAddress, owner.address)
+                .returns(userStakeBalance);
+
+            const rewardToken = await gaugeReward.currentRewardToken(gaugeAddress);
+
+            await gaugeReward.claim(gaugeAddress, rewardToken, owner.address);
+
+            expect(await gaugeReward.redeem(owner.address, rewardToken.token))
+                .to.emit(gaugeReward, 'RewardsRedeemed')
+                .withArgs(owner.address, owner.address, rewardToken.token, Zero);
         });
     });
 });

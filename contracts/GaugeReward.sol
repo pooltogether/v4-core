@@ -229,19 +229,23 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
         if (_token != _rewardToken.token) {
             uint256 _currentTimestamp = block.timestamp;
 
-            gaugeRewardTokens[_gauge].push(
-                RewardToken({ token: _token, timestamp: uint64(_currentTimestamp) })
-            );
+            RewardToken memory _newRewardToken = RewardToken({
+                token: _token,
+                timestamp: uint64(_currentTimestamp)
+            });
+
+            gaugeRewardTokens[_gauge].push(_newRewardToken);
 
             emit RewardTokenPushed(_gauge, _token, _currentTimestamp);
 
-            _rewardToken = _currentRewardToken(_gauge);
+            _rewardToken = _newRewardToken;
         }
 
         uint256 _gaugeRewards = (_tokenAmount * stakerCut) / 1e9;
+        uint256 _gaugeBalance = gaugeController.getGaugeBalance(_gauge);
 
         // Exchange rate = amount / current staked amount on gauge
-        uint256 _exchangeRate = (_gaugeRewards * 1e18) / gaugeController.getGaugeBalance(_gauge);
+        uint256 _exchangeRate = _gaugeBalance > 0 ? (_gaugeRewards * 1e18) / _gaugeBalance : 0;
 
         gaugeRewardTokenExchangeRates[_gauge][_rewardToken.token][
             _rewardToken.timestamp
