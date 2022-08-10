@@ -48,18 +48,6 @@ contract GaugeController is IGaugeController, Manageable {
     */
     mapping(address => mapping(address => uint256)) public userGaugeBalance;
 
-    /**
-      * @notice Tracks user rewards for staking.
-      * @dev    The rewards is updated in
-    -----------------------------
-    | Address     | Rewards     |
-    | ----------- | ----------- |
-    | 0x111...111 | 0x100000    |
-    | 0x222...222 | 0x500000    |
-    -----------------------------
-    */
-    mapping(address => uint256) public rewards;
-
     /// @notice User balances staked in existing Gauge.
     mapping(address => TwabLib.Account) internal gaugeTwabs;
 
