@@ -461,9 +461,9 @@ contract GaugeReward is IGaugeReward, IPrizePoolLiquidatorListener, Multicall {
 
         if (_rewards > 0) {
             userRewardTokenBalances[_user][_rewardToken.token] += _rewards;
-            emit RewardsClaimed(_gauge, _rewardToken.token, _user, _rewards, _exchangeRate);
         }
 
+        emit RewardsClaimed(_gauge, _rewardToken.token, _user, _rewards, _exchangeRate);
         return _rewards;
     }
 

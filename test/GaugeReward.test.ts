@@ -730,7 +730,7 @@ describe('GaugeReward', () => {
                 .returns(userStakeBalance);
 
             expect(await gaugeReward.claimAll(gaugeAddress, owner.address))
-                .to.not.emit(gaugeReward, 'RewardsClaimed')
+                .to.emit(gaugeReward, 'RewardsClaimed')
                 .withArgs(
                     gaugeAddress,
                     poolToken.address,
@@ -756,7 +756,7 @@ describe('GaugeReward', () => {
                 .returns(userStakeBalance);
 
             expect(await gaugeReward.claimAll(gaugeAddress, owner.address))
-                .to.not.emit(gaugeReward, 'RewardsClaimed')
+                .to.emit(gaugeReward, 'RewardsClaimed')
                 .withArgs(
                     gaugeAddress,
                     poolToken.address,
