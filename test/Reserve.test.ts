@@ -245,7 +245,7 @@ describe('Reserve', () => {
             await reserve.setObservationsAt([{ timestamp: 5, amount: 70 }]);
 
             await expect(reserve.getReserveAccumulatedBetween(3, 2)).to.be.revertedWith(
-                'Reserve/start-less-then-end',
+                'Reserve/start-less-than-end',
             );
         });
 

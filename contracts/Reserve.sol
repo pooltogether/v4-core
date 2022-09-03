@@ -75,7 +75,7 @@ contract Reserve is IReserve, Manageable {
         override
         returns (uint224)
     {
-        require(_startTimestamp < _endTimestamp, "Reserve/start-less-then-end");
+        require(_startTimestamp < _endTimestamp, "Reserve/start-less-than-end");
         uint24 _cardinality = cardinality;
         uint24 _nextIndex = nextIndex;
 
