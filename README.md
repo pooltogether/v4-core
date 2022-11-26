@@ -27,6 +27,7 @@ https://v4.docs.pooltogether.com
 - [Ethereum](https://v4.docs.pooltogether.com/protocol/deployments/mainnet#mainnet)
 - [Polygon](https://v4.docs.pooltogether.com/protocol/deployments/mainnet#polygon)
 - [Avalanche](https://v4.docs.pooltogether.com/protocol/deployments/mainnet#avalanche)
+- [Optimism](https://v4.docs.pooltogether.com/protocol/deployments/mainnet/#optimism)
 
 # Overview
 - [ControlledToken](/contracts/ControlledToken.sol)
