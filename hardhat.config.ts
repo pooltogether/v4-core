@@ -68,7 +68,7 @@ const config: HardhatUserConfig = {
     external: {
         contracts: [
             {
-                artifacts: 'node_modules/@pooltogether/pooltogether-rng-contracts/build',
+                artifacts: 'node_modules/@pooltogether/pooltogether-rng-contracts/artifacts',
             },
         ],
     },
