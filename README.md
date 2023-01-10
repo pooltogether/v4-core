@@ -17,7 +17,7 @@
 <strong>Have questions or want the latest news?</strong>
 <br/>Join the PoolTogether Discord or follow us on Twitter:
 
-[![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/JFBPMxv5tr)
+[![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://pooltogether.com/discord)
 [![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com/PoolTogether_)
 
 **Documentation**<br>
