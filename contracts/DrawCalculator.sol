@@ -140,7 +140,7 @@ contract DrawCalculator is IDrawCalculator {
         uint64 timeNow = uint64(block.timestamp);
 
         // calculate prizes awardable for each Draw passed
-        for (uint32 drawIndex = 0; drawIndex < _draws.length; drawIndex++) {
+        for (uint32 drawIndex; drawIndex < _draws.length;) {
             require(timeNow < _draws[drawIndex].timestamp + _prizeDistributions[drawIndex].expiryDuration, "DrawCalc/draw-expired");
 
             uint64 totalUserPicks = _calculateNumberOfUserPicks(
@@ -155,6 +155,10 @@ contract DrawCalculator is IDrawCalculator {
                 _pickIndicesForDraws[drawIndex],
                 _prizeDistributions[drawIndex]
             );
+
+            unchecked {
+                ++drawIndex;
+            }
         }
 
         prizeCounts = abi.encode(_prizeCounts);
@@ -192,12 +196,13 @@ contract DrawCalculator is IDrawCalculator {
         uint64[] memory _timestampsWithEndCutoffTimes = new uint64[](drawsLength);
 
         // generate timestamps with draw cutoff offsets included
-        for (uint32 i = 0; i < drawsLength; i++) {
+        for (uint32 i; i < drawsLength;) {
             unchecked {
                 _timestampsWithStartCutoffTimes[i] =
                     _draws[i].timestamp - _prizeDistributions[i].startTimestampOffset;
                 _timestampsWithEndCutoffTimes[i] =
                     _draws[i].timestamp - _prizeDistributions[i].endTimestampOffset;
+                ++i;
             }
         }
 
@@ -215,12 +220,15 @@ contract DrawCalculator is IDrawCalculator {
         uint256[] memory normalizedBalances = new uint256[](drawsLength);
 
         // divide balances by total supplies (normalize)
-        for (uint256 i = 0; i < drawsLength; i++) {
+        for (uint256 i; i < drawsLength;) {
             if(totalSupplies[i] == 0){
                 normalizedBalances[i] = 0;
             }
             else {
                 normalizedBalances[i] = (balances[i] * 1 ether) / totalSupplies[i];
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -249,7 +257,7 @@ contract DrawCalculator is IDrawCalculator {
         uint32 picksLength = uint32(_picks.length);
         uint256[] memory _prizeCounts = new uint256[](_prizeDistribution.tiers.length);
 
-        uint8 maxWinningTierIndex = 0;
+        uint8 maxWinningTierIndex;
 
         require(
             picksLength <= _prizeDistribution.maxPicksPerUser,
@@ -257,7 +265,7 @@ contract DrawCalculator is IDrawCalculator {
         );
 
         // for each pick, find number of matching numbers and calculate prize distributions index
-        for (uint32 index = 0; index < picksLength; index++) {
+        for (uint32 index; index < picksLength;) {
             require(_picks[index] < _totalUserPicks, "DrawCalc/insufficient-user-picks");
 
             if (index > 0) {
@@ -282,10 +290,14 @@ contract DrawCalculator is IDrawCalculator {
                 }
                 _prizeCounts[tiersIndex]++;
             }
+
+            unchecked {
+                ++index;
+            }
         }
 
         // now calculate prizeFraction given prizeCounts
-        uint256 prizeFraction = 0;
+        uint256 prizeFraction;
         uint256[] memory prizeTiersFractions = _calculatePrizeTierFractions(
             _prizeDistribution,
             maxWinningTierIndex
@@ -293,7 +305,7 @@ contract DrawCalculator is IDrawCalculator {
 
         // multiple the fractions by the prizeCounts and add them up
         for (
-            uint256 prizeCountIndex = 0;
+            uint256 prizeCountIndex;
             prizeCountIndex <= maxWinningTierIndex;
             prizeCountIndex++
         ) {
@@ -320,11 +332,11 @@ contract DrawCalculator is IDrawCalculator {
         uint256 _winningRandomNumber,
         uint256[] memory _masks
     ) internal pure returns (uint8) {
-        uint8 numberOfMatches = 0;
+        uint8 numberOfMatches;
         uint8 masksLength = uint8(_masks.length);
 
         // main number matching loop
-        for (uint8 matchIndex = 0; matchIndex < masksLength; matchIndex++) {
+        for (uint8 matchIndex; matchIndex < masksLength;) {
             uint256 mask = _masks[matchIndex];
 
             if ((_randomNumberThisPick & mask) != (_winningRandomNumber & mask)) {
@@ -338,6 +350,9 @@ contract DrawCalculator is IDrawCalculator {
 
             // else there was a match
             numberOfMatches++;
+            unchecked {
+                ++matchIndex;
+            }
         }
 
         return masksLength - numberOfMatches;
@@ -357,7 +372,7 @@ contract DrawCalculator is IDrawCalculator {
         masks[0] =  (2**_prizeDistribution.bitRangeSize) - 1;
 
         for (uint8 maskIndex = 1; maskIndex < _prizeDistribution.matchCardinality; maskIndex++) {
-            // shift mask bits to correct position and insert in result mask array
+            // shift mask bits to correct position and insert them in result mask array
             masks[maskIndex] = masks[maskIndex - 1] << _prizeDistribution.bitRangeSize;
         }
 
@@ -400,11 +415,14 @@ contract DrawCalculator is IDrawCalculator {
             maxWinningTierIndex + 1
         );
 
-        for (uint8 i = 0; i <= maxWinningTierIndex; i++) {
+        for (uint8 i; i <= maxWinningTierIndex;) {
             prizeDistributionFractions[i] = _calculatePrizeTierFraction(
                 _prizeDistribution,
                 i
             );
+            unchecked {
+                ++i;
+            }
         }
 
         return prizeDistributionFractions;
